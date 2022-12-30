@@ -294,12 +294,12 @@ class ReaderService:
                     origin_hash=device_hash,
                 )
                 mapping = Mapping(
-                    input_combination=InputCombination(input_config),
+                    input_combination=InputCombination([input_config]),
                     target_uinput="keyboard",
                     output_symbol="KEY_A",
                 )
                 handler: MappingHandler = AbsToBtnHandler(
-                    InputCombination(input_config), mapping
+                    InputCombination([input_config]), mapping
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context_dummy.add_handler(input_config, handler)
@@ -307,11 +307,11 @@ class ReaderService:
                 # negative direction
                 input_config = input_config.modify(analog_threshold=-30)
                 mapping = Mapping(
-                    input_combination=InputCombination(input_config),
+                    input_combination=InputCombination([input_config]),
                     target_uinput="keyboard",
                     output_symbol="KEY_A",
                 )
-                handler = AbsToBtnHandler(InputCombination(input_config), mapping)
+                handler = AbsToBtnHandler(InputCombination([input_config]), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context_dummy.add_handler(input_config, handler)
 
@@ -324,13 +324,13 @@ class ReaderService:
                     origin_hash=device_hash,
                 )
                 mapping = Mapping(
-                    input_combination=InputCombination(input_config),
+                    input_combination=InputCombination([input_config]),
                     target_uinput="keyboard",
                     output_symbol="KEY_A",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
-                handler = RelToBtnHandler(InputCombination(input_config), mapping)
+                handler = RelToBtnHandler(InputCombination([input_config]), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context_dummy.add_handler(input_config, handler)
 
@@ -339,13 +339,13 @@ class ReaderService:
                     analog_threshold=-self.rel_xy_speed[ev_code]
                 )
                 mapping = Mapping(
-                    input_combination=InputCombination(input_config),
+                    input_combination=InputCombination([input_config]),
                     target_uinput="keyboard",
                     output_symbol="KEY_A",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
-                handler = RelToBtnHandler(InputCombination(input_config), mapping)
+                handler = RelToBtnHandler(InputCombination([input_config]), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context_dummy.add_handler(input_config, handler)
 

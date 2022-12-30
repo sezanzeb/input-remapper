@@ -383,7 +383,7 @@ class TestInputCombination(unittest.TestCase):
         InputCombination(({"type": 1, "code": 2}, {"type": 1, "code": 1}))
         InputCombination(({"type": 1, "code": 2},))
         InputCombination(({"type": "1", "code": "2"},))
-        InputCombination(InputConfig(type=1, code=2, analog_threshold=3))
+        InputCombination([InputConfig(type=1, code=2, analog_threshold=3)])
         InputCombination(
             (
                 {"type": 1, "code": 2},
@@ -393,7 +393,7 @@ class TestInputCombination(unittest.TestCase):
         )
 
     def test_to_config(self):
-        c1 = InputCombination(InputConfig(type=1, code=2, analog_threshold=3))
+        c1 = InputCombination([InputConfig(type=1, code=2, analog_threshold=3)])
         c2 = InputCombination(
             (
                 InputConfig(type=1, code=2, analog_threshold=3),

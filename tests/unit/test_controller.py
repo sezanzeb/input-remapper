@@ -457,7 +457,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(
-            combination=InputCombination(InputConfig(type=1, code=4))
+            combination=InputCombination([InputConfig(type=1, code=4)])
         )
 
         with patch.object(self.data_manager, "update_mapping") as mock:
@@ -514,7 +514,7 @@ class TestController(unittest.TestCase):
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
         self.message_broker.subscribe(
             MessageType.user_confirm_request, lambda msg: msg.respond(True)
         )
@@ -524,7 +524,7 @@ class TestController(unittest.TestCase):
         preset = Preset(get_preset_path("Foo Device", "preset2"))
         preset.load()
         self.assertIsNone(
-            preset.get_mapping(InputCombination(InputConfig(type=1, code=3)))
+            preset.get_mapping(InputCombination([InputConfig(type=1, code=3)]))
         )
 
     def test_does_not_delete_mapping_when_not_confirmed(self):
@@ -533,7 +533,7 @@ class TestController(unittest.TestCase):
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
         self.user_interface.confirm_delete.configure_mock(
             return_value=Gtk.ResponseType.CANCEL
         )
@@ -544,7 +544,7 @@ class TestController(unittest.TestCase):
         preset = Preset(get_preset_path("Foo Device", "preset2"))
         preset.load()
         self.assertIsNotNone(
-            preset.get_mapping(InputCombination(InputConfig(type=1, code=3)))
+            preset.get_mapping(InputCombination([InputConfig(type=1, code=3)]))
         )
 
     def test_should_update_combination(self):
@@ -552,7 +552,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
         calls: List[CombinationUpdate] = []
 
@@ -561,13 +561,13 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.combination_update, f)
         self.controller.update_combination(
-            InputCombination(InputConfig(type=1, code=10))
+            InputCombination([InputConfig(type=1, code=10)])
         )
         self.assertEqual(
             calls[0],
             CombinationUpdate(
-                InputCombination(InputConfig(type=1, code=3)),
-                InputCombination(InputConfig(type=1, code=10)),
+                InputCombination([InputConfig(type=1, code=3)]),
+                InputCombination([InputConfig(type=1, code=10)]),
             ),
         )
 
@@ -576,7 +576,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
         calls: List[CombinationUpdate] = []
 
@@ -585,7 +585,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.combination_update, f)
         self.controller.update_combination(
-            InputCombination(InputConfig(type=1, code=4))
+            InputCombination([InputConfig(type=1, code=4)])
         )
         self.assertEqual(len(calls), 0)
 
@@ -632,7 +632,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
         calls: List[CombinationUpdate] = []
 
@@ -643,13 +643,13 @@ class TestController(unittest.TestCase):
 
         self.controller.start_key_recording()
         self.message_broker.publish(
-            CombinationRecorded(InputCombination(InputConfig(type=1, code=10)))
+            CombinationRecorded(InputCombination([InputConfig(type=1, code=10)]))
         )
         self.assertEqual(
             calls[0],
             CombinationUpdate(
-                InputCombination(InputConfig(type=1, code=3)),
-                InputCombination(InputConfig(type=1, code=10)),
+                InputCombination([InputConfig(type=1, code=3)]),
+                InputCombination([InputConfig(type=1, code=10)]),
             ),
         )
         self.message_broker.publish(
@@ -660,7 +660,7 @@ class TestController(unittest.TestCase):
         self.assertEqual(
             calls[1],
             CombinationUpdate(
-                InputCombination(InputConfig(type=1, code=10)),
+                InputCombination([InputConfig(type=1, code=10)]),
                 InputCombination(get_combination_config((1, 10), (1, 3))),
             ),
         )
@@ -669,7 +669,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
         calls: List[CombinationUpdate] = []
 
@@ -679,7 +679,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_update, f)
 
         self.message_broker.publish(
-            CombinationRecorded(InputCombination(InputConfig(type=1, code=10)))
+            CombinationRecorded(InputCombination([InputConfig(type=1, code=10)]))
         )
         self.assertEqual(len(calls), 0)
 
@@ -687,7 +687,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
         calls: List[CombinationUpdate] = []
 
@@ -698,7 +698,7 @@ class TestController(unittest.TestCase):
 
         self.controller.start_key_recording()
         self.message_broker.publish(
-            CombinationRecorded(InputCombination(InputConfig(type=1, code=10)))
+            CombinationRecorded(InputCombination([InputConfig(type=1, code=10)]))
         )
         self.message_broker.signal(MessageType.recording_finished)
         self.message_broker.publish(
@@ -713,7 +713,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
         calls: List[CombinationUpdate] = []
 
@@ -724,7 +724,7 @@ class TestController(unittest.TestCase):
 
         self.controller.start_key_recording()
         self.message_broker.publish(
-            CombinationRecorded(InputCombination(InputConfig(type=1, code=10)))
+            CombinationRecorded(InputCombination([InputConfig(type=1, code=10)]))
         )
         self.controller.stop_key_recording()
         self.message_broker.publish(
@@ -762,7 +762,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("foo")
         self.data_manager.create_mapping()
         self.data_manager.update_mapping(
-            input_combination=InputCombination(InputConfig.btn_left()),
+            input_combination=InputCombination([InputConfig.btn_left()]),
             target_uinput="keyboard",
             output_symbol="a",
         )
@@ -788,7 +788,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("foo")
         self.data_manager.create_mapping()
         self.data_manager.update_mapping(
-            input_combination=InputCombination(InputConfig.btn_left()),
+            input_combination=InputCombination([InputConfig.btn_left()]),
             target_uinput="keyboard",
             output_symbol="a",
         )
@@ -805,14 +805,14 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("foo")
         self.data_manager.create_mapping()
         self.data_manager.update_mapping(
-            input_combination=InputCombination(InputConfig.btn_left()),
+            input_combination=InputCombination([InputConfig.btn_left()]),
             target_uinput="keyboard",
             output_symbol="a",
         )
         self.data_manager.create_mapping()
         self.data_manager.load_mapping(InputCombination.empty_combination())
         self.data_manager.update_mapping(
-            input_combination=InputCombination(InputConfig(type=1, code=5)),
+            input_combination=InputCombination([InputConfig(type=1, code=5)]),
             target_uinput="mouse",
             output_symbol="BTN_LEFT",
         )

@@ -142,17 +142,19 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=3,
-                            code=16,
-                            analog_threshold=1,
-                            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=3,
+                                code=16,
+                                analog_threshold=1,
+                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=3,
                                 code=16,
@@ -165,7 +167,7 @@ class TestReader(unittest.TestCase):
                                 analog_threshold=1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
             ],
@@ -197,12 +199,14 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=2,
-                            code=0,
-                            analog_threshold=-1,
-                            origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=2,
+                                code=0,
+                                analog_threshold=-1,
+                                origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
+                            )
+                        ]
                     )
                 )
             ],
@@ -244,17 +248,19 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=2,
-                            code=8,
-                            analog_threshold=-1,
-                            origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=2,
+                                code=8,
+                                analog_threshold=-1,
+                                origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
+                            )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=2,
                                 code=8,
@@ -267,7 +273,7 @@ class TestReader(unittest.TestCase):
                                 analog_threshold=1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
             ],
@@ -293,12 +299,14 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=1,
-                            code=30,
-                            analog_threshold=1,
-                            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=1,
+                                code=30,
+                                analog_threshold=1,
+                                origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            )
+                        ]
                     )
                 )
             ],
@@ -325,12 +333,14 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=3,
-                            code=0,
-                            analog_threshold=1,
-                            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=3,
+                                code=0,
+                                analog_threshold=1,
+                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            )
+                        ]
                     )
                 )
             ],
@@ -349,12 +359,14 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=3,
-                            code=0,
-                            analog_threshold=1,
-                            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=3,
+                                code=0,
+                                analog_threshold=1,
+                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            )
+                        ]
                     )
                 )
             ],
@@ -390,16 +402,18 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=EV_KEY,
-                            code=KEY_A,
-                            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=EV_KEY,
+                                code=KEY_A,
+                                origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=EV_KEY,
                                 code=KEY_A,
@@ -411,12 +425,12 @@ class TestReader(unittest.TestCase):
                                 analog_threshold=1,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=EV_KEY,
                                 code=KEY_A,
@@ -433,12 +447,12 @@ class TestReader(unittest.TestCase):
                                 code=KEY_COMMA,
                                 origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=EV_KEY,
                                 code=KEY_A,
@@ -455,7 +469,7 @@ class TestReader(unittest.TestCase):
                                 code=KEY_COMMA,
                                 origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
             ],
@@ -491,11 +505,13 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[0].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_KEY,
-                    code=1,
-                    origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_KEY,
+                        code=1,
+                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                    )
+                ]
             ),
         )
 
@@ -514,11 +530,13 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[1].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_KEY,
-                    code=2,
-                    origin_hash=fixtures.bar_device.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_KEY,
+                        code=2,
+                        origin_hash=fixtures.bar_device.get_device_hash(),
+                    )
+                ]
             ),
         )
 
@@ -565,7 +583,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                (
+                [
                     InputConfig(
                         type=EV_KEY,
                         code=CODE_1,
@@ -582,7 +600,7 @@ class TestReader(unittest.TestCase):
                         analog_threshold=-1,
                         origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                     ),
-                )
+                ]
             ),
         )
 
@@ -607,11 +625,13 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_KEY,
-                    code=BTN_LEFT,
-                    origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_KEY,
+                        code=BTN_LEFT,
+                        origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
+                    )
+                ]
             ),
         )
 
@@ -632,12 +652,14 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_ABS,
-                    code=ABS_HAT0X,
-                    analog_threshold=1,
-                    origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_HAT0X,
+                        analog_threshold=1,
+                        origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                    )
+                ]
             ),
         )
 
@@ -660,11 +682,13 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_KEY,
-                    code=CODE_2,
-                    origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_KEY,
+                        code=CODE_2,
+                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                    )
+                ]
             ),
         )
 

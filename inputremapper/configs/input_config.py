@@ -72,7 +72,7 @@ class InputConfig(BaseModel):
         )
 
     @classmethod
-    def abs(cls, code, analog_threshold, origin_hash):
+    def abs(cls, code, analog_threshold, origin_hash: Optional[DeviceHash] = None):
         """Create a new InputConfig object for an abs input like joysticks."""
         # TODO analog_threshold default None and move to last param?
         return InputConfig(
@@ -83,7 +83,7 @@ class InputConfig(BaseModel):
         )
 
     @classmethod
-    def key(cls, code, origin_hash):
+    def key(cls, code, origin_hash: Optional[DeviceHash] = None):
         """Create a new InputConfig object for a key input."""
         return InputConfig(
             type=EV_KEY,
@@ -92,7 +92,7 @@ class InputConfig(BaseModel):
         )
 
     @classmethod
-    def rel(cls, code, origin_hash):
+    def rel(cls, code, origin_hash: Optional[DeviceHash] = None):
         """Create a new InputConfig object for a rel input like mouse movements."""
         return InputConfig(
             type=EV_REL,
@@ -277,13 +277,18 @@ class InputConfig(BaseModel):
             values["analog_threshold"] = None
         return values
 
-    @validator("origin_hash", pre=True)
-    def validate_origin_hash(cls, origin_hash):
-        # TODO tested?
+    @root_validator(pre=True)
+    def validate_origin_hash(cls, values):
+        origin_hash = values.get("origin_hash")
         if origin_hash is None:
-            return None
+            # Should be the case when running.
+            # I don't want to adjust every test that doesn't have an origin_hash
+            # and doesn't need one, so origin_hash stays optional for now.
+            logger.error("No origin_hash set for %s", values)
+            return values
 
-        return origin_hash.lower()
+        values["origin_hash"] = origin_hash.lower()
+        return values
 
     class Config:
         allow_mutation = False
@@ -291,29 +296,42 @@ class InputConfig(BaseModel):
 
 
 InputCombinationInit = Union[
-    InputConfig,
     Iterable[Dict[str, Union[str, int]]],
     Iterable[InputConfig],
 ]
 
 
 class InputCombination(Tuple[InputConfig, ...]):
-    """One or more InputConfig's used to trigger a mapping"""
+    """One or more InputConfigs used to trigger a mapping."""
 
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
     def __new__(cls, configs: InputCombinationInit) -> InputCombination:
-        if isinstance(configs, InputCombination):
-            return super().__new__(cls, configs)  # type: ignore
+        """Create a new InputCombination.
+
+        Examples
+        --------
+            InputCombination([InputConfig, ...])
+            InputCombination([{type, code, value}, ...])
+        """
+        if not isinstance(configs, Iterable):
+            raise TypeError("InputCombination requires a list of InputConfigs.")
+
         if isinstance(configs, InputConfig):
-            return super().__new__(cls, [configs])  # type: ignore
+            # wrap the argument in square brackets
+            raise TypeError("InputCombination requires a list of InputConfigs.")
 
         validated_configs = []
-        for cfg in configs:
-            if isinstance(cfg, InputConfig):
-                validated_configs.append(cfg)
+        for config in configs:
+            if isinstance(configs, InputEvent):
+                raise TypeError("InputCombinations require InputConfigs, not Events.")
+
+            if isinstance(config, InputConfig):
+                validated_configs.append(config)
+            elif isinstance(config, dict):
+                validated_configs.append(InputConfig(**config))
             else:
-                validated_configs.append(InputConfig(**cfg))
+                raise ValueError(f"No idea how to handle {config}")
 
         if len(validated_configs) == 0:
             raise ValueError(f"failed to create InputCombination with {configs = }")
@@ -342,6 +360,7 @@ class InputCombination(Tuple[InputConfig, ...]):
         return cls(init_arg)
 
     def to_config(self) -> Tuple[Dict[str, int], ...]:
+        """Turn the object into a tuple of dicts."""
         return tuple(input_config.dict(exclude_defaults=True) for input_config in self)
 
     @classmethod

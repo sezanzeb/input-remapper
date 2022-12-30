@@ -167,16 +167,16 @@ class CombinationHandler(MappingHandler):
 
     def rank_by(self) -> InputCombination:
         return InputCombination(
-            event for event in self.input_configs if not event.defines_analog_input
+            [event for event in self.input_configs if not event.defines_analog_input]
         )
 
     def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         return_dict = {}
         for config in self.input_configs:
             if config.type == EV_ABS and not config.defines_analog_input:
-                return_dict[InputCombination(config)] = HandlerEnums.abs2btn
+                return_dict[InputCombination([config])] = HandlerEnums.abs2btn
 
             if config.type == EV_REL and not config.defines_analog_input:
-                return_dict[InputCombination(config)] = HandlerEnums.rel2btn
+                return_dict[InputCombination([config])] = HandlerEnums.rel2btn
 
         return return_dict

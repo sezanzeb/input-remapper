@@ -44,7 +44,7 @@ class HierarchyHandler(MappingHandler):
     ) -> None:
         self.handlers = handlers
         self._input_config = input_config
-        combination = InputCombination(input_config)
+        combination = InputCombination([input_config])
         # use the mapping from the first child TODO: find a better solution
         mapping = handlers[0].mapping
         super().__init__(combination, mapping)
@@ -85,12 +85,12 @@ class HierarchyHandler(MappingHandler):
             self._input_config.type == EV_ABS
             and not self._input_config.defines_analog_input
         ):
-            return {InputCombination(self._input_config): HandlerEnums.abs2btn}
+            return {InputCombination([self._input_config]): HandlerEnums.abs2btn}
         if (
             self._input_config.type == EV_REL
             and not self._input_config.defines_analog_input
         ):
-            return {InputCombination(self._input_config): HandlerEnums.rel2btn}
+            return {InputCombination([self._input_config]): HandlerEnums.rel2btn}
         return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:

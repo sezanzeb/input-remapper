@@ -115,8 +115,6 @@ class TestDaemon(unittest.TestCase):
 
         preset_name = "foo"
 
-        ev = (EV_ABS, ABS_X)
-
         group = groups.find(name="gamepad")
 
         # unrelated group that shouldn't be affected at all
@@ -125,14 +123,16 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=BTN_A)),
-                "keyboard",
-                "a",
+                input_combination=InputCombination([InputConfig.key(BTN_A)]),
+                target_uinput="keyboard",
+                output_symbol="a",
             )
         )
         preset.add(
             get_key_mapping(
-                InputCombination(get_combination_config((*ev, -1))), "keyboard", "b"
+                input_combination=InputCombination([InputConfig.abs(ABS_X, -1)]),
+                target_uinput="keyboard",
+                output_symbol="b",
             )
         )
         preset.save()
@@ -189,7 +189,7 @@ class TestDaemon(unittest.TestCase):
         # -1234 will be classified as -1 by the injector
         push_events(
             fixtures.gamepad,
-            [new_event(*ev, -1234, fixtures.gamepad.get_device_hash())],
+            [InputEvent.abs(ABS_X, -1234, fixtures.gamepad.get_device_hash())],
         )
         time.sleep(0.1)
 
@@ -219,7 +219,7 @@ class TestDaemon(unittest.TestCase):
             os.remove(get_config_path("xmodmap.json"))
 
         preset_name = "foo"
-        ev = (EV_KEY, 9)
+        key_code = 9
         group_name = "9876 name"
 
         # expected key of the group
@@ -235,7 +235,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(get_preset_path(group_name, preset_name))
         preset.add(
             get_key_mapping(
-                InputCombination(get_combination_config(ev)), "keyboard", "a"
+                InputCombination([InputConfig.key(key_code)]), "keyboard", "a"
             )
         )
 
@@ -253,13 +253,13 @@ class TestDaemon(unittest.TestCase):
 
         # the daemon is supposed to find this device by calling refresh
         fixture = Fixture(
-            capabilities={evdev.ecodes.EV_KEY: [ev[1]]},
+            capabilities={evdev.ecodes.EV_KEY: [key_code]},
             phys="9876 phys",
             info=evdev.device.DeviceInfo(4, 5, 6, 7),
             name=group_name,
         )
         fixtures[self.new_fixture_path] = fixture
-        push_events(fixture, [new_event(*ev, 1, fixture.get_device_hash())])
+        push_events(fixture, [InputEvent.key(key_code, 1, fixture.get_device_hash())])
         self.daemon.start_injecting(group_key, preset_name)
 
         # test if the injector called groups.refresh successfully
@@ -307,7 +307,6 @@ class TestDaemon(unittest.TestCase):
         target = "keyboard"
         to_name = "q"
         to_keycode = 100
-        event = (EV_KEY, from_keycode, 1)
 
         name = "Bar Device"
         preset_name = "foo"
@@ -320,7 +319,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(path)
         preset.add(
             get_key_mapping(
-                InputCombination(get_combination_config(event)), target, to_name
+                InputCombination([InputConfig.key(from_keycode)]), target, to_name
             )
         )
         preset.save()
@@ -329,7 +328,7 @@ class TestDaemon(unittest.TestCase):
 
         push_events(
             fixtures.bar_device,
-            [new_event(*event, fixtures.bar_device.get_device_hash())],
+            [InputEvent.key(from_keycode, fixtures.bar_device.get_device_hash())],
         )
 
         # an existing config file is needed otherwise set_config_dir refuses
@@ -366,7 +365,7 @@ class TestDaemon(unittest.TestCase):
         pereset = Preset(group.get_preset_path(preset_name))
         pereset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=KEY_A)),
+                InputCombination([InputConfig(type=EV_KEY, code=KEY_A)]),
                 "keyboard",
                 "a",
             )
@@ -434,7 +433,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=KEY_A)),
+                InputCombination([InputConfig(type=EV_KEY, code=KEY_A)]),
                 "keyboard",
                 "a",
             )
@@ -492,7 +491,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=3, code=2, analog_threshold=1)),
+                InputCombination([InputConfig(type=3, code=2, analog_threshold=1)]),
                 "keyboard",
                 "a",
             )
@@ -515,7 +514,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=3, code=2, analog_threshold=1)),
+                InputCombination([InputConfig(type=3, code=2, analog_threshold=1)]),
                 "keyboard",
                 "a",
             )

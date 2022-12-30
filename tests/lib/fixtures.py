@@ -333,6 +333,8 @@ def get_combination_config(
 
 def get_ui_mapping(input_combination=None, target_uinput="keyboard", output_symbol="a"):
     """Convenient function to get a valid mapping."""
+    # TODO add classmethod to UIMapping instead and deprecate this,
+    #  something like UIMapping.keyboard with the target fixed to "keyboard".
     from inputremapper.configs.mapping import UIMapping
 
     if not input_combination:
@@ -349,6 +351,8 @@ def get_key_mapping(
     input_combination=None, target_uinput="keyboard", output_symbol="a"
 ):
     """Convenient function to get a valid mapping."""
+    # TODO add classmethod to Mapping instead and deprecate this,
+    #  something like Mapping.keyboard with the target fixed to "keyboard".
     from inputremapper.configs.mapping import Mapping
 
     if not input_combination:
@@ -361,13 +365,19 @@ def get_key_mapping(
     )
 
 
-def new_event(type, code, value, timestamp=None, offset=0):
-    """Create a new InputEvent."""
-    # TODO probably deprecated with InputEvent.abs and InputEvent.key
+def new_event(type, code, value, timestamp):
+    """Create a new InputEvent.
+
+    Handy because of the annoying sec and usec arguments of the regular
+    evdev.InputEvent constructor.
+
+    Prefer using `InputEvent.key()`, `InputEvent.abs()`, `InputEvent.rel()` or just
+    `InputEvent(0, 0, 1234, 2345, 3456)`.
+    """
     from inputremapper.input_event import InputEvent
 
     if timestamp is None:
-        timestamp = time.time() + offset
+        timestamp = time.time()
 
     sec = int(timestamp)
     usec = timestamp % 1 * 1000000

@@ -83,11 +83,13 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.preset.add(
             get_key_mapping(
                 InputCombination(
-                    InputConfig(
-                        type=EV_KEY,
-                        code=trigger,
-                        origin_hash=fixtures.gamepad.get_device_hash(),
-                    )
+                    [
+                        InputConfig(
+                            type=EV_KEY,
+                            code=trigger,
+                            origin_hash=fixtures.gamepad.get_device_hash(),
+                        )
+                    ]
                 ),
                 "keyboard",
                 "if_single(key(a), key(KEY_LEFTSHIFT))",
@@ -96,12 +98,14 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.preset.add(
             get_key_mapping(
                 InputCombination(
-                    InputConfig(
-                        type=EV_ABS,
-                        code=ABS_Y,
-                        analog_threshold=1,
-                        origin_hash=fixtures.gamepad.get_device_hash(),
-                    )
+                    [
+                        InputConfig(
+                            type=EV_ABS,
+                            code=ABS_Y,
+                            analog_threshold=1,
+                            origin_hash=fixtures.gamepad.get_device_hash(),
+                        )
+                    ]
                 ),
                 "keyboard",
                 "b",
@@ -184,12 +188,14 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.preset.add(
             get_key_mapping(
                 InputCombination(
-                    InputConfig(
-                        type=EV_ABS,
-                        code=ABS_Y,
-                        analog_threshold=1,
-                        origin_hash=fixtures.gamepad.get_device_hash(),
-                    )
+                    [
+                        InputConfig(
+                            type=EV_ABS,
+                            code=ABS_Y,
+                            analog_threshold=1,
+                            origin_hash=fixtures.gamepad.get_device_hash(),
+                        )
+                    ]
                 ),
                 "keyboard",
                 "b",

@@ -215,7 +215,7 @@ class UInput:
 
     def write(self, type, code, value):
         self.write_count += 1
-        event = new_event(type, code, value)
+        event = new_event(type, code, value, time.time())
         uinput_write_history.append(event)
         uinput_write_history_pipe[1].send(event)
         self.write_history.append(event)

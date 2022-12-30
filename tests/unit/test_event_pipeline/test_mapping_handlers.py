@@ -112,7 +112,7 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
-            InputConfig(type=3, code=5, analog_threshold=10)
+            [InputConfig(type=3, code=5, analog_threshold=10)]
         )
         self.handler = AbsToBtnHandler(
             input_combination,
@@ -126,7 +126,7 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        input_combination = InputCombination(InputConfig(type=EV_ABS, code=ABS_X))
+        input_combination = InputCombination([InputConfig(type=EV_ABS, code=ABS_X)])
         self.handler = AbsToAbsHandler(
             input_combination,
             Mapping(
@@ -152,7 +152,7 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_X))
+        input_combination = InputCombination([InputConfig(type=EV_REL, code=REL_X)])
         self.handler = RelToAbsHandler(
             input_combination,
             Mapping(
@@ -215,7 +215,7 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        input_combination = InputCombination(InputConfig(type=EV_ABS, code=ABS_X))
+        input_combination = InputCombination([InputConfig(type=EV_ABS, code=ABS_X)])
         self.handler = AbsToRelHandler(
             input_combination,
             Mapping(
@@ -361,7 +361,7 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 class TestRelToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
-            InputConfig(type=2, code=0, analog_threshold=10)
+            [InputConfig(type=2, code=0, analog_threshold=10)]
         )
         self.handler = RelToBtnHandler(
             input_combination,
@@ -377,7 +377,7 @@ class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
     handler: RelToRelHandler
 
     def setUp(self):
-        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_X))
+        input_combination = InputCombination([InputConfig(type=EV_REL, code=REL_X)])
         self.handler = RelToRelHandler(
             input_combination,
             Mapping(

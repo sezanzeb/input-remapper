@@ -163,7 +163,7 @@ class TestDataManager(unittest.TestCase):
         listener = Listener()
         self.message_broker.subscribe(MessageType.mapping, listener)
         self.data_manager.load_mapping(
-            combination=InputCombination(InputConfig(type=1, code=1))
+            combination=InputCombination([InputConfig(type=1, code=1)])
         )
 
         mapping: MappingData = listener.calls[0]
@@ -171,7 +171,7 @@ class TestDataManager(unittest.TestCase):
         control_preset.load()
         self.assertEqual(
             control_preset.get_mapping(
-                InputCombination(InputConfig(type=1, code=1))
+                InputCombination([InputConfig(type=1, code=1)])
             ).output_symbol,
             mapping.output_symbol,
         )
@@ -185,7 +185,7 @@ class TestDataManager(unittest.TestCase):
         control_preset.load()
         self.assertEqual(
             control_preset.get_mapping(
-                InputCombination(InputConfig(type=1, code=1))
+                InputCombination([InputConfig(type=1, code=1)])
             ).output_symbol,
             "key(a)",
         )
@@ -379,7 +379,7 @@ class TestDataManager(unittest.TestCase):
         """should be able to load a mapping"""
         preset, _, _ = prepare_presets()
         expected_mapping = preset.get_mapping(
-            InputCombination(InputConfig(type=1, code=1))
+            InputCombination([InputConfig(type=1, code=1)])
         )
 
         self.data_manager.load_group(group_key="Foo Device")
@@ -387,7 +387,7 @@ class TestDataManager(unittest.TestCase):
         listener = Listener()
         self.message_broker.subscribe(MessageType.mapping, listener)
         self.data_manager.load_mapping(
-            combination=InputCombination(InputConfig(type=1, code=1))
+            combination=InputCombination([InputConfig(type=1, code=1)])
         )
         mapping = listener.calls[0]
 
@@ -402,7 +402,7 @@ class TestDataManager(unittest.TestCase):
         self.assertRaises(
             KeyError,
             self.data_manager.load_mapping,
-            combination=InputCombination(InputConfig(type=1, code=1)),
+            combination=InputCombination([InputConfig(type=1, code=1)]),
         )
 
     def test_cannot_load_mapping_without_preset(self):
@@ -413,13 +413,13 @@ class TestDataManager(unittest.TestCase):
         self.assertRaises(
             DataManagementError,
             self.data_manager.load_mapping,
-            combination=InputCombination(InputConfig(type=1, code=1)),
+            combination=InputCombination([InputConfig(type=1, code=1)]),
         )
         self.data_manager.load_group("Foo Device")
         self.assertRaises(
             DataManagementError,
             self.data_manager.load_mapping,
-            combination=InputCombination(InputConfig(type=1, code=1)),
+            combination=InputCombination([InputConfig(type=1, code=1)]),
         )
 
     def test_load_event(self):
@@ -428,7 +428,7 @@ class TestDataManager(unittest.TestCase):
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.data_manager.load_group("Foo Device")
         self.data_manager.load_preset("preset1")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=1)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
         self.data_manager.load_input_config(InputConfig(type=1, code=1))
         mock.assert_called_once_with(InputConfig(type=1, code=1))
         self.assertEqual(
@@ -446,7 +446,7 @@ class TestDataManager(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device")
         self.data_manager.load_preset("preset1")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=1)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
         with self.assertRaises(ValueError):
             self.data_manager.load_input_config(InputConfig(type=1, code=5))
 
@@ -454,7 +454,7 @@ class TestDataManager(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device")
         self.data_manager.load_preset("preset1")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=1)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
         self.data_manager.load_input_config(InputConfig(type=1, code=1))
         self.data_manager.update_input_config(InputConfig(type=1, code=5))
         self.assertEqual(
@@ -465,7 +465,7 @@ class TestDataManager(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device")
         self.data_manager.load_preset("preset1")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=1)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
         self.data_manager.load_input_config(InputConfig(type=1, code=1))
 
         mock = MagicMock()
@@ -476,8 +476,8 @@ class TestDataManager(unittest.TestCase):
         expected = [
             call(
                 CombinationUpdate(
-                    InputCombination(InputConfig(type=1, code=1)),
-                    InputCombination(InputConfig(type=1, code=5)),
+                    InputCombination([InputConfig(type=1, code=1)]),
+                    InputCombination([InputConfig(type=1, code=5)]),
                 )
             ),
             call(self.data_manager.active_mapping.get_bus_message()),
@@ -489,7 +489,7 @@ class TestDataManager(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device")
         self.data_manager.load_preset("preset1")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=1)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
         self.data_manager.load_input_config(InputConfig(type=1, code=1))
         with self.assertRaises(KeyError):
             self.data_manager.update_input_config(InputConfig(type=1, code=2))
@@ -498,7 +498,7 @@ class TestDataManager(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device")
         self.data_manager.load_preset("preset1")
-        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=1)))
+        self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
         with self.assertRaises(DataManagementError):
             self.data_manager.update_input_config(InputConfig(type=1, code=2))
 
@@ -508,7 +508,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         self.data_manager.load_mapping(
-            combination=InputCombination(InputConfig(type=1, code=4))
+            combination=InputCombination([InputConfig(type=1, code=4)])
         )
 
         listener = Listener()
@@ -530,7 +530,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         self.data_manager.load_mapping(
-            combination=InputCombination(InputConfig(type=1, code=4))
+            combination=InputCombination([InputConfig(type=1, code=4)])
         )
 
         self.data_manager.update_mapping(
@@ -542,7 +542,7 @@ class TestDataManager(unittest.TestCase):
 
         preset = Preset(get_preset_path("Foo Device", "preset2"), UIMapping)
         preset.load()
-        mapping = preset.get_mapping(InputCombination(InputConfig(type=1, code=4)))
+        mapping = preset.get_mapping(InputCombination([InputConfig(type=1, code=4)]))
         self.assertEqual(mapping.format_name(), "foo")
         self.assertEqual(mapping.output_symbol, "f")
         self.assertEqual(mapping.release_timeout, 0.3)
@@ -553,7 +553,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         self.data_manager.load_mapping(
-            combination=InputCombination(InputConfig(type=1, code=4))
+            combination=InputCombination([InputConfig(type=1, code=4)])
         )
 
         self.data_manager.update_mapping(
@@ -563,7 +563,7 @@ class TestDataManager(unittest.TestCase):
 
         preset = Preset(get_preset_path("Foo Device", "preset2"), UIMapping)
         preset.load()
-        mapping = preset.get_mapping(InputCombination(InputConfig(type=1, code=4)))
+        mapping = preset.get_mapping(InputCombination([InputConfig(type=1, code=4)]))
         self.assertIsNotNone(mapping.get_error())
         self.assertEqual(mapping.output_symbol, "bar")
 
@@ -573,7 +573,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         self.data_manager.load_mapping(
-            combination=InputCombination(InputConfig(type=1, code=4))
+            combination=InputCombination([InputConfig(type=1, code=4)])
         )
         listener = Listener()
         self.message_broker.subscribe(MessageType.mapping, listener)
@@ -586,7 +586,7 @@ class TestDataManager(unittest.TestCase):
         self.assertEqual(listener.calls[0].message_type, MessageType.combination_update)
         self.assertEqual(
             listener.calls[0].old_combination,
-            InputCombination(InputConfig(type=1, code=4)),
+            InputCombination([InputConfig(type=1, code=4)]),
         )
         self.assertEqual(
             listener.calls[0].new_combination,
@@ -605,13 +605,13 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         self.data_manager.load_mapping(
-            combination=InputCombination(InputConfig(type=1, code=4))
+            combination=InputCombination([InputConfig(type=1, code=4)])
         )
 
         self.assertRaises(
             KeyError,
             self.data_manager.update_mapping,
-            input_combination=InputCombination(InputConfig(type=1, code=3)),
+            input_combination=InputCombination([InputConfig(type=1, code=3)]),
         )
 
     def test_cannot_update_mapping(self):
@@ -671,7 +671,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         self.data_manager.load_mapping(
-            combination=InputCombination(InputConfig(type=1, code=3))
+            combination=InputCombination([InputConfig(type=1, code=3)])
         )
 
         listener = Listener()
@@ -682,7 +682,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.save()
 
         deleted_mapping = old_preset.get_mapping(
-            InputCombination(InputConfig(type=1, code=3))
+            InputCombination([InputConfig(type=1, code=3)])
         )
         mappings = listener.calls[0].mappings
         preset_name = listener.calls[0].name

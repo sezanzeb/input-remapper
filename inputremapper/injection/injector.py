@@ -237,7 +237,7 @@ class Injector(multiprocessing.Process):
         return None
 
     def _grab_devices(self) -> Dict[DeviceHash, evdev.InputDevice]:
-        # find all devices which have an associated mapping
+        """Grab all InputDevices that match a mappings' origin_hash."""
         # use a dict because the InputDevice is not directly hashable
         needed_devices = {}
         input_configs = set()

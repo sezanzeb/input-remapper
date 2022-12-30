@@ -236,15 +236,15 @@ class TestIdk(EventPipelineTestBase):
     async def test_reset_releases_keys(self):
         """Make sure that macros and keys are releases when the stop event is set."""
         preset = Preset()
-        input_cfg = InputCombination(InputConfig(type=EV_KEY, code=1)).to_config()
+        input_cfg = InputCombination([InputConfig(type=EV_KEY, code=1)]).to_config()
         preset.add(
             get_key_mapping(input_combination=input_cfg, output_symbol="hold(a)")
         )
 
-        input_cfg = InputCombination(InputConfig(type=EV_KEY, code=2)).to_config()
+        input_cfg = InputCombination([InputConfig(type=EV_KEY, code=2)]).to_config()
         preset.add(get_key_mapping(input_combination=input_cfg, output_symbol="b"))
 
-        input_cfg = InputCombination(InputConfig(type=EV_KEY, code=3)).to_config()
+        input_cfg = InputCombination([InputConfig(type=EV_KEY, code=3)]).to_config()
         preset.add(
             get_key_mapping(
                 input_combination=input_cfg, output_symbol="modify(c,hold(d))"
@@ -304,7 +304,7 @@ class TestIdk(EventPipelineTestBase):
         system_mapping._set("b", 77)
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=BTN_A)),
+                InputCombination([InputConfig(type=EV_KEY, code=BTN_A)]),
                 "keyboard",
                 "b",
             )
@@ -345,7 +345,7 @@ class TestIdk(EventPipelineTestBase):
         system_mapping._set("b", 77)
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=BTN_LEFT)),
+                InputCombination([InputConfig(type=EV_KEY, code=BTN_LEFT)]),
                 "keyboard",
                 "b",
             )
@@ -390,7 +390,7 @@ class TestIdk(EventPipelineTestBase):
         origin_hash = origin.get_device_hash()
 
         mapping_1 = get_key_mapping(
-            InputCombination(InputConfig.abs(ABS_X, 1, origin_hash)),
+            InputCombination([InputConfig.abs(ABS_X, 1, origin_hash)]),
             output_symbol="a",
         )
 
@@ -475,26 +475,22 @@ class TestIdk(EventPipelineTestBase):
         # linux will generate events with value 2 after input-remapper injected
         # the key-press, so input-remapper doesn't need to forward them. That
         # would cause duplicate events of those values otherwise.
-        key = (EV_KEY, KEY_A)
-        ev_1 = InputEvent.from_tuple((*key, 1))
-        ev_2 = InputEvent.from_tuple((*key, 2))
-        ev_3 = InputEvent.from_tuple((*key, 0))
+        ev_1 = InputEvent.key(KEY_A, 1)
+        ev_2 = InputEvent.key(KEY_A, 2)
+        ev_3 = InputEvent.key(KEY_A, 0)
 
         preset = Preset()
         preset.add(
             get_key_mapping(
-                InputCombination(get_combination_config(ev_1)), output_symbol="a"
+                input_combination=InputCombination([InputConfig.key(KEY_A)]),
+                output_symbol="a",
             )
         )
         a = system_mapping.get("a")
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
         await self.send_events(
-            [
-                InputEvent.from_tuple(ev_1),
-                InputEvent.from_tuple(ev_2),
-                InputEvent.from_tuple(ev_3),
-            ],
+            [ev_1, ev_2, ev_3],
             event_reader,
         )
 
@@ -524,7 +520,9 @@ class TestIdk(EventPipelineTestBase):
         preset.add(
             get_key_mapping(
                 input_combination=InputCombination(
-                    InputConfig.from_input_event(ev_1),
+                    [
+                        InputConfig.from_input_event(ev_1),
+                    ]
                 ),
                 output_symbol="a",
             )
@@ -532,7 +530,9 @@ class TestIdk(EventPipelineTestBase):
         preset.add(
             get_key_mapping(
                 input_combination=InputCombination(
-                    InputConfig.from_input_event(ev_3),
+                    [
+                        InputConfig.from_input_event(ev_3),
+                    ]
                 ),
                 output_symbol="disable",
             )
@@ -788,13 +788,13 @@ class TestIdk(EventPipelineTestBase):
         ev_6 = InputEvent.key(KEY_C, 0)
 
         mapping_1 = Mapping(
-            input_combination=InputCombination(InputConfig.from_input_event(ev_2)),
+            input_combination=InputCombination([InputConfig.from_input_event(ev_2)]),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=BTN_TL,
         )
         mapping_2 = Mapping(
-            input_combination=InputCombination(InputConfig.from_input_event(ev_3)),
+            input_combination=InputCombination([InputConfig.from_input_event(ev_3)]),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=KEY_A,
@@ -927,7 +927,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         # left x to mouse x
         input_config = InputConfig(type=EV_ABS, code=ABS_X)
         mapping_config = {
-            "input_combination": InputCombination(input_config).to_config(),
+            "input_combination": InputCombination([input_config]).to_config(),
             "target_uinput": "gamepad",
             "output_type": EV_ABS,
             "output_code": ABS_X,
@@ -938,7 +938,9 @@ class TestAbsToAbs(EventPipelineTestBase):
         preset = Preset()
         preset.add(mapping_1)
         input_config = InputConfig(type=EV_ABS, code=ABS_Y)
-        mapping_config["input_combination"] = InputCombination(input_config).to_config()
+        mapping_config["input_combination"] = InputCombination(
+            [input_config]
+        ).to_config()
         mapping_config["output_code"] = ABS_Y
         mapping_2 = Mapping(**mapping_config)
         preset.add(mapping_2)
@@ -1035,7 +1037,7 @@ class TestRelToAbs(EventPipelineTestBase):
         gain = 0.5
         # left mouse x to abs x
         cutoff = 2
-        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_X))
+        input_combination = InputCombination([InputConfig(type=EV_REL, code=REL_X)])
         mapping_config = {
             "input_combination": input_combination.to_config(),
             "target_uinput": "gamepad",
@@ -1049,7 +1051,7 @@ class TestRelToAbs(EventPipelineTestBase):
         mapping_1 = Mapping(**mapping_config)
         preset = Preset()
         preset.add(mapping_1)
-        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_Y))
+        input_combination = InputCombination([InputConfig(type=EV_REL, code=REL_Y)])
         mapping_config["input_combination"] = input_combination.to_config()
         mapping_config["output_code"] = ABS_Y
         mapping_2 = Mapping(**mapping_config)
@@ -1173,7 +1175,7 @@ class TestAbsToRel(EventPipelineTestBase):
         # left x to mouse x
         input_config = InputConfig(type=EV_ABS, code=ABS_X)
         mapping_config = {
-            "input_combination": InputCombination(input_config).to_config(),
+            "input_combination": InputCombination([input_config]).to_config(),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
@@ -1186,7 +1188,9 @@ class TestAbsToRel(EventPipelineTestBase):
         preset.add(mapping_1)
         # left y to mouse y
         input_config = InputConfig(type=EV_ABS, code=ABS_Y)
-        mapping_config["input_combination"] = InputCombination(input_config).to_config()
+        mapping_config["input_combination"] = InputCombination(
+            [input_config]
+        ).to_config()
         mapping_config["output_code"] = REL_Y
         mapping_2 = Mapping(**mapping_config)
         preset.add(mapping_2)
@@ -1248,7 +1252,7 @@ class TestAbsToRel(EventPipelineTestBase):
         # left x to mouse x
         input_config = InputConfig(type=EV_ABS, code=ABS_X)
         mapping_config = {
-            "input_combination": InputCombination(input_config).to_config(),
+            "input_combination": InputCombination([input_config]).to_config(),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_WHEEL,
@@ -1262,7 +1266,9 @@ class TestAbsToRel(EventPipelineTestBase):
         preset.add(mapping_1)
         # left y to mouse y
         input_config = InputConfig(type=EV_ABS, code=ABS_Y)
-        mapping_config["input_combination"] = InputCombination(input_config).to_config()
+        mapping_config["input_combination"] = InputCombination(
+            [input_config]
+        ).to_config()
         mapping_config["output_code"] = REL_HWHEEL_HI_RES
         mapping_2 = Mapping(**mapping_config)
         preset.add(mapping_2)
@@ -1382,12 +1388,16 @@ class TestRelToBtn(EventPipelineTestBase):
 
         # at 5 map to a
         mapping_1 = get_key_mapping(
-            InputCombination(InputConfig(type=EV_REL, code=REL_X, analog_threshold=5)),
+            InputCombination(
+                [InputConfig(type=EV_REL, code=REL_X, analog_threshold=5)]
+            ),
             output_symbol="a",
         )
         # at 15 map to b
         mapping_2 = get_key_mapping(
-            InputCombination(InputConfig(type=EV_REL, code=REL_X, analog_threshold=15)),
+            InputCombination(
+                [InputConfig(type=EV_REL, code=REL_X, analog_threshold=15)]
+            ),
             output_symbol="b",
         )
         release_timeout = 0.2  # give some time to do assertions before the release
@@ -1457,12 +1467,16 @@ class TestAbsToBtn(EventPipelineTestBase):
 
         # at 30% map to a
         mapping_1 = get_key_mapping(
-            InputCombination(InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=30)),
+            InputCombination(
+                [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=30)]
+            ),
             output_symbol="a",
         )
         # at 70% map to b
         mapping_2 = get_key_mapping(
-            InputCombination(InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=70)),
+            InputCombination(
+                [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=70)]
+            ),
             output_symbol="b",
         )
         preset = Preset()
@@ -1529,7 +1543,7 @@ class TestRelToRel(EventPipelineTestBase):
 
         input_config = InputConfig(type=EV_REL, code=input_code)
         mapping = Mapping(
-            input_combination=InputCombination(input_config).to_config(),
+            input_combination=InputCombination([input_config]).to_config(),
             target_uinput="mouse",
             output_type=EV_REL,
             output_code=output_code,
@@ -1589,7 +1603,7 @@ class TestRelToRel(EventPipelineTestBase):
 
         input_config = InputConfig(type=EV_REL, code=input_code)
         mapping = Mapping(
-            input_combination=InputCombination(input_config).to_config(),
+            input_combination=InputCombination([input_config]).to_config(),
             target_uinput="mouse",
             output_type=EV_REL,
             output_code=output_code,
@@ -1638,7 +1652,7 @@ class TestRelToRel(EventPipelineTestBase):
         input_config = InputConfig(type=EV_REL, code=REL_WHEEL_HI_RES)
         gain = 0.01
         mapping = Mapping(
-            input_combination=InputCombination(input_config).to_config(),
+            input_combination=InputCombination([input_config]).to_config(),
             target_uinput="mouse",
             output_type=EV_REL,
             output_code=REL_Y,

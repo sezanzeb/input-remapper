@@ -352,10 +352,10 @@ def _convert_to_individual_mappings():
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_X)
+                    [InputConfig(type=EV_ABS, code=ABS_X)]
                 )
                 y_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_Y)
+                    [InputConfig(type=EV_ABS, code=ABS_Y)]
                 )
                 x_config["output_code"] = REL_X
                 y_config["output_code"] = REL_Y
@@ -371,10 +371,10 @@ def _convert_to_individual_mappings():
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_RX)
+                    [InputConfig(type=EV_ABS, code=ABS_RX)]
                 )
                 y_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_RY)
+                    [InputConfig(type=EV_ABS, code=ABS_RY)]
                 )
                 x_config["output_code"] = REL_X
                 y_config["output_code"] = REL_Y
@@ -390,10 +390,10 @@ def _convert_to_individual_mappings():
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_X)
+                    [InputConfig(type=EV_ABS, code=ABS_X)]
                 )
                 y_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_Y)
+                    [InputConfig(type=EV_ABS, code=ABS_Y)]
                 )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
                 y_config["output_code"] = REL_WHEEL_HI_RES
@@ -410,10 +410,10 @@ def _convert_to_individual_mappings():
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_RX)
+                    [InputConfig(type=EV_ABS, code=ABS_RX)]
                 )
                 y_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_RY)
+                    [InputConfig(type=EV_ABS, code=ABS_RY)]
                 )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
                 y_config["output_code"] = REL_WHEEL_HI_RES
