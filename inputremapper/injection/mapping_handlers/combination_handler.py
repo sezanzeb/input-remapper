@@ -121,7 +121,7 @@ class CombinationHandler(MappingHandler):
         if suppress:
             return False
 
-        logger.debug("sending %s to sub-handler", self.mapping.input_combination)
+        logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
         self._output_state = bool(event.value)
         return self._sub_handler.notify(event, source, suppress)
 

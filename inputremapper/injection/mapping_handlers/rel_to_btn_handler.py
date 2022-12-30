@@ -90,7 +90,7 @@ class RelToBtnHandler(MappingHandler):
             actions=(EventActions.as_key,),
             origin_hash=self._input_config.origin_hash,
         )
-        logger.debug("sending %s to sub_handler", event)
+        logger.debug("Sending %s to sub_handler", event)
         self._sub_handler.notify(event, source, suppress)
         self._active = False
 
@@ -114,7 +114,7 @@ class RelToBtnHandler(MappingHandler):
                     # consume the event
                     return True
                 event = event.modify(value=0, actions=(EventActions.as_key,))
-                logger.debug("sending %s to sub_handler", event)
+                logger.debug("Sending %s to sub_handler", event)
                 self._abort_release = True
             else:
                 # don't consume the event.
@@ -132,7 +132,7 @@ class RelToBtnHandler(MappingHandler):
             event = event.modify(value=1, actions=(EventActions.as_key, direction))
 
         self._active = bool(event.value)
-        # logger.debug("sending %s to sub_handler", event)
+        # logger.debug("Sending %s to sub_handler", event)
         return self._sub_handler.notify(event, source=source, suppress=suppress)
 
     def reset(self) -> None:

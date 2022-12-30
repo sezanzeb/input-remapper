@@ -314,7 +314,6 @@ class TestIdk(EventPipelineTestBase):
             event_reader,
         )
 
-        # convert the write-history to some easier to manage list
         history = self.forward_uinput.write_history
         keyboard_history = global_uinputs.get_uinput("keyboard").write_history
 
@@ -354,7 +353,6 @@ class TestIdk(EventPipelineTestBase):
         )
         await asyncio.sleep(0.1)
 
-        # convert the write-history to some easier to manage list
         history = self.forward_uinput.write_history
         keyboard_history = global_uinputs.get_uinput("keyboard").write_history
 
@@ -914,7 +912,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         )
 
         await asyncio.sleep(0.2)
-        # convert the write-history to some easier to manage list
+
         history = global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
@@ -964,7 +962,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         )
 
         await asyncio.sleep(0.2)
-        # convert the write-history to some easier to manage list
+
         history = global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
@@ -1020,7 +1018,7 @@ class TestRelToAbs(EventPipelineTestBase):
         )
 
         await asyncio.sleep(0.1)
-        # convert the write-history to some easier to manage list
+
         history = global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
@@ -1100,7 +1098,7 @@ class TestRelToAbs(EventPipelineTestBase):
         )
 
         await asyncio.sleep(0.2)
-        # convert the write-history to some easier to manage list
+
         history = global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
@@ -1166,7 +1164,6 @@ class TestAbsToRel(EventPipelineTestBase):
             event_reader,
         )
 
-        # convert the write-history to some easier to manage list
         mouse_history = global_uinputs.get_uinput("mouse").write_history
 
         if mouse_history[0].type == EV_ABS:
@@ -1480,7 +1477,6 @@ class TestRelToRel(EventPipelineTestBase):
             event_reader,
         )
 
-        # convert the write-history to some easier to manage list
         history = global_uinputs.get_uinput("mouse").write_history
 
         self.assertEqual(len(history), 1)

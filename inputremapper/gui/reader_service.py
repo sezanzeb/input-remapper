@@ -400,7 +400,7 @@ class ForwardToUIHandler:
             if EventActions.negative_trigger in event.actions:
                 event = event.modify(value=-1)
 
-            logger.debug("sending to %s frontend", event)
+            logger.debug("Sending to %s frontend", event)
             self.pipe.send(
                 {
                     "type": MSG_EVENT,

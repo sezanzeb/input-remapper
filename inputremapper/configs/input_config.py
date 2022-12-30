@@ -331,7 +331,7 @@ class InputCombination(Tuple[InputConfig, ...]):
             elif isinstance(config, dict):
                 validated_configs.append(InputConfig(**config))
             else:
-                raise ValueError(f"No idea how to handle {config}")
+                raise ValueError(f'No idea how to handle "{config}"')
 
         if len(validated_configs) == 0:
             raise ValueError(f"failed to create InputCombination with {configs = }")

@@ -96,7 +96,7 @@ class Logger(logging.Logger):
         str_key = repr(key)
         str_key = str_key.replace(",)", ")")
 
-        msg = f'writing {str_key} to "{uinput.name}"'
+        msg = f'Writing {str_key} to "{uinput.name}"'
 
         if msg == previous_write_debug_log:
             # avoid some super spam from EV_ABS events

@@ -107,7 +107,7 @@ class AxisSwitchHandler(MappingHandler):
 
         if not key_is_pressed:
             # recenter the axis
-            logger.debug("stopping axis for %s", self.mapping.input_combination)
+            logger.debug("Stopping axis for %s", self.mapping.input_combination)
             event = InputEvent(
                 0,
                 0,
@@ -122,7 +122,7 @@ class AxisSwitchHandler(MappingHandler):
         if self._map_axis.type == evdev.ecodes.EV_ABS:
             # send the last cached value so that the abs axis
             # is at the correct position
-            logger.debug("starting axis for %s", self.mapping.input_combination)
+            logger.debug("Starting axis for %s", self.mapping.input_combination)
             event = InputEvent(
                 0,
                 0,

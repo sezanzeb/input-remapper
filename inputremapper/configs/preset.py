@@ -187,7 +187,7 @@ class Preset(Generic[MappingModel]):
                 if not self._has_valid_input_combination(mapping):
                     # we save invalid mappings except for those with an invalid
                     # input_combination
-                    logger.debug("skipping invalid mapping %s", mapping)
+                    logger.debug("Skipping invalid mapping %s", mapping)
                     continue
 
                 if self._is_mapped_multiple_times(mapping.input_combination):
