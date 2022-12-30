@@ -66,7 +66,6 @@ from inputremapper.input_event import InputEvent, EventActions
 from tests.lib.cleanup import cleanup
 from tests.lib.patches import InputDevice
 from tests.lib.constants import MAX_ABS
-from tests.lib.stuff import convert_to_internal_events
 
 
 class BaseTests:
@@ -301,16 +300,12 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
             InputEvent(0, 0, EV_REL, REL_X, 1, actions=(EventActions.as_key,)),
             source=InputDevice("/dev/input/event11"),
         )
-        history = convert_to_internal_events(
-            global_uinputs.get_uinput("mouse").write_history
-        )
+        history = global_uinputs.get_uinput("mouse").write_history
         self.assertEqual(history[0], InputEvent.key(BTN_LEFT, 1))
         self.assertEqual(len(history), 1)
 
         self.handler.reset()
-        history = convert_to_internal_events(
-            global_uinputs.get_uinput("mouse").write_history
-        )
+        history = global_uinputs.get_uinput("mouse").write_history
         self.assertEqual(history[1], InputEvent.key(BTN_LEFT, 0))
         self.assertEqual(len(history), 2)
 
@@ -341,18 +336,14 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         )
 
         await asyncio.sleep(0.1)
-        history = convert_to_internal_events(
-            global_uinputs.get_uinput("mouse").write_history
-        )
+        history = global_uinputs.get_uinput("mouse").write_history
         self.assertIn(InputEvent.key(BTN_LEFT, 1), history)
         self.assertIn(InputEvent.key(BTN_RIGHT, 1), history)
         self.assertEqual(len(history), 2)
 
         self.handler.reset()
         await asyncio.sleep(0.1)
-        history = convert_to_internal_events(
-            global_uinputs.get_uinput("mouse").write_history
-        )
+        history = global_uinputs.get_uinput("mouse").write_history
         self.assertIn(InputEvent.key(BTN_LEFT, 0), history[-2:])
         self.assertIn(InputEvent.key(BTN_RIGHT, 0), history[-2:])
         self.assertEqual(len(history), 4)

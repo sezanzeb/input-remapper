@@ -23,14 +23,6 @@ import copy
 from unittest.mock import patch
 
 
-def convert_to_internal_events(events):
-    """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
-    # TODO deprecated
-    from inputremapper.input_event import InputEvent as InternalInputEvent
-
-    return [InternalInputEvent.from_event(event) for event in events]
-
-
 def spy(obj, name):
     """Convenient wrapper for patch.object(..., ..., wraps=...)."""
     return patch.object(obj, name, wraps=obj.__getattribute__(name))
