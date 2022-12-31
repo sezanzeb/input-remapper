@@ -164,11 +164,19 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.injector.get_state(), InjectorState.NO_GRAB)
 
     def test_grab_device_1(self):
+        device_hash = fixtures.gamepad.get_device_hash()
+
         preset = Preset()
         preset.add(
             get_key_mapping(
                 InputCombination(
-                    [InputConfig(type=EV_ABS, code=ABS_HAT0X, analog_threshold=1)]
+                    [
+                        InputConfig.abs(
+                            ABS_HAT0X,
+                            analog_threshold=1,
+                            origin_hash=device_hash,
+                        )
+                    ]
                 ),
                 "keyboard",
                 "a",
@@ -184,15 +192,17 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         grabbed = self.injector._grab_devices()
         self.assertEqual(len(grabbed), 1)
-        self.assertEqual(grabbed[0].path, "/dev/input/event30")
+        self.assertEqual(grabbed[device_hash].path, "/dev/input/event30")
 
     def test_forward_gamepad_events(self):
+        device_hash = fixtures.gamepad.get_device_hash()
+
         # forward abs joystick events
         preset = Preset()
         preset.add(
             get_key_mapping(
                 input_combination=InputCombination(
-                    [InputConfig(type=EV_KEY, code=BTN_A)]
+                    [InputConfig.key(BTN_A, origin_hash=device_hash)]
                 ),
                 target_uinput="keyboard",
                 output_symbol="a",
@@ -205,8 +215,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         path = "/dev/input/event30"
         devices = self.injector._grab_devices()
         self.assertEqual(len(devices), 1)
-        self.assertEqual(devices[0].path, path)
-        gamepad = classify(devices[0]) == DeviceType.GAMEPAD
+        self.assertEqual(devices[device_hash].path, path)
+        gamepad = classify(devices[device_hash]) == DeviceType.GAMEPAD
         self.assertTrue(gamepad)
 
     def test_skip_unused_device(self):
@@ -245,7 +255,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         # skips the device alltogether, so no grab attempts fail
         self.assertEqual(self.failed, 0)
-        self.assertEqual(devices, [])
+        self.assertEqual(devices, {})
 
     def test_get_udev_name(self):
         self.injector = Injector(groups.find(key="Foo Device 2"), Preset())

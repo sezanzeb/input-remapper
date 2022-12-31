@@ -57,6 +57,7 @@ from evdev.ecodes import (
 
 from inputremapper.configs.paths import get_preset_path
 from inputremapper.logger import logger
+from inputremapper.utils import get_device_hash
 
 TABLET_KEYS = [
     evdev.ecodes.BTN_STYLUS,
@@ -391,11 +392,12 @@ class _FindGroups(threading.Thread):
                 grouped[key] = []
 
             logger.debug(
-                'Found "%s", "%s", "%s", type: %s',
-                key,
-                path,
+                'Found %s "%s" at "%s", hash "%s", key "%s"',
+                device_type.value,
                 device.name,
-                device_type,
+                path,
+                get_device_hash(device),
+                key,
             )
 
             grouped[key].append((device.name, path, device_type))

@@ -24,10 +24,11 @@ import dataclasses
 import json
 from hashlib import md5
 from typing import Dict, Optional, Tuple, Iterable
-
 import time
 
 import evdev
+
+from tests.lib.logger import logger
 
 # input-remapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
@@ -51,7 +52,14 @@ class Fixture:
 
     def get_device_hash(self):
         s = str(self.capabilities) + self.name
-        return md5(s.encode()).hexdigest()
+        device_hash = md5(s.encode()).hexdigest()
+        logger.info(
+            'Hash for fixture "%s" "%s": "%s"',
+            self.path,
+            self.name,
+            device_hash,
+        )
+        return device_hash
 
 
 class _Fixtures:

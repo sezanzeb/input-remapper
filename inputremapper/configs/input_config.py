@@ -46,6 +46,8 @@ DIFFICULT_COMBINATIONS = [
 
 DeviceHash: TypeAlias = str
 
+EMPTY_TYPE = 99
+
 
 class InputConfig(BaseModel):
     """Describes a single input within a combination, to configure mappings."""
@@ -84,7 +86,7 @@ class InputConfig(BaseModel):
 
     @classmethod
     def key(cls, code, origin_hash: Optional[DeviceHash] = None):
-        """Create a new InputConfig object for a key input."""
+        """Create a new InputConfig object for a key/btn input."""
         return InputConfig(
             type=EV_KEY,
             code=code,
@@ -109,6 +111,10 @@ class InputConfig(BaseModel):
         because its hash includes the analog_threshold
         """
         return self.type, self.code, self.origin_hash
+
+    @property
+    def is_empty(self) -> bool:
+        return self.type == EMPTY_TYPE
 
     @property
     def defines_analog_input(self) -> bool:
@@ -265,6 +271,7 @@ class InputConfig(BaseModel):
     @validator("analog_threshold")
     def _ensure_analog_threshold_is_none(cls, analog_threshold):
         """ensure the analog threshold is none, not zero."""
+        # TODO if analog_threshold == 0: return None
         if analog_threshold:
             return analog_threshold
         return None
@@ -281,10 +288,11 @@ class InputConfig(BaseModel):
     def validate_origin_hash(cls, values):
         origin_hash = values.get("origin_hash")
         if origin_hash is None:
-            # Should be the case when running.
-            # I don't want to adjust every test that doesn't have an origin_hash
-            # and doesn't need one, so origin_hash stays optional for now.
-            logger.error("No origin_hash set for %s", values)
+            # For new presets, origin_hash should be set. For old ones, it can
+            # be still missing. A lot of tests didn't set an origin_hash.
+            if values.get("type") != EMPTY_TYPE:
+                logger.warning("No origin_hash set for %s", values)
+
             return values
 
         values["origin_hash"] = origin_hash.lower()
@@ -331,7 +339,7 @@ class InputCombination(Tuple[InputConfig, ...]):
             elif isinstance(config, dict):
                 validated_configs.append(InputConfig(**config))
             else:
-                raise ValueError(f'No idea how to handle "{config}"')
+                raise TypeError(f'Can\'t handle "{config}"')
 
         if len(validated_configs) == 0:
             raise ValueError(f"failed to create InputCombination with {configs = }")
@@ -369,7 +377,7 @@ class InputCombination(Tuple[InputConfig, ...]):
 
         Useful for the UI to indicate that this combination is not set
         """
-        return cls([{"type": 99, "code": 99, "analog_threshold": 99}])
+        return cls([{"type": EMPTY_TYPE, "code": 99, "analog_threshold": 99}])
 
     @classmethod
     def from_tuples(cls, *tuples):

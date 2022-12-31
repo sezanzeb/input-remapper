@@ -130,7 +130,6 @@ update_inputremapper_verbosity()
 
 
 def main():
-
     cleanup()
     # https://docs.python.org/3/library/argparse.html
     parser = argparse.ArgumentParser(description=__doc__)

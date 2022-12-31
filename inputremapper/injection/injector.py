@@ -259,6 +259,7 @@ class Injector(multiprocessing.Process):
         for device in needed_devices.values():
             if device := self._grab_device(device):
                 grabbed_devices[get_device_hash(device)] = device
+
         return grabbed_devices
 
     def _update_preset(self):
