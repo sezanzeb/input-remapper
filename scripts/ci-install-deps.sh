@@ -11,4 +11,4 @@ python -m pip install --upgrade pip
 python -m pip install --upgrade --force-reinstall wheel setuptools
 
 # install test deps which aren't in setup.py
-python -m pip install psutil pylint-pydantic
+python -m pip install psutil pylint-pydantic dbus-next
