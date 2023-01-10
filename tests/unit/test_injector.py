@@ -81,11 +81,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.injector = None
         cls.grab = evdev.InputDevice.grab
-        quick_cleanup()
 
     def setUp(self):
+        self.injector = None
         self.failed = 0
         self.make_it_fail = 2
 
@@ -97,17 +96,18 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         evdev.InputDevice.grab = grab_fail_twice
 
     def tearDown(self):
+        quick_cleanup()
+
+    async def asyncTearDown(self):
         if self.injector is not None and self.injector.is_alive():
             self.injector.stop_injecting()
-            time.sleep(0.2)
+            await asyncio.sleep(0.2)
             self.assertIn(
                 self.injector.get_state(),
                 (InjectorState.STOPPED, InjectorState.FAILED, InjectorState.NO_GRAB),
             )
             self.injector = None
         evdev.InputDevice.grab = self.grab
-
-        quick_cleanup()
 
     def initialize_injector(self, group, preset: Preset):
         self.injector = Injector(group, preset)
@@ -126,7 +126,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.initialize_injector(groups.find(key="Foo Device 2"), preset)
         # this test needs to pass around all other constraints of
         # _grab_device
         self.injector.context = Context(preset)
@@ -148,7 +148,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.initialize_injector(groups.find(key="Foo Device 2"), preset)
         path = "/dev/input/event10"
         self.injector.context = Context(preset)
         device = self.injector._grab_device(evdev.InputDevice(path))
@@ -245,7 +245,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(devices, [])
 
     def test_get_udev_name(self):
-        self.injector = Injector(groups.find(key="Foo Device 2"), Preset())
+        self.initialize_injector(groups.find(key="Foo Device 2"), Preset())
         suffix = "mapped"
         prefix = "input-remapper"
         expected = f'{prefix} {"a" * (80 - len(suffix) - len(prefix) - 2)} {suffix}'
@@ -259,7 +259,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
 
     @mock.patch("evdev.InputDevice.ungrab")
-    def test_capabilities_and_uinput_presence(self, ungrab_patch):
+    async def test_capabilities_and_uinput_presence(self, ungrab_patch):
         preset = Preset()
         m1 = get_key_mapping(
             InputCombination(
@@ -286,9 +286,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
         preset.add(m1)
         preset.add(m2)
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.initialize_injector(groups.find(key="Foo Device 2"), preset)
         self.injector.stop_injecting()
-        self.injector.run()
+        asyncio.ensure_future(self.injector.run())
+        await asyncio.sleep(0.5)
 
         self.assertEqual(
             self.injector.preset.get_mapping(
@@ -404,10 +405,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 )
             )
 
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.initialize_injector(groups.find(key="Foo Device 2"), preset)
         self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
         asyncio.ensure_future(self.injector.run())
-        await asyncio.sleep(0)
+        await asyncio.sleep(0.1)
         uinput_write_history_pipe[0].poll(timeout=1)
         self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
         await asyncio.sleep(EVENT_READ_TIMEOUT * 10)

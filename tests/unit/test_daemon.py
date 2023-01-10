@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
+import asyncio
 
 from tests.test import is_service_running
 from tests.lib.logger import logger
@@ -108,7 +108,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(Daemon.connect(False), FakeConnection)
         self.assertEqual(set_config_dir_callcount, 2)
 
-    def test_daemon(self):
+    async def test_daemon(self):
         # remove the existing system mapping to force our own into it
         if os.path.exists(get_config_path("xmodmap.json")):
             os.remove(get_config_path("xmodmap.json"))
@@ -151,24 +151,27 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("keyboard", global_uinputs.devices)
 
         logger.info(f"start injector for {group.key}")
-        self.daemon.start_injecting(group.key, preset_name)
+        await self.daemon.start_injecting(group.key, preset_name)
+        await asyncio.sleep(0.1)
 
         # created on demand
         self.assertIn("keyboard", global_uinputs.devices)
         self.assertNotIn("gamepad", global_uinputs.devices)
 
-        self.assertEqual(self.daemon.get_state(group.key), InjectorState.STARTING)
+        self.assertEqual(self.daemon.get_state(group.key), InjectorState.RUNNING)
         self.assertEqual(self.daemon.get_state(group2.key), InjectorState.UNKNOWN)
 
+        self.assertTrue(
+            uinput_write_history_pipe[0].poll()
+        )  # needed to not block forever
         event = uinput_write_history_pipe[0].recv()
-        self.assertEqual(self.daemon.get_state(group.key), InjectorState.RUNNING)
         self.assertEqual(event.type, EV_KEY)
         self.assertEqual(event.code, BTN_B)
         self.assertEqual(event.value, 1)
 
         logger.info(f"stopping injector for {group.key}")
         self.daemon.stop_injecting(group.key)
-        time.sleep(0.2)
+        await asyncio.sleep(0.2)
         self.assertEqual(self.daemon.get_state(group.key), InjectorState.STOPPED)
 
         try:
@@ -180,12 +183,12 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
 
         """Injection 2"""
         logger.info(f"start injector for {group.key}")
-        self.daemon.start_injecting(group.key, preset_name)
+        await self.daemon.start_injecting(group.key, preset_name)
 
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
         # -1234 will be classified as -1 by the injector
         push_events(fixtures.gamepad, [new_event(*ev, -1234)])
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
 
         self.assertTrue(uinput_write_history_pipe[0].poll())
 
@@ -208,7 +211,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.daemon.config_dir, get_config_path())
         self.assertIsNone(global_config.get("foo"))
 
-    def test_refresh_on_start(self):
+    async def test_refresh_on_start(self):
         if os.path.exists(get_config_path("xmodmap.json")):
             os.remove(get_config_path("xmodmap.json"))
 
@@ -253,24 +256,24 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
             "name": group_name,
         }
         push_events(fixtures[self.new_fixture_path], [new_event(*ev, 1)])
-        self.daemon.start_injecting(group_key, preset_name)
+        await self.daemon.start_injecting(group_key, preset_name)
 
         # test if the injector called groups.refresh successfully
         group = groups.find(key=group_key)
         self.assertEqual(group.name, group_name)
         self.assertEqual(group.key, group_key)
 
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
         self.assertTrue(uinput_write_history_pipe[0].poll())
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.t, (EV_KEY, KEY_A, 1))
 
         self.daemon.stop_injecting(group_key)
-        time.sleep(0.2)
+        await asyncio.sleep(0.2)
         self.assertEqual(self.daemon.get_state(group_key), InjectorState.STOPPED)
 
-    def test_refresh_for_unknown_key(self):
+    async def test_refresh_for_unknown_key(self):
         device = "9876 name"
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(groups.find(name=device))
@@ -280,7 +283,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         # make sure the devices are populated
         groups.refresh()
 
-        self.daemon.refresh()
+        await self.daemon.refresh()
 
         fixtures[self.new_fixture_path] = {
             "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
@@ -289,13 +292,13 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
             "name": device,
         }
 
-        self.daemon._autoload("25v7j9q4vtj")
+        await self.daemon._autoload("25v7j9q4vtj")
         # this is unknown, so the daemon will scan the devices again
 
         # test if the injector called groups.refresh successfully
         self.assertIsNotNone(groups.find(name=device))
 
-    def test_xmodmap_file(self):
+    async def test_xmodmap_file(self):
         from_keycode = evdev.ecodes.KEY_A
         target = "keyboard"
         to_name = "q"
@@ -335,9 +338,9 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         self.daemon = Daemon()
         self.daemon.set_config_dir(config_dir)
 
-        self.daemon.start_injecting(group.key, preset_name)
+        await self.daemon.start_injecting(group.key, preset_name)
 
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
         self.assertTrue(uinput_write_history_pipe[0].poll())
 
         event = uinput_write_history_pipe[0].recv()
@@ -345,7 +348,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(event.code, to_keycode)
         self.assertEqual(event.value, 1)
 
-    def test_start_stop(self):
+    async def test_start_stop(self):
         group_key = "Qux/Device?"
         group = groups.find(key=group_key)
         preset_name = "preset8"
@@ -364,7 +367,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         pereset.save()
 
         # start
-        daemon.start_injecting(group_key, preset_name)
+        await daemon.start_injecting(group_key, preset_name)
         # explicit start, not autoload, so the history stays empty
         self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
         self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
@@ -374,11 +377,11 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         # start again
         previous_injector = daemon.injectors[group_key]
         self.assertNotEqual(previous_injector.get_state(), InjectorState.STOPPED)
-        daemon.start_injecting(group_key, preset_name)
+        await daemon.start_injecting(group_key, preset_name)
         self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
         self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
         self.assertIn(group_key, daemon.injectors)
-        time.sleep(0.2)
+        await asyncio.sleep(0.2)
         self.assertEqual(previous_injector.get_state(), InjectorState.STOPPED)
         # a different injetor is now running
         self.assertNotEqual(previous_injector, daemon.injectors[group_key])
@@ -389,7 +392,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         # trying to inject a non existing preset keeps the previous inejction
         # alive
         injector = daemon.injectors[group_key]
-        daemon.start_injecting(group_key, "qux")
+        await daemon.start_injecting(group_key, "qux")
         self.assertEqual(injector, daemon.injectors[group_key])
         self.assertNotEqual(
             daemon.injectors[group_key].get_state(), InjectorState.STOPPED
@@ -397,7 +400,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
 
         # trying to start injecting for an unknown device also just does
         # nothing
-        daemon.start_injecting("quux", "qux")
+        await daemon.start_injecting("quux", "qux")
         self.assertNotEqual(
             daemon.injectors[group_key].get_state(), InjectorState.STOPPED
         )
@@ -408,12 +411,12 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
 
         # stop
         daemon.stop_injecting(group_key)
-        time.sleep(0.2)
+        await asyncio.sleep(0.2)
         self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
         self.assertEqual(daemon.injectors[group_key].get_state(), InjectorState.STOPPED)
         self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
 
-    def test_autoload(self):
+    async def test_autoload(self):
         preset_name = "preset7"
         group_key = "Qux/Device?"
         group = groups.find(key=group_key)
@@ -439,7 +442,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         global_config.set_autoload_preset(group_key, preset_name)
         len_before = len(self.daemon.autoload_history._autoload_history)
         # now autoloading is configured, so it will autoload
-        self.daemon._autoload(group_key)
+        await self.daemon._autoload(group_key)
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(
             daemon.autoload_history._autoload_history[group_key][1], preset_name
@@ -472,7 +475,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(len_before, len_after)
 
-    def test_autoload_2(self):
+    async def test_autoload_2(self):
         self.daemon = Daemon()
         history = self.daemon.autoload_history._autoload_history
 
@@ -493,11 +496,11 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         # ignored, won't cause problems:
         global_config.set_autoload_preset("non-existant-key", "foo")
 
-        self.daemon.autoload()
+        await self.daemon.autoload()
         self.assertEqual(len(history), 1)
         self.assertEqual(history[group.key][1], preset_name)
 
-    def test_autoload_3(self):
+    async def test_autoload_3(self):
         # based on a bug
         preset_name = "preset7"
         group = groups.find(key="Foo Device 2")
@@ -517,13 +520,14 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         self.daemon = Daemon()
         groups.set_groups([])  # caused the bug
         self.assertIsNone(groups.find(key="Foo Device 2"))
-        self.daemon.autoload()
+        await self.daemon.autoload()
+        await asyncio.sleep(0.1)
 
         # it should try to refresh the groups because all the
         # group_keys are unknown at the moment
         history = self.daemon.autoload_history._autoload_history
         self.assertEqual(history[group.key][1], preset_name)
-        self.assertEqual(self.daemon.get_state(group.key), InjectorState.STARTING)
+        self.assertEqual(self.daemon.get_state(group.key), InjectorState.RUNNING)
         self.assertIsNotNone(groups.find(key="Foo Device 2"))
 
 
