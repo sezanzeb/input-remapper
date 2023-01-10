@@ -23,9 +23,7 @@
 https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/examples/clientserver  # noqa pylint: disable=line-too-long
 """
 import asyncio
-import atexit
-import functools
-import inspect
+import signal
 import json
 import os
 import sys
@@ -51,7 +49,6 @@ from inputremapper.configs.global_config import global_config
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.groups import groups
 from inputremapper.configs.paths import get_config_path, sanitize_path_component, USER
-from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.global_uinputs import global_uinputs
 
 tracemalloc.start()
@@ -183,6 +180,8 @@ class Daemon(service.ServiceInterface):
         logger.debug("Creating daemon")
         super().__init__(INTERFACE_NAME)
         self.injectors: Dict[str, Injector] = {}
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._bus: Optional[MessageBus] = None
 
         self.config_dir = None
 
@@ -196,7 +195,7 @@ class Daemon(service.ServiceInterface):
         self.autoload_history = AutoloadHistory()
         self.refreshed_devices_at = 0
 
-        atexit.register(self.stop_all)
+        signal.signal(signal.SIGINT, self.quit)
 
     @classmethod
     def connect(cls, fallback: bool = True) -> DaemonProxy:
@@ -254,10 +253,10 @@ class Daemon(service.ServiceInterface):
     def run(self):
         """Start the event loop and publish the daemon.
         Blocks until the daemon stops."""
-        loop = asyncio.get_event_loop()
+        self._loop = loop = asyncio.get_event_loop()
 
         async def task():
-            bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
+            self._bus = bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
             bus.export(path=PATH_NAME, interface=self)
             if RequestNameReply.PRIMARY_OWNER != await bus.request_name(BUS_NAME):
                 logger.error("Is the service already running?")
@@ -266,6 +265,19 @@ class Daemon(service.ServiceInterface):
         loop.run_until_complete(task())
         logger.debug("Running daemon")
         loop.run_forever()
+
+    def quit(self, *_):
+        self.stop_all()
+        self._bus.unexport(path=PATH_NAME, interface=self)
+
+        async def stop_later():
+            # give all injections time to reset uinputs
+            await asyncio.sleep(0.2)
+
+            # loop.run_forever will return
+            self._loop.stop()
+
+        asyncio.ensure_future(stop_later())
 
     async def refresh(self, group_key: Optional[str] = None):
         """Refresh groups if the specified group is unknown.
