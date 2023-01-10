@@ -198,9 +198,6 @@ class Daemon(service.ServiceInterface):
 
         atexit.register(self.stop_all)
 
-        # initialize stuff that is needed alongside the daemon process
-        macro_variables.start()
-
     @classmethod
     def connect(cls, fallback: bool = True) -> DaemonProxy:
         """Get an interface to start and stop injecting keystrokes.

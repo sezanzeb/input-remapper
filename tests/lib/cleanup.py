@@ -107,17 +107,8 @@ def quick_cleanup(log=True):
         # create a fresh event loop
         asyncio.set_event_loop(asyncio.new_event_loop())
 
-    if macro_variables.process is not None and not macro_variables.process.is_alive():
-        # nothing should stop the process during runtime, if it has been started by
-        # the injector once
-        raise AssertionError("the SharedDict manager is not running anymore")
-
-    if macro_variables.process is not None:
-        macro_variables._stop()
-
     join_children()
-
-    macro_variables.start()
+    macro_variables.clear()
 
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
@@ -146,7 +137,6 @@ def quick_cleanup(log=True):
     for _, pipe in pending_events.values():
         assert not pipe.poll()
 
-    assert macro_variables.is_alive(1)
     for uinput in global_uinputs.devices.values():
         uinput.write_count = 0
         uinput.write_history = []
