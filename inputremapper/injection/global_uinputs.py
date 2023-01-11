@@ -65,12 +65,16 @@ class UInput(evdev.UInput):
         logger.debug('creating UInput device: "%s"', name)
         super().__init__(*args, **kwargs)
 
+        # this will never change, so we cache it since evdev runs an expensive loop to
+        # gather the capabilities. (can_emit is called regularly)
+        self._capabilities_cache = self.capabilities(absinfo=False)
+
     def can_emit(self, event: Tuple[int, int, int]):
         """Check if an event can be emitted by the UIinput.
 
         Wrong events might be injected if the group mappings are wrong,
         """
-        return event[1] in self.capabilities(absinfo=False).get(event[0], [])
+        return event[1] in self._capabilities_cache.get(event[0], [])
 
 
 class FrontendUInput:
