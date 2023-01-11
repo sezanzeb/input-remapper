@@ -159,7 +159,7 @@ class TestDaemon(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("gamepad", global_uinputs.devices)
 
         self.assertEqual(self.daemon.get_state(group.key), InjectorState.RUNNING)
-        self.assertEqual(self.daemon.get_state(group2.key), InjectorState.UNKNOWN)
+        self.assertEqual(self.daemon.get_state(group2.key), InjectorState.STOPPED)
 
         self.assertTrue(
             uinput_write_history_pipe[0].poll()

@@ -320,7 +320,8 @@ class Daemon(service.ServiceInterface):
     def get_state(self, group_key: "s") -> "s":
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
-        return injector.get_state() if injector else InjectorState.UNKNOWN
+        # if there is no injector it surely is stopped
+        return injector.get_state() if injector else InjectorState.STOPPED
 
     @method()
     def set_config_dir(self, config_dir: "s"):
@@ -516,7 +517,7 @@ class Daemon(service.ServiceInterface):
 
         try:
             injector = Injector(group, preset)
-            asyncio.create_task(injector.run())
+            await injector.start_injecting()
             self.injectors[group.key] = injector
         except OSError:
             # I think this will never happen, probably leftover from

@@ -99,7 +99,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         quick_cleanup()
 
     async def asyncTearDown(self):
-        if self.injector is not None and self.injector.is_alive():
+        if (
+            self.injector is not None
+            and self.injector.get_state() == InjectorState.RUNNING
+        ):
             self.injector.stop_injecting()
             await asyncio.sleep(0.2)
             self.assertIn(
@@ -111,8 +114,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
     def initialize_injector(self, group, preset: Preset):
         self.injector = Injector(group, preset)
-        self.injector._devices = self.injector.group.get_devices()
-        self.injector._update_preset()
 
     def test_grab(self):
         # path is from the fixtures
@@ -155,12 +156,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(device)
         self.assertGreaterEqual(self.failed, 1)
 
-        self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
-        asyncio.ensure_future(self.injector.run())
+        self.assertEqual(self.injector.get_state(), InjectorState.STOPPED)
+        await self.injector.start_injecting()
         # since none can be grabbed, the process will terminate. But that
         # actually takes quite some time.
-        await asyncio.sleep(self.injector.regrab_timeout * 12)
-        self.assertFalse(self.injector.is_alive())
         self.assertEqual(self.injector.get_state(), InjectorState.NO_GRAB)
 
     def test_grab_device_1(self):
@@ -288,7 +287,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset.add(m2)
         self.initialize_injector(groups.find(key="Foo Device 2"), preset)
         self.injector.stop_injecting()
-        asyncio.ensure_future(self.injector.run())
+        await self.injector.start_injecting()
         await asyncio.sleep(0.5)
 
         self.assertEqual(
@@ -406,9 +405,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
 
         self.initialize_injector(groups.find(key="Foo Device 2"), preset)
-        self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
-        asyncio.ensure_future(self.injector.run())
-        await asyncio.sleep(0.1)
+        self.assertEqual(self.injector.get_state(), InjectorState.STOPPED)
+        await self.injector.start_injecting()
         uinput_write_history_pipe[0].poll(timeout=1)
         self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
         await asyncio.sleep(EVENT_READ_TIMEOUT * 10)
@@ -448,10 +446,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         # the injector needs time to process this
         await asyncio.sleep(0.1)
-
-        # sending anything arbitrary does not stop the process
-        # (is_alive checked later after some time)
-        self.injector._msg_pipe[1].send(1234)
 
         # convert the write history to some easier to manage list
         history = read_write_history_pipe()
@@ -505,8 +499,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(history[5], (3124, 3564, 6542))
 
         await asyncio.sleep(0.1)
-        self.assertTrue(self.injector.is_alive())
-
         numlock_after = is_numlock_on()
         self.assertEqual(numlock_before, numlock_after)
         self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
@@ -634,7 +626,6 @@ class TestModifyCapabilities(unittest.TestCase):
     def test_copy_capabilities(self):
         # I don't know what ABS_VOLUME is, for now I would like to just always
         # remove it until somebody complains, since its presence broke stuff
-        self.injector = Injector(mock.Mock(), self.preset)
         self.fake_device._capabilities = {
             EV_ABS: [ABS_VOLUME, (ABS_X, evdev.AbsInfo(0, 0, 500, 0, 0, 0))],
             EV_KEY: [1, 2, 3],
@@ -643,7 +634,7 @@ class TestModifyCapabilities(unittest.TestCase):
             evdev.ecodes.EV_FF: [2],
         }
 
-        capabilities = self.injector._copy_capabilities(self.fake_device)
+        capabilities = Injector._copy_capabilities(self.fake_device)
         self.assertNotIn(ABS_VOLUME, capabilities[EV_ABS])
         self.assertNotIn(evdev.ecodes.EV_SYN, capabilities)
         self.assertNotIn(evdev.ecodes.EV_FF, capabilities)

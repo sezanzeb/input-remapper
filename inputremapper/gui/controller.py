@@ -32,7 +32,6 @@ from typing import (
     Any,
 )
 
-import gi
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 
 from gi.repository import Gtk
@@ -490,7 +489,7 @@ class Controller:
         Updates the active_mapping.input_combination with the recorded events.
         """
         state = self.data_manager.get_state()
-        if state == InjectorState.RUNNING or state == InjectorState.STARTING:
+        if state == InjectorState.RUNNING:
             self.data_manager.stop_combination_recording()
             self.message_broker.signal(MessageType.recording_finished)
             self.show_status(CTX_ERROR, _('Use "Stop" to stop before editing'))

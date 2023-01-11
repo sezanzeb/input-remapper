@@ -23,13 +23,11 @@ from __future__ import annotations
 
 import asyncio
 import enum
-import multiprocessing
 import sys
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from multiprocessing.connection import Connection
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import evdev
 
@@ -60,11 +58,11 @@ class InjectorCommand(str, enum.Enum):
 
 # messages the injector process reports back to the service
 class InjectorState(str, enum.Enum):
-    UNKNOWN = "UNKNOWN"
-    STARTING = "STARTING"
-    FAILED = "FAILED"
+    """Possible States of the Injector."""
+
     RUNNING = "RUNNING"
     STOPPED = "STOPPED"
+    FAILED = "FAILED"
     NO_GRAB = "NO_GRAB"
     UPGRADE_EVDEV = "UPGRADE_EVDEV"
 
@@ -95,29 +93,22 @@ class InjectorStateMessage:
     state: Union[InjectorState]
 
     def active(self) -> bool:
-        return self.state in [InjectorState.RUNNING, InjectorState.STARTING]
+        return self.state == InjectorState.RUNNING
 
     def inactive(self) -> bool:
         return self.state in [InjectorState.STOPPED, InjectorState.NO_GRAB]
 
 
 class Injector:
-    """Initializes, starts and stops injections.
-
-    Is a process to make it non-blocking for the rest of the code and to
-    make running multiple injector easier. There is one process per
-    hardware-device that is being mapped.
-    """
+    """Manages the Injection for one Preset"""
 
     group: _Group
     preset: Preset
     context: Optional[Context]
-    _alive: bool
     _devices: List[evdev.InputDevice]
     _state: InjectorState
-    _msg_pipe: Tuple[Connection, Connection]
-    _event_readers: List[EventReader]
     _stop_event: asyncio.Event
+    _injector_task: Optional[asyncio.Task]  # the _run() task if the injector is running
 
     regrab_timeout = 0.2
 
@@ -130,66 +121,43 @@ class Injector:
             the device group
         """
         self.group = group
-        self._alive = False
-        self._state = InjectorState.UNKNOWN
-
-        # used to interact with the parts of this class that are running within
-        # the new process
-        self._msg_pipe = multiprocessing.Pipe()
-
         self.preset = preset
-        self.context = None  # only needed inside the injection process
 
-        self._event_readers = []
+        self._devices = self.group.get_devices()
+        self._stop_event = asyncio.Event()
+        self._injector_task = None
 
-    """Functions to interact with the running process."""
+        # InputConfigs may not contain the origin_hash information, this will try to
+        # make a good guess if the origin_hash information is missing or invalid.
+        self._update_preset()
+        self.context = Context(self.preset)  # must be after _update_preset
+
+        # the injector starts stopped
+        self._state = InjectorState.STOPPED
 
     def get_state(self) -> InjectorState:
-        """Get the state of the injection.
-
-        Can be safely called from the main process.
-        """
-        # before we try to we try to guess anything lets check if there is a message
-        state = self._state
-        while self._msg_pipe[1].poll():
-            state = self._msg_pipe[1].recv()
-
-        # figure out what is going on step by step
-        alive = self._alive
-
-        # if `self.start()` has been called
-        started = state != InjectorState.UNKNOWN or alive
-
-        if started:
-            if state == InjectorState.UNKNOWN and alive:
-                # if it is alive, it is definitely at least starting up.
-                state = InjectorState.STARTING
-
-            if state in (InjectorState.STARTING, InjectorState.RUNNING) and not alive:
-                # we thought it is running (maybe it was when get_state was previously),
-                # but the process is not alive. It probably crashed
-                state = InjectorState.FAILED
-                logger.error("Injector was unexpectedly found stopped")
-
-        logger.debug(
-            'Injector state of "%s", "%s": %s',
-            self.group.key,
-            self.preset.name,
-            state,
-        )
-        self._state = state
+        """Get the state of the injection."""
         return self._state
+
+    async def start_injecting(self) -> None:
+        """Start the Injector.
+
+        Schedules the Injector coroutine in the event loop"""
+        setup_done = asyncio.Event()
+        self._injector_task = asyncio.create_task(self._run(setup_done))
+        await asyncio.wait(
+            [setup_done.wait(), self._injector_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
 
     @ensure_numlock
     def stop_injecting(self) -> None:
-        """Stop injecting keycodes.
-
-        Can be safely called from the main procss.
-        """
-        logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
-        self._msg_pipe[1].send(InjectorCommand.CLOSE)
-
-    """Process internal stuff."""
+        """Stop injecting."""
+        logger.info(
+            f"Stopping the injection of Preset {self.preset.name} "
+            f"for group {self.group.key}"
+        )
+        self._stop_event.set()
 
     def _find_input_device(
         self, input_config: InputConfig
@@ -276,6 +244,7 @@ class Injector:
 
             if not (device := self._find_input_device_fallback(input_config)):
                 # fallback failed, this mapping will be ignored
+                logger.debug(f"failed to find origin device for {input_config}")
                 continue
 
             for mapping in mappings_by_input[input_config]:
@@ -331,23 +300,6 @@ class Injector:
 
         return capabilities
 
-    async def _msg_listener(self) -> None:
-        """Wait for messages from the main process to do special stuff."""
-        loop = asyncio.get_event_loop()
-        while True:
-            frame_available = asyncio.Event()
-            loop.add_reader(self._msg_pipe[0].fileno(), frame_available.set)
-            await frame_available.wait()
-            frame_available.clear()
-            msg = self._msg_pipe[0].recv()
-            if msg == InjectorCommand.CLOSE:
-                logger.debug("Received close signal")
-                self._stop_event.set()
-                # give the event pipeline some time to reset devices
-                # before shutting the loop down
-                await asyncio.sleep(0.1)
-                return
-
     def _create_forwarding_device(self, source: evdev.InputDevice) -> evdev.UInput:
         # copy as much information as possible, because libinput uses the extra
         # information to enable certain features like "Disable touchpad while
@@ -371,63 +323,21 @@ class Injector:
                 # UInput constructor doesn't support input_props and
                 # source.input_props doesn't exist with old python-evdev versions.
                 logger.error("Please upgrade your python-evdev version. Exiting")
-                self._msg_pipe[0].send(InjectorState.UPGRADE_EVDEV)
+                self._state = InjectorState.UPGRADE_EVDEV
                 sys.exit(12)
 
             raise e
         return forward_to
 
-    def is_alive(self) -> bool:
-        """used in tests, can probably be removed, previously defined by the
-        multiprocessing.Process superclass"""
-        return self._alive
-
-    async def run(self) -> None:
-        self._alive = True
-        try:
-            await self._run()
-        except:
-            self._alive = False
-            raise
-        self._alive = False
-
-    async def _run(self) -> None:
-        """The injection worker that keeps injecting until terminated.
-
-        Stuff is non-blocking by using asyncio in order to do multiple things
-        somewhat concurrently.
-
-        Use this function as starting point in a process. It creates
-        the loops needed to read and map events and keeps running them.
-        """
+    async def _run(self, setup_done: asyncio.Event) -> None:
+        """The injection worker that keeps injecting until stop_injecting is called."""
         logger.info('Starting injecting the preset for "%s"', self.group.key)
-
-        # create a new event loop, because somehow running an infinite loop
-        # that sleeps on iterations (joystick_to_mouse) in one process causes
-        # another injection process to screw up reading from the grabbed
-        # device.
-        # loop = asyncio.new_event_loop()
-        # asyncio.set_event_loop(loop)
-        self._devices = self.group.get_devices()
-
-        # InputConfigs may not contain the origin_hash information, this will try to make a
-        # good guess if the origin_hash information is missing or invalid.
-        self._update_preset()
 
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down forever
-        sources = self._grab_devices()
-
-        # create this within the process after the event loop creation,
-        # so that the macros use the correct loop
-        self.context = Context(self.preset)
-        self._stop_event = asyncio.Event()
-
-        if len(sources) == 0:
-            # maybe the preset was empty or something
+        if len(sources := self._grab_devices()) == 0:
             logger.error("Did not grab any device")
-            self._msg_pipe[0].send(InjectorState.NO_GRAB)
-            self._alive = False
+            self._state = InjectorState.NO_GRAB
             return
 
         numlock_state = is_numlock_on()
@@ -443,32 +353,27 @@ class Injector:
                 self._stop_event,
             )
             coroutines.append(event_reader.run())
-            self._event_readers.append(event_reader)
-
-        coroutines.append(self._msg_listener())
 
         # set the numlock state to what it was before injecting, because
         # grabbing devices screws this up
         set_numlock(numlock_state)
 
-        self._msg_pipe[0].send(InjectorState.RUNNING)
-
         try:
-            await asyncio.gather(*coroutines)
+            self._state = InjectorState.RUNNING
+            setup_done.set()
+            await asyncio.gather(*coroutines)  # returns when stop_injecting is called
         except RuntimeError as error:
             # the loop might have been stopped via a `CLOSE` message,
             # which causes the error message below. This is expected behavior
             if str(error) != "Event loop stopped before Future completed.":
+                self._state = InjectorState.FAILED
                 raise error
         except OSError as error:
             logger.error("Failed to run injector coroutines: %s", str(error))
+            self._state = InjectorState.FAILED
+            return
 
-        if len(coroutines) > 0:
-            # expected when stop_injecting is called,
-            # during normal operation as well as tests this point is not
-            # reached otherwise.
-            logger.debug("Injector coroutines ended")
-
+        logger.debug("Injector coroutines ended")
         for source in sources:
             # ungrab at the end to make the next injection process not fail
             # its grabs
@@ -478,4 +383,4 @@ class Injector:
                 # it might have disappeared
                 logger.debug("OSError for ungrab on %s: %s", source.path, str(error))
 
-        self._msg_pipe[0].send(InjectorState.STOPPED)
+        self._state = InjectorState.STOPPED
