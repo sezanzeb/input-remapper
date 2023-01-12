@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
@@ -17,16 +18,27 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+# TODO: convert everything to use pathlib.Path
 
 """Path constants to be used."""
 
 
 import os
 import shutil
+from typing import List, Union, Optional
 
-from inputremapper.logger import logger
-from inputremapper.user import USER, CONFIG_PATH
+from inputremapper.logger import logger, VERSION, IS_BETA
+from inputremapper.user import USER, HOME
 
+rel_path = ".config/input-remapper"
+if IS_BETA:
+    rel_path = os.path.join(rel_path, f"beta_{VERSION}")
+if 'XDG_CONFIG_HOME' in os.environ:
+    CONFIG_PATH = os.path.join(os.environ['XDG_CONFIG_HOME'],'input-remapper')
+    if IS_BETA:
+        CONFIG_PATH = os.path.join(CONFIG_PATH, f"beta_{VERSION}")
+else:
+    CONFIG_PATH = os.path.join(HOME, rel_path)
 
 def chown(path):
     """Set the owner of a path to the user."""
@@ -37,9 +49,9 @@ def chown(path):
         shutil.chown(path, user=USER)
 
 
-def touch(path, log=True):
+def touch(path: os.PathLike, log=True):
     """Create an empty file and all its parent dirs, give it to the user."""
-    if path.endswith("/"):
+    if str(path).endswith("/"):
         raise ValueError(f"Expected path to not end with a slash: {path}")
 
     if os.path.exists(path):
@@ -74,8 +86,26 @@ def mkdir(path, log=True):
     chown(path)
 
 
+def split_all(path: Union[os.PathLike, str]) -> List[str]:
+    """Split the path into its segments."""
+    parts = []
+    while True:
+        path, tail = os.path.split(path)
+        parts.append(tail)
+        if path == os.path.sep:
+            # we arrived at the root '/'
+            parts.append(path)
+            break
+        if not path:
+            # arrived at start of relative path
+            break
+
+    parts.reverse()
+    return parts
+
+
 def remove(path):
-    """Remove whatever is at the path"""
+    """Remove whatever is at the path."""
     if not os.path.exists(path):
         return
 
@@ -86,17 +116,17 @@ def remove(path):
 
 
 def sanitize_path_component(group_name: str) -> str:
-    """replace characters listed in
+    """Replace characters listed in
     https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-    with an underscore
+    with an underscore.
     """
-    for c in '/\\?%*:|"<>':
-        if c in group_name:
-            group_name = group_name.replace(c, "_")
+    for character in '/\\?%*:|"<>':
+        if character in group_name:
+            group_name = group_name.replace(character, "_")
     return group_name
 
 
-def get_preset_path(group_name=None, preset=None):
+def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = None):
     """Get a path to the stored preset, or to store a preset to."""
     presets_base = os.path.join(CONFIG_PATH, "presets")
 
@@ -109,8 +139,8 @@ def get_preset_path(group_name=None, preset=None):
         # the extension of the preset should not be shown in the ui.
         # if a .json extension arrives this place, it has not been
         # stripped away properly prior to this.
-        assert not preset.endswith(".json")
-        preset = f"{preset}.json"
+        if not preset.endswith(".json"):
+            preset = f"{preset}.json"
 
     if preset is None:
         return os.path.join(presets_base, group_name)
@@ -119,5 +149,5 @@ def get_preset_path(group_name=None, preset=None):
 
 
 def get_config_path(*paths):
-    """Get a path in ~/.config/input-remapper/"""
+    """Get a path in ~/.config/input-remapper/."""
     return os.path.join(CONFIG_PATH, *paths)
