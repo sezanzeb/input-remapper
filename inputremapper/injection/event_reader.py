@@ -123,15 +123,14 @@ class EventReader:
         if event.type == evdev.ecodes.EV_SYN:
             return False
 
-        # TODO use boolean variable and logic operation instead
-        results = set()
+        handled = False
         notify_callbacks = self.context.get_entry_points(event)
 
         if notify_callbacks:
             for notify_callback in notify_callbacks:
-                results.add(notify_callback(event, source=self._source))
+                handled = handled or notify_callback(event, source=self._source)
 
-        return True in results
+        return handled
 
     async def send_to_listeners(self, event: InputEvent) -> None:
         """Send the event to listeners."""
