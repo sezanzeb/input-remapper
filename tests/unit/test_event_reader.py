@@ -46,7 +46,6 @@ from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 from tests.lib.fixtures import (
-    new_event,
     get_key_mapping,
     fixtures,
 )
@@ -113,36 +112,52 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         )
 
         # left x to mouse x
-        cfg = {
-            "input_combination": InputConfig(
-                type=EV_ABS, code=ABS_X, origin_hash=fixtures.gamepad.get_device_hash()
-            ),
+        config = {
+            "input_combination": [
+                InputConfig(
+                    type=EV_ABS,
+                    code=ABS_X,
+                    origin_hash=fixtures.gamepad.get_device_hash(),
+                )
+            ],
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
         }
-        self.preset.add(Mapping(**cfg))
+        self.preset.add(Mapping(**config))
 
         # left y to mouse y
-        cfg["input_combination"] = InputConfig(
-            type=EV_ABS, code=ABS_Y, origin_hash=fixtures.gamepad.get_device_hash()
-        )
-        cfg["output_code"] = REL_Y
-        self.preset.add(Mapping(**cfg))
+        config["input_combination"] = [
+            InputConfig(
+                type=EV_ABS,
+                code=ABS_Y,
+                origin_hash=fixtures.gamepad.get_device_hash(),
+            )
+        ]
+        config["output_code"] = REL_Y
+        self.preset.add(Mapping(**config))
 
         # right x to wheel x
-        cfg["input_combination"] = InputConfig(
-            type=EV_ABS, code=ABS_RX, origin_hash=fixtures.gamepad.get_device_hash()
-        )
-        cfg["output_code"] = REL_HWHEEL_HI_RES
-        self.preset.add(Mapping(**cfg))
+        config["input_combination"] = [
+            InputConfig(
+                type=EV_ABS,
+                code=ABS_RX,
+                origin_hash=fixtures.gamepad.get_device_hash(),
+            )
+        ]
+        config["output_code"] = REL_HWHEEL_HI_RES
+        self.preset.add(Mapping(**config))
 
         # right y to wheel y
-        cfg["input_combination"] = InputConfig(
-            type=EV_ABS, code=ABS_RY, origin_hash=fixtures.gamepad.get_device_hash()
-        )
-        cfg["output_code"] = REL_WHEEL_HI_RES
-        self.preset.add(Mapping(**cfg))
+        config["input_combination"] = [
+            InputConfig(
+                type=EV_ABS,
+                code=ABS_RY,
+                origin_hash=fixtures.gamepad.get_device_hash(),
+            )
+        ]
+        config["output_code"] = REL_WHEEL_HI_RES
+        self.preset.add(Mapping(**config))
 
         context, _ = await self.setup(self.gamepad_source, self.preset)
 
@@ -160,7 +175,8 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         await asyncio.sleep(0.1)
         self.stop_event.set()  # stop the reader
-        self.assertEqual(len(context.listeners), 0)
+        self.assertSetEqual(context.listeners, set())
+        # TODO I think the comprehension here is not required
         history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
         self.assertIn((EV_KEY, code_a, 1), history)
         self.assertIn((EV_KEY, code_a, 0), history)

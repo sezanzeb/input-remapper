@@ -18,13 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
-from tests.lib.tmp import tmp
-
+import evdev
 import os
 import shutil
 import unittest
 import logging
+
+from tests.lib.tmp import tmp
 
 from inputremapper.logger import logger, update_verbosity, log_info, ColorfulFormatter
 from inputremapper.configs.paths import remove
@@ -53,20 +53,22 @@ class TestLogger(unittest.TestCase):
         path = os.path.join(tmp, "logger-test")
         remove(path)
 
-    def test_key_debug(self):
-        # TODO test write instead
+    def test_write(self):
+        uinput = evdev.UInput(name="foo")
         path = os.path.join(tmp, "logger-test")
         add_filehandler(path)
-        logger.debug(((1, 2, 1),), "foo %s bar", 1234)
-        logger.debug(((1, 200, -1), (1, 5, 1)), "foo %s", (1, 2))
+        logger.write(
+            (
+                evdev.ecodes.EV_KEY,
+                evdev.ecodes.KEY_A,
+                1
+            ),
+            uinput
+        )
         with open(path, "r") as f:
-            content = f.read().lower()
+            content = f.read()
             self.assertIn(
-                "foo 1234 bar ·················· ((1, 2, 1))",
-                content,
-            )
-            self.assertIn(
-                "foo (1, 2) ···················· ((1, 200, -1), (1, 5, 1))",
+                f'Writing (1, 30, 1) to "foo"',
                 content,
             )
 
