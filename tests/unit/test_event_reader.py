@@ -50,6 +50,7 @@ from tests.lib.fixtures import (
     fixtures,
 )
 from tests.lib.cleanup import quick_cleanup
+from tests.lib.logger import logger
 
 
 class TestEventReader(unittest.IsolatedAsyncioTestCase):
@@ -57,6 +58,9 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.gamepad_source = evdev.InputDevice(fixtures.gamepad.path)
         self.stop_event = asyncio.Event()
         self.preset = Preset()
+
+        global_uinputs.is_service = True
+        global_uinputs.prepare_all()
 
     def tearDown(self):
         quick_cleanup()
@@ -162,26 +166,30 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         context, _ = await self.setup(self.gamepad_source, self.preset)
 
         gamepad_hash = get_device_hash(self.gamepad_source)
+        logger.info('## push events tralala')
         self.gamepad_source.push_events(
             [
+                InputEvent.key(evdev.ecodes.BTN_Y, 0, gamepad_hash),  # start the macro
                 InputEvent.key(trigger, 1, gamepad_hash),  # start the macro
                 InputEvent.abs(ABS_Y, 10, gamepad_hash),  # ignored
                 InputEvent.key(evdev.ecodes.BTN_B, 2, gamepad_hash),  # ignored
                 InputEvent.key(evdev.ecodes.BTN_B, 0, gamepad_hash),  # ignored
-                # stop it, the only way to trigger `then`
+                # release the trigger, which runs `then` of if_single
                 InputEvent.key(trigger, 0, gamepad_hash),
             ]
         )
 
         await asyncio.sleep(0.1)
         self.stop_event.set()  # stop the reader
-        self.assertSetEqual(context.listeners, set())
-        # TODO I think the comprehension here is not required
-        history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
+
+        history = global_uinputs.get_uinput("keyboard").write_history
         self.assertIn((EV_KEY, code_a, 1), history)
         self.assertIn((EV_KEY, code_a, 0), history)
         self.assertNotIn((EV_KEY, code_shift, 1), history)
         self.assertNotIn((EV_KEY, code_shift, 0), history)
+
+        # after if_single takes an action, the listener should have been removed
+        self.assertSetEqual(context.listeners, set())
 
     async def test_if_single_joystick_under_threshold(self):
         """Triggers then because the joystick events value is too low."""

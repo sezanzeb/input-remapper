@@ -22,6 +22,7 @@
 
 import asyncio
 import os
+import traceback
 from typing import AsyncIterator, Protocol, Set, List
 
 import evdev
@@ -191,10 +192,15 @@ class EventReader:
             self._source.path,
             self._source.fd,
         )
+
         async for event in self.read_loop():
-            await self.handle(
-                InputEvent.from_event(event, origin_hash=self._device_hash)
-            )
+            try:
+                await self.handle(
+                    InputEvent.from_event(event, origin_hash=self._device_hash)
+                )
+            except Exception as e:
+                logger.error('Handling event %s failed: %s', event, e)
+                traceback.print_exception(e)
 
         self.context.reset()
         logger.info("read loop for %s stopped", self._source.path)

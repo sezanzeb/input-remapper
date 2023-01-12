@@ -66,9 +66,9 @@ class Context:
     preset : Preset
         The preset holds all Mappings for the injection process
     listeners : Set[EventListener]
-        a set of callbacks which receive all events
+        A set of callbacks which receive all events
     callbacks : Dict[Tuple[int, int], List[NotifyCallback]]
-        all entry points to the event pipeline sorted by InputEvent.type_and_code
+        All entry points to the event pipeline sorted by InputEvent.type_and_code
     """
 
     listeners: Set[EventListener]
@@ -83,6 +83,12 @@ class Context:
         source_devices: Dict[DeviceHash, evdev.InputDevice],
         forward_devices: Dict[DeviceHash, evdev.UInput],
     ):
+        if len(forward_devices) == 0:
+            logger.warning('Not forward_devices set')
+
+        if len(source_devices) == 0:
+            logger.warning('Not source_devices set')
+
         self.listeners = set()
         self._source_devices = source_devices
         self._forward_devices = forward_devices
