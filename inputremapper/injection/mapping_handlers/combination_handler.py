@@ -44,6 +44,7 @@ class CombinationHandler(MappingHandler):
     _pressed_keys: Dict[Hashable, bool]
     _output_state: bool  # the last update we sent to a sub-handler
     _sub_handler: InputEventHandler
+    _handled_input_hashes: list[Hashable]
 
     def __init__(
         self,
@@ -63,6 +64,10 @@ class CombinationHandler(MappingHandler):
             assert not input_config.defines_analog_input
             self._pressed_keys[input_config.input_match_hash] = False
 
+        self._handled_input_hashes = [
+            input_config.input_match_hash for input_config in combination
+        ]
+
         assert len(self._pressed_keys) > 0  # no combination handler without a key
 
     def __str__(self):
@@ -79,7 +84,8 @@ class CombinationHandler(MappingHandler):
         return f"<{description} at {hex(id(self))}>"
 
     @property
-    def child(self):  # used for logging
+    def child(self):
+        # used for logging
         return self._sub_handler
 
     def notify(
@@ -88,13 +94,19 @@ class CombinationHandler(MappingHandler):
         source: evdev.InputDevice,
         suppress: bool = False,
     ) -> bool:
-        if event.input_match_hash not in self._pressed_keys.keys():
-            return False  # we are not responsible for the event
+        if event.input_match_hash not in self._handled_input_hashes:
+            # we are not responsible for the event
+            return False
 
-        last_state = self.get_active()
-        self._pressed_keys[event.input_match_hash] = event.value == 1
+        was_activated = self.is_activated()
 
-        if self.get_active() == last_state or self.get_active() == self._output_state:
+        # update the state
+        is_pressed = event.value == 1
+        self._pressed_keys[event.input_match_hash] = is_pressed
+        # maybe this changes the activation status (triggered/not-triggered)
+        is_activated = self.is_activated()
+
+        if is_activated == was_activated or is_activated == self._output_state:
             # nothing changed
             if self._output_state:
                 # combination is active, consume the event
@@ -103,7 +115,7 @@ class CombinationHandler(MappingHandler):
                 # combination inactive, forward the event
                 return False
 
-        if self.get_active():
+        if is_activated:
             # send key up events to the forwarded uinput
             self.forward_release()
             event = event.modify(value=1)
@@ -131,7 +143,7 @@ class CombinationHandler(MappingHandler):
             self._pressed_keys[key] = False
         self._output_state = False
 
-    def get_active(self) -> bool:
+    def is_activated(self) -> bool:
         """Return if all keys in the keymap are set to True."""
         return False not in self._pressed_keys.values()
 

@@ -681,7 +681,6 @@ class Macro:
                     listener_done.set()
                     return
 
-            logger.info('## add')
             self.context.listeners.add(listener)
 
             resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
@@ -691,7 +690,6 @@ class Macro:
                 return_when=asyncio.FIRST_COMPLETED,
             )
 
-            logger.info('## remove')
             self.context.listeners.remove(listener)
 
             if not listener_done.is_set() and self._trigger_release_event.is_set():

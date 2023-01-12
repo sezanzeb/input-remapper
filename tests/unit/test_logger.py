@@ -57,14 +57,7 @@ class TestLogger(unittest.TestCase):
         uinput = evdev.UInput(name="foo")
         path = os.path.join(tmp, "logger-test")
         add_filehandler(path)
-        logger.write(
-            (
-                evdev.ecodes.EV_KEY,
-                evdev.ecodes.KEY_A,
-                1
-            ),
-            uinput
-        )
+        logger.write((evdev.ecodes.EV_KEY, evdev.ecodes.KEY_A, 1), uinput)
         with open(path, "r") as f:
             content = f.read()
             self.assertIn(

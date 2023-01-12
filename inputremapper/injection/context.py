@@ -84,10 +84,10 @@ class Context:
         forward_devices: Dict[DeviceHash, evdev.UInput],
     ):
         if len(forward_devices) == 0:
-            logger.warning('Not forward_devices set')
+            logger.warning("Not forward_devices set")
 
         if len(source_devices) == 0:
-            logger.warning('Not source_devices set')
+            logger.warning("Not source_devices set")
 
         self.listeners = set()
         self._source_devices = source_devices
@@ -116,17 +116,7 @@ class Context:
         # TODO rename to get_notify_callbacks?
         # TODO test
         input_match_hash = input_event.input_match_hash
-        callbacks = self._notify_callbacks[input_match_hash]
-        if len(callbacks) == 0:
-            logger.debug("No NotifyCallbacks set for %s", input_match_hash)
-
-        # TODO logs appearing when hitting forwarded keys
-        """
-        22:51:45.774591 68627 service WARNING context.py:114: No NotifyCallbacks set for (1, 16, 'cba0d7f555a960fabbad51fdb8f28b70')
-        22:51:45.774713 68627 service ERROR event_reader.py:127: No NotifyCallbacks set
-        """
-
-        return callbacks
+        return self._notify_callbacks[input_match_hash]
 
     def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
         """Get the "forward" uinput events from the given origin should go into."""

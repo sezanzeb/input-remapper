@@ -166,7 +166,6 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         context, _ = await self.setup(self.gamepad_source, self.preset)
 
         gamepad_hash = get_device_hash(self.gamepad_source)
-        logger.info('## push events tralala')
         self.gamepad_source.push_events(
             [
                 InputEvent.key(evdev.ecodes.BTN_Y, 0, gamepad_hash),  # start the macro
@@ -199,11 +198,13 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.preset.add(
             get_key_mapping(
                 InputCombination(
-                    InputConfig(
-                        type=EV_KEY,
-                        code=trigger,
-                        origin_hash=fixtures.gamepad.get_device_hash(),
-                    )
+                    [
+                        InputConfig(
+                            type=EV_KEY,
+                            code=trigger,
+                            origin_hash=fixtures.gamepad.get_device_hash(),
+                        )
+                    ]
                 ),
                 "keyboard",
                 "if_single(k(a), k(KEY_LEFTSHIFT))",
@@ -239,7 +240,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         )
         await asyncio.sleep(0.1)
         self.assertEqual(len(context.listeners), 0)
-        history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
+        history = global_uinputs.get_uinput("keyboard").write_history
 
         # the key that triggered if_single should be injected after
         # if_single had a chance to inject keys (if the macro is fast enough),

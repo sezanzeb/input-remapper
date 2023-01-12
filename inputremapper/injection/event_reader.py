@@ -123,6 +123,7 @@ class EventReader:
         if event.type == evdev.ecodes.EV_SYN:
             return False
 
+        # TODO use boolean variable and logic operation instead
         results = set()
         notify_callbacks = self.context.get_entry_points(event)
 
@@ -199,7 +200,7 @@ class EventReader:
                     InputEvent.from_event(event, origin_hash=self._device_hash)
                 )
             except Exception as e:
-                logger.error('Handling event %s failed: %s', event, e)
+                logger.error("Handling event %s failed: %s", event, e)
                 traceback.print_exception(e)
 
         self.context.reset()

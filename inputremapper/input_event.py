@@ -41,6 +41,21 @@ class EventActions(enum.Enum):
     negative_trigger = enum.auto()  # original event was negative direction
 
 
+def validate_event(event):
+    """Test if the event is valid."""
+    if not isinstance(event.type, int):
+        raise TypeError(f"Expected type to be an int, but got {event.type}")
+
+    if not isinstance(event.code, int):
+        raise TypeError(f"Expected code to be an int, but got {event.code}")
+
+    if not isinstance(event.value, int):
+        # this happened to me because I screwed stuff up
+        raise TypeError(f"Expected value to be an int, but got {event.value}")
+
+    return event
+
+
 # Todo: add slots=True as soon as python 3.10 is in common distros
 @dataclass(frozen=True)
 class InputEvent:
@@ -104,37 +119,43 @@ class InputEvent:
                 f"failed to create InputEvent {event_tuple = } must have length 3"
             )
 
-        return cls(
-            0,
-            0,
-            int(event_tuple[0]),
-            int(event_tuple[1]),
-            int(event_tuple[2]),
-            origin_hash=origin_hash,
+        return validate_event(
+            cls(
+                0,
+                0,
+                int(event_tuple[0]),
+                int(event_tuple[1]),
+                int(event_tuple[2]),
+                origin_hash=origin_hash,
+            )
         )
 
     @classmethod
     def abs(cls, code: int, value: int, origin_hash: Optional[str] = None):
         """Create an abs event, like joystick movements."""
-        return cls(
-            0,
-            0,
-            ecodes.EV_ABS,
-            code,
-            value,
-            origin_hash=origin_hash,
+        return validate_event(
+            cls(
+                0,
+                0,
+                ecodes.EV_ABS,
+                code,
+                value,
+                origin_hash=origin_hash,
+            )
         )
 
     @classmethod
     def rel(cls, code: int, value: int, origin_hash: Optional[str] = None):
         """Create a rel event, like mouse movements."""
-        return cls(
-            0,
-            0,
-            ecodes.EV_REL,
-            code,
-            value,
-            origin_hash=origin_hash,
+        return validate_event(
+            cls(
+                0,
+                0,
+                ecodes.EV_REL,
+                code,
+                value,
+                origin_hash=origin_hash,
+            )
         )
 
     @classmethod
@@ -143,13 +164,15 @@ class InputEvent:
 
         A value of 1 means "press", a value of 0 means "release".
         """
-        return cls(
-            0,
-            0,
-            ecodes.EV_KEY,
-            code,
-            value,
-            origin_hash=origin_hash,
+        return validate_event(
+            cls(
+                0,
+                0,
+                ecodes.EV_KEY,
+                code,
+                value,
+                origin_hash=origin_hash,
+            )
         )
 
     @property

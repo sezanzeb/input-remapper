@@ -303,6 +303,7 @@ class TestDaemon(unittest.TestCase):
         self.assertIsNotNone(groups.find(name=device))
 
     def test_xmodmap_file(self):
+        """Create a custom xmodmap file, expect the daemon to read keycodes from it."""
         from_keycode = evdev.ecodes.KEY_A
         target = "keyboard"
         to_name = "q"
@@ -319,7 +320,9 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(path)
         preset.add(
             get_key_mapping(
-                InputCombination([InputConfig.key(from_keycode)]), target, to_name
+                InputCombination([InputConfig.key(from_keycode)]),
+                target,
+                to_name,
             )
         )
         preset.save()
@@ -328,7 +331,13 @@ class TestDaemon(unittest.TestCase):
 
         push_events(
             fixtures.bar_device,
-            [InputEvent.key(from_keycode, fixtures.bar_device.get_device_hash())],
+            [
+                InputEvent.key(
+                    from_keycode,
+                    1,
+                    origin_hash=fixtures.bar_device.get_device_hash(),
+                )
+            ],
         )
 
         # an existing config file is needed otherwise set_config_dir refuses
@@ -337,9 +346,12 @@ class TestDaemon(unittest.TestCase):
         global_config.path = config_path
         global_config._save_config()
 
+        # finally, create the xmodmap file
         xmodmap_path = os.path.join(config_dir, "xmodmap.json")
         with open(xmodmap_path, "w") as file:
             file.write(f'{{"{to_name}":{to_keycode}}}')
+
+        # test setup complete
 
         self.daemon = Daemon()
         self.daemon.set_config_dir(config_dir)
