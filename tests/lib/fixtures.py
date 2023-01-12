@@ -40,8 +40,8 @@ keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
 
 @dataclasses.dataclass(frozen=True)
 class Fixture:
+    path: str
     capabilities: Dict = dataclasses.field(default_factory=dict)
-    path: str = ""
     name: str = "unset"
     info: evdev.device.DeviceInfo = evdev.device.DeviceInfo(None, None, None, None)
     phys: str = "unset"
@@ -77,7 +77,7 @@ class _Fixtures:
     )
     # Another "Foo Device", which will get an incremented key.
     # If possible write tests using this one, because name != key here and
-    # that would be important to test as well. Otherwise the tests can't
+    # that would be important to test as well. Otherwise, the tests can't
     # see if the groups correct attribute is used in functions and paths.
     dev_input_event11 = Fixture(
         capabilities={
@@ -185,7 +185,7 @@ class _Fixtures:
         path="/dev/input/event31",
     )
     # input-remapper devices are not displayed in the ui, some instance
-    # of input-remapper started injecting apparently.
+    # of input-remapper started injecting, apparently.
     dev_input_event40 = Fixture(
         capabilities={evdev.ecodes.EV_KEY: keyboard_keys},
         phys="input-remapper/input1",
@@ -246,6 +246,10 @@ class _Fixtures:
 
     def __iter__(self):
         return iter([*self._iter, *self._dynamic_fixtures.values()])
+
+    def get_paths(self):
+        """Get a list of all available device paths."""
+        return list(self._dynamic_fixtures.keys())
 
     def reset(self):
         self._dynamic_fixtures = {}

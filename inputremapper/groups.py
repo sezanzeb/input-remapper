@@ -37,6 +37,7 @@ import multiprocessing
 import os
 import re
 import threading
+import traceback
 from typing import List, Optional
 
 import evdev
@@ -364,7 +365,12 @@ class _FindGroups(threading.Thread):
                 # without setting an error"
                 # - "FileNotFoundError: [Errno 2] No such file or directory:
                 # '/dev/input/event12'"
-                logger.error("Failed to access %s: %s", path, str(error))
+                logger.error(
+                    'Failed to access path "%s": %s %s',
+                    path,
+                    error.__class__.__name__,
+                    str(error),
+                )
                 continue
 
             if device.name == "Power Button":
@@ -382,9 +388,11 @@ class _FindGroups(threading.Thread):
 
             if key_capa is None and device_type != DeviceType.GAMEPAD:
                 # skip devices that don't provide buttons that can be mapped
+                logger.debug('"%s" has no useful capabilities', device.name)
                 continue
 
             if is_denylisted(device):
+                logger.debug('"%s" is denylisted', device.name)
                 continue
 
             key = get_unique_key(device)

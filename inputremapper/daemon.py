@@ -291,8 +291,7 @@ class Daemon:
         now = time.time()
         if now - 10 > self.refreshed_devices_at:
             logger.debug("Refreshing because last info is too old")
-            # it may take a little bit of time until devices are visible after
-            # changes
+            # it may take a bit of time until devices are visible after changes
             time.sleep(0.1)
             groups.refresh()
             self.refreshed_devices_at = now

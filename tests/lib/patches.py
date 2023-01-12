@@ -57,9 +57,16 @@ class InputDevice:
 
     def __init__(self, path):
         if path != "justdoit" and not fixtures.get(path):
+            # beware that fixtures keys and the path attribute of a fixture can
+            # theoretically be different. I don't know if this is the case right now
+            logger.error(
+                'path "%s" was not found in fixtures. available: %s',
+                path,
+                list(fixtures.get_paths()),
+            )
             raise FileNotFoundError()
         if path == "justdoit":
-            self._fixture = Fixture()
+            self._fixture = Fixture(path="justdoit")
         else:
             self._fixture = fixtures[path]
 

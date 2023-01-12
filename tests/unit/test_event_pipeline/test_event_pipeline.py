@@ -833,9 +833,9 @@ class TestIdk(EventPipelineTestBase):
         # move ABS_Y above 10%
         await self.send_events(
             (
-                InputEvent.abs(ABS_Y, MAX_ABS * 0.05),
-                InputEvent.abs(ABS_Y, MAX_ABS * 0.11),
-                InputEvent.abs(ABS_Y, MAX_ABS * 0.5),
+                InputEvent.abs(ABS_Y, int(MAX_ABS * 0.05)),
+                InputEvent.abs(ABS_Y, int(MAX_ABS * 0.11)),
+                InputEvent.abs(ABS_Y, int(MAX_ABS * 0.5)),
             ),
             event_reader,
         )
@@ -851,13 +851,13 @@ class TestIdk(EventPipelineTestBase):
         await self.send_events(
             (
                 InputEvent.abs(ABS_X, MAX_ABS),
-                InputEvent.abs(ABS_X, MAX_ABS * 0.9),
+                InputEvent.abs(ABS_X, int(MAX_ABS * 0.9)),
             ),
             event_reader,
         )
 
         # stop it
-        await event_reader.handle(InputEvent.abs(ABS_Y, MAX_ABS * 0.05))
+        await event_reader.handle(InputEvent.abs(ABS_Y, int(MAX_ABS * 0.05)))
 
         await asyncio.sleep(0.2)  # wait a bit more for nothing to sum up
         if mouse_history[0].type == EV_ABS:

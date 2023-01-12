@@ -257,6 +257,7 @@ class TestDaemon(unittest.TestCase):
             phys="9876 phys",
             info=evdev.device.DeviceInfo(4, 5, 6, 7),
             name=group_name,
+            path=self.new_fixture_path,
         )
         fixtures[self.new_fixture_path] = fixture
         push_events(fixture, [InputEvent.key(key_code, 1, fixture.get_device_hash())])
@@ -271,16 +272,16 @@ class TestDaemon(unittest.TestCase):
         self.assertTrue(uinput_write_history_pipe[0].poll())
 
         event = uinput_write_history_pipe[0].recv()
-        self.assertEqual(event.t, (EV_KEY, KEY_A, 1))
+        self.assertEqual(event, (EV_KEY, KEY_A, 1))
 
         self.daemon.stop_injecting(group_key)
         time.sleep(0.2)
         self.assertEqual(self.daemon.get_state(group_key), InjectorState.STOPPED)
 
     def test_refresh_for_unknown_key(self):
-        device = "9876 name"
+        device_9876 = "9876 name"
         # this test only makes sense if this device is unknown yet
-        self.assertIsNone(groups.find(name=device))
+        self.assertIsNone(groups.find(name=device_9876))
 
         self.daemon = Daemon()
 
@@ -293,14 +294,15 @@ class TestDaemon(unittest.TestCase):
             capabilities={evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
             phys="9876 phys",
             info=evdev.device.DeviceInfo(4, 5, 6, 7),
-            name=device,
+            name=device_9876,
+            path=self.new_fixture_path,
         )
 
         self.daemon._autoload("25v7j9q4vtj")
         # this is unknown, so the daemon will scan the devices again
 
         # test if the injector called groups.refresh successfully
-        self.assertIsNotNone(groups.find(name=device))
+        self.assertIsNotNone(groups.find(name=device_9876))
 
     def test_xmodmap_file(self):
         """Create a custom xmodmap file, expect the daemon to read keycodes from it."""
