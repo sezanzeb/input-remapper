@@ -381,7 +381,7 @@ class InputCombination(Tuple[InputConfig, ...]):
 
     @classmethod
     def from_tuples(cls, *tuples):
-        """Construct an InputCombination from (type, code, value) tuples."""
+        """Construct an InputCombination from (type, code, analog_threshold) tuples."""
         return cls(
             [
                 {"type": tuple_[0], "code": tuple_[1], "analog_threshold": tuple_[2]}
