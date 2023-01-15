@@ -42,7 +42,7 @@ class Context(Protocol):
     def reset(self):
         ...
 
-    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
+    def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
         ...
 
     def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
@@ -124,7 +124,7 @@ class EventReader:
             return False
 
         handled = False
-        notify_callbacks = self.context.get_entry_points(event)
+        notify_callbacks = self.context.get_notify_callbacks(event)
 
         if notify_callbacks:
             for notify_callback in notify_callbacks:

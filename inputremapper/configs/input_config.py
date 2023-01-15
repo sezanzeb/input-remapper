@@ -273,10 +273,10 @@ class InputConfig(BaseModel):
     @validator("analog_threshold")
     def _ensure_analog_threshold_is_none(cls, analog_threshold):
         """ensure the analog threshold is none, not zero."""
-        # TODO if analog_threshold == 0: return None
-        if analog_threshold:
-            return analog_threshold
-        return None
+        if analog_threshold == 0 or analog_threshold is None:
+            return None
+
+        return analog_threshold
 
     @root_validator
     def _remove_analog_threshold_for_key_input(cls, values):

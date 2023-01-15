@@ -112,8 +112,7 @@ class Context:
                 handler.notify for handler in handler_list
             )
 
-    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
-        # TODO rename to get_notify_callbacks?
+    def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
         # TODO test
         input_match_hash = input_event.input_match_hash
         return self._notify_callbacks[input_match_hash]

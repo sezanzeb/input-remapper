@@ -369,7 +369,7 @@ class ContextDummy:
     def add_handler(self, input_config: InputConfig, handler: InputEventHandler):
         self._notify_callbacks[input_config.input_match_hash].append(handler.notify)
 
-    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
+    def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
         return self._notify_callbacks[input_event.input_match_hash]
 
     def reset(self):

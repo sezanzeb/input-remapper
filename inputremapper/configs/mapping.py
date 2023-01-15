@@ -309,6 +309,20 @@ class Mapping(UIMapping):
     input_combination: InputCombination
     target_uinput: KnownUinput
 
+    @classmethod
+    def from_combination(
+         cls, input_combination=None, target_uinput="keyboard", output_symbol="a"
+    ):
+        """Convenient function to get a valid mapping."""
+        if not input_combination:
+            input_combination = [{"type": 99, "code": 99, "analog_threshold": 99}]
+
+        return cls(
+            input_combination=input_combination,
+            target_uinput=target_uinput,
+            output_symbol=output_symbol,
+        )
+
     def is_valid(self) -> bool:
         """If the mapping is valid."""
         return True
