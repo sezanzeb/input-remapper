@@ -61,7 +61,7 @@ from tests.lib.constants import (
     MIN_ABS,
 )
 from tests.lib.pipes import push_event, push_events
-from tests.lib.fixtures import fixtures, get_combination_config
+from tests.lib.fixtures import fixtures
 
 CODE_1 = 100
 CODE_2 = 101

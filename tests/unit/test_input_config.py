@@ -44,7 +44,6 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from tests.lib.fixtures import get_combination_config
 
 
 class TestInputConfig(unittest.TestCase):
@@ -370,47 +369,51 @@ class TestInputCombination(unittest.TestCase):
         self.assertEqual(dict_.get(key), "foo")
 
     def test_get_permutations(self):
-        key_1 = InputCombination(get_combination_config((1, 3, 1)))
+        key_1 = InputCombination(InputCombination.from_tuples((1, 3, 1)))
         self.assertEqual(len(key_1.get_permutations()), 1)
         self.assertEqual(key_1.get_permutations()[0], key_1)
 
-        key_2 = InputCombination(get_combination_config((1, 3, 1), (1, 5, 1)))
+        key_2 = InputCombination(InputCombination.from_tuples((1, 3, 1), (1, 5, 1)))
         self.assertEqual(len(key_2.get_permutations()), 1)
         self.assertEqual(key_2.get_permutations()[0], key_2)
 
         key_3 = InputCombination(
-            get_combination_config((1, 3, 1), (1, 5, 1), (1, 7, 1))
+            InputCombination.from_tuples((1, 3, 1), (1, 5, 1), (1, 7, 1))
         )
         self.assertEqual(len(key_3.get_permutations()), 2)
         self.assertEqual(
             key_3.get_permutations()[0],
-            InputCombination(get_combination_config((1, 3, 1), (1, 5, 1), (1, 7, 1))),
+            InputCombination(
+                InputCombination.from_tuples((1, 3, 1), (1, 5, 1), (1, 7, 1))
+            ),
         )
         self.assertEqual(
             key_3.get_permutations()[1],
-            InputCombination(get_combination_config((1, 5, 1), (1, 3, 1), (1, 7, 1))),
+            InputCombination(
+                InputCombination.from_tuples((1, 5, 1), (1, 3, 1), (1, 7, 1))
+            ),
         )
 
     def test_is_problematic(self):
         key_1 = InputCombination(
-            get_combination_config((1, KEY_LEFTSHIFT, 1), (1, 5, 1))
+            InputCombination.from_tuples((1, KEY_LEFTSHIFT, 1), (1, 5, 1))
         )
         self.assertTrue(key_1.is_problematic())
 
         key_2 = InputCombination(
-            get_combination_config((1, KEY_RIGHTALT, 1), (1, 5, 1))
+            InputCombination.from_tuples((1, KEY_RIGHTALT, 1), (1, 5, 1))
         )
         self.assertTrue(key_2.is_problematic())
 
         key_3 = InputCombination(
-            get_combination_config((1, 3, 1), (1, KEY_LEFTCTRL, 1))
+            InputCombination.from_tuples((1, 3, 1), (1, KEY_LEFTCTRL, 1))
         )
         self.assertTrue(key_3.is_problematic())
 
-        key_4 = InputCombination(get_combination_config((1, 3, 1)))
+        key_4 = InputCombination(InputCombination.from_tuples((1, 3, 1)))
         self.assertFalse(key_4.is_problematic())
 
-        key_5 = InputCombination(get_combination_config((1, 3, 1), (1, 5, 1)))
+        key_5 = InputCombination(InputCombination.from_tuples((1, 3, 1), (1, 5, 1)))
         self.assertFalse(key_5.is_problematic())
 
     def test_init(self):
@@ -457,60 +460,74 @@ class TestInputCombination(unittest.TestCase):
     def test_beautify(self):
         # not an integration test, but I have all the selection_label tests here already
         self.assertEqual(
-            InputCombination(get_combination_config((EV_KEY, KEY_A, 1))).beautify(),
-            "a",
-        )
-        self.assertEqual(
-            InputCombination(get_combination_config((EV_KEY, KEY_A, 1))).beautify(),
+            InputCombination(
+                InputCombination.from_tuples((EV_KEY, KEY_A, 1))
+            ).beautify(),
             "a",
         )
         self.assertEqual(
             InputCombination(
-                get_combination_config((EV_ABS, ABS_HAT0Y, -1))
+                InputCombination.from_tuples((EV_KEY, KEY_A, 1))
+            ).beautify(),
+            "a",
+        )
+        self.assertEqual(
+            InputCombination(
+                InputCombination.from_tuples((EV_ABS, ABS_HAT0Y, -1))
             ).beautify(),
             "DPad-Y Up",
         )
         self.assertEqual(
-            InputCombination(get_combination_config((EV_KEY, BTN_A, 1))).beautify(),
+            InputCombination(
+                InputCombination.from_tuples((EV_KEY, BTN_A, 1))
+            ).beautify(),
             "Button A",
         )
         self.assertEqual(
-            InputCombination(get_combination_config((EV_KEY, 1234, 1))).beautify(),
+            InputCombination(
+                InputCombination.from_tuples((EV_KEY, 1234, 1))
+            ).beautify(),
             "unknown (1, 1234)",
         )
         self.assertEqual(
             InputCombination(
-                get_combination_config((EV_ABS, ABS_HAT0X, -1))
+                InputCombination.from_tuples((EV_ABS, ABS_HAT0X, -1))
             ).beautify(),
             "DPad-X Left",
         )
         self.assertEqual(
             InputCombination(
-                get_combination_config((EV_ABS, ABS_HAT0Y, -1))
+                InputCombination.from_tuples((EV_ABS, ABS_HAT0Y, -1))
             ).beautify(),
             "DPad-Y Up",
         )
         self.assertEqual(
-            InputCombination(get_combination_config((EV_KEY, BTN_A, 1))).beautify(),
+            InputCombination(
+                InputCombination.from_tuples((EV_KEY, BTN_A, 1))
+            ).beautify(),
             "Button A",
         )
         self.assertEqual(
-            InputCombination(get_combination_config((EV_ABS, ABS_X, 1))).beautify(),
+            InputCombination(
+                InputCombination.from_tuples((EV_ABS, ABS_X, 1))
+            ).beautify(),
             "Joystick-X Right",
         )
         self.assertEqual(
-            InputCombination(get_combination_config((EV_ABS, ABS_RY, 1))).beautify(),
+            InputCombination(
+                InputCombination.from_tuples((EV_ABS, ABS_RY, 1))
+            ).beautify(),
             "Joystick-RY Down",
         )
         self.assertEqual(
             InputCombination(
-                get_combination_config((EV_REL, REL_HWHEEL, 1))
+                InputCombination.from_tuples((EV_REL, REL_HWHEEL, 1))
             ).beautify(),
             "Wheel Right",
         )
         self.assertEqual(
             InputCombination(
-                get_combination_config((EV_REL, REL_WHEEL, -1))
+                InputCombination.from_tuples((EV_REL, REL_WHEEL, -1))
             ).beautify(),
             "Wheel Down",
         )
@@ -518,7 +535,7 @@ class TestInputCombination(unittest.TestCase):
         # combinations
         self.assertEqual(
             InputCombination(
-                get_combination_config(
+                InputCombination.from_tuples(
                     (EV_KEY, BTN_A, 1),
                     (EV_KEY, BTN_B, 1),
                     (EV_KEY, BTN_C, 1),

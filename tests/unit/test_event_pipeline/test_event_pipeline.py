@@ -62,11 +62,7 @@ from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
 from tests.lib.constants import MAX_ABS, MIN_ABS
-from tests.lib.fixtures import (
-    Fixture,
-    fixtures,
-    get_combination_config,
-)
+from tests.lib.fixtures import Fixture, fixtures
 
 
 class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
@@ -154,38 +150,38 @@ class TestIdk(EventPipelineTestBase):
         preset = Preset()
         preset.add(
             Mapping.from_combination(
-                InputCombination(get_combination_config(b_down)), "keyboard", "b"
+                InputCombination(InputCombination.from_tuples(b_down)), "keyboard", "b"
             )
         )
         preset.add(
             Mapping.from_combination(
-                InputCombination(get_combination_config(c_down)), "keyboard", "c"
+                InputCombination(InputCombination.from_tuples(c_down)), "keyboard", "c"
             )
         )
         preset.add(
             Mapping.from_combination(
-                InputCombination(get_combination_config((*w_down[:2], -10))),
+                InputCombination(InputCombination.from_tuples((*w_down[:2], -10))),
                 "keyboard",
                 "w",
             )
         )
         preset.add(
             Mapping.from_combination(
-                InputCombination(get_combination_config((*d_down[:2], 10))),
+                InputCombination(InputCombination.from_tuples((*d_down[:2], 10))),
                 "keyboard",
                 "k(d)",
             )
         )
         preset.add(
             Mapping.from_combination(
-                InputCombination(get_combination_config((*s_down[:2], 10))),
+                InputCombination(InputCombination.from_tuples((*s_down[:2], 10))),
                 "keyboard",
                 "s",
             )
         )
         preset.add(
             Mapping.from_combination(
-                InputCombination(get_combination_config((*a_down[:2], -10))),
+                InputCombination(InputCombination.from_tuples((*a_down[:2], -10))),
                 "keyboard",
                 "a",
             )
@@ -620,13 +616,13 @@ class TestIdk(EventPipelineTestBase):
         preset = Preset()
         preset.add(
             Mapping.from_combination(
-                InputCombination(get_combination_config(down_1)),
+                InputCombination(InputCombination.from_tuples(down_1)),
                 output_symbol="h(k(a))",
             )
         )
         preset.add(
             Mapping.from_combination(
-                InputCombination(get_combination_config(down_1, down_2)),
+                InputCombination(InputCombination.from_tuples(down_1, down_2)),
                 output_symbol="b",
             )
         )
@@ -693,7 +689,9 @@ class TestIdk(EventPipelineTestBase):
         scroll_release = InputEvent.from_tuple((2, 8, 0))
         btn_down = InputEvent.key(276, 1)
         btn_up = InputEvent.key(276, 0)
-        combination = InputCombination(get_combination_config((1, 276, 1), (2, 8, -1)))
+        combination = InputCombination(
+            InputCombination.from_tuples((1, 276, 1), (2, 8, -1))
+        )
 
         system_mapping.clear()
         system_mapping._set("a", 30)
@@ -805,7 +803,7 @@ class TestIdk(EventPipelineTestBase):
 
         # ABS_X to REL_Y if ABS_Y is above 10%
         combination = InputCombination(
-            get_combination_config((EV_ABS, ABS_X, 0), (EV_ABS, ABS_Y, 10))
+            InputCombination.from_tuples((EV_ABS, ABS_X, 0), (EV_ABS, ABS_Y, 10))
         )
         cfg = {
             "input_combination": combination.to_config(),
@@ -1278,10 +1276,10 @@ class TestRelToBtn(EventPipelineTestBase):
         # set a high release timeout to make sure the tests pass
         release_timeout = 0.2
         mapping_1 = Mapping.from_combination(
-            InputCombination(get_combination_config(hw_right)), "keyboard", "k(b)"
+            InputCombination(InputCombination.from_tuples(hw_right)), "keyboard", "k(b)"
         )
         mapping_2 = Mapping.from_combination(
-            InputCombination(get_combination_config(w_up)), "keyboard", "c"
+            InputCombination(InputCombination.from_tuples(w_up)), "keyboard", "c"
         )
         mapping_1.release_timeout = release_timeout
         mapping_2.release_timeout = release_timeout

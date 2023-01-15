@@ -384,12 +384,27 @@ class InputCombination(Tuple[InputConfig, ...]):
     @classmethod
     def from_tuples(cls, *tuples):
         """Construct an InputCombination from (type, code, analog_threshold) tuples."""
-        return cls(
-            [
-                {"type": tuple_[0], "code": tuple_[1], "analog_threshold": tuple_[2]}
-                for tuple_ in tuples
-            ]
-        )
+        dicts = []
+        for tuple_ in tuples:
+            if len(tuple_) == 3:
+                dicts.append(
+                    {
+                        "type": tuple_[0],
+                        "code": tuple_[1],
+                        "analog_threshold": tuple_[2],
+                    }
+                )
+            elif len(tuple_) == 2:
+                dicts.append(
+                    {
+                        "type": tuple_[0],
+                        "code": tuple_[1],
+                    }
+                )
+            else:
+                raise TypeError
+
+        return cls(dicts)
 
     def is_problematic(self) -> bool:
         """Is this combination going to work properly on all systems?"""

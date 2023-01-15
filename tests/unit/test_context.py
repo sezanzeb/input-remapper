@@ -17,10 +17,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.configs.input_config import InputConfig
 
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import get_combination_config
 from evdev.ecodes import (
     EV_REL,
     EV_ABS,
@@ -34,6 +32,7 @@ import unittest
 from inputremapper.injection.context import Context
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.input_config import InputConfig, InputCombination
 
 
 class TestContext(unittest.TestCase):
@@ -44,29 +43,31 @@ class TestContext(unittest.TestCase):
     def test_callbacks(self):
         preset = Preset()
         cfg = {
-            "input_combination": get_combination_config((EV_ABS, ABS_X)),
+            "input_combination": InputCombination.from_tuples((EV_ABS, ABS_X)),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_HWHEEL_HI_RES,
         }
         preset.add(Mapping(**cfg))  # abs x -> wheel
-        cfg["input_combination"] = get_combination_config((EV_ABS, ABS_Y))
+        cfg["input_combination"] = InputCombination.from_tuples((EV_ABS, ABS_Y))
         cfg["output_code"] = REL_WHEEL_HI_RES
         preset.add(Mapping(**cfg))  # abs y -> wheel
 
         preset.add(
             Mapping.from_combination(
-                get_combination_config((1, 31)), "keyboard", "k(a)"
+                InputCombination.from_tuples((1, 31)), "keyboard", "k(a)"
             )
         )
         preset.add(
-            Mapping.from_combination(get_combination_config((1, 32)), "keyboard", "b")
+            Mapping.from_combination(
+                InputCombination.from_tuples((1, 32)), "keyboard", "b"
+            )
         )
 
         # overlapping combination for (1, 32, 1)
         preset.add(
             Mapping.from_combination(
-                get_combination_config((1, 32), (1, 33), (1, 34)),
+                InputCombination.from_tuples((1, 32), (1, 33), (1, 34)),
                 "keyboard",
                 "c",
             )
@@ -75,7 +76,7 @@ class TestContext(unittest.TestCase):
         # map abs x to key "b"
         preset.add(
             Mapping.from_combination(
-                get_combination_config((EV_ABS, ABS_X, 20)),
+                InputCombination.from_tuples((EV_ABS, ABS_X, 20)),
                 "keyboard",
                 "d",
             ),

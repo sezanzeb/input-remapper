@@ -24,7 +24,7 @@ from inputremapper.input_event import InputEvent
 from tests.lib.patches import uinputs
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import fixtures, get_combination_config
+from tests.lib.fixtures import fixtures
 from tests.lib.pipes import uinput_write_history_pipe
 from tests.lib.pipes import read_write_history_pipe, push_events
 from tests.lib.fixtures import keyboard_keys
@@ -535,18 +535,18 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
 
     def test_is_in_capabilities(self):
-        key = InputCombination(get_combination_config((1, 2, 1)))
+        key = InputCombination(InputCombination.from_tuples((1, 2, 1)))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = InputCombination(get_combination_config((1, 2, 1), (1, 3, 1)))
+        key = InputCombination(InputCombination.from_tuples((1, 2, 1), (1, 3, 1)))
         capabilities = {1: [9, 2, 5]}
         # only one of the codes of the combination is required.
         # The goal is to make combinations= across those sub-devices possible,
         # that make up one hardware device
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = InputCombination(get_combination_config((1, 2, 1), (1, 5, 1)))
+        key = InputCombination(InputCombination.from_tuples((1, 2, 1), (1, 5, 1)))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 

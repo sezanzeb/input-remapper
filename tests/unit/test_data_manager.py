@@ -42,7 +42,7 @@ from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.patches import FakeDaemonProxy
-from tests.lib.fixtures import prepare_presets, get_combination_config
+from tests.lib.fixtures import prepare_presets
 
 from inputremapper.configs.paths import get_preset_path
 from inputremapper.configs.preset import Preset
@@ -581,7 +581,9 @@ class TestDataManager(unittest.TestCase):
 
         # we expect a message for combination update first, and then for mapping
         self.data_manager.update_mapping(
-            input_combination=InputCombination(get_combination_config((1, 5), (1, 6)))
+            input_combination=InputCombination(
+                InputCombination.from_tuples((1, 5), (1, 6))
+            )
         )
         self.assertEqual(listener.calls[0].message_type, MessageType.combination_update)
         self.assertEqual(
@@ -590,12 +592,12 @@ class TestDataManager(unittest.TestCase):
         )
         self.assertEqual(
             listener.calls[0].new_combination,
-            InputCombination(get_combination_config((1, 5), (1, 6))),
+            InputCombination(InputCombination.from_tuples((1, 5), (1, 6))),
         )
         self.assertEqual(listener.calls[1].message_type, MessageType.mapping)
         self.assertEqual(
             listener.calls[1].input_combination,
-            InputCombination(get_combination_config((1, 5), (1, 6))),
+            InputCombination(InputCombination.from_tuples((1, 5), (1, 6))),
         )
 
     def test_cannot_update_mapping_combination(self):

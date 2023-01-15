@@ -30,7 +30,6 @@ from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import get_combination_config
 
 
 class TestPreset(unittest.TestCase):
@@ -43,7 +42,7 @@ class TestPreset(unittest.TestCase):
 
     def test_is_mapped_multiple_times(self):
         combination = InputCombination(
-            get_combination_config((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4))
+            InputCombination.from_tuples((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4))
         )
         permutations = combination.get_permutations()
         self.assertEqual(len(permutations), 6)

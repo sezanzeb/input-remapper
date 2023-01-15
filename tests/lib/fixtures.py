@@ -23,7 +23,7 @@ from __future__ import annotations
 import dataclasses
 import json
 from hashlib import md5
-from typing import Dict, Optional, Tuple, Iterable
+from typing import Dict, Optional
 import time
 
 import evdev
@@ -320,45 +320,6 @@ class _Fixtures:
 fixtures = _Fixtures()
 
 
-def get_combination_config(
-    *event_tuples: Tuple[int, int] | Tuple[int, int, int]
-) -> Iterable[Dict[str, int]]:
-    """Convenient function to get an iterable of dicts, InputEvent.event_tuples."""
-    # TODO replace usages of
-    #  Mapping.from_combination(
-    #     InputCombination(get_combination_config
-    # with
-    #              Mapping.from_combination(
-    #                 input_combination=InputCombination.from_tuples(*combi_1),
-    #                 output_symbol="b",
-    #             )
-    # ?
-    # TODO replace all tuples with proper objects
-    for event in event_tuples:
-        if len(event) == 3:
-            yield {"type": event[0], "code": event[1], "analog_threshold": event[2]}
-        elif len(event) == 2:
-            yield {"type": event[0], "code": event[1]}
-        else:
-            raise TypeError
-
-
-def get_ui_mapping(input_combination=None, target_uinput="keyboard", output_symbol="a"):
-    """Convenient function to get a valid mapping."""
-    # TODO add classmethod to UIMapping instead and deprecate this,
-    #  something like UIMapping.keyboard with the target fixed to "keyboard".
-    from inputremapper.configs.mapping import UIMapping
-
-    if not input_combination:
-        input_combination = get_combination_config((99, 99))
-
-    return UIMapping(
-        input_combination=input_combination,
-        target_uinput=target_uinput,
-        output_symbol=output_symbol,
-    )
-
-
 def new_event(type, code, value, timestamp):
     """Create a new InputEvent.
 
@@ -387,36 +348,29 @@ def prepare_presets():
     from inputremapper.configs.mapping import Mapping
     from inputremapper.configs.paths import get_config_path, get_preset_path
     from inputremapper.configs.global_config import global_config
+    from inputremapper.configs.input_config import InputCombination
 
     preset1 = Preset(get_preset_path("Foo Device", "preset1"))
     preset1.add(
         Mapping.from_combination(
-            input_combination=get_combination_config((1, 1)),
+            InputCombination.from_tuples((1, 1)),
             output_symbol="b",
         )
     )
-    preset1.add(
-        Mapping.from_combination(input_combination=get_combination_config((1, 2)))
-    )
+    preset1.add(Mapping.from_combination(InputCombination.from_tuples((1, 2))))
     preset1.save()
 
     time.sleep(0.1)
     preset2 = Preset(get_preset_path("Foo Device", "preset2"))
-    preset2.add(
-        Mapping.from_combination(input_combination=get_combination_config((1, 3)))
-    )
-    preset2.add(
-        Mapping.from_combination(input_combination=get_combination_config((1, 4)))
-    )
+    preset2.add(Mapping.from_combination(InputCombination.from_tuples((1, 3))))
+    preset2.add(Mapping.from_combination(InputCombination.from_tuples((1, 4))))
     preset2.save()
 
     # make sure the timestamp of preset 3 is the newest,
     # so that it will be automatically loaded by the GUI
     time.sleep(0.1)
     preset3 = Preset(get_preset_path("Foo Device", "preset3"))
-    preset3.add(
-        Mapping.from_combination(input_combination=get_combination_config((1, 5)))
-    )
+    preset3.add(Mapping.from_combination(InputCombination.from_tuples((1, 5))))
     preset3.save()
 
     with open(get_config_path("config.json"), "w") as file:

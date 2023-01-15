@@ -18,13 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from evdev._ecodes import ABS_X, BTN_A
-
-from inputremapper.input_event import InputEvent
-from inputremapper.utils import get_device_hash
-
-from inputremapper.gui.messages.message_broker import MessageBroker
-from tests.lib.fixtures import new_event, get_combination_config
 from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
 from tests.lib.logger import logger
@@ -43,6 +36,9 @@ from evdev.ecodes import EV_ABS, EV_KEY
 from inputremapper.groups import groups, _Groups
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
+from inputremapper.input_event import InputEvent
+from inputremapper.utils import get_device_hash
+from inputremapper.gui.messages.message_broker import MessageBroker
 
 
 class TestTest(unittest.TestCase):
@@ -141,19 +137,6 @@ class TestTest(unittest.TestCase):
             self.assertEqual(
                 fixture.get_device_hash(), get_device_hash(InputDevice(fixture.path))
             )
-
-    def test_get_combination_config(self):
-        a = list(get_combination_config((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1)))
-        self.assertEqual(
-            a,
-            [
-                {"type": 3, "code": 0, "analog_threshold": 1},
-                {"type": 1, "code": 304, "analog_threshold": 1},
-            ],
-        )
-
-        b = list(get_combination_config((1, 3)))
-        self.assertEqual(b, [{"type": 1, "code": 3}])
 
 
 if __name__ == "__main__":

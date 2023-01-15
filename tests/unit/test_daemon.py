@@ -22,7 +22,7 @@ from inputremapper.input_event import InputEvent
 from tests.test import is_service_running
 from tests.lib.logger import logger
 from tests.lib.cleanup import cleanup
-from tests.lib.fixtures import new_event, get_combination_config, Fixture
+from tests.lib.fixtures import Fixture
 from tests.lib.pipes import push_events, uinput_write_history_pipe
 from tests.lib.tmp import tmp
 from tests.lib.fixtures import fixtures

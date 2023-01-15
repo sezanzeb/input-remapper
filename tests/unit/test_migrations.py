@@ -15,7 +15,6 @@
 
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.tmp import tmp
-from tests.lib.fixtures import get_combination_config
 
 import os
 import unittest
@@ -259,14 +258,14 @@ class TestMigrations(unittest.TestCase):
         self.assertEqual(
             preset.get_mapping(
                 InputCombination(
-                    get_combination_config(
+                    InputCombination.from_tuples(
                         (EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)
                     )
                 ),
             ),
             UIMapping(
                 input_combination=InputCombination(
-                    get_combination_config(
+                    InputCombination.from_tuples(
                         (EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)
                     ),
                 ),
