@@ -25,7 +25,7 @@ from tests.lib.cleanup import cleanup
 from tests.lib.fixtures import new_event, get_combination_config, Fixture
 from tests.lib.pipes import push_events, uinput_write_history_pipe
 from tests.lib.tmp import tmp
-from tests.lib.fixtures import fixtures, get_key_mapping
+from tests.lib.fixtures import fixtures
 
 import os
 import unittest
@@ -34,10 +34,11 @@ import subprocess
 import json
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A, ABS_X, BTN_A, BTN_B
+from evdev.ecodes import EV_KEY, KEY_B, KEY_A, ABS_X, BTN_A, BTN_B
 from pydbus import SystemBus
 
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
 from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
@@ -122,14 +123,14 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 input_combination=InputCombination([InputConfig.key(BTN_A)]),
                 target_uinput="keyboard",
                 output_symbol="a",
             )
         )
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 input_combination=InputCombination([InputConfig.abs(ABS_X, -1)]),
                 target_uinput="keyboard",
                 output_symbol="b",
@@ -234,7 +235,7 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(get_preset_path(group_name, preset_name))
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig.key(key_code)]), "keyboard", "a"
             )
         )
@@ -321,7 +322,7 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(path)
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig.key(from_keycode)]),
                 target,
                 to_name,
@@ -378,7 +379,7 @@ class TestDaemon(unittest.TestCase):
 
         pereset = Preset(group.get_preset_path(preset_name))
         pereset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=KEY_A)]),
                 "keyboard",
                 "a",
@@ -446,7 +447,7 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=KEY_A)]),
                 "keyboard",
                 "a",
@@ -504,7 +505,7 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(key="Foo Device 2")
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=3, code=2, analog_threshold=1)]),
                 "keyboard",
                 "a",
@@ -527,7 +528,7 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=3, code=2, analog_threshold=1)]),
                 "keyboard",
                 "a",

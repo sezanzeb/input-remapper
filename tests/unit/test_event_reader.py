@@ -45,12 +45,8 @@ from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
-from tests.lib.fixtures import (
-    get_key_mapping,
-    fixtures,
-)
+from tests.lib.fixtures import fixtures
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.logger import logger
 
 
 class TestEventReader(unittest.IsolatedAsyncioTestCase):
@@ -84,7 +80,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         trigger = evdev.ecodes.BTN_A
 
         self.preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
                     [
                         InputConfig(
@@ -99,7 +95,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
             )
         )
         self.preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
                     [
                         InputConfig(
@@ -196,7 +192,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         code_a = system_mapping.get("a")
         trigger = evdev.ecodes.BTN_A
         self.preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
                     [
                         InputConfig(
@@ -211,7 +207,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
             )
         )
         self.preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
                     [
                         InputConfig(

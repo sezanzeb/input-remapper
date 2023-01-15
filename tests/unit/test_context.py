@@ -20,7 +20,7 @@
 from inputremapper.configs.input_config import InputConfig
 
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import get_key_mapping, get_combination_config
+from tests.lib.fixtures import get_combination_config
 from evdev.ecodes import (
     EV_REL,
     EV_ABS,
@@ -54,12 +54,18 @@ class TestContext(unittest.TestCase):
         cfg["output_code"] = REL_WHEEL_HI_RES
         preset.add(Mapping(**cfg))  # abs y -> wheel
 
-        preset.add(get_key_mapping(get_combination_config((1, 31)), "keyboard", "k(a)"))
-        preset.add(get_key_mapping(get_combination_config((1, 32)), "keyboard", "b"))
+        preset.add(
+            Mapping.from_combination(
+                get_combination_config((1, 31)), "keyboard", "k(a)"
+            )
+        )
+        preset.add(
+            Mapping.from_combination(get_combination_config((1, 32)), "keyboard", "b")
+        )
 
         # overlapping combination for (1, 32, 1)
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 get_combination_config((1, 32), (1, 33), (1, 34)),
                 "keyboard",
                 "c",
@@ -68,7 +74,7 @@ class TestContext(unittest.TestCase):
 
         # map abs x to key "b"
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 get_combination_config((EV_ABS, ABS_X, 20)),
                 "keyboard",
                 "d",

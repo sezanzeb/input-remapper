@@ -17,20 +17,17 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from pydantic import ValidationError
 
 from inputremapper.input_event import InputEvent
-from tests.lib.fixtures import new_event
 from tests.lib.patches import uinputs
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import fixtures, get_combination_config
 from tests.lib.pipes import uinput_write_history_pipe
 from tests.lib.pipes import read_write_history_pipe, push_events
-from tests.lib.fixtures import (
-    keyboard_keys,
-    get_key_mapping,
-)
+from tests.lib.fixtures import keyboard_keys
 
 import unittest
 from unittest import mock
@@ -62,6 +59,7 @@ from inputremapper.configs.system_mapping import (
     DISABLE_NAME,
 )
 from inputremapper.configs.preset import Preset
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
@@ -118,7 +116,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         path = "/dev/input/event10"
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "a",
@@ -140,7 +138,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.make_it_fail = 999
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "a",
@@ -168,7 +166,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
                     [
                         InputConfig.abs(
@@ -200,7 +198,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # forward abs joystick events
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 input_combination=InputCombination(
                     [InputConfig.key(BTN_A, origin_hash=device_hash)]
                 ),
@@ -223,7 +221,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # skips a device because its capabilities are not used in the preset
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 # TODO origin_hash has to be set. Foo Device 2?
                 InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
@@ -241,7 +239,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_skip_unknown_device(self):
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=1234)]),
                 "keyboard",
                 "a",
@@ -274,7 +272,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     @mock.patch("evdev.InputDevice.ungrab")
     def test_capabilities_and_uinput_presence(self, ungrab_patch):
         preset = Preset()
-        m1 = get_key_mapping(
+        m1 = Mapping.from_combination(
             InputCombination(
                 [
                     InputConfig(
@@ -287,7 +285,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             "keyboard",
             "c",
         )
-        m2 = get_key_mapping(
+        m2 = Mapping.from_combination(
             InputCombination(
                 [
                     InputConfig(
@@ -375,7 +373,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
                     [
                         InputConfig(
@@ -395,7 +393,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
         )
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
                     [
                         InputConfig(
@@ -414,7 +412,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         input_b = 10
         with self.assertRaises(ValidationError):
             preset.add(
-                get_key_mapping(
+                Mapping.from_combination(
                     InputCombination(
                         [
                             InputConfig(
@@ -597,14 +595,14 @@ class TestModifyCapabilities(unittest.TestCase):
 
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=80)]),
                 "keyboard",
                 "a",
             )
         )
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=81)]),
                 "keyboard",
                 DISABLE_NAME,
@@ -615,7 +613,7 @@ class TestModifyCapabilities(unittest.TestCase):
         macro = parse(macro_code, preset)
 
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=60)]),
                 "keyboard",
                 macro_code,
@@ -625,7 +623,7 @@ class TestModifyCapabilities(unittest.TestCase):
         # going to be ignored, because EV_REL cannot be mapped, that's
         # mouse movements.
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
                     [InputConfig(type=EV_REL, code=1234, analog_threshold=3)]
                 ),
