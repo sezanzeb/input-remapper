@@ -518,10 +518,9 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
     def test_repr(self):
         self.mapping_selection_label.name = "name"
-        self.assertEqual(
-            repr(self.mapping_selection_label),
-            "MappingSelectionLabel for a + b as name",
-        )
+        self.assertIn("name", repr(self.mapping_selection_label))
+        self.assertIn("KEY_A", repr(self.mapping_selection_label))
+        self.assertIn("KEY_B", repr(self.mapping_selection_label))
 
     def test_shows_combination_without_name(self):
         self.assertEqual(self.mapping_selection_label.label.get_label(), "a + b")
@@ -1264,7 +1263,7 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 input_combination=InputCombination(
-                    InputConfig(type=2, code=0, analog_threshold=1)
+                    [InputConfig(type=2, code=0, analog_threshold=1)]
                 ),
                 release_timeout=1,
             )

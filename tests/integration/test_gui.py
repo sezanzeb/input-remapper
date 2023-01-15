@@ -894,7 +894,7 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping,
             Mapping(
                 input_combination=InputCombination(
-                    InputConfig(type=1, code=30, origin_hash=origin)
+                    [InputConfig(type=1, code=30, origin_hash=origin)]
                 ),
                 output_symbol="Shift_L",
                 target_uinput="mouse",
@@ -923,9 +923,8 @@ class TestGui(GuiTestBase):
         ev_3 = InputEvent.abs(evdev.ecodes.ABS_HAT0Y, -1)
         ev_4 = InputEvent.abs(evdev.ecodes.ABS_HAT0Y, 1)
 
-        def add_mapping(event_tuple, symbol) -> InputCombination:
+        def add_mapping(event, symbol) -> InputCombination:
             """adds mapping and returns the expected input combination"""
-            event = InputEvent.from_tuple(event_tuple)
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
@@ -1020,8 +1019,7 @@ class TestGui(GuiTestBase):
             gtk_iteration()
             self.controller.start_key_recording()
             previous_event = InputEvent(0, 0, 1, 1, 1)
-            for event_tuple in combi:
-                event = InputEvent.from_tuple(event_tuple)
+            for event in combi:
                 if event.type != previous_event.type:
                     self.throttle(20)  # avoid race condition if we switch fixture
                 if event.type == EV_KEY:
@@ -1031,8 +1029,7 @@ class TestGui(GuiTestBase):
                 if event.type == EV_REL:
                     push_event(fixtures.foo_device_2_mouse, event)
 
-            for event_tuple in combi:
-                event = InputEvent.from_tuple(event_tuple)
+            for event in combi:
                 if event.type == EV_KEY:
                     push_event(fixtures.foo_device_2_keyboard, event.modify(value=0))
                 if event.type == EV_ABS:
