@@ -81,7 +81,7 @@ def quick_cleanup(log=True):
     from inputremapper.injection.global_uinputs import global_uinputs
 
     if log:
-        print("Quick cleanup...")
+        logger.info("Quick cleanup...")
 
     debounce_manager.stop_all()
 
@@ -154,7 +154,7 @@ def quick_cleanup(log=True):
     global_uinputs.is_service = True
 
     if log:
-        print("Quick cleanup done")
+        logger.info("Quick cleanup done")
 
 
 def cleanup():
@@ -165,7 +165,7 @@ def cleanup():
     from inputremapper.groups import groups
     from inputremapper.injection.global_uinputs import global_uinputs
 
-    print("Cleanup...")
+    logger.info("Cleanup...")
 
     os.system("pkill -f input-remapper-service")
     os.system("pkill -f input-remapper-control")
@@ -176,4 +176,4 @@ def cleanup():
     with patch.object(sys, "argv", ["input-remapper-service"]):
         global_uinputs.prepare_all()
 
-    print("Cleanup done")
+    logger.info("Cleanup done")

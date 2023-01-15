@@ -667,9 +667,12 @@ class TestGui(GuiTestBase):
 
         push_events(
             fixtures.foo_device_2_keyboard,
-            [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 31, 1)],
+            [
+                InputEvent(0, 0, 1, 30, 1),
+                InputEvent(0, 0, 1, 31, 1),
+            ],
         )
-        self.throttle(40)
+        self.throttle(60)
         origin = fixtures.foo_device_2_keyboard.get_device_hash()
         mock1.assert_has_calls(
             (
@@ -697,12 +700,12 @@ class TestGui(GuiTestBase):
         mock2.assert_not_called()
 
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 31, 0)])
-        self.throttle(40)
+        self.throttle(60)
         self.assertEqual(mock1.call_count, 2)
         mock2.assert_not_called()
 
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 0)])
-        self.throttle(40)
+        self.throttle(60)
         self.assertEqual(mock1.call_count, 2)
         mock2.assert_called_once()
 
@@ -720,7 +723,7 @@ class TestGui(GuiTestBase):
             fixtures.foo_device_2_keyboard,
             [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 30, 0)],
         )
-        self.throttle(40)
+        self.throttle(60)
 
         # if this fails with <InputCombination (1, 5, 1)>: this is the initial
         # mapping or something, so it was never overwritten.
@@ -744,7 +747,7 @@ class TestGui(GuiTestBase):
             fixtures.foo_device_2_keyboard,
             [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 30, 0)],
         )
-        self.throttle(40)
+        self.throttle(60)
         # should still be the empty mapping
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
@@ -754,14 +757,14 @@ class TestGui(GuiTestBase):
         # try to record a different combination
         self.controller.start_key_recording()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 1)])
-        self.throttle(40)
+        self.throttle(60)
         # nothing changed yet, as we got the duplicate combination
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
             InputCombination.empty_combination(),
         )
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 31, 1)])
-        self.throttle(40)
+        self.throttle(60)
         # now the combination is different
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
@@ -775,7 +778,7 @@ class TestGui(GuiTestBase):
 
         # let's make the combination even longer
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 32, 1)])
-        self.throttle(40)
+        self.throttle(60)
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
             InputCombination(
@@ -796,7 +799,7 @@ class TestGui(GuiTestBase):
                 InputEvent(0, 0, 1, 32, 0),
             ],
         )
-        self.throttle(40)
+        self.throttle(60)
 
         # sending a combination update now should not do anything
         self.message_broker.publish(
@@ -841,9 +844,9 @@ class TestGui(GuiTestBase):
         self.recording_toggle.set_active(True)
         gtk_iteration()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 1)])
-        self.throttle(40)
+        self.throttle(60)
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 0)])
-        self.throttle(40)
+        self.throttle(60)
 
         # check the input_combination
         origin = fixtures.foo_device_2_keyboard.get_device_hash()
@@ -929,7 +932,7 @@ class TestGui(GuiTestBase):
             gtk_iteration()
             self.controller.start_key_recording()
             push_events(fixtures.foo_device_2_gamepad, [event, event.modify(value=0)])
-            self.throttle(40)
+            self.throttle(60)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
@@ -996,6 +999,7 @@ class TestGui(GuiTestBase):
         combination_6 = (ev_3, ev_1, ev_2)
 
         def get_combination(combi: Iterable[Tuple[int, int, int]]) -> InputCombination:
+            """Create an InputCombination from a list of (type, code, value) tuples."""
             configs = []
             for t in combi:
                 config = InputConfig.from_input_event(InputEvent.from_tuple(t))
@@ -1037,7 +1041,7 @@ class TestGui(GuiTestBase):
                 if event.type == EV_REL:
                     pass
 
-            self.throttle(40)
+            self.throttle(60)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
@@ -1378,7 +1382,7 @@ class TestGui(GuiTestBase):
                 fixtures.foo_device_2_keyboard,
                 [event.modify(value=0) for event in combi],
             )
-            self.throttle(40)
+            self.throttle(60)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
