@@ -322,6 +322,53 @@ class TestInputConfig(unittest.TestCase):
 
 
 class TestInputCombination(unittest.TestCase):
+    def test_eq(self):
+        a = InputCombination(
+            [
+                InputConfig(type=EV_REL, code=REL_X, value=1, origin_hash="1234"),
+                InputConfig(type=EV_KEY, code=KEY_A, value=1, origin_hash="abcd"),
+            ]
+        )
+        b = InputCombination(
+            [
+                InputConfig(type=EV_REL, code=REL_X, value=1, origin_hash="1234"),
+                InputConfig(type=EV_KEY, code=KEY_A, value=1, origin_hash="abcd"),
+            ]
+        )
+        self.assertEqual(a, b)
+
+    def test_not_eq(self):
+        a = InputCombination(
+            [
+                InputConfig(type=EV_REL, code=REL_X, value=1, origin_hash="2345"),
+                InputConfig(type=EV_KEY, code=KEY_A, value=1, origin_hash="bcde"),
+            ]
+        )
+        b = InputCombination(
+            [
+                InputConfig(type=EV_REL, code=REL_X, value=1, origin_hash="1234"),
+                InputConfig(type=EV_KEY, code=KEY_A, value=1, origin_hash="abcd"),
+            ]
+        )
+        self.assertNotEqual(a, b)
+
+    def test_can_be_used_as_dict_key(self):
+        dict_ = {
+            InputCombination(
+                [
+                    InputConfig(type=EV_REL, code=REL_X, value=1, origin_hash="1234"),
+                    InputConfig(type=EV_KEY, code=KEY_A, value=1, origin_hash="abcd"),
+                ]
+            ): "foo"
+        }
+        key = InputCombination(
+            [
+                InputConfig(type=EV_REL, code=REL_X, value=1, origin_hash="1234"),
+                InputConfig(type=EV_KEY, code=KEY_A, value=1, origin_hash="abcd"),
+            ]
+        )
+        self.assertEqual(dict_.get(key), "foo")
+
     def test_get_permutations(self):
         key_1 = InputCombination(get_combination_config((1, 3, 1)))
         self.assertEqual(len(key_1.get_permutations()), 1)

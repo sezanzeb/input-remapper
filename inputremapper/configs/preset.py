@@ -233,6 +233,14 @@ class Preset(Generic[MappingModel]):
             if existing is not None:
                 return existing
 
+        logger.error(
+            "Combination %s not found. Available: %s",
+            repr(combination),
+            list(
+                self._mappings.keys(),
+            ),
+        )
+
         return None
 
     def dangerously_mapped_btn_left(self) -> bool:

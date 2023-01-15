@@ -70,7 +70,9 @@ class InputConfig(BaseModel):
         return (
             f"<InputConfig {self.type_and_code} "
             f"{get_evdev_constant_name(*self.type_and_code)}, "
-            f"{self.analog_threshold} at {hex(id(self))}>"
+            f"{self.analog_threshold}, "
+            f"{self.origin_hash}, "
+            f"at {hex(id(self))}>"
         )
 
     @classmethod

@@ -983,10 +983,26 @@ class TestGui(GuiTestBase):
         gtk_iteration()
 
         # it should be possible to write a combination
-        ev_1 = InputEvent.key(evdev.ecodes.KEY_A, 1)
-        ev_2 = InputEvent.abs(evdev.ecodes.ABS_HAT0X, 1)
-        ev_3 = InputEvent.key(evdev.ecodes.KEY_C, 1)
-        ev_4 = InputEvent.abs(evdev.ecodes.ABS_HAT0X, -1)
+        ev_1 = InputEvent.key(
+            evdev.ecodes.KEY_A,
+            1,
+            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+        )
+        ev_2 = InputEvent.abs(
+            evdev.ecodes.ABS_HAT0X,
+            1,
+            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+        )
+        ev_3 = InputEvent.key(
+            evdev.ecodes.KEY_C,
+            1,
+            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+        )
+        ev_4 = InputEvent.abs(
+            evdev.ecodes.ABS_HAT0X,
+            -1,
+            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+        )
         combination_1 = (ev_1, ev_2, ev_3)
         combination_2 = (ev_2, ev_1, ev_3)
 
@@ -998,40 +1014,33 @@ class TestGui(GuiTestBase):
         combination_5 = (ev_1, ev_3, ev_2)
         combination_6 = (ev_3, ev_1, ev_2)
 
-        def get_combination(combi: Iterable[Tuple[int, int, int]]) -> InputCombination:
-            """Create an InputCombination from a list of (type, code, value) tuples."""
+        def get_combination(combi: Iterable[InputEvent]) -> InputCombination:
+            """Create an InputCombination from a list of events.
+
+            Ensures the origin_hash is set correctly.
+            """
             configs = []
-            for t in combi:
-                config = InputConfig.from_input_event(InputEvent.from_tuple(t))
-                if config.type == EV_KEY:
-                    config = config.modify(
-                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash()
-                    )
-                if config.type == EV_ABS:
-                    config = config.modify(
-                        origin_hash=fixtures.foo_device_2_gamepad.get_device_hash()
-                    )
-                if config.type == EV_REL:
-                    config = config.modify(
-                        origin_hash=fixtures.foo_device_2_mouse.get_device_hash()
-                    )
+            for event in combi:
+                config = InputConfig.from_input_event(event)
                 configs.append(config)
             return InputCombination(configs)
 
-        def add_mapping(combi: Iterable[Tuple[int, int, int]], symbol):
+        def add_mapping(combi: Iterable[InputEvent], symbol):
+            logger.info("add_mapping %s", combi)
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
-            previous_event = InputEvent(0, 0, 1, 1, 1)
             for event in combi:
-                if event.type != previous_event.type:
-                    self.throttle(20)  # avoid race condition if we switch fixture
                 if event.type == EV_KEY:
                     push_event(fixtures.foo_device_2_keyboard, event)
                 if event.type == EV_ABS:
                     push_event(fixtures.foo_device_2_gamepad, event)
                 if event.type == EV_REL:
                     push_event(fixtures.foo_device_2_mouse, event)
+
+                # avoid race condition if we switch fixture in push_event. The order
+                # of events needs to be correct.
+                self.throttle(20)
 
             for event in combi:
                 if event.type == EV_KEY:
@@ -1047,6 +1056,7 @@ class TestGui(GuiTestBase):
             gtk_iteration()
 
         add_mapping(combination_1, "a")
+
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
                 get_combination(combination_1)
