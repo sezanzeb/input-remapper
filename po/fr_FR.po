@@ -1,0 +1,341 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-03-27 13:08+0200\n"
+"PO-Revision-Date: 2023-02-03 09:09+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.2.2\n"
+
+#: inputremapper/gui/editor/editor.py:608
+#, python-format
+msgid "\"%s\" already mapped to \"%s\""
+msgstr "\\\"%s\\\" déjà mappé sur \\\"%s\\\""
+
+#: inputremapper/gui/user_interface.py:609
+msgid ", CTRL + DEL to stop"
+msgstr ", CTRL + SUPPR pour arrêter"
+
+#: data/input-remapper.glade:1070
+msgid "About"
+msgstr "À propos"
+
+#: inputremapper/gui/user_interface.py:606
+#, python-format
+msgid "Applied preset %s"
+msgstr "Préréglage %s appliqué"
+
+#: inputremapper/gui/user_interface.py:427
+msgid "Applied the system default"
+msgstr "Réglage système restauré"
+
+#: data/input-remapper.glade:307
+msgid "Apply"
+msgstr "Appliquer"
+
+#: inputremapper/gui/user_interface.py:251
+#, python-format
+msgid "Are you sure to delete preset %s?"
+msgstr "Êtes-vous sûr de vouloir supprimer le préréglage %s ?"
+
+#: inputremapper/gui/editor/editor.py:545
+msgid "Are you sure to delete this mapping?"
+msgstr "Êtes-vous sûr de vouloir supprimer ce mapping ?"
+
+#: data/input-remapper.glade:504
+msgid "Autoload"
+msgstr "Charger automatiquement"
+
+#: data/input-remapper.glade:583 data/input-remapper.glade:627
+msgid "Buttons"
+msgstr "Boutons"
+
+#: data/input-remapper.glade:65
+msgid "Cancel"
+msgstr "Annuler"
+
+#: inputremapper/gui/user_interface.py:524
+msgid "Cannot apply empty preset file"
+msgstr "Impossible d'appliquer un fichier de préréglage vide"
+
+#: data/input-remapper.glade:860 inputremapper/gui/editor/editor.py:253
+msgid "Change Key"
+msgstr "Changer la touche"
+
+#: data/input-remapper.glade:326
+msgid "Copy"
+msgstr "Copier"
+
+#: data/input-remapper.glade:350
+msgid "Create a new preset"
+msgstr "Créer un nouveau préréglage"
+
+#: data/input-remapper.glade:365 data/input-remapper.glade:889
+msgid "Delete"
+msgstr "Supprimer"
+
+#: data/input-remapper.glade:894
+msgid "Delete this entry"
+msgstr "Supprimer ce mapping"
+
+#: data/input-remapper.glade:370
+msgid "Delete this preset"
+msgstr "Supprimer ce préréglage"
+
+#: data/input-remapper.glade:193
+msgid "Device"
+msgstr "Périphérique"
+
+#: data/input-remapper.glade:331
+msgid "Duplicate this preset"
+msgstr "Dupliquer ce préréglage"
+
+#: inputremapper/gui/user_interface.py:618
+#, python-format
+msgid "Failed to apply preset %s"
+msgstr "Échec de l'application du préréglage %s"
+
+#: data/input-remapper.glade:239
+msgid "Help"
+msgstr "Aide"
+
+#: data/input-remapper.glade:149
+msgid "Input Remapper"
+msgstr "Input Remapper"
+
+#: data/input-remapper.glade:584 data/input-remapper.glade:628
+msgid "Joystick"
+msgstr "Joystick"
+
+#: data/input-remapper.glade:566
+msgid "Left joystick"
+msgstr "Joystick gauche"
+
+#: data/input-remapper.glade:581 data/input-remapper.glade:625
+msgid "Mouse"
+msgstr "Souris"
+
+#: data/input-remapper.glade:654
+msgid "Mouse speed"
+msgstr "Vitesse de la souris"
+
+#: data/input-remapper.glade:345
+msgid "New"
+msgstr "Nouveau"
+
+#: inputremapper/gui/user_interface.py:689
+#: inputremapper/gui/user_interface.py:761
+msgid "Permission denied!"
+msgstr "Autorisation refusée !"
+
+#: data/input-remapper.glade:399
+msgid "Preset"
+msgstr "Préréglage"
+
+#: inputremapper/gui/editor/editor.py:249
+msgid "Press Key"
+msgstr "Appuyer sur une touche"
+
+#: data/input-remapper.glade:864
+msgid "Record a button of your device that should be remapped"
+msgstr "Enregistrer un bouton de votre périphérique qui devrait être remappé"
+
+#: data/input-remapper.glade:438
+msgid "Rename"
+msgstr "Renommer"
+
+#: data/input-remapper.glade:610
+msgid "Right joystick"
+msgstr "Joystick droite"
+
+#: data/input-remapper.glade:469
+msgid "Save the entered name"
+msgstr "Enregistrer le nom saisi"
+
+#: data/input-remapper.glade:1098
+msgid ""
+"See <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/"
+"usage.md\">usage.md</a> online on github for comprehensive information.\n"
+"\n"
+"A \"key + key + ... + key\" syntax can be used to trigger key combinations. "
+"For example \"Control_L + a\".\n"
+"\n"
+"Writing \"disable\" as a mapping disables a key.\n"
+"\n"
+"Macros allow multiple characters to be written with a single key-press. "
+"Information about programming them is available online on github. See <a "
+"href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/macros."
+"md\">macros.md</a> and <a href=\"https://github.com/sezanzeb/input-remapper/"
+"blob/HEAD/readme/examples.md\">examples.md</a>"
+msgstr ""
+"Voir <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/"
+"usage.md\">usage.md</a> en ligne sur github pour des informations "
+"complètes.\n"
+"La syntaxe \"touche + touche + ... + touche\" peut être utilisée pour "
+"déclencher des combinaisons de touches.\n"
+"Par exemple \"Control_L + a\".\n"
+"Écrire \"disable\" comme mapping désactive une touche.\n"
+"Les macros permettent d'écrire plusieurs caractères avec un seul appui de "
+"touche. Des informations sur leur programmation sont disponibles en ligne "
+"sur github. See <a href=\"https://github.com/sezanzeb/input-remapper/blob/"
+"HEAD/readme/macros.md\">macros.md</a> et <a href=\"https://github.com/"
+"sezanzeb/input-remapper/blob/HEAD/readme/examples.md\">examples.md</a>"
+
+#: inputremapper/gui/editor/editor.py:108
+msgid "Set the key first"
+msgstr "Set the key first"
+
+#: data/input-remapper.glade:221
+msgid ""
+"Shortcut: ctrl + del\n"
+"Gives your keys back their original function"
+msgstr ""
+"Raccourci : ctrl + del\n"
+"Réinitialise vos touches à leur fonctionnalité d'origine"
+
+#: data/input-remapper.glade:1239
+msgid "Shortcuts"
+msgstr "Raccourcis"
+
+#: data/input-remapper.glade:1141
+msgid ""
+"Shortcuts only work while keys are not being recorded and the gui is in "
+"focus."
+msgstr ""
+"Les raccourcis fonctionnent uniquement lorsque l'enregistrement des touches "
+"n'est pas en cours et l'interface graphique a le focus."
+
+#: data/input-remapper.glade:312
+msgid "Start injecting. Don't hold down any keys while the injection starts"
+msgstr ""
+"Démarrer l'injection. Ne maintenir aucune touche pendant que l'injection "
+"démarre"
+
+#: inputremapper/gui/user_interface.py:567
+msgid "Starting injection..."
+msgstr "Injection en cours..."
+
+#: data/input-remapper.glade:217
+msgid "Stop Injection"
+msgstr "Arrêter l'injection"
+
+#: inputremapper/gui/user_interface.py:481
+#, python-format
+msgid "Syntax error at %s, hover for info"
+msgstr "Erreur de syntaxe à %s, survoller pour plus d'informations"
+
+#: inputremapper/gui/user_interface.py:226
+msgid "The helper did not start"
+msgstr "Le helper n'a pas démarré"
+
+#: data/input-remapper.glade:879
+msgid "The type of device this mapping is emulating."
+msgstr "Le type de périphérique émulé par ce mapping."
+
+#: data/input-remapper.glade:499
+msgid "To automatically apply the preset after your login or when it connects."
+msgstr ""
+"Pour appliquer automatiquement le préréglage après votre login ou à la "
+"connexion."
+
+#: inputremapper/gui/user_interface.py:779
+#, python-format
+msgid "Unknown mapping %s"
+msgstr "Mapping inconnu %s"
+
+#: data/input-remapper.glade:1122
+msgid "Usage"
+msgstr "Utilisation"
+
+#: inputremapper/gui/editor/editor.py:519
+msgid "Use \"Stop Injection\" to stop before editing"
+msgstr "Utiliser \"Arrêter l'injection\" pour arrêter avant l'édition"
+
+#: data/input-remapper.glade:1015
+msgid "Version unknown"
+msgstr "Version inconnue"
+
+#: data/input-remapper.glade:582 data/input-remapper.glade:626
+msgid "Wheel"
+msgstr "Roulette"
+
+#: data/input-remapper.glade:1032
+msgid ""
+"You can find more information and report bugs at\n"
+"<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
+"sezanzeb/input-remapper</a>"
+msgstr ""
+"Vous pouvez trouver plus d'informations ou signaler un bug sur\n"
+"<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
+"sezanzeb/input-remapper</a>"
+
+#: inputremapper/gui/user_interface.py:526
+msgid "You need to add keys and save first"
+msgstr "Vous devez d'abord ajouter des touches et sauvegarder"
+
+#: inputremapper/gui/editor/editor.py:620
+msgid "Your system might reinterpret combinations "
+msgstr "Votre système peut réinterpréter les combinaisons "
+
+#: inputremapper/gui/editor/editor.py:622
+msgid "break them."
+msgstr "les casser."
+
+#: data/input-remapper.glade:1173
+msgid "closes the application"
+msgstr "ferme l'application"
+
+#: data/input-remapper.glade:1161
+msgid "ctrl + del"
+msgstr "ctrl + del"
+
+#: data/input-remapper.glade:1185
+msgid "ctrl + q"
+msgstr "ctrl + q"
+
+#: data/input-remapper.glade:1197
+msgid "ctrl + r"
+msgstr "ctrl + r"
+
+#: inputremapper/gui/editor/editor.py:619
+msgid "ctrl, alt and shift may not combine properly"
+msgstr "ctrl, alt et shift peuvent ne pas se combiner correctement"
+
+#: inputremapper/gui/editor/editor.py:78 inputremapper/gui/editor/editor.py:394
+msgid "new entry"
+msgstr "nouveau mapping"
+
+#: data/input-remapper.glade:1209
+msgid "refreshes the device list"
+msgstr "rafraîchit la liste des périphériques"
+
+#: data/input-remapper.glade:1221
+msgid "stops the injection"
+msgstr "arrête l'injection"
+
+#: inputremapper/gui/editor/editor.py:621
+msgid "with those after they are injected, and by doing so "
+msgstr "avec celles-ci après leur injection, et ce faisant "
+
+#: data/input-remapper.glade:1052
+msgid ""
+"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"This program comes with absolutely no warranty.\n"
+"See the <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
+"Public License, version 3 or later</a> for details."
+msgstr ""
+"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"Ce programme est fourni sans aucune garantie.\n"
+"Voir la <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">Licence GNU "
+"General Public, version 3 ou ultérieure</a> pour plus de détails."
