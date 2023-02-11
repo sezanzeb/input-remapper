@@ -242,6 +242,8 @@ logger.setLevel(logging.INFO)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 
+# using pkg_resources to figure out the version fails in many cases,
+# so we hardcode it instead
 VERSION = "1.6.0-beta"
 EVDEV_VERSION = None
 try:
