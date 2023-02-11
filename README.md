@@ -48,6 +48,8 @@ Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `pyth
 
 Python packages need to be installed globally for the service to be able to import them. Don't use `--user`
 
+Conda can cause problems due to changed python paths and versions.
+
 ```bash
 sudo pip install evdev -U  # If newest version not in distros repo
 sudo pip uninstall key-mapper  # In case the old package is still installed
