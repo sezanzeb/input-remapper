@@ -114,7 +114,7 @@ setup(
         # see development.md#files
         *lang_data,
         ("/usr/share/input-remapper/", glob.glob("data/*")),
-        ("/usr/share/applications/", ["data/input-remapper.desktop"]),
+        ("/usr/share/applications/", ["data/input-remapper-gtk.desktop"]),
         ("/usr/share/polkit-1/actions/", ["data/input-remapper.policy"]),
         ("/usr/lib/systemd/system", ["data/input-remapper.service"]),
         ("/etc/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),
