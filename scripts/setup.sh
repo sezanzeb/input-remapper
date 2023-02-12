@@ -4,7 +4,6 @@
 # Provides commands for cleaning up everything.
 # Supports installation of the modules in a virtual env.
 
-here="$(dirname "$0")"
 python=/usr/bin/python3
 
 stop_service() {
@@ -36,7 +35,7 @@ local_install() {
         echo "install: running in virtual env '$VIRTUAL_ENV'"
         site_packages="$(find "$VIRTUAL_ENV" -name site-packages)"
         echo "install: temporarily ingesting site-packages path '$site_packages' into binaries"
-        "$here/inject-path.sh" inject "$site_packages"
+        scripts/inject-path.sh inject "$site_packages"
     fi
 
     echo "install: using local python3"
@@ -44,7 +43,7 @@ local_install() {
 
     if test -n "$VIRTUAL_ENV"; then
         echo "install: removing temporary site-packages path from binaries"
-        "$here/inject-path.sh" clean
+        scripts/inject-path.sh clean
     fi
 }
 
