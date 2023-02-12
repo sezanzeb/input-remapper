@@ -261,9 +261,9 @@ class Controller:
                 CTX_WARNING,
                 _("ctrl, alt and shift may not combine properly"),
                 _(
-                    "Your system might reinterpret combinations " +
-                    "with those after they are injected, and by doing so " +
-                    "break them."
+                    "Your system might reinterpret combinations "
+                    + "with those after they are injected, and by doing so "
+                    + "break them."
                 ),
             )
 
