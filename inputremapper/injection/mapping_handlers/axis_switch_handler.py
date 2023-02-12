@@ -147,7 +147,6 @@ class AxisSwitchHandler(MappingHandler):
         source: evdev.InputDevice,
         suppress: bool = False,
     ) -> bool:
-
         if not self._should_map(event):
             return False
 

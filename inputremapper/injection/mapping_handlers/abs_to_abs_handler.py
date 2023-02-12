@@ -89,7 +89,6 @@ class AbsToAbsHandler(MappingHandler):
         source: evdev.InputDevice,
         suppress: bool = False,
     ) -> bool:
-
         if event.input_match_hash != self._map_axis.input_match_hash:
             return False
 
