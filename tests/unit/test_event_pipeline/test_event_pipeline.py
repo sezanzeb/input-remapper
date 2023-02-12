@@ -874,6 +874,43 @@ class TestIdk(EventPipelineTestBase):
         count_x = mouse_history.count(expected_rel_event)
         self.assertEqual(len(mouse_history), count_x)
 
+    async def test_key_axis_combination_to_disable(self):
+        combination = InputCombination(
+            [
+                InputConfig(type=EV_ABS, code=ABS_X),
+                InputConfig(type=EV_ABS, code=ABS_Y, analog_threshold=5),
+            ]
+        )
+        preset = Preset()
+        forward_history = self.forward_uinput.write_history
+
+        mapping = Mapping(
+            input_combination=combination,
+            output_symbol="disable",
+            target_uinput="keyboard",
+        )
+        preset.add(mapping)
+
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+
+        await self.send_events(
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, 10)),  # forwarded
+                InputEvent.from_tuple((EV_ABS, ABS_Y, int(0.1 * MAX_ABS))),
+                InputEvent.from_tuple((EV_ABS, ABS_X, 20)),  # disabled
+                InputEvent.from_tuple((EV_ABS, ABS_Y, int(0.02 * MAX_ABS))),
+                InputEvent.from_tuple((EV_ABS, ABS_X, 30)),  # forwarded
+            ],
+            event_reader,
+        )
+        self.assertEqual(
+            forward_history,
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, 10)),
+                InputEvent.from_tuple((EV_ABS, ABS_X, 30)),
+            ],
+        )
+
 
 class TestAbsToAbs(EventPipelineTestBase):
     async def test_abs_to_abs(self):

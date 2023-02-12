@@ -40,10 +40,16 @@ class NullHandler(MappingHandler):
         return "Voids all events"
 
     def needs_wrapping(self) -> bool:
-        return False in [input_.defines_analog_input for input_ in self.input_configs]
+        return False in [
+            input_.defines_analog_input for input_ in self.mapping.input_combination
+        ]
 
     def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
-        return {InputCombination(self.input_configs): HandlerEnums.combination}
+        if not self.mapping.input_combination.defines_analog_input:
+            return {self.mapping.input_combination: HandlerEnums.combination}
+
+        assert len(self.mapping.input_combination) > 1, "nees_wrapping ensures this!"
+        return {self.mapping.input_combination: HandlerEnums.axisswitch}
 
     def notify(
         self,
