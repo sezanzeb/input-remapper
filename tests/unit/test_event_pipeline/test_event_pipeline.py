@@ -891,7 +891,7 @@ class TestIdk(EventPipelineTestBase):
         )
         preset.add(mapping)
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
