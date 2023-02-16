@@ -113,7 +113,6 @@ class Context:
             )
 
     def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
-        # TODO test
         input_match_hash = input_event.input_match_hash
         return self._notify_callbacks[input_match_hash]
 

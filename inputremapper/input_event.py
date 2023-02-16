@@ -112,8 +112,8 @@ class InputEvent:
         cls, event_tuple: Tuple[int, int, int], origin_hash: Optional[str] = None
     ) -> InputEvent:
         """Create a InputEvent from a (type, code, value) tuple."""
-        # TODO use this as rarely as possible. Construct objects as early as possible
-        #  instead.
+        # use this as rarely as possible. Construct objects early on and pass them
+        # around instead of passing around integers
         if len(event_tuple) != 3:
             raise TypeError(
                 f"failed to create InputEvent {event_tuple = } must have length 3"

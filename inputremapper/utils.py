@@ -44,8 +44,11 @@ def get_device_hash(device: evdev.InputDevice) -> DeviceHash:
 
 
 def get_evdev_constant_name(type_: Optional[int], code: Optional[int], *_) -> str:
-    """Handy function to get the evdev constant name."""
-    # this is more readable than
+    """Handy function to get the evdev constant name for display purposes.
+
+    Returns "unknown" for unknown events.
+    """
+    # using this function is more readable than
     #   type_, code = event.type_and_code
     #   name = evdev.ecodes.bytype[type_][code]
     name = evdev.ecodes.bytype.get(type_, {}).get(code)
@@ -53,7 +56,6 @@ def get_evdev_constant_name(type_: Optional[int], code: Optional[int], *_) -> st
         name = name[0]
 
     if name is None:
-        # TODO test
         return "unknown"
 
     return name
