@@ -41,11 +41,11 @@ from inputremapper.daemon import DaemonProxy
 from inputremapper.logger import logger, update_verbosity, log_info
 
 
-def start_processes() -> DaemonProxy:
+def start_processes(ignore_pkexec_errors=False) -> DaemonProxy:
     """Start reader-service and daemon via pkexec to run in the background."""
     # this function is overwritten in tests
     try:
-        ReaderService.pkexec_reader_service()
+        ReaderService.pkexec_reader_service(ingore_errors=ignore_pkexec_errors)
     except Exception as e:
         logger.error(e)
         sys.exit(11)
@@ -57,7 +57,12 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(
         '-d', '--debug', action='store_true', dest='debug',
-        help=_('Displays additional debug information'),
+        help=_('displays additional debug information'),
+        default=False
+    )
+    parser.add_argument(
+        '-R', '--no-root', action='store_true', dest='no_root',
+        help=_('allow rejecting root access (by cancelling the pkexec dialog)'),
         default=False
     )
 
@@ -85,8 +90,8 @@ if __name__ == '__main__':
 
     # create the reader before we start the reader-service (start_processes) otherwise
     # it can come to race conditions with the creation of pipes
-    reader_client = ReaderClient(message_broker, _Groups())
-    daemon = start_processes()
+    reader_client = ReaderClient(message_broker, _Groups(), ignore_pkexec_errors=options.no_root)
+    daemon = start_processes(ignore_pkexec_errors=options.no_root)
 
     data_manager = DataManager(
         message_broker, GlobalConfig(), reader_client, daemon, GlobalUInputs(), system_mapping

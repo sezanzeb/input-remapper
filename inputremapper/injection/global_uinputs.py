@@ -151,6 +151,7 @@ class GlobalUInputs:
         if not uinput:
             raise inputremapper.exceptions.UinputNotAvailable(target_uinput)
 
+        # TODO: fix: AttributeError: 'FrontendUInput' object has no attribute 'can_emit'
         if not uinput.can_emit(event):
             raise inputremapper.exceptions.EventNotHandled(event)
 

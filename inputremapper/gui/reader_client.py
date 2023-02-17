@@ -23,6 +23,7 @@
 see gui.reader_service.ReaderService
 """
 
+import os
 import time
 from typing import Optional, List, Generator, Dict, Tuple, Set
 
@@ -72,7 +73,12 @@ class ReaderClient:
     # how long to wait for the reader-service at most
     _timeout: int = 5
 
-    def __init__(self, message_broker: MessageBroker, groups: _Groups):
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        groups: _Groups,
+        ignore_pkexec_errors=False
+    ):
         self.groups = groups
         self.message_broker = message_broker
 
@@ -86,13 +92,14 @@ class ReaderClient:
         self.attach_to_events()
 
         self._read_timeout = GLib.timeout_add(30, self._read)
+        self.ignore_pkexec_errors = ignore_pkexec_errors
 
     def ensure_reader_service_running(self):
         if ReaderService.is_running():
             return
 
         logger.info("ReaderService not running anymore, restarting")
-        ReaderService.pkexec_reader_service()
+        ReaderService.pkexec_reader_service(ingore_errors=self.ignore_pkexec_errors)
 
         # wait until the ReaderService is up
 

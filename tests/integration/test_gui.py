@@ -291,6 +291,8 @@ class GuiTestBase(unittest.TestCase):
         self.stop_injector_btn: Gtk.Button = get("stop_injection_preset_page")
         self.rename_btn: Gtk.Button = get("rename-button")
         self.rename_input: Gtk.Entry = get("preset_name_input")
+        self.search_btn: Gtk.Button = get("mapping-search-clear-button")
+        self.search_input: Gtk.Entry = get("mapping-search-input")
         self.create_mapping_btn: Gtk.Button = get("create_mapping_button")
         self.delete_mapping_btn: Gtk.Button = get("delete-mapping")
 
@@ -1414,6 +1416,18 @@ class TestGui(GuiTestBase):
             self.delete_preset_btn.clicked()
             gtk_iteration()
         self.assertFalse(os.path.exists(preset_path))
+
+    def test_search_input(self):
+        self.search_input.set_text("foo")
+        self.set_focus(self.search_input)
+        # TODO: press a key and check filter value in data manager
+        gtk_iteration()
+        # self.assertEquals(self.controller.data_manager.active_filter, "foo")
+
+        self.search_btn.clicked()
+        gtk_iteration()
+        self.assertEquals(self.search_input.get_text(), "")
+        self.assertEquals(self.controller.data_manager.active_filter, "")        
 
     def test_check_for_unknown_symbols(self):
         status = self.user_interface.get("status_bar")

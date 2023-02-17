@@ -15,6 +15,11 @@
     <property name="margin-end">2</property>
     <property name="icon-name">media-playback-start</property>
   </object>
+  <object class="GtkImage" id="clear-icon">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">sweeper</property>
+  </object>
   <object class="GtkImage" id="copy-icon1">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -436,6 +441,7 @@ Shortcut: ctrl + del</property>
                           <object class="GtkEntry" id="preset_name_input">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="placeholder-text" translatable="yes">enter preset name...</property>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -501,6 +507,7 @@ Shortcut: ctrl + del</property>
                             <property name="can-focus">False</property>
                             <property name="margin-top">18</property>
                             <property name="orientation">vertical</property>
+                            <property name="spacing">6</property>
                             <child>
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
@@ -521,34 +528,49 @@ Shortcut: ctrl + del</property>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">center</property>
-                                <property name="margin-bottom">18</property>
+                                <property name="margin-start">6</property>
+                                <property name="margin-end">6</property>
+                                <property name="spacing">6</property>
+                                <property name="homogeneous">True</property>
                                 <child>
-                                  <object class="GtkLabel" id="combination-label">
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="label" translatable="yes">no input configured</property>
-                                    <property name="wrap">True</property>
+                                    <property name="halign">center</property>
+                                    <property name="margin-bottom">18</property>
+                                    <child>
+                                      <object class="GtkLabel" id="combination-label">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="label" translatable="yes">no input configured</property>
+                                        <property name="wrap">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="recording_status">
+                                        <property name="can-focus">False</property>
+                                        <property name="opacity">0.5</property>
+                                        <property name="label" translatable="yes"> (recording ...)</property>
+                                        <attributes>
+                                          <attribute name="style" value="italic"/>
+                                        </attributes>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel" id="recording_status">
-                                    <property name="can-focus">False</property>
-                                    <property name="opacity">0.5</property>
-                                    <property name="label" translatable="yes"> (recording ...)</property>
-                                    <attributes>
-                                      <attribute name="style" value="italic"/>
-                                    </attributes>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
                                   </packing>
                                 </child>
                               </object>
@@ -564,11 +586,9 @@ Shortcut: ctrl + del</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">center</property>
-                                <property name="margin-start">18</property>
-                                <property name="margin-end">18</property>
-                                <property name="margin-bottom">18</property>
+                                <property name="margin-start">6</property>
+                                <property name="margin-end">6</property>
                                 <property name="spacing">6</property>
-                                <property name="homogeneous">True</property>
                                 <child>
                                   <object class="GtkButton" id="create_mapping_button">
                                     <property name="label" translatable="yes">Add</property>
@@ -580,8 +600,8 @@ Shortcut: ctrl + del</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
+                                    <property name="fill">False</property>
+                                    <property name="position">0</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -596,7 +616,7 @@ Shortcut: ctrl + del</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
-                                    <property name="fill">True</property>
+                                    <property name="fill">False</property>
                                     <property name="position">1</property>
                                   </packing>
                                 </child>
@@ -610,7 +630,7 @@ Shortcut: ctrl + del</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
-                                    <property name="fill">True</property>
+                                    <property name="fill">False</property>
                                     <property name="position">2</property>
                                   </packing>
                                 </child>
@@ -629,6 +649,45 @@ Shortcut: ctrl + del</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
+                                    <property name="fill">False</property>
+                                    <property name="position">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="mapping-filter-box">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="spacing">6</property>
+                                    <child>
+                                      <object class="GtkEntry" id="mapping-filter-input">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="placeholder-text" translatable="yes">filter mappings...</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="mapping-filter-clear-button">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Clear search filter</property>
+                                        <property name="halign">start</property>
+                                        <property name="image">clear-icon</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
                                     <property name="fill">True</property>
                                     <property name="position">4</property>
                                   </packing>

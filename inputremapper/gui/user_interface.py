@@ -51,7 +51,10 @@ from inputremapper.gui.components.editor import (
 )
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.main import Stack, StatusBar
-from inputremapper.gui.components.common import Breadcrumbs
+from inputremapper.gui.components.common import (
+    Breadcrumbs,
+    ListFilterControl,
+)
 from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
@@ -148,6 +151,12 @@ class UserInterface:
         PresetSelection(message_broker, controller, self.get("preset_selection"))
         MappingListBox(message_broker, controller, self.get("selection_label_listbox"))
         TargetSelection(message_broker, controller, self.get("target-selector"))
+
+        ListFilterControl(
+            self.get("selection_label_listbox"),
+            self.get("mapping-filter-input"),
+            clear_button=self.get("mapping-filter-clear-button"),
+        )
 
         Breadcrumbs(
             message_broker,
