@@ -77,6 +77,7 @@ def push_event(fixture: Fixture, event, force: bool = False):
     ):
         raise AssertionError(f"Fixture {fixture.path} cannot send {event}")
     logger.info("Simulating %s for %s", event, fixture.path)
+    logger.info(f"Pipe: {pending_events[fixture]}")
     pending_events[fixture][0].send(event)
 
 

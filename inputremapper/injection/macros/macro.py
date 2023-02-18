@@ -40,6 +40,7 @@ import asyncio
 import copy
 import math
 import re
+from collections import defaultdict
 from typing import List, Callable, Awaitable, Tuple, Optional, Union, Any
 
 from evdev.ecodes import (
@@ -56,13 +57,13 @@ from evdev.ecodes import (
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import MacroParsingError
-from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.logger import logger
 
 Handler = Callable[[Tuple[int, int, int]], None]
 MacroTask = Callable[[Handler], Awaitable]
 
-macro_variables = SharedDict()
+# global dict object used by macros to share variable across all injectors
+macro_variables = defaultdict(None)
 
 
 class Variable:
@@ -550,7 +551,7 @@ class Macro:
         _type_check(value, [int, float], "value", 1)
 
         async def task(_):
-            current = macro_variables[variable]
+            current = macro_variables.get(variable)
             if current is None:
                 logger.debug('"%s" initialized with 0', variable)
                 macro_variables[variable] = 0

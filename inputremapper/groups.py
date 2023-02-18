@@ -459,6 +459,7 @@ class _Groups:
         result is cached. Use refresh_groups if you need up to date
         devices.
         """
+        # todo: make sure this is non blocking or can be awaited
         pipe = multiprocessing.Pipe()
         _FindGroups(pipe[1]).start()
         # block until groups are available

@@ -32,7 +32,7 @@ def convert_to_internal_events(events):
 
 def spy(obj, name):
     """Convenient wrapper for patch.object(..., ..., wraps=...)."""
-    return patch.object(obj, name, wraps=obj.__getattribute__(name))
+    return patch.object(obj, name, wraps=getattr(obj, name))
 
 
 environ_copy = copy.deepcopy(os.environ)

@@ -29,27 +29,7 @@ import time
 import os
 
 from inputremapper.ipc.pipe import Pipe
-from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.ipc.socket import Server, Client, Base
-
-
-class TestSharedDict(unittest.TestCase):
-    def setUp(self):
-        self.shared_dict = SharedDict()
-        self.shared_dict.start()
-        time.sleep(0.02)
-
-    def tearDown(self):
-        quick_cleanup()
-
-    def test_returns_none(self):
-        self.assertIsNone(self.shared_dict.get("a"))
-        self.assertIsNone(self.shared_dict["a"])
-
-    def test_set_get(self):
-        self.shared_dict["a"] = 3
-        self.assertEqual(self.shared_dict.get("a"), 3)
-        self.assertEqual(self.shared_dict["a"], 3)
 
 
 class TestSocket(unittest.TestCase):

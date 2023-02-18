@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import inspect
 import os
 import subprocess
 import time
@@ -342,3 +343,26 @@ class FakeDaemonProxy:
     def hello(self, out: str) -> str:
         self.calls["hello"].append(out)
         return out
+
+
+class SyncProxy:
+    """class decorator which makes all method calls run synchronously"""
+
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+
+    def __getattr__(self, item):
+        attr = getattr(self.wrapped, item)
+        if not inspect.iscoroutinefunction(attr):
+            return attr
+
+        def run_sync(*args, **kwargs):
+            return asyncio.run(attr(*args, **kwargs))
+
+        return run_sync
+
+    def __setattr__(self, key: str, value):
+        if key == "wrapped":
+            super(SyncProxy, self).__setattr__(key, value)
+
+        return setattr(self.wrapped, key, value)

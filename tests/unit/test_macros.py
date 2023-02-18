@@ -1196,7 +1196,7 @@ class TestIfEq(MacroTestBase):
             """Run the macro and compare the injections with an expectation."""
             logger.info("Testing %s", macro)
             # cleanup
-            macro_variables._clear()
+            macro_variables.clear()
             self.assertIsNone(macro_variables.get("a"))
             self.result.clear()
 
@@ -1237,44 +1237,6 @@ class TestIfEq(MacroTestBase):
         # won't compare strings and int, be similar to python
         await test('set(a, "1").if_eq($a, 1, key(a), key(b))', b_press)
         await test('set(a, 1).if_eq($a, "1", key(a), key(b))', b_press)
-
-    async def test_if_eq_runs_multiprocessed(self):
-        """ifeq on variables that have been set in other processes works."""
-        macro = parse("if_eq($foo, 3, key(a), key(b))", self.context, DummyMapping)
-        code_a = system_mapping.get("a")
-        code_b = system_mapping.get("b")
-
-        self.assertEqual(len(macro.child_macros), 2)
-
-        def set_foo(value):
-            # will write foo = 2 into the shared dictionary of macros
-            macro_2 = parse(f"set(foo, {value})", self.context, DummyMapping)
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(macro_2.run(lambda: None))
-
-        """foo is not 3"""
-
-        process = multiprocessing.Process(target=set_foo, args=(2,))
-        process.start()
-        process.join()
-        await macro.run(self.handler)
-        self.assertListEqual(self.result, [(EV_KEY, code_b, 1), (EV_KEY, code_b, 0)])
-
-        """foo is 3"""
-
-        process = multiprocessing.Process(target=set_foo, args=(3,))
-        process.start()
-        process.join()
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [
-                (EV_KEY, code_b, 1),
-                (EV_KEY, code_b, 0),
-                (EV_KEY, code_a, 1),
-                (EV_KEY, code_a, 0),
-            ],
-        )
 
 
 class TestIfSingle(MacroTestBase):

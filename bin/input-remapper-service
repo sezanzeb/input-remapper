@@ -50,5 +50,4 @@ if __name__ == '__main__':
         log_info('input-remapper-service')
 
     daemon = Daemon()
-    daemon.publish()
     daemon.run()
