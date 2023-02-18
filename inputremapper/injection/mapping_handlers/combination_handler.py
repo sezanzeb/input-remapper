@@ -101,6 +101,8 @@ class CombinationHandler(MappingHandler):
         was_activated = self.is_activated()
 
         # update the state
+        # The value of non-key input should have been changed to either 0 or 1 at this
+        # point by other handlers.
         is_pressed = event.value == 1
         self._pressed_keys[event.input_match_hash] = is_pressed
         # maybe this changes the activation status (triggered/not-triggered)
@@ -150,7 +152,7 @@ class CombinationHandler(MappingHandler):
     def forward_release(self) -> None:
         """Forward a button release for all keys if this is a combination.
 
-        this might cause duplicate key-up events but those are ignored by evdev anyway
+        This might cause duplicate key-up events but those are ignored by evdev anyway
         """
         if len(self._pressed_keys) == 1 or not self.mapping.release_combination_keys:
             return
@@ -160,10 +162,11 @@ class CombinationHandler(MappingHandler):
             self.mapping.input_combination,
         )
 
+        logger.debug("Forwarding release for %s", self.mapping.input_combination)
+
         for input_config in keys_to_release:
             origin_hash = input_config.origin_hash
             if origin_hash is None:
-                # TODO test
                 logger.error(
                     f"Can't forward due to missing origin_hash in {repr(input_config)}"
                 )

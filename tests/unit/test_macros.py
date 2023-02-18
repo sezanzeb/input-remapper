@@ -66,7 +66,6 @@ from inputremapper.injection.macros.parse import (
     get_num_parameters,
 )
 from inputremapper.input_event import InputEvent
-from tests.lib.fixtures import new_event
 from tests.lib.logger import logger
 from tests.lib.cleanup import quick_cleanup
 
