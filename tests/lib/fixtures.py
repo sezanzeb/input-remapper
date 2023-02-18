@@ -341,7 +341,7 @@ def get_key_mapping(combination=None, target_uinput="keyboard", output_symbol="a
     from inputremapper.configs.mapping import Mapping
 
     if not combination:
-        combination = [{"type": 99, "code": 99, "analog_threshold": 99}]
+        combination = get_combination_config((99, 99, 99))
 
     return Mapping(
         input_combination=combination,
