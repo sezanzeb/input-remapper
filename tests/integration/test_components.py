@@ -78,7 +78,11 @@ from inputremapper.gui.components.editor import (
     GdkEventRecorder,
 )
 from inputremapper.gui.components.main import Stack, StatusBar
-from inputremapper.gui.components.common import FlowBoxEntry, Breadcrumbs
+from inputremapper.gui.components.common import (
+    FlowBoxEntry,
+    Breadcrumbs,
+    ListFilterControl,
+)
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.device_groups import (
     DeviceGroupEntry,
@@ -86,6 +90,24 @@ from inputremapper.gui.components.device_groups import (
 )
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.input_config import InputCombination, InputConfig
+
+
+class GtkKeyEvent:
+
+    KEY_RELEASE = "key-release-event"
+    KEY_PRESS = "key-press-event"
+
+    def __init__(self, keyval):
+        self.keyval = keyval
+
+    def get_keyval(self):
+        return True, self.keyval
+
+    def emit_to(self, target:Gtk.Widget, event_type=KEY_RELEASE):
+        ev = Gdk.Event()
+        ev.key.keyval = self.keyval
+        target.emit(event_type, ev)
+        gtk_iteration()
 
 
 class ComponentBaseTest(unittest.TestCase):
@@ -343,7 +365,7 @@ class TestPresetSelection(ComponentBaseTest):
         self.controller_mock.load_preset.assert_called_once_with("preset2")
 
 
-class TestMappingListbox(ComponentBaseTest):
+class TestMappingListboxBase(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
         self.gui = Gtk.ListBox()
@@ -394,6 +416,11 @@ class TestMappingListbox(ComponentBaseTest):
 
         for label in self.gui.get_children():
             select(label)
+
+
+class TestMappingListbox(TestMappingListboxBase):
+    def setUp(self) -> None:
+        super().setUp()
 
     def test_populates_listbox(self):
         labels = {row.name for row in self.gui.get_children()}
@@ -483,6 +510,41 @@ class TestMappingListbox(ComponentBaseTest):
         )
         bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
         self.assertEqual(bottom_row.combination, InputCombination.empty_combination())
+
+
+class TestMappingFilterListbox(TestMappingListboxBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.entry = Gtk.Entry()
+        self.button = Gtk.Button()
+        self.control = ListFilterControl(
+            self.gui,
+            self.entry,
+            clear_button=self.button,
+        )
+
+    def get_num_visible(self):
+        return len([c for c in self.gui.get_children() if c.get_visible()])
+
+    def test_filter_entry(self):
+        n = len(list(self.gui.get_children()))
+
+        self.assertGreater(n, 2, "some mappings must be loaded")
+        self.assertEqual(self.get_num_visible(), n, "all mappings must be visible")
+
+        self.entry.set_text("not in preset")
+        GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.entry)
+        self.assertEqual(self.entry.get_text(), "not in preset")
+        self.assertEqual(self.get_num_visible(), 0 , "mappings must not be visible")
+
+        self.button.clicked()
+        gtk_iteration()
+        self.assertEqual(self.entry.get_text(), "", "filter must be cleared")
+        self.assertEqual(self.get_num_visible(), n, "all mappings must be visible again")
+
+        self.entry.set_text("mapping1")
+        GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.entry)
+        self.assertEqual(self.get_num_visible(), 1, "only one mapping must be visible")
 
 
 class TestMappingSelectionLabel(ComponentBaseTest):
@@ -1854,3 +1916,6 @@ class TestBreadcrumbs(ComponentBaseTest):
         )
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  qux")
         self.assertEqual(self.label_5.get_text(), "qux")
+
+if __name__ == "__main__":
+    unittest.main()

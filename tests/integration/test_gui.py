@@ -32,7 +32,7 @@ from tests.lib.fixtures import prepare_presets, get_combination_config
 from tests.lib.logger import logger
 from tests.lib.fixtures import fixtures
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
-from tests.integration.test_components import FlowBoxTestUtils
+from tests.integration.test_components import FlowBoxTestUtils, GtkKeyEvent
 
 import sys
 import time
@@ -161,14 +161,6 @@ def clean_up_integration(test):
         atexit.unregister(test.daemon.stop_all)
 
 
-class GtkKeyEvent:
-    def __init__(self, keyval):
-        self.keyval = keyval
-
-    def get_keyval(self):
-        return True, self.keyval
-
-
 class TestGroupsFromReaderService(unittest.TestCase):
     def setUp(self):
         # don't try to connect, return an object instance of it instead
@@ -291,8 +283,8 @@ class GuiTestBase(unittest.TestCase):
         self.stop_injector_btn: Gtk.Button = get("stop_injection_preset_page")
         self.rename_btn: Gtk.Button = get("rename-button")
         self.rename_input: Gtk.Entry = get("preset_name_input")
-        self.search_btn: Gtk.Button = get("mapping-search-clear-button")
-        self.search_input: Gtk.Entry = get("mapping-search-input")
+        self.mapping_filter_btn: Gtk.Button = get("mapping-filter-clear-button")
+        self.mapping_filter_input: Gtk.Entry = get("mapping-filter-input")
         self.create_mapping_btn: Gtk.Button = get("create_mapping_button")
         self.delete_mapping_btn: Gtk.Button = get("delete-mapping")
 
@@ -1417,17 +1409,29 @@ class TestGui(GuiTestBase):
             gtk_iteration()
         self.assertFalse(os.path.exists(preset_path))
 
-    def test_search_input(self):
-        self.search_input.set_text("foo")
-        self.set_focus(self.search_input)
-        # TODO: press a key and check filter value in data manager
-        gtk_iteration()
-        # self.assertEquals(self.controller.data_manager.active_filter, "foo")
+    def test_filtering_mappings(self):
+        self.controller.load_preset("preset2")
+        self.throttle(20)
 
-        self.search_btn.clicked()
-        gtk_iteration()
-        self.assertEquals(self.search_input.get_text(), "")
-        self.assertEquals(self.controller.data_manager.active_filter, "")        
+        mappings = list(self.data_manager.get_mappings())
+        self.assertGreaterEqual(len(mappings), 2)
+
+        self.assertGreater(len(mappings), 0, "at least one mapping must be loaded")
+        num_rows = len(self.selection_label_listbox.get_children())
+        self.assertEqual(len(mappings), num_rows, "all mappimgs must be in the listbox")
+
+        text0 = mappings[0].format_name()
+        self.mapping_filter_input.set_text(text0)
+        GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.mapping_filter_input)
+        self.assertEqual(self.data_manager.active_mapping.format_name(), text0)
+
+        text1 = mappings[1].format_name()
+        self.mapping_filter_input.set_text(text1)
+        GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.mapping_filter_input)
+        self.assertEqual(self.data_manager.active_mapping.format_name(), text1)
+
+        self.mapping_filter_btn.clicked()
+        self.assertEqual(self.mapping_filter_input.get_text(), "")
 
     def test_check_for_unknown_symbols(self):
         status = self.user_interface.get("status_bar")
