@@ -293,7 +293,7 @@ class InputCombination(Tuple[InputConfig, ...]):
         Examples
         --------
             InputCombination([InputConfig, ...])
-            InputCombination([{type, code, value}, ...])
+            InputCombination([{type: ..., code: ..., value: ...}, ...])
         """
         if not isinstance(configs, Iterable):
             raise TypeError("InputCombination requires a list of InputConfigs.")
