@@ -19,6 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+
 # the tests file needs to be imported first to make sure patches are loaded
 from contextlib import contextmanager
 from typing import Tuple, List, Optional, Iterable
@@ -146,7 +147,7 @@ def patch_launch():
         # instead of running pkexec, fork instead. This will make
         # the reader-service aware of all the test patches
         if "pkexec input-remapper-control --command start-reader-service" in cmd:
-            logger.info('pkexec-patch starting ReaderService process')
+            logger.info("pkexec-patch starting ReaderService process")
             start_reader_service()
             return 0
 

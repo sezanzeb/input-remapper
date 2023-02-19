@@ -114,10 +114,10 @@ class GlobalUInputs:
 
         # overwrite global_uinputs.is_service in tests to control this
         if self.is_service:
-            logger.debug('Creating regular UInputs')
+            logger.debug("Creating regular UInputs")
             self._uinput_factory = UInput
         else:
-            logger.debug('Creating FrontendUInputs')
+            logger.debug("Creating FrontendUInputs")
             self._uinput_factory = FrontendUInput
 
     def prepare_all(self):
