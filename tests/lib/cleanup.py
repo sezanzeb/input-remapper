@@ -29,6 +29,10 @@ import psutil
 from pickle import UnpicklingError
 from unittest.mock import patch
 
+# don't import anything from input_remapper gloablly here, because some files execute
+# code when imported, which can screw up patches. I wish we had a dependency injection
+# framework that patches together the dependencies during runtime...
+
 from tests.lib.logger import logger
 from tests.lib.pipes import (
     uinput_write_history_pipe,
@@ -79,6 +83,7 @@ def quick_cleanup(log=True):
     from inputremapper.gui.utils import debounce_manager
     from inputremapper.configs.paths import get_config_path
     from inputremapper.injection.global_uinputs import global_uinputs
+    from tests.lib.global_uinputs import reset_global_uinputs_for_service
 
     if log:
         logger.info("Quick cleanup...")
@@ -151,7 +156,7 @@ def quick_cleanup(log=True):
         uinput.write_count = 0
         uinput.write_history = []
 
-    global_uinputs.is_service = True
+    reset_global_uinputs_for_service()
 
     if log:
         logger.info("Quick cleanup done")
@@ -163,7 +168,6 @@ def cleanup():
     Using this is slower, usually quick_cleanup() is sufficient.
     """
     from inputremapper.groups import groups
-    from inputremapper.injection.global_uinputs import global_uinputs
 
     logger.info("Cleanup...")
 
@@ -173,7 +177,5 @@ def cleanup():
 
     quick_cleanup(log=False)
     groups.refresh()
-    with patch.object(sys, "argv", ["input-remapper-service"]):
-        global_uinputs.prepare_all()
 
     logger.info("Cleanup done")

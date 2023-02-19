@@ -102,14 +102,22 @@ class GlobalUInputs:
     def __iter__(self):
         return iter(uinput for _, uinput in self.devices.items())
 
+    def reset(self):
+        self.is_service = inputremapper.utils.is_service()
+        self._uinput_factory = None
+        self.devices = {}
+        self.prepare_all()
+
     def ensure_uinput_factory_set(self):
         if self._uinput_factory is not None:
             return
 
         # overwrite global_uinputs.is_service in tests to control this
         if self.is_service:
+            logger.debug('Creating regular UInputs')
             self._uinput_factory = UInput
         else:
+            logger.debug('Creating FrontendUInputs')
             self._uinput_factory = FrontendUInput
 
     def prepare_all(self):

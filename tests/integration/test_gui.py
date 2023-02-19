@@ -17,13 +17,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
 # the tests file needs to be imported first to make sure patches are loaded
 from contextlib import contextmanager
 from typing import Tuple, List, Optional, Iterable
 
+from inputremapper.injection.global_uinputs import global_uinputs
+from tests.lib.global_uinputs import reset_global_uinputs_for_service
 from tests.test import get_project_root
-from tests.lib.fixtures import new_event
 from tests.lib.cleanup import cleanup
 from tests.lib.stuff import spy
 from tests.lib.constants import EVENT_READ_TIMEOUT
@@ -1748,6 +1750,11 @@ class TestGui(GuiTestBase):
         self.assertIn("Stop", text)
 
     def test_start_injecting(self):
+        # It's 2023 everyone! That means this test randomly stopped working because it
+        # used FrontendUInputs instead of regular UInputs. I guess a fucking ghost
+        # was fixing this for us during 2022, but it seems to have disappeared.
+        reset_global_uinputs_for_service()
+
         self.controller.load_group("Foo Device 2")
 
         with spy(self.daemon, "set_config_dir") as spy1:
@@ -1802,6 +1809,8 @@ class TestGui(GuiTestBase):
             self.assertNotIn("input-remapper", device_group_entry.name)
 
     def test_stop_injecting(self):
+        reset_global_uinputs_for_service()
+
         self.controller.load_group("Foo Device 2")
         self.start_injector_btn.clicked()
         gtk_iteration()
@@ -1811,6 +1820,7 @@ class TestGui(GuiTestBase):
             gtk_iteration()
             if self.data_manager.get_state() == InjectorState.RUNNING:
                 break
+
         # fail here so we don't block forever
         self.assertEqual(self.data_manager.get_state(), InjectorState.RUNNING)
 

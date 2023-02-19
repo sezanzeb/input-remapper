@@ -21,6 +21,8 @@
 from pydantic import ValidationError
 
 from inputremapper.input_event import InputEvent
+from tests.lib.global_uinputs import reset_global_uinputs_for_service, \
+    reset_global_uinputs_for_gui
 from tests.lib.patches import uinputs
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT
