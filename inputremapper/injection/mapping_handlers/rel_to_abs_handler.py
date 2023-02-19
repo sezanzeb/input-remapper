@@ -106,10 +106,10 @@ class RelToAbsHandler(MappingHandler):
         self._observed_rate = DEFAULT_REL_RATE
 
     def __str__(self):
-        return f"RelToAbsHandler for {self._map_axis} <{id(self)}>:"
+        return f"RelToAbsHandler for {self._map_axis}"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):  # used for logging
@@ -161,7 +161,7 @@ class RelToAbsHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput = None,
+        forward_to: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
         self._observe_rate(event)

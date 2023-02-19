@@ -18,7 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Tuple, Optional
+from typing import Tuple
 
 import evdev
 from evdev.ecodes import EV_ABS
@@ -55,13 +55,10 @@ class AbsToBtnHandler(MappingHandler):
 
     def __str__(self):
         name = get_evdev_constant_name(*self._input_config.type_and_code)
-        return (
-            f'AbsToBtnHandler for "{name}" '
-            f"{self._input_config.type_and_code} <{id(self)}>:"
-        )
+        return f'AbsToBtnHandler for "{name}" ' f"{self._input_config.type_and_code}"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):  # used for logging
@@ -91,7 +88,6 @@ class AbsToBtnHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
         if event.input_match_hash != self._input_config.input_match_hash:
@@ -119,11 +115,10 @@ class AbsToBtnHandler(MappingHandler):
             event = event.modify(value=1, actions=(EventActions.as_key, direction))
 
         self._active = bool(event.value)
-        # logger.debug_key(event.event_tuple, "sending to sub_handler")
+        # logger.debug(event.event_tuple, "sending to sub_handler")
         return self._sub_handler.notify(
             event,
             source=source,
-            forward=forward,
             suppress=suppress,
         )
 

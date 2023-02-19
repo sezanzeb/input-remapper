@@ -21,10 +21,12 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Tuple, Optional, Hashable
+from typing import Tuple, Optional, Hashable, Literal
 
 import evdev
 from evdev import ecodes
+
+from inputremapper.utils import get_evdev_constant_name
 
 
 class EventActions(enum.Enum):
@@ -37,6 +39,21 @@ class EventActions(enum.Enum):
     # used in combination with as_key, for originally abs or rel events
     positive_trigger = enum.auto()  # original event was positive direction
     negative_trigger = enum.auto()  # original event was negative direction
+
+
+def validate_event(event):
+    """Test if the event is valid."""
+    if not isinstance(event.type, int):
+        raise TypeError(f"Expected type to be an int, but got {event.type}")
+
+    if not isinstance(event.code, int):
+        raise TypeError(f"Expected code to be an int, but got {event.code}")
+
+    if not isinstance(event.value, int):
+        # this happened to me because I screwed stuff up
+        raise TypeError(f"Expected value to be an int, but got {event.value}")
+
+    return event
 
 
 # Todo: add slots=True as soon as python 3.10 is in common distros
@@ -54,6 +71,7 @@ class InputEvent:
     value: int
     actions: Tuple[EventActions, ...] = ()
     origin_hash: Optional[str] = None
+    forward_to: Optional[evdev.UInput] = None
 
     def __eq__(self, other: InputEvent | evdev.InputEvent | Tuple[int, int, int]):
         # useful in tests
@@ -90,18 +108,71 @@ class InputEvent:
             ) from exception
 
     @classmethod
-    def from_tuple(cls, event_tuple: Tuple[int, int, int]) -> InputEvent:
+    def from_tuple(
+        cls, event_tuple: Tuple[int, int, int], origin_hash: Optional[str] = None
+    ) -> InputEvent:
         """Create a InputEvent from a (type, code, value) tuple."""
+        # use this as rarely as possible. Construct objects early on and pass them
+        # around instead of passing around integers
         if len(event_tuple) != 3:
             raise TypeError(
-                f"failed to create InputEvent {event_tuple = }" f" must have length 3"
+                f"failed to create InputEvent {event_tuple = } must have length 3"
             )
-        return cls(
-            0,
-            0,
-            int(event_tuple[0]),
-            int(event_tuple[1]),
-            int(event_tuple[2]),
+
+        return validate_event(
+            cls(
+                0,
+                0,
+                int(event_tuple[0]),
+                int(event_tuple[1]),
+                int(event_tuple[2]),
+                origin_hash=origin_hash,
+            )
+        )
+
+    @classmethod
+    def abs(cls, code: int, value: int, origin_hash: Optional[str] = None):
+        """Create an abs event, like joystick movements."""
+        return validate_event(
+            cls(
+                0,
+                0,
+                ecodes.EV_ABS,
+                code,
+                value,
+                origin_hash=origin_hash,
+            )
+        )
+
+    @classmethod
+    def rel(cls, code: int, value: int, origin_hash: Optional[str] = None):
+        """Create a rel event, like mouse movements."""
+        return validate_event(
+            cls(
+                0,
+                0,
+                ecodes.EV_REL,
+                code,
+                value,
+                origin_hash=origin_hash,
+            )
+        )
+
+    @classmethod
+    def key(cls, code: int, value: Literal[0, 1], origin_hash: Optional[str] = None):
+        """Create a key event, like keyboard keys or gamepad buttons.
+
+        A value of 1 means "press", a value of 0 means "release".
+        """
+        return validate_event(
+            cls(
+                0,
+                0,
+                ecodes.EV_KEY,
+                code,
+                value,
+                origin_hash=origin_hash,
+            )
         )
 
     @property
@@ -136,7 +207,11 @@ class InputEvent:
         ]
 
     def __str__(self):
-        return f"InputEvent{self.event_tuple}"
+        name = get_evdev_constant_name(self.type, self.code)
+        return f"InputEvent for {self.event_tuple} {name}"
+
+    def __repr__(self):
+        return f"<{str(self)} at {hex(id(self))}>"
 
     def timestamp(self):
         """Return the unix timestamp of when the event was seen."""

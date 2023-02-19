@@ -17,7 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Tuple, Hashable
+from __future__ import annotations  # needed for the TYPE_CHECKING import
+from typing import TYPE_CHECKING, Dict, Hashable
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -32,6 +33,9 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
+if TYPE_CHECKING:
+    from inputremapper.injection.context import Context
+
 
 class CombinationHandler(MappingHandler):
     """Keeps track of a combination and notifies a sub handler."""
@@ -40,52 +44,71 @@ class CombinationHandler(MappingHandler):
     _pressed_keys: Dict[Hashable, bool]
     _output_state: bool  # the last update we sent to a sub-handler
     _sub_handler: InputEventHandler
+    _handled_input_hashes: list[Hashable]
 
     def __init__(
         self,
         combination: InputCombination,
         mapping: Mapping,
+        context: Context,
         **_,
     ) -> None:
-        logger.debug(mapping)
+        logger.debug(str(mapping))
         super().__init__(combination, mapping)
         self._pressed_keys = {}
         self._output_state = False
+        self._context = context
 
         # prepare a key map for all events with non-zero value
         for input_config in combination:
             assert not input_config.defines_analog_input
             self._pressed_keys[input_config.input_match_hash] = False
 
+        self._handled_input_hashes = [
+            input_config.input_match_hash for input_config in combination
+        ]
+
         assert len(self._pressed_keys) > 0  # no combination handler without a key
 
     def __str__(self):
         return (
-            f'CombinationHandler for "{self.mapping.input_combination}" '
-            f"{tuple(t for t in self._pressed_keys.keys())} <{id(self)}>:"
+            f'CombinationHandler for "{str(self.mapping.input_combination)}" '
+            f"{tuple(t for t in self._pressed_keys.keys())}"
         )
 
     def __repr__(self):
-        return self.__str__()
+        description = (
+            f'CombinationHandler for "{repr(self.mapping.input_combination)}" '
+            f"{tuple(t for t in self._pressed_keys.keys())}"
+        )
+        return f"<{description} at {hex(id(self))}>"
 
     @property
-    def child(self):  # used for logging
+    def child(self):
+        # used for logging
         return self._sub_handler
 
     def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-        if event.input_match_hash not in self._pressed_keys.keys():
-            return False  # we are not responsible for the event
+        if event.input_match_hash not in self._handled_input_hashes:
+            # we are not responsible for the event
+            return False
 
-        last_state = self.get_active()
-        self._pressed_keys[event.input_match_hash] = event.value == 1
+        was_activated = self.is_activated()
 
-        if self.get_active() == last_state or self.get_active() == self._output_state:
+        # update the state
+        # The value of non-key input should have been changed to either 0 or 1 at this
+        # point by other handlers.
+        is_pressed = event.value == 1
+        self._pressed_keys[event.input_match_hash] = is_pressed
+        # maybe this changes the activation status (triggered/not-triggered)
+        is_activated = self.is_activated()
+
+        if is_activated == was_activated or is_activated == self._output_state:
             # nothing changed
             if self._output_state:
                 # combination is active, consume the event
@@ -94,9 +117,9 @@ class CombinationHandler(MappingHandler):
                 # combination inactive, forward the event
                 return False
 
-        if self.get_active():
+        if is_activated:
             # send key up events to the forwarded uinput
-            self.forward_release(forward)
+            self.forward_release()
             event = event.modify(value=1)
         else:
             if self._output_state or self.mapping.is_axis_mapping():
@@ -112,11 +135,9 @@ class CombinationHandler(MappingHandler):
         if suppress:
             return False
 
-        logger.debug_key(
-            self.mapping.input_combination, "triggered: sending to sub-handler"
-        )
+        logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
         self._output_state = bool(event.value)
-        return self._sub_handler.notify(event, source, forward, suppress)
+        return self._sub_handler.notify(event, source, suppress)
 
     def reset(self) -> None:
         self._sub_handler.reset()
@@ -124,14 +145,14 @@ class CombinationHandler(MappingHandler):
             self._pressed_keys[key] = False
         self._output_state = False
 
-    def get_active(self) -> bool:
+    def is_activated(self) -> bool:
         """Return if all keys in the keymap are set to True."""
         return False not in self._pressed_keys.values()
 
-    def forward_release(self, forward: evdev.UInput) -> None:
-        """Forward a button release for all keys if this is a combination
+    def forward_release(self) -> None:
+        """Forward a button release for all keys if this is a combination.
 
-        this might cause duplicate key-up events but those are ignored by evdev anyway
+        This might cause duplicate key-up events but those are ignored by evdev anyway
         """
         if len(self._pressed_keys) == 1 or not self.mapping.release_combination_keys:
             return
@@ -140,25 +161,37 @@ class CombinationHandler(MappingHandler):
             lambda cfg: self._pressed_keys.get(cfg.input_match_hash),
             self.mapping.input_combination,
         )
+
+        logger.debug("Forwarding release for %s", self.mapping.input_combination)
+
         for input_config in keys_to_release:
-            forward.write(*input_config.type_and_code, 0)
-        forward.syn()
+            origin_hash = input_config.origin_hash
+            if origin_hash is None:
+                logger.error(
+                    f"Can't forward due to missing origin_hash in {repr(input_config)}"
+                )
+                continue
+
+            forward_to = self._context.get_forward_uinput(origin_hash)
+            logger.write(input_config, forward_to)
+            forward_to.write(*input_config.type_and_code, 0)
+            forward_to.syn()
 
     def needs_ranking(self) -> bool:
         return bool(self.input_configs)
 
     def rank_by(self) -> InputCombination:
         return InputCombination(
-            event for event in self.input_configs if not event.defines_analog_input
+            [event for event in self.input_configs if not event.defines_analog_input]
         )
 
     def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         return_dict = {}
         for config in self.input_configs:
             if config.type == EV_ABS and not config.defines_analog_input:
-                return_dict[InputCombination(config)] = HandlerEnums.abs2btn
+                return_dict[InputCombination([config])] = HandlerEnums.abs2btn
 
             if config.type == EV_REL and not config.defines_analog_input:
-                return_dict[InputCombination(config)] = HandlerEnums.rel2btn
+                return_dict[InputCombination([config])] = HandlerEnums.rel2btn
 
         return return_dict

@@ -106,6 +106,7 @@ class AutoloadHistory:
 
 def remove_timeout(func):
     """Remove timeout to ensure the call works if the daemon is not a proxy."""
+
     # the timeout kwarg is a feature of pydbus. This is needed to make tests work
     # that create a Daemon by calling its constructor instead of using pydbus.
     def wrapped(*args, **kwargs):
@@ -291,8 +292,7 @@ class Daemon:
         now = time.time()
         if now - 10 > self.refreshed_devices_at:
             logger.debug("Refreshing because last info is too old")
-            # it may take a little bit of time until devices are visible after
-            # changes
+            # it may take a bit of time until devices are visible after changes
             time.sleep(0.1)
             groups.refresh()
             self.refreshed_devices_at = now

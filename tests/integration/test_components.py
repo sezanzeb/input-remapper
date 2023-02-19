@@ -304,7 +304,9 @@ class TestPresetSelection(ComponentBaseTest):
                 (
                     MappingData(
                         name="m1",
-                        input_combination=InputCombination(InputConfig(type=1, code=2)),
+                        input_combination=InputCombination(
+                            [InputConfig(type=1, code=2)]
+                        ),
                     ),
                 ),
             )
@@ -317,7 +319,9 @@ class TestPresetSelection(ComponentBaseTest):
                 (
                     MappingData(
                         name="m1",
-                        input_combination=InputCombination(InputConfig(type=1, code=2)),
+                        input_combination=InputCombination(
+                            [InputConfig(type=1, code=2)]
+                        ),
                     ),
                 ),
             )
@@ -331,7 +335,9 @@ class TestPresetSelection(ComponentBaseTest):
                 (
                     MappingData(
                         name="m1",
-                        input_combination=InputCombination(InputConfig(type=1, code=2)),
+                        input_combination=InputCombination(
+                            [InputConfig(type=1, code=2)]
+                        ),
                     ),
                 ),
             )
@@ -358,22 +364,22 @@ class TestMappingListbox(ComponentBaseTest):
                     MappingData(
                         name="mapping1",
                         input_combination=InputCombination(
-                            InputConfig(type=1, code=KEY_C)
+                            [InputConfig(type=1, code=KEY_C)]
                         ),
                     ),
                     MappingData(
                         name="",
                         input_combination=InputCombination(
-                            (
+                            [
                                 InputConfig(type=1, code=KEY_A),
                                 InputConfig(type=1, code=KEY_B),
-                            )
+                            ]
                         ),
                     ),
                     MappingData(
                         name="mapping2",
                         input_combination=InputCombination(
-                            InputConfig(type=1, code=KEY_B)
+                            [InputConfig(type=1, code=KEY_B)]
                         ),
                     ),
                 ),
@@ -407,27 +413,27 @@ class TestMappingListbox(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 name="mapping1",
-                input_combination=InputCombination(InputConfig(type=1, code=KEY_C)),
+                input_combination=InputCombination([InputConfig(type=1, code=KEY_C)]),
             )
         )
         selected = self.get_selected_row()
         self.assertEqual(selected.name, "mapping1")
         self.assertEqual(
             selected.combination,
-            InputCombination(InputConfig(type=1, code=KEY_C)),
+            InputCombination([InputConfig(type=1, code=KEY_C)]),
         )
 
     def test_loads_mapping(self):
-        self.select_row(InputCombination(InputConfig(type=1, code=KEY_B)))
+        self.select_row(InputCombination([InputConfig(type=1, code=KEY_B)]))
         self.controller_mock.load_mapping.assert_called_once_with(
-            InputCombination(InputConfig(type=1, code=KEY_B))
+            InputCombination([InputConfig(type=1, code=KEY_B)])
         )
 
     def test_avoids_infinite_recursion(self):
         self.message_broker.publish(
             MappingData(
                 name="mapping1",
-                input_combination=InputCombination(InputConfig(type=1, code=KEY_C)),
+                input_combination=InputCombination([InputConfig(type=1, code=KEY_C)]),
             )
         )
         self.controller_mock.load_mapping.assert_not_called()
@@ -440,7 +446,7 @@ class TestMappingListbox(ComponentBaseTest):
                     MappingData(
                         name="qux",
                         input_combination=InputCombination(
-                            InputConfig(type=1, code=KEY_C)
+                            [InputConfig(type=1, code=KEY_C)]
                         ),
                     ),
                     MappingData(
@@ -450,7 +456,7 @@ class TestMappingListbox(ComponentBaseTest):
                     MappingData(
                         name="bar",
                         input_combination=InputCombination(
-                            InputConfig(type=1, code=KEY_B)
+                            [InputConfig(type=1, code=KEY_B)]
                         ),
                     ),
                 ),
@@ -469,13 +475,13 @@ class TestMappingListbox(ComponentBaseTest):
                     MappingData(
                         name="qux",
                         input_combination=InputCombination(
-                            InputConfig(type=1, code=KEY_C)
+                            [InputConfig(type=1, code=KEY_C)]
                         ),
                     ),
                     MappingData(
                         name="bar",
                         input_combination=InputCombination(
-                            InputConfig(type=1, code=KEY_B)
+                            [InputConfig(type=1, code=KEY_B)]
                         ),
                     ),
                 ),
@@ -512,10 +518,9 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
     def test_repr(self):
         self.mapping_selection_label.name = "name"
-        self.assertEqual(
-            repr(self.mapping_selection_label),
-            "MappingSelectionLabel for a + b as name",
-        )
+        self.assertIn("name", repr(self.mapping_selection_label))
+        self.assertIn("KEY_A", repr(self.mapping_selection_label))
+        self.assertIn("KEY_B", repr(self.mapping_selection_label))
 
     def test_shows_combination_without_name(self):
         self.assertEqual(self.mapping_selection_label.label.get_label(), "a + b")
@@ -553,12 +558,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
                         InputConfig(type=1, code=KEY_B),
                     )
                 ),
-                InputCombination(InputConfig(type=1, code=KEY_A)),
+                InputCombination([InputConfig(type=1, code=KEY_A)]),
             )
         )
         self.assertEqual(
             self.mapping_selection_label.combination,
-            InputCombination(InputConfig(type=1, code=KEY_A)),
+            InputCombination([InputConfig(type=1, code=KEY_A)]),
         )
 
     def test_doesnt_update_combination_when_not_selected(self):
@@ -579,7 +584,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
                         InputConfig(type=1, code=KEY_B),
                     )
                 ),
-                InputCombination(InputConfig(type=1, code=KEY_A)),
+                InputCombination([InputConfig(type=1, code=KEY_A)]),
             )
         )
         self.assertEqual(
@@ -1248,7 +1253,7 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 input_combination=InputCombination(
-                    InputConfig(type=2, code=0, analog_threshold=1)
+                    [InputConfig(type=2, code=0, analog_threshold=1)]
                 ),
                 target_uinput="keyboard",
             )
@@ -1258,7 +1263,7 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 input_combination=InputCombination(
-                    InputConfig(type=2, code=0, analog_threshold=1)
+                    [InputConfig(type=2, code=0, analog_threshold=1)]
                 ),
                 release_timeout=1,
             )
@@ -1273,7 +1278,7 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 input_combination=InputCombination(
-                    InputConfig(type=2, code=0, analog_threshold=1)
+                    [InputConfig(type=2, code=0, analog_threshold=1)]
                 ),
                 release_timeout=1,
             )
@@ -1357,7 +1362,7 @@ class TestOutputAxisSelector(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                input_combination=InputCombination(InputConfig(type=1, code=1)),
+                input_combination=InputCombination([InputConfig(type=1, code=1)]),
             )
         )
 
@@ -1523,7 +1528,7 @@ class TestSliders(ComponentBaseTest):
         )
         self.message_broker.publish(
             MappingData(
-                input_combination=InputCombination(InputConfig(type=3, code=0)),
+                input_combination=InputCombination([InputConfig(type=3, code=0)]),
                 target_uinput="mouse",
             )
         )
@@ -1587,7 +1592,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                input_combination=InputCombination(InputConfig(type=2, code=0)),
+                input_combination=InputCombination([InputConfig(type=2, code=0)]),
                 rel_to_abs_input_cutoff=1,
                 output_type=3,
                 output_code=0,
@@ -1606,7 +1611,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                input_combination=InputCombination(InputConfig(type=2, code=0)),
+                input_combination=InputCombination([InputConfig(type=2, code=0)]),
                 rel_to_abs_input_cutoff=3,
                 output_type=3,
                 output_code=0,
@@ -1619,7 +1624,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                input_combination=InputCombination(InputConfig(type=2, code=0)),
+                input_combination=InputCombination([InputConfig(type=2, code=0)]),
                 rel_to_abs_input_cutoff=rel_to_abs_input_cutoff,
                 output_type=3,
                 output_code=0,
@@ -1636,7 +1641,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                input_combination=InputCombination(InputConfig(type=3, code=0)),
+                input_combination=InputCombination([InputConfig(type=3, code=0)]),
                 output_type=3,
                 output_code=0,
             )
@@ -1648,7 +1653,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                input_combination=InputCombination(InputConfig(type=2, code=0)),
+                input_combination=InputCombination([InputConfig(type=2, code=0)]),
                 rel_to_abs_input_cutoff=3,
                 output_type=2,
                 output_code=0,
@@ -1660,7 +1665,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                input_combination=InputCombination(InputConfig(type=3, code=0)),
+                input_combination=InputCombination([InputConfig(type=3, code=0)]),
                 output_type=3,
                 output_code=0,
             )
@@ -1669,7 +1674,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                input_combination=InputCombination(InputConfig(type=2, code=0)),
+                input_combination=InputCombination([InputConfig(type=2, code=0)]),
                 rel_to_abs_input_cutoff=1,
                 output_type=3,
                 output_code=0,
@@ -1686,7 +1691,7 @@ class TestRequireActiveMapping(ComponentBaseTest):
             self.box,
             require_recorded_input=False,
         )
-        combination = InputCombination(InputConfig(type=1, code=KEY_A))
+        combination = InputCombination([InputConfig(type=1, code=KEY_A)])
 
         self.message_broker.publish(MappingData())
         self.assert_inactive(self.box)
@@ -1712,7 +1717,7 @@ class TestRequireActiveMapping(ComponentBaseTest):
             self.box,
             require_recorded_input=True,
         )
-        combination = InputCombination(InputConfig(type=1, code=KEY_A))
+        combination = InputCombination([InputConfig(type=1, code=KEY_A)])
 
         self.message_broker.publish(MappingData())
         self.assert_inactive(self.box)
@@ -1848,7 +1853,7 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  a + b")
         self.assertEqual(self.label_5.get_text(), "a + b")
 
-        combination = InputCombination(InputConfig(type=1, code=KEY_A))
+        combination = InputCombination([InputConfig(type=1, code=KEY_A)])
         self.message_broker.publish(
             MappingData(name="qux", input_combination=combination)
         )

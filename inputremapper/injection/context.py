@@ -19,11 +19,16 @@
 
 
 """Stores injection-process wide information."""
+
+from __future__ import annotations
+
 from collections import defaultdict
-from typing import List, Dict, Tuple, Set, Hashable
+from typing import List, Dict, Set, Hashable
 
+import evdev
+
+from inputremapper.configs.input_config import DeviceHash
 from inputremapper.input_event import InputEvent
-
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
@@ -33,6 +38,7 @@ from inputremapper.injection.mapping_handlers.mapping_parser import (
     parse_mappings,
     EventPipelines,
 )
+from inputremapper.logger import logger
 
 
 class Context:
@@ -53,22 +59,39 @@ class Context:
     - makes the injection class shorter and more specific to a certain task,
       which is actually spinning up the injection.
 
+    Note, that for the reader_service a ContextDummy is used.
+
     Members
     -------
     preset : Preset
         The preset holds all Mappings for the injection process
     listeners : Set[EventListener]
-        a set of callbacks which receive all events
+        A set of callbacks which receive all events
     callbacks : Dict[Tuple[int, int], List[NotifyCallback]]
-        all entry points to the event pipeline sorted by InputEvent.type_and_code
+        All entry points to the event pipeline sorted by InputEvent.type_and_code
     """
 
     listeners: Set[EventListener]
     _notify_callbacks: Dict[Hashable, List[NotifyCallback]]
     _handlers: EventPipelines
+    _forward_devices: Dict[DeviceHash, evdev.UInput]
+    _source_devices: Dict[DeviceHash, evdev.InputDevice]
 
-    def __init__(self, preset: Preset):
+    def __init__(
+        self,
+        preset: Preset,
+        source_devices: Dict[DeviceHash, evdev.InputDevice],
+        forward_devices: Dict[DeviceHash, evdev.UInput],
+    ):
+        if len(forward_devices) == 0:
+            logger.warning("Not forward_devices set")
+
+        if len(source_devices) == 0:
+            logger.warning("Not source_devices set")
+
         self.listeners = set()
+        self._source_devices = source_devices
+        self._forward_devices = forward_devices
         self._notify_callbacks = defaultdict(list)
         self._handlers = parse_mappings(preset, self)
 
@@ -83,9 +106,19 @@ class Context:
     def _create_callbacks(self) -> None:
         """Add the notify method from all _handlers to self.callbacks."""
         for input_config, handler_list in self._handlers.items():
-            self._notify_callbacks[input_config.input_match_hash].extend(
+            input_match_hash = input_config.input_match_hash
+            logger.info("Adding NotifyCallback for %s", input_match_hash)
+            self._notify_callbacks[input_match_hash].extend(
                 handler.notify for handler in handler_list
             )
 
-    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
-        return self._notify_callbacks[input_event.input_match_hash]
+    def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
+        input_match_hash = input_event.input_match_hash
+        return self._notify_callbacks[input_match_hash]
+
+    def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
+        """Get the "forward" uinput events from the given origin should go into."""
+        return self._forward_devices[origin_hash]
+
+    def get_source(self, key: DeviceHash) -> evdev.InputDevice:
+        return self._source_devices[key]

@@ -16,7 +16,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Tuple, Hashable
+
+from typing import Dict, Tuple, Hashable, TYPE_CHECKING
 
 import evdev
 from inputremapper.configs.input_config import InputConfig
@@ -27,9 +28,11 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,
     InputEventHandler,
+    ContextProtocol,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logger import logger
+from inputremapper.utils import get_device_hash
 
 
 class AxisSwitchHandler(MappingHandler):
@@ -55,6 +58,7 @@ class AxisSwitchHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        context: ContextProtocol,
         **_,
     ):
         super().__init__(combination, mapping)
@@ -73,11 +77,13 @@ class AxisSwitchHandler(MappingHandler):
         self._axis_source = None
         self._forward_device = None
 
+        self.context = context
+
     def __str__(self):
-        return f"AxisSwitchHandler for {self._map_axis.type_and_code} <{id(self)}>"
+        return f"AxisSwitchHandler for {self._map_axis.type_and_code}"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):
@@ -101,7 +107,7 @@ class AxisSwitchHandler(MappingHandler):
 
         if not key_is_pressed:
             # recenter the axis
-            logger.debug_key(self.mapping.input_combination, "stopping axis")
+            logger.debug("Stopping axis for %s", self.mapping.input_combination)
             event = InputEvent(
                 0,
                 0,
@@ -110,13 +116,13 @@ class AxisSwitchHandler(MappingHandler):
                 actions=(EventActions.recenter,),
                 origin_hash=self._map_axis.origin_hash,
             )
-            self._sub_handler.notify(event, self._axis_source, self._forward_device)
+            self._sub_handler.notify(event, self._axis_source)
             return True
 
         if self._map_axis.type == evdev.ecodes.EV_ABS:
             # send the last cached value so that the abs axis
             # is at the correct position
-            logger.debug_key(self.mapping.input_combination, "starting axis")
+            logger.debug("Starting axis for %s", self.mapping.input_combination)
             event = InputEvent(
                 0,
                 0,
@@ -124,7 +130,7 @@ class AxisSwitchHandler(MappingHandler):
                 self._last_value,
                 origin_hash=self._map_axis.origin_hash,
             )
-            self._sub_handler.notify(event, self._axis_source, self._forward_device)
+            self._sub_handler.notify(event, self._axis_source)
             return True
 
         return True
@@ -139,10 +145,8 @@ class AxisSwitchHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-
         if not self._should_map(event):
             return False
 
@@ -151,15 +155,18 @@ class AxisSwitchHandler(MappingHandler):
 
         # do some caching so that we can generate the
         # recenter event and an initial abs event
-        if not self._forward_device:
-            self._forward_device = forward
+        if self._axis_source is None:
             self._axis_source = source
+
+        if self._forward_device is None:
+            device_hash = get_device_hash(source)
+            self._forward_device = self.context.get_forward_uinput(device_hash)
 
         # always cache the value
         self._last_value = event.value
 
         if self._active:
-            return self._sub_handler.notify(event, source, forward, suppress)
+            return self._sub_handler.notify(event, source, suppress)
 
         return False
 

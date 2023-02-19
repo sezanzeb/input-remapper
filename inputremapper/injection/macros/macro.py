@@ -82,7 +82,7 @@ class Variable:
         return macro_variables.get(self.name)
 
     def __repr__(self):
-        return f'<Variable "{self.name}">'
+        return f'<Variable "{self.name}" at {hex(id(self))}>'
 
 
 def _type_check(value: Any, allowed_types, display_name=None, position=None) -> Any:
@@ -309,7 +309,7 @@ class Macro:
         await asyncio.sleep(self.keystroke_sleep_ms / 1000)
 
     def __repr__(self):
-        return f'<Macro "{self.code}">'
+        return f'<Macro "{self.code}" at {hex(id(self))}>'
 
     """Functions that prepare the macro."""
 

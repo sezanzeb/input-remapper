@@ -298,11 +298,11 @@ def _convert_to_individual_mappings():
     to [{input_combination: ..., output_symbol: symbol, ...}]
     """
 
-    for preset_path, old_preset in all_presets():
+    for old_preset_path, old_preset in all_presets():
         if isinstance(old_preset, list):
             continue
 
-        preset = Preset(preset_path, UIMapping)
+        migrated_preset = Preset(old_preset_path, UIMapping)
         if "mapping" in old_preset.keys():
             for combination, symbol_target in old_preset["mapping"].items():
                 logger.info(
@@ -324,7 +324,7 @@ def _convert_to_individual_mappings():
                     target_uinput=symbol_target[1],
                     output_symbol=symbol_target[0],
                 )
-                preset.add(mapping)
+                migrated_preset.add(mapping)
 
         if (
             "gamepad" in old_preset.keys()
@@ -352,10 +352,10 @@ def _convert_to_individual_mappings():
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_X)
+                    [InputConfig(type=EV_ABS, code=ABS_X)]
                 )
                 y_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_Y)
+                    [InputConfig(type=EV_ABS, code=ABS_Y)]
                 )
                 x_config["output_code"] = REL_X
                 y_config["output_code"] = REL_Y
@@ -364,17 +364,17 @@ def _convert_to_individual_mappings():
                 if pointer_speed:
                     mapping_x.gain = pointer_speed
                     mapping_y.gain = pointer_speed
-                preset.add(mapping_x)
-                preset.add(mapping_y)
+                migrated_preset.add(mapping_x)
+                migrated_preset.add(mapping_y)
 
             if right_purpose == "mouse":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_RX)
+                    [InputConfig(type=EV_ABS, code=ABS_RX)]
                 )
                 y_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_RY)
+                    [InputConfig(type=EV_ABS, code=ABS_RY)]
                 )
                 x_config["output_code"] = REL_X
                 y_config["output_code"] = REL_Y
@@ -383,17 +383,17 @@ def _convert_to_individual_mappings():
                 if pointer_speed:
                     mapping_x.gain = pointer_speed
                     mapping_y.gain = pointer_speed
-                preset.add(mapping_x)
-                preset.add(mapping_y)
+                migrated_preset.add(mapping_x)
+                migrated_preset.add(mapping_y)
 
             if left_purpose == "wheel":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_X)
+                    [InputConfig(type=EV_ABS, code=ABS_X)]
                 )
                 y_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_Y)
+                    [InputConfig(type=EV_ABS, code=ABS_Y)]
                 )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
                 y_config["output_code"] = REL_WHEEL_HI_RES
@@ -403,17 +403,17 @@ def _convert_to_individual_mappings():
                     mapping_x.gain = x_scroll_speed
                 if y_scroll_speed:
                     mapping_y.gain = y_scroll_speed
-                preset.add(mapping_x)
-                preset.add(mapping_y)
+                migrated_preset.add(mapping_x)
+                migrated_preset.add(mapping_y)
 
             if right_purpose == "wheel":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_RX)
+                    [InputConfig(type=EV_ABS, code=ABS_RX)]
                 )
                 y_config["input_combination"] = InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_RY)
+                    [InputConfig(type=EV_ABS, code=ABS_RY)]
                 )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
                 y_config["output_code"] = REL_WHEEL_HI_RES
@@ -423,10 +423,10 @@ def _convert_to_individual_mappings():
                     mapping_x.gain = x_scroll_speed
                 if y_scroll_speed:
                     mapping_y.gain = y_scroll_speed
-                preset.add(mapping_x)
-                preset.add(mapping_y)
+                migrated_preset.add(mapping_x)
+                migrated_preset.add(mapping_y)
 
-        preset.save()
+        migrated_preset.save()
 
 
 def _copy_to_beta():

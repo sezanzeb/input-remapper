@@ -17,10 +17,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.configs.input_config import InputConfig
-
+from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import get_key_mapping, get_combination_config
 from evdev.ecodes import (
     EV_REL,
     EV_ABS,
@@ -34,6 +32,7 @@ import unittest
 from inputremapper.injection.context import Context
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.input_config import InputConfig, InputCombination
 
 
 class TestContext(unittest.TestCase):
@@ -44,23 +43,31 @@ class TestContext(unittest.TestCase):
     def test_callbacks(self):
         preset = Preset()
         cfg = {
-            "input_combination": get_combination_config((EV_ABS, ABS_X)),
+            "input_combination": InputCombination.from_tuples((EV_ABS, ABS_X)),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_HWHEEL_HI_RES,
         }
         preset.add(Mapping(**cfg))  # abs x -> wheel
-        cfg["input_combination"] = get_combination_config((EV_ABS, ABS_Y))
+        cfg["input_combination"] = InputCombination.from_tuples((EV_ABS, ABS_Y))
         cfg["output_code"] = REL_WHEEL_HI_RES
         preset.add(Mapping(**cfg))  # abs y -> wheel
 
-        preset.add(get_key_mapping(get_combination_config((1, 31)), "keyboard", "k(a)"))
-        preset.add(get_key_mapping(get_combination_config((1, 32)), "keyboard", "b"))
+        preset.add(
+            Mapping.from_combination(
+                InputCombination.from_tuples((1, 31)), "keyboard", "k(a)"
+            )
+        )
+        preset.add(
+            Mapping.from_combination(
+                InputCombination.from_tuples((1, 32)), "keyboard", "b"
+            )
+        )
 
         # overlapping combination for (1, 32, 1)
         preset.add(
-            get_key_mapping(
-                get_combination_config((1, 32), (1, 33), (1, 34)),
+            Mapping.from_combination(
+                InputCombination.from_tuples((1, 32), (1, 33), (1, 34)),
                 "keyboard",
                 "c",
             )
@@ -68,29 +75,37 @@ class TestContext(unittest.TestCase):
 
         # map abs x to key "b"
         preset.add(
-            get_key_mapping(
-                get_combination_config((EV_ABS, ABS_X, 20)),
+            Mapping.from_combination(
+                InputCombination.from_tuples((EV_ABS, ABS_X, 20)),
                 "keyboard",
                 "d",
             ),
         )
-        context = Context(preset)
 
-        # expected callbacks and their lengths:
-        callbacks = {
+        context = Context(preset, {}, {})
+
+        expected_num_callbacks = {
             # ABS_X -> "d" and ABS_X -> wheel have the same type and code
-            InputConfig(type=EV_ABS, code=ABS_X).input_match_hash: 2,
-            InputConfig(type=EV_ABS, code=ABS_Y).input_match_hash: 1,
-            InputConfig(type=1, code=31).input_match_hash: 1,
-            # even though we have 2 mappings with this type and code, we only expect one callback
-            # because they both map to keys. We don't want to trigger two mappings with the same key press
-            InputConfig(type=1, code=32).input_match_hash: 1,
-            InputConfig(type=1, code=33).input_match_hash: 1,
-            InputConfig(type=1, code=34).input_match_hash: 1,
+            InputEvent.abs(ABS_X, 1): 2,
+            InputEvent.abs(ABS_Y, 1): 1,
+            InputEvent.key(31, 1): 1,
+            # even though we have 2 mappings with this type and code, we only expect
+            # one callback because they both map to keys. We don't want to trigger two
+            # mappings with the same key press
+            InputEvent.key(32, 1): 1,
+            InputEvent.key(33, 1): 1,
+            InputEvent.key(34, 1): 1,
         }
-        self.assertEqual(set(callbacks.keys()), set(context._notify_callbacks.keys()))
-        for key, val in callbacks.items():
-            self.assertEqual(val, len(context._notify_callbacks[key]))
+
+        self.assertEqual(
+            set([event.input_match_hash for event in expected_num_callbacks.keys()]),
+            set(context._notify_callbacks.keys()),
+        )
+        for input_event, num_callbacks in expected_num_callbacks.items():
+            self.assertEqual(
+                num_callbacks,
+                len(context.get_notify_callbacks(input_event)),
+            )
 
         # 7 unique input events in the preset
         self.assertEqual(7, len(context._handlers))

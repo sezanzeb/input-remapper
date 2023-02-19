@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Reading events from fixtures, making fixtures act like they are sending events."""
+
 from __future__ import annotations
 
 import multiprocessing

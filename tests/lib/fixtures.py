@@ -23,11 +23,12 @@ from __future__ import annotations
 import dataclasses
 import json
 from hashlib import md5
-from typing import Dict, Optional, Tuple, Iterable
-
+from typing import Dict, Optional
 import time
 
 import evdev
+
+from tests.lib.logger import logger
 
 # input-remapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
@@ -39,8 +40,8 @@ keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
 
 @dataclasses.dataclass(frozen=True)
 class Fixture:
+    path: str
     capabilities: Dict = dataclasses.field(default_factory=dict)
-    path: str = ""
     name: str = "unset"
     info: evdev.device.DeviceInfo = evdev.device.DeviceInfo(None, None, None, None)
     phys: str = "unset"
@@ -51,7 +52,14 @@ class Fixture:
 
     def get_device_hash(self):
         s = str(self.capabilities) + self.name
-        return md5(s.encode()).hexdigest()
+        device_hash = md5(s.encode()).hexdigest()
+        logger.info(
+            'Hash for fixture "%s" "%s": "%s"',
+            self.path,
+            self.name,
+            device_hash,
+        )
+        return device_hash
 
 
 class _Fixtures:
@@ -69,7 +77,7 @@ class _Fixtures:
     )
     # Another "Foo Device", which will get an incremented key.
     # If possible write tests using this one, because name != key here and
-    # that would be important to test as well. Otherwise the tests can't
+    # that would be important to test as well. Otherwise, the tests can't
     # see if the groups correct attribute is used in functions and paths.
     dev_input_event11 = Fixture(
         capabilities={
@@ -177,7 +185,7 @@ class _Fixtures:
         path="/dev/input/event31",
     )
     # input-remapper devices are not displayed in the ui, some instance
-    # of input-remapper started injecting apparently.
+    # of input-remapper started injecting, apparently.
     dev_input_event40 = Fixture(
         capabilities={evdev.ecodes.EV_KEY: keyboard_keys},
         phys="input-remapper/input1",
@@ -238,6 +246,10 @@ class _Fixtures:
 
     def __iter__(self):
         return iter([*self._iter, *self._dynamic_fixtures.values()])
+
+    def get_paths(self):
+        """Get a list of all available device paths."""
+        return list(self._dynamic_fixtures.keys())
 
     def reset(self):
         self._dynamic_fixtures = {}
@@ -308,54 +320,19 @@ class _Fixtures:
 fixtures = _Fixtures()
 
 
-def get_combination_config(
-    *event_tuples: Tuple[int, int] | Tuple[int, int, int]
-) -> Iterable[Dict[str, int]]:
-    """convenient function to get a iterable of dicts, InputEvent.event_tuple's"""
+def new_event(type, code, value, timestamp):
+    """Create a new InputEvent.
 
-    for event in event_tuples:
-        if len(event) == 3:
-            yield {k: v for k, v in zip(("type", "code", "analog_threshold"), event)}
-        elif len(event) == 2:
-            yield {k: v for k, v in zip(("type", "code"), event)}
-        else:
-            raise TypeError
+    Handy because of the annoying sec and usec arguments of the regular
+    evdev.InputEvent constructor.
 
-
-def get_ui_mapping(combination=None, target_uinput="keyboard", output_symbol="a"):
-    """Convenient function to get a valid mapping."""
-    from inputremapper.configs.mapping import UIMapping
-
-    if not combination:
-        combination = get_combination_config((99, 99))
-
-    return UIMapping(
-        input_combination=combination,
-        target_uinput=target_uinput,
-        output_symbol=output_symbol,
-    )
-
-
-def get_key_mapping(combination=None, target_uinput="keyboard", output_symbol="a"):
-    """Convenient function to get a valid mapping."""
-    from inputremapper.configs.mapping import Mapping
-
-    if not combination:
-        combination = [{"type": 99, "code": 99, "analog_threshold": 99}]
-
-    return Mapping(
-        input_combination=combination,
-        target_uinput=target_uinput,
-        output_symbol=output_symbol,
-    )
-
-
-def new_event(type, code, value, timestamp=None, offset=0):
-    """Create a new input_event."""
-    from tests.lib.patches import InputEvent
+    Prefer using `InputEvent.key()`, `InputEvent.abs()`, `InputEvent.rel()` or just
+    `InputEvent(0, 0, 1234, 2345, 3456)`.
+    """
+    from inputremapper.input_event import InputEvent
 
     if timestamp is None:
-        timestamp = time.time() + offset
+        timestamp = time.time()
 
     sec = int(timestamp)
     usec = timestamp % 1 * 1000000
@@ -368,27 +345,32 @@ def prepare_presets():
     "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
     """
     from inputremapper.configs.preset import Preset
+    from inputremapper.configs.mapping import Mapping
     from inputremapper.configs.paths import get_config_path, get_preset_path
     from inputremapper.configs.global_config import global_config
+    from inputremapper.configs.input_config import InputCombination
 
     preset1 = Preset(get_preset_path("Foo Device", "preset1"))
     preset1.add(
-        get_key_mapping(combination=get_combination_config((1, 1)), output_symbol="b")
+        Mapping.from_combination(
+            InputCombination.from_tuples((1, 1)),
+            output_symbol="b",
+        )
     )
-    preset1.add(get_key_mapping(combination=get_combination_config((1, 2))))
+    preset1.add(Mapping.from_combination(InputCombination.from_tuples((1, 2))))
     preset1.save()
 
     time.sleep(0.1)
     preset2 = Preset(get_preset_path("Foo Device", "preset2"))
-    preset2.add(get_key_mapping(combination=get_combination_config((1, 3))))
-    preset2.add(get_key_mapping(combination=get_combination_config((1, 4))))
+    preset2.add(Mapping.from_combination(InputCombination.from_tuples((1, 3))))
+    preset2.add(Mapping.from_combination(InputCombination.from_tuples((1, 4))))
     preset2.save()
 
     # make sure the timestamp of preset 3 is the newest,
     # so that it will be automatically loaded by the GUI
     time.sleep(0.1)
     preset3 = Preset(get_preset_path("Foo Device", "preset3"))
-    preset3.add(get_key_mapping(combination=get_combination_config((1, 5))))
+    preset3.add(Mapping.from_combination(InputCombination.from_tuples((1, 5))))
     preset3.save()
 
     with open(get_config_path("config.json"), "w") as file:

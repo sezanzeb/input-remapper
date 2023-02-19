@@ -70,10 +70,10 @@ class AbsToAbsHandler(MappingHandler):
 
     def __str__(self):
         name = get_evdev_constant_name(*self._map_axis.type_and_code)
-        return f'AbsToAbsHandler for "{name}" {self._map_axis} <{id(self)}>:'
+        return f'AbsToAbsHandler for "{name}" {self._map_axis}'
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):  # used for logging
@@ -87,10 +87,8 @@ class AbsToAbsHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
-
         if event.input_match_hash != self._map_axis.input_match_hash:
             return False
 

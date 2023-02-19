@@ -33,7 +33,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import evdev
 
-from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig, DeviceHash
 from inputremapper.configs.preset import Preset
 from inputremapper.groups import (
     _Group,
@@ -48,7 +48,6 @@ from inputremapper.logger import logger
 from inputremapper.utils import get_device_hash
 
 CapabilitiesDict = Dict[int, List[int]]
-GroupSources = List[evdev.InputDevice]
 
 DEV_NAME = "input-remapper"
 
@@ -237,8 +236,8 @@ class Injector(multiprocessing.Process):
         logger.error(f"Could not find input for {input_config}")
         return None
 
-    def _grab_devices(self) -> GroupSources:
-        # find all devices which have an associated mapping
+    def _grab_devices(self) -> Dict[DeviceHash, evdev.InputDevice]:
+        """Grab all InputDevices that match a mappings' origin_hash."""
         # use a dict because the InputDevice is not directly hashable
         needed_devices = {}
         input_configs = set()
@@ -256,10 +255,11 @@ class Injector(multiprocessing.Process):
                 continue
             needed_devices[device.path] = device
 
-        grabbed_devices = []
+        grabbed_devices = {}
         for device in needed_devices.values():
             if device := self._grab_device(device):
-                grabbed_devices.append(device)
+                grabbed_devices[get_device_hash(device)] = device
+
         return grabbed_devices
 
     def _update_preset(self):
@@ -409,10 +409,13 @@ class Injector(multiprocessing.Process):
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down forever
         sources = self._grab_devices()
+        forward_devices = {}
+        for device_hash, device in sources.items():
+            forward_devices[device_hash] = self._create_forwarding_device(device)
 
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
-        self.context = Context(self.preset)
+        self.context = Context(self.preset, sources, forward_devices)
         self._stop_event = asyncio.Event()
 
         if len(sources) == 0:
@@ -424,13 +427,11 @@ class Injector(multiprocessing.Process):
         numlock_state = is_numlock_on()
         coroutines = []
 
-        for source in sources:
-            forward_to = self._create_forwarding_device(source)
+        for device_hash in sources:
             # actually doing things
             event_reader = EventReader(
                 self.context,
-                source,
-                forward_to,
+                sources[device_hash],
                 self._stop_event,
             )
             coroutines.append(event_reader.run())
@@ -460,7 +461,7 @@ class Injector(multiprocessing.Process):
             # reached otherwise.
             logger.debug("Injector coroutines ended")
 
-        for source in sources:
+        for source in sources.values():
             # ungrab at the end to make the next injection process not fail
             # its grabs
             try:

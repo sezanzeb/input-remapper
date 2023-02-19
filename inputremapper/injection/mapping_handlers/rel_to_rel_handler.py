@@ -116,10 +116,10 @@ class RelToRelHandler(MappingHandler):
         )
 
     def __str__(self):
-        return f"RelToRelHandler for {self._input_config} <{id(self)}>:"
+        return f"RelToRelHandler for {self._input_config}"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):  # used for logging
@@ -133,7 +133,7 @@ class RelToRelHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput = None,
+        forward_to: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
         if not self._should_map(event):

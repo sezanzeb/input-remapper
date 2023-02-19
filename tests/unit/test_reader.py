@@ -18,12 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+import asyncio
 import os
 import json
 import multiprocessing
 import time
 import unittest
 from typing import List, Optional
+from unittest import mock
 from unittest.mock import patch, MagicMock
 
 from evdev.ecodes import (
@@ -33,7 +35,6 @@ from evdev.ecodes import (
     KEY_COMMA,
     BTN_TOOL_DOUBLETAP,
     KEY_A,
-    EV_REL,
     REL_WHEEL,
     REL_X,
     ABS_X,
@@ -50,7 +51,8 @@ from inputremapper.gui.messages.message_broker import (
 from inputremapper.gui.messages.message_data import CombinationRecorded
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
-from inputremapper.gui.reader_service import ReaderService
+from inputremapper.gui.reader_service import ReaderService, ContextDummy
+from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import new_event
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.constants import (
@@ -60,7 +62,8 @@ from tests.lib.constants import (
     MIN_ABS,
 )
 from tests.lib.pipes import push_event, push_events
-from tests.lib.fixtures import fixtures, get_combination_config
+from tests.lib.fixtures import fixtures
+from tests.lib.stuff import spy
 
 CODE_1 = 100
 CODE_2 = 101
@@ -86,7 +89,7 @@ def wait(func, timeout=1.0):
             break
 
 
-class TestReader(unittest.TestCase):
+class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.reader_service = None
         self.groups = _Groups()
@@ -100,8 +103,76 @@ class TestReader(unittest.TestCase):
         except (BrokenPipeError, OSError):
             pass
 
-        if self.reader_service is not None:
-            self.reader_service.join()
+    async def create_reader_service(self, groups: Optional[_Groups] = None):
+        # this will cause pending events to be copied over to the reader-service
+        # process
+        if not groups:
+            groups = self.groups
+
+        self.reader_service = ReaderService(groups)
+        asyncio.ensure_future(self.reader_service.run())
+
+    async def test_should_forward_to_dummy(self):
+        # It forwards to a ForwardDummy, because the gui process
+        # 1. can't inject and
+        # 2. is not even supposed to inject anything
+        # thanks to not using multiprocessing as opposed to the other tests, we can
+        # access this stuff
+        context = None
+        original_create_event_pipeline = ReaderService._create_event_pipeline
+
+        def remember_context(*args, **kwargs):
+            nonlocal context
+            context = original_create_event_pipeline(*args, **kwargs)
+            return context
+
+        with mock.patch(
+            "inputremapper.gui.reader_service.ReaderService._create_event_pipeline",
+            remember_context,
+        ):
+            await self.create_reader_service()
+
+            listener = Listener()
+            self.message_broker.subscribe(MessageType.combination_recorded, listener)
+
+            self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
+            self.reader_client.start_recorder()
+
+            await asyncio.sleep(0.1)
+            self.assertIsInstance(context, ContextDummy)
+
+            with spy(
+                context.forward_dummy,
+                "write",
+            ) as write_spy:
+                events = [InputEvent.rel(REL_X, -1)]
+                push_events(fixtures.foo_device_2_mouse, events)
+                await asyncio.sleep(0.1)
+                self.reader_client._read()
+                self.assertEqual(0, len(listener.calls))
+
+                # we want `write` to be called on the forward_dummy, because we want
+                # those events to just disappear.
+                self.assertEqual(write_spy.call_count, len(events))
+                self.assertEqual([call[0] for call in write_spy.call_args_list], events)
+
+
+class TestReaderMultiprocessing(unittest.TestCase):
+    def setUp(self):
+        self.reader_service_process = None
+        self.groups = _Groups()
+        self.message_broker = MessageBroker()
+        self.reader_client = ReaderClient(self.message_broker, self.groups)
+
+    def tearDown(self):
+        quick_cleanup()
+        try:
+            self.reader_client.terminate()
+        except (BrokenPipeError, OSError):
+            pass
+
+        if self.reader_service_process is not None:
+            self.reader_service_process.join()
 
     def create_reader_service(self, groups: Optional[_Groups] = None):
         # this will cause pending events to be copied over to the reader-service
@@ -111,10 +182,15 @@ class TestReader(unittest.TestCase):
 
         def start_reader_service():
             reader_service = ReaderService(groups)
-            reader_service.run()
+            # this is a new process, so create a new event loop, or something
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(reader_service.run())
 
-        self.reader_service = multiprocessing.Process(target=start_reader_service)
-        self.reader_service.start()
+        self.reader_service_process = multiprocessing.Process(
+            target=start_reader_service
+        )
+        self.reader_service_process.start()
         time.sleep(0.1)
 
     def test_reading(self):
@@ -126,13 +202,13 @@ class TestReader(unittest.TestCase):
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
-        push_events(fixtures.foo_device_2_gamepad, [new_event(EV_ABS, ABS_HAT0X, 1)])
+        push_events(fixtures.foo_device_2_gamepad, [InputEvent.abs(ABS_HAT0X, 1)])
         # we need to sleep because we have two different fixtures,
         # which will lead to race conditions
         time.sleep(0.1)
 
         # relative axis events should be released automagically after 0.3s
-        push_events(fixtures.foo_device_2_mouse, [new_event(EV_REL, REL_X, 5)])
+        push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, 5)])
         time.sleep(0.1)
         # read all pending events. Having a glib mainloop would be better,
         # as it would call read automatically periodically
@@ -141,17 +217,19 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=3,
-                            code=16,
-                            analog_threshold=1,
-                            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=3,
+                                code=16,
+                                analog_threshold=1,
+                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=3,
                                 code=16,
@@ -164,7 +242,7 @@ class TestReader(unittest.TestCase):
                                 analog_threshold=1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
             ],
@@ -173,7 +251,7 @@ class TestReader(unittest.TestCase):
 
         # release the hat switch should emit the recording finished event
         # as both the hat and relative axis are released by now
-        push_events(fixtures.foo_device_2_gamepad, [new_event(EV_ABS, ABS_HAT0X, 0)])
+        push_events(fixtures.foo_device_2_gamepad, [InputEvent.abs(ABS_HAT0X, 0)])
         time.sleep(0.3)
         self.reader_client._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
@@ -188,7 +266,7 @@ class TestReader(unittest.TestCase):
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
-        push_events(fixtures.foo_device_2_mouse, [new_event(EV_REL, REL_X, -5)])
+        push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, -5)])
         time.sleep(0.1)
         self.reader_client._read()
 
@@ -196,12 +274,14 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=2,
-                            code=0,
-                            analog_threshold=-1,
-                            origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=2,
+                                code=0,
+                                analog_threshold=-1,
+                                origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
+                            )
+                        ]
                     )
                 )
             ],
@@ -220,7 +300,7 @@ class TestReader(unittest.TestCase):
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
-        push_events(fixtures.foo_device_2_mouse, [new_event(EV_REL, REL_X, -1)])
+        push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, -1)])
         time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(0, len(l1.calls))
@@ -234,7 +314,7 @@ class TestReader(unittest.TestCase):
 
         push_events(
             fixtures.foo_device_2_mouse,
-            [new_event(EV_REL, REL_WHEEL, -1), new_event(EV_REL, REL_HWHEEL, 1)],
+            [InputEvent.rel(REL_WHEEL, -1), InputEvent.rel(REL_HWHEEL, 1)],
         )
         time.sleep(0.1)
         self.reader_client._read()
@@ -243,17 +323,19 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=2,
-                            code=8,
-                            analog_threshold=-1,
-                            origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=2,
+                                code=8,
+                                analog_threshold=-1,
+                                origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
+                            )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=2,
                                 code=8,
@@ -266,7 +348,7 @@ class TestReader(unittest.TestCase):
                                 analog_threshold=1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
             ],
@@ -280,11 +362,11 @@ class TestReader(unittest.TestCase):
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
-        push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, KEY_A, 1)])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(KEY_A, 1)])
         time.sleep(0.1)
         self.reader_client._read()
         # the duplicate event should be ignored
-        push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, KEY_A, 1)])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(KEY_A, 1)])
         time.sleep(0.1)
         self.reader_client._read()
 
@@ -292,12 +374,14 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=1,
-                            code=30,
-                            analog_threshold=1,
-                            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=1,
+                                code=30,
+                                analog_threshold=1,
+                                origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            )
+                        ]
                     )
                 )
             ],
@@ -316,7 +400,7 @@ class TestReader(unittest.TestCase):
         # over 30% should trigger
         push_events(
             fixtures.foo_device_2_gamepad,
-            [new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.4))],
+            [InputEvent.abs(ABS_X, int(MAX_ABS * 0.4))],
         )
         time.sleep(0.1)
         self.reader_client._read()
@@ -324,12 +408,14 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=3,
-                            code=0,
-                            analog_threshold=1,
-                            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=3,
+                                code=0,
+                                analog_threshold=1,
+                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            )
+                        ]
                     )
                 )
             ],
@@ -340,7 +426,7 @@ class TestReader(unittest.TestCase):
         # less the 30% should release
         push_events(
             fixtures.foo_device_2_gamepad,
-            [new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.2))],
+            [InputEvent.abs(ABS_X, int(MAX_ABS * 0.2))],
         )
         time.sleep(0.1)
         self.reader_client._read()
@@ -348,12 +434,14 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=3,
-                            code=0,
-                            analog_threshold=1,
-                            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=3,
+                                code=0,
+                                analog_threshold=1,
+                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            )
+                        ]
                     )
                 )
             ],
@@ -368,19 +456,19 @@ class TestReader(unittest.TestCase):
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
-        push_event(fixtures.foo_device_2_keyboard, new_event(EV_KEY, KEY_A, 1))
+        push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_A, 1))
         time.sleep(0.1)
         push_event(
-            fixtures.foo_device_2_gamepad, new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.4))
+            fixtures.foo_device_2_gamepad, InputEvent.abs(ABS_X, int(MAX_ABS * 0.4))
         )
         time.sleep(0.1)
-        push_event(fixtures.foo_device_2_keyboard, new_event(EV_KEY, KEY_COMMA, 1))
+        push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_COMMA, 1))
         time.sleep(0.1)
         push_events(
             fixtures.foo_device_2_gamepad,
             [
-                new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.1)),
-                new_event(EV_ABS, ABS_X, int(MIN_ABS * 0.4)),
+                InputEvent.abs(ABS_X, int(MAX_ABS * 0.1)),
+                InputEvent.abs(ABS_X, int(MIN_ABS * 0.4)),
             ],
         )
         time.sleep(0.1)
@@ -389,16 +477,18 @@ class TestReader(unittest.TestCase):
             [
                 CombinationRecorded(
                     InputCombination(
-                        InputConfig(
-                            type=EV_KEY,
-                            code=KEY_A,
-                            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=EV_KEY,
+                                code=KEY_A,
+                                origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=EV_KEY,
                                 code=KEY_A,
@@ -410,12 +500,12 @@ class TestReader(unittest.TestCase):
                                 analog_threshold=1,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=EV_KEY,
                                 code=KEY_A,
@@ -432,12 +522,12 @@ class TestReader(unittest.TestCase):
                                 code=KEY_COMMA,
                                 origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        (
+                        [
                             InputConfig(
                                 type=EV_KEY,
                                 code=KEY_A,
@@ -454,7 +544,7 @@ class TestReader(unittest.TestCase):
                                 code=KEY_COMMA,
                                 origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                             ),
-                        )
+                        ]
                     )
                 ),
             ],
@@ -468,7 +558,7 @@ class TestReader(unittest.TestCase):
         push_events(
             fixtures.foo_device_2_keyboard,
             [
-                new_event(EV_KEY, 1, 1),
+                InputEvent.key(1, 1),
             ]
             * 10,
         )
@@ -476,8 +566,8 @@ class TestReader(unittest.TestCase):
         push_events(
             fixtures.bar_device,
             [
-                new_event(EV_KEY, 2, 1),
-                new_event(EV_KEY, 2, 0),
+                InputEvent.key(2, 1),
+                InputEvent.key(2, 0),
             ]
             * 3,
         )
@@ -490,11 +580,13 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[0].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_KEY,
-                    code=1,
-                    origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_KEY,
+                        code=1,
+                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                    )
+                ]
             ),
         )
 
@@ -507,17 +599,19 @@ class TestReader(unittest.TestCase):
         self.assertEqual(len(l1.calls), 1)
 
         self.reader_client.start_recorder()
-        push_events(fixtures.bar_device, [new_event(EV_KEY, 2, 1)])
+        push_events(fixtures.bar_device, [InputEvent.key(2, 1)])
         time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[1].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_KEY,
-                    code=2,
-                    origin_hash=fixtures.bar_device.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_KEY,
+                        code=2,
+                        origin_hash=fixtures.bar_device.get_device_hash(),
+                    )
+                ]
             ),
         )
 
@@ -564,7 +658,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                (
+                [
                     InputConfig(
                         type=EV_KEY,
                         code=CODE_1,
@@ -581,7 +675,7 @@ class TestReader(unittest.TestCase):
                         analog_threshold=-1,
                         origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                     ),
-                )
+                ]
             ),
         )
 
@@ -592,9 +686,9 @@ class TestReader(unittest.TestCase):
         push_events(
             fixtures.foo_device_2_mouse,
             [
-                new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
-                new_event(EV_KEY, BTN_LEFT, 1),
-                new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
+                InputEvent.key(BTN_TOOL_DOUBLETAP, 1),
+                InputEvent.key(BTN_LEFT, 1),
+                InputEvent.key(BTN_TOOL_DOUBLETAP, 1),
             ],
             force=True,
         )
@@ -606,11 +700,13 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_KEY,
-                    code=BTN_LEFT,
-                    origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_KEY,
+                        code=BTN_LEFT,
+                        origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
+                    )
+                ]
             ),
         )
 
@@ -620,7 +716,7 @@ class TestReader(unittest.TestCase):
         # this is not a combination, because (EV_KEY CODE_3, 2) is ignored
         push_events(
             fixtures.foo_device_2_gamepad,
-            [new_event(EV_ABS, ABS_HAT0X, 1), new_event(EV_KEY, CODE_3, 2)],
+            [InputEvent.abs(ABS_HAT0X, 1), InputEvent.key(CODE_3, 2)],
             force=True,
         )
         self.create_reader_service()
@@ -631,12 +727,14 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_ABS,
-                    code=ABS_HAT0X,
-                    analog_threshold=1,
-                    origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_HAT0X,
+                        analog_threshold=1,
+                        origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                    )
+                ]
             ),
         )
 
@@ -659,11 +757,13 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                InputConfig(
-                    type=EV_KEY,
-                    code=CODE_2,
-                    origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_KEY,
+                        code=CODE_2,
+                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                    )
+                ]
             ),
         )
 
@@ -674,9 +774,9 @@ class TestReader(unittest.TestCase):
         push_events(
             fixtures.foo_device_2_keyboard,
             [
-                new_event(EV_KEY, CODE_1, 1),
-                new_event(EV_KEY, CODE_2, 1),
-                new_event(EV_KEY, CODE_3, 1),
+                InputEvent.key(CODE_1, 1),
+                InputEvent.key(CODE_2, 1),
+                InputEvent.key(CODE_3, 1),
             ],
         )
         self.create_reader_service()
@@ -696,9 +796,9 @@ class TestReader(unittest.TestCase):
         push_events(
             fixtures.input_remapper_bar_device,
             [
-                new_event(EV_KEY, CODE_1, 1),
-                new_event(EV_KEY, CODE_2, 1),
-                new_event(EV_KEY, CODE_3, 1),
+                InputEvent.key(CODE_1, 1),
+                InputEvent.key(CODE_2, 1),
+                InputEvent.key(CODE_3, 1),
             ],
         )
         self.create_reader_service()
@@ -712,7 +812,7 @@ class TestReader(unittest.TestCase):
         self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
 
-        push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, CODE_3, 1)])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(CODE_3, 1)])
         time.sleep(START_READING_DELAY + EVENT_READ_TIMEOUT)
         self.assertTrue(self.reader_client._results_pipe.poll())
 
@@ -721,7 +821,7 @@ class TestReader(unittest.TestCase):
         self.assertFalse(self.reader_client._results_pipe.poll())
 
         # no new events arrive after terminating
-        push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, CODE_3, 1)])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(CODE_3, 1)])
         time.sleep(EVENT_READ_TIMEOUT * 3)
         self.assertFalse(self.reader_client._results_pipe.poll())
 
@@ -862,48 +962,48 @@ class TestReader(unittest.TestCase):
         # that exposes user-input forever
         with patch.object(ReaderService, "_maximum_lifetime", 1):
             self.create_reader_service()
-            self.assertTrue(self.reader_service.is_alive())
+            self.assertTrue(self.reader_service_process.is_alive())
             time.sleep(0.5)
-            self.assertTrue(self.reader_service.is_alive())
+            self.assertTrue(self.reader_service_process.is_alive())
             time.sleep(1)
-            self.assertFalse(self.reader_service.is_alive())
+            self.assertFalse(self.reader_service_process.is_alive())
 
     def test_reader_service_waits_for_client_to_finish(self):
         # if the client is currently reading, it waits a bit longer until the
         # client finishes reading
         with patch.object(ReaderService, "_maximum_lifetime", 1):
             self.create_reader_service()
-            self.assertTrue(self.reader_service.is_alive())
+            self.assertTrue(self.reader_service_process.is_alive())
 
             self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
             self.reader_client.start_recorder()
 
             time.sleep(2)
             # still alive, without start_recorder it should have already exited
-            self.assertTrue(self.reader_service.is_alive())
+            self.assertTrue(self.reader_service_process.is_alive())
 
             self.reader_client.stop_recorder()
 
             time.sleep(1)
-            self.assertFalse(self.reader_service.is_alive())
+            self.assertFalse(self.reader_service_process.is_alive())
 
     def test_reader_service_wont_wait_forever(self):
         # if the client is reading forever, stop it after another timeout
         with patch.object(ReaderService, "_maximum_lifetime", 1):
             with patch.object(ReaderService, "_timeout_tolerance", 1):
                 self.create_reader_service()
-                self.assertTrue(self.reader_service.is_alive())
+                self.assertTrue(self.reader_service_process.is_alive())
 
                 self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
                 self.reader_client.start_recorder()
 
                 time.sleep(1.5)
                 # still alive, without start_recorder it should have already exited
-                self.assertTrue(self.reader_service.is_alive())
+                self.assertTrue(self.reader_service_process.is_alive())
 
                 time.sleep(1)
                 # now it stopped, even though the reader is still reading
-                self.assertFalse(self.reader_service.is_alive())
+                self.assertFalse(self.reader_service_process.is_alive())
 
 
 if __name__ == "__main__":

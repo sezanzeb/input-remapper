@@ -126,9 +126,10 @@ patch_is_running()
 # patch_warnings()
 
 
-def main():
-    update_inputremapper_verbosity()
+update_inputremapper_verbosity()
 
+
+def main():
     cleanup()
     # https://docs.python.org/3/library/argparse.html
     parser = argparse.ArgumentParser(description=__doc__)

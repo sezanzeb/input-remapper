@@ -187,7 +187,7 @@ class Preset(Generic[MappingModel]):
                 if not self._has_valid_input_combination(mapping):
                     # we save invalid mappings except for those with an invalid
                     # input_combination
-                    logger.debug("skipping invalid mapping %s", mapping)
+                    logger.debug("Skipping invalid mapping %s", mapping)
                     continue
 
                 if self._is_mapped_multiple_times(mapping.input_combination):
@@ -233,11 +233,19 @@ class Preset(Generic[MappingModel]):
             if existing is not None:
                 return existing
 
+        logger.error(
+            "Combination %s not found. Available: %s",
+            repr(combination),
+            list(
+                self._mappings.keys(),
+            ),
+        )
+
         return None
 
     def dangerously_mapped_btn_left(self) -> bool:
         """Return True if this mapping disables BTN_Left."""
-        if InputCombination(InputConfig.btn_left()) not in [
+        if InputCombination([InputConfig.btn_left()]) not in [
             m.input_combination for m in self
         ]:
             return False

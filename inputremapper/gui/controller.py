@@ -16,6 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import re
@@ -259,9 +260,11 @@ class Controller:
             self.show_status(
                 CTX_WARNING,
                 _("ctrl, alt and shift may not combine properly"),
-                _("Your system might reinterpret combinations ")
-                + _("with those after they are injected, and by doing so ")
-                + _("break them."),
+                _(
+                    "Your system might reinterpret combinations "
+                    + "with those after they are injected, and by doing so "
+                    + "break them."
+                ),
             )
 
     def move_input_config_in_combination(
@@ -559,7 +562,7 @@ class Controller:
         def running():
             msg = _("Applied preset %s") % self.data_manager.active_preset.name
             if self.data_manager.active_preset.get_mapping(
-                InputCombination(InputConfig.btn_left())
+                InputCombination([InputConfig.btn_left()])
             ):
                 msg += _(", CTRL + DEL to stop")
             self.show_status(CTX_APPLY, msg)

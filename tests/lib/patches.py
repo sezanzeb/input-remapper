@@ -29,6 +29,7 @@ from pickle import UnpicklingError
 
 import evdev
 
+from inputremapper.utils import get_evdev_constant_name
 from tests.lib.constants import EVENT_READ_TIMEOUT, MIN_ABS, MAX_ABS
 from tests.lib.fixtures import Fixture, fixtures, new_event
 from tests.lib.pipes import (
@@ -56,9 +57,16 @@ class InputDevice:
 
     def __init__(self, path):
         if path != "justdoit" and not fixtures.get(path):
+            # beware that fixtures keys and the path attribute of a fixture can
+            # theoretically be different. I don't know if this is the case right now
+            logger.error(
+                'path "%s" was not found in fixtures. available: %s',
+                path,
+                list(fixtures.get_paths()),
+            )
             raise FileNotFoundError()
         if path == "justdoit":
-            self._fixture = Fixture()
+            self._fixture = Fixture(path="justdoit")
         else:
             self._fixture = fixtures[path]
 
@@ -214,35 +222,43 @@ class UInput:
 
     def write(self, type, code, value):
         self.write_count += 1
-        event = new_event(type, code, value)
+        event = new_event(type, code, value, time.time())
         uinput_write_history.append(event)
         uinput_write_history_pipe[1].send(event)
         self.write_history.append(event)
-        logger.info("%s written", (type, code, value))
+        logger.info(
+            '%s %s written to "%s"',
+            (type, code, value),
+            get_evdev_constant_name(type, code),
+            self.name,
+        )
 
     def syn(self):
         pass
-
-
-# TODO inherit from input-remappers InputEvent?
-#  makes convert_to_internal_events obsolete
-class InputEvent(evdev.InputEvent):
-    def __init__(self, sec, usec, type, code, value):
-        self.t = (type, code, value)
-        super().__init__(sec, usec, type, code, value)
-
-    def copy(self):
-        return InputEvent(self.sec, self.usec, self.type, self.code, self.value)
 
 
 def patch_evdev():
     def list_devices():
         return [fixture_.path for fixture_ in fixtures]
 
+    class PatchedInputEvent(evdev.InputEvent):
+        def __init__(self, sec, usec, type, code, value):
+            self.t = (type, code, value)
+            super().__init__(sec, usec, type, code, value)
+
+        def copy(self):
+            return PatchedInputEvent(
+                self.sec,
+                self.usec,
+                self.type,
+                self.code,
+                self.value,
+            )
+
     evdev.list_devices = list_devices
     evdev.InputDevice = InputDevice
     evdev.UInput = UInput
-    evdev.InputEvent = InputEvent
+    evdev.InputEvent = PatchedInputEvent
 
 
 def patch_events():

@@ -175,6 +175,7 @@ def internals(options):
 
     # daemonize
     cmd = f'{cmd} &'
+    logger.debug(f'Running `{cmd}`')
     os.system(cmd)
 
 
