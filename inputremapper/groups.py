@@ -37,6 +37,7 @@ import multiprocessing
 import os
 import re
 import threading
+import traceback
 from typing import List, Optional
 
 import evdev
@@ -57,6 +58,7 @@ from evdev.ecodes import (
 
 from inputremapper.configs.paths import get_preset_path
 from inputremapper.logger import logger
+from inputremapper.utils import get_device_hash
 
 TABLET_KEYS = [
     evdev.ecodes.BTN_STYLUS,
@@ -321,7 +323,7 @@ class _Group:
         return group
 
     def __repr__(self):
-        return f"Group({self.key})"
+        return f"<Group ({self.key}) at {hex(id(self))}>"
 
 
 class _FindGroups(threading.Thread):
@@ -363,7 +365,12 @@ class _FindGroups(threading.Thread):
                 # without setting an error"
                 # - "FileNotFoundError: [Errno 2] No such file or directory:
                 # '/dev/input/event12'"
-                logger.error("Failed to access %s: %s", path, str(error))
+                logger.error(
+                    'Failed to access path "%s": %s %s',
+                    path,
+                    error.__class__.__name__,
+                    str(error),
+                )
                 continue
 
             if device.name == "Power Button":
@@ -381,9 +388,11 @@ class _FindGroups(threading.Thread):
 
             if key_capa is None and device_type != DeviceType.GAMEPAD:
                 # skip devices that don't provide buttons that can be mapped
+                logger.debug('"%s" has no useful capabilities', device.name)
                 continue
 
             if is_denylisted(device):
+                logger.debug('"%s" is denylisted', device.name)
                 continue
 
             key = get_unique_key(device)
@@ -391,11 +400,12 @@ class _FindGroups(threading.Thread):
                 grouped[key] = []
 
             logger.debug(
-                'Found "%s", "%s", "%s", type: %s',
-                key,
-                path,
+                'Found %s "%s" at "%s", hash "%s", key "%s"',
+                device_type.value,
                 device.name,
-                device_type,
+                path,
+                get_device_hash(device),
+                key,
             )
 
             grouped[key].append((device.name, path, device_type))
@@ -484,7 +494,7 @@ class _Groups:
 
     def set_groups(self, new_groups: List[_Group]):
         """Overwrite all groups."""
-        logger.debug("overwriting groups with %s", new_groups)
+        logger.debug("Overwriting groups with %s", new_groups)
         self._groups = new_groups
 
     def list_group_names(self) -> List[str]:
@@ -546,4 +556,5 @@ class _Groups:
         return None
 
 
+# TODO global objects are bad practice
 groups = _Groups()

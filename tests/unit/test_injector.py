@@ -17,19 +17,21 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from pydantic import ValidationError
 
-from tests.lib.fixtures import new_event
+from inputremapper.input_event import InputEvent
+from tests.lib.global_uinputs import (
+    reset_global_uinputs_for_service,
+    reset_global_uinputs_for_gui,
+)
 from tests.lib.patches import uinputs
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import fixtures, get_combination_config
+from tests.lib.fixtures import fixtures
 from tests.lib.pipes import uinput_write_history_pipe
 from tests.lib.pipes import read_write_history_pipe, push_events
-from tests.lib.fixtures import (
-    keyboard_keys,
-    get_key_mapping,
-)
+from tests.lib.fixtures import keyboard_keys
 
 import unittest
 from unittest import mock
@@ -61,6 +63,7 @@ from inputremapper.configs.system_mapping import (
     DISABLE_NAME,
 )
 from inputremapper.configs.preset import Preset
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
@@ -117,8 +120,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         path = "/dev/input/event10"
         preset = Preset()
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=10)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "a",
             )
@@ -127,7 +130,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector = Injector(groups.find(key="Foo Device 2"), preset)
         # this test needs to pass around all other constraints of
         # _grab_device
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
         device = self.injector._grab_device(evdev.InputDevice(path))
         gamepad = classify(device) == DeviceType.GAMEPAD
         self.assertFalse(gamepad)
@@ -139,8 +142,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.make_it_fail = 999
         preset = Preset()
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=10)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "a",
             )
@@ -148,7 +151,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         self.injector = Injector(groups.find(key="Foo Device 2"), preset)
         path = "/dev/input/event10"
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
         device = self.injector._grab_device(evdev.InputDevice(path))
         self.assertIsNone(device)
         self.assertGreaterEqual(self.failed, 1)
@@ -163,18 +166,27 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.injector.get_state(), InjectorState.NO_GRAB)
 
     def test_grab_device_1(self):
+        device_hash = fixtures.gamepad.get_device_hash()
+
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
-                    InputConfig(type=EV_ABS, code=ABS_HAT0X, analog_threshold=1)
+                    [
+                        InputConfig(
+                            type=EV_ABS,
+                            code=ABS_HAT0X,
+                            analog_threshold=1,
+                            origin_hash=device_hash,
+                        )
+                    ]
                 ),
                 "keyboard",
                 "a",
             ),
         )
         self.initialize_injector(groups.find(name="gamepad"), preset)
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
         self.injector.group.paths = [
             "/dev/input/event10",
             "/dev/input/event30",
@@ -183,41 +195,45 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         grabbed = self.injector._grab_devices()
         self.assertEqual(len(grabbed), 1)
-        self.assertEqual(grabbed[0].path, "/dev/input/event30")
+        self.assertEqual(grabbed[device_hash].path, "/dev/input/event30")
 
     def test_forward_gamepad_events(self):
+        device_hash = fixtures.gamepad.get_device_hash()
+
         # forward abs joystick events
         preset = Preset()
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=BTN_A)),
-                "keyboard",
-                "a",
+            Mapping.from_combination(
+                input_combination=InputCombination(
+                    [InputConfig(type=EV_KEY, code=BTN_A, origin_hash=device_hash)]
+                ),
+                target_uinput="keyboard",
+                output_symbol="a",
             ),
         )
 
         self.initialize_injector(groups.find(name="gamepad"), preset)
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
 
         path = "/dev/input/event30"
         devices = self.injector._grab_devices()
         self.assertEqual(len(devices), 1)
-        self.assertEqual(devices[0].path, path)
-        gamepad = classify(devices[0]) == DeviceType.GAMEPAD
+        self.assertEqual(devices[device_hash].path, path)
+        gamepad = classify(devices[device_hash]) == DeviceType.GAMEPAD
         self.assertTrue(gamepad)
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the preset
         preset = Preset()
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=10)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "a",
             )
         )
         self.initialize_injector(groups.find(key="Foo Device 2"), preset)
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
 
         # grabs only one device even though the group has 4 devices
         devices = self.injector._grab_devices()
@@ -227,8 +243,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_skip_unknown_device(self):
         preset = Preset()
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=1234)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=1234)]),
                 "keyboard",
                 "a",
             )
@@ -236,12 +252,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         # skips a device because its capabilities are not used in the preset
         self.initialize_injector(groups.find(key="Foo Device 2"), preset)
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
         devices = self.injector._grab_devices()
 
         # skips the device alltogether, so no grab attempts fail
         self.assertEqual(self.failed, 0)
-        self.assertEqual(devices, [])
+        self.assertEqual(devices, {})
 
     def test_get_udev_name(self):
         self.injector = Injector(groups.find(key="Foo Device 2"), Preset())
@@ -260,25 +276,29 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     @mock.patch("evdev.InputDevice.ungrab")
     def test_capabilities_and_uinput_presence(self, ungrab_patch):
         preset = Preset()
-        m1 = get_key_mapping(
+        m1 = Mapping.from_combination(
             InputCombination(
-                InputConfig(
-                    type=EV_KEY,
-                    code=KEY_A,
-                    origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_KEY,
+                        code=KEY_A,
+                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                    )
+                ]
             ),
             "keyboard",
             "c",
         )
-        m2 = get_key_mapping(
+        m2 = Mapping.from_combination(
             InputCombination(
-                InputConfig(
-                    type=EV_REL,
-                    code=REL_HWHEEL,
-                    analog_threshold=1,
-                    origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                )
+                [
+                    InputConfig(
+                        type=EV_REL,
+                        code=REL_HWHEEL,
+                        analog_threshold=1,
+                        origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
+                    )
+                ]
             ),
             "keyboard",
             "key(b)",
@@ -292,11 +312,13 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             self.injector.preset.get_mapping(
                 InputCombination(
-                    InputConfig(
-                        type=EV_KEY,
-                        code=KEY_A,
-                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                    )
+                    [
+                        InputConfig(
+                            type=EV_KEY,
+                            code=KEY_A,
+                            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                        )
+                    ]
                 )
             ),
             m1,
@@ -304,29 +326,21 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             self.injector.preset.get_mapping(
                 InputCombination(
-                    InputConfig(
-                        type=EV_REL,
-                        code=REL_HWHEEL,
-                        analog_threshold=1,
-                        origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                    )
+                    [
+                        InputConfig(
+                            type=EV_REL,
+                            code=REL_HWHEEL,
+                            analog_threshold=1,
+                            origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
+                        )
+                    ]
                 )
             ),
             m2,
         )
 
-        self.assertListEqual(
-            sorted(uinputs.keys()),
-            sorted(
-                [
-                    # reading and preventing original events from reaching the
-                    # display server
-                    "input-remapper Foo Device foo forwarded",
-                    "input-remapper Foo Device forwarded",
-                ]
-            ),
-        )
-
+        # reading and preventing original events from reaching the
+        # display server
         forwarded_foo = uinputs.get("input-remapper Foo Device foo forwarded")
         forwarded = uinputs.get("input-remapper Foo Device forwarded")
         self.assertIsNotNone(forwarded_foo)
@@ -353,9 +367,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         preset = Preset()
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
-                    (
+                    [
                         InputConfig(
                             type=EV_KEY,
                             code=8,
@@ -366,21 +380,23 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                             code=9,
                             origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                         ),
-                    )
+                    ]
                 ),
                 "keyboard",
                 "k(KEY_Q).k(w)",
             )
         )
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
-                    InputConfig(
-                        type=EV_ABS,
-                        code=ABS_HAT0X,
-                        analog_threshold=-1,
-                        origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                    )
+                    [
+                        InputConfig(
+                            type=EV_ABS,
+                            code=ABS_HAT0X,
+                            analog_threshold=-1,
+                            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                        )
+                    ]
                 ),
                 "keyboard",
                 "a",
@@ -390,13 +406,15 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         input_b = 10
         with self.assertRaises(ValidationError):
             preset.add(
-                get_key_mapping(
+                Mapping.from_combination(
                     InputCombination(
-                        InputConfig(
-                            type=EV_KEY,
-                            code=input_b,
-                            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                        )
+                        [
+                            InputConfig(
+                                type=EV_KEY,
+                                code=input_b,
+                                origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            )
+                        ]
                     ),
                     "keyboard",
                     "b",
@@ -416,10 +434,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             fixtures.foo_device_2_keyboard,
             [
                 # should execute a macro...
-                new_event(EV_KEY, 8, 1),  # forwarded
-                new_event(EV_KEY, 9, 1),  # triggers macro
-                new_event(EV_KEY, 8, 0),  # releases macro
-                new_event(EV_KEY, 9, 0),  # forwarded
+                InputEvent.key(8, 1),  # forwarded
+                InputEvent.key(9, 1),  # triggers macro
+                InputEvent.key(8, 0),  # releases macro
+                InputEvent.key(9, 0),  # forwarded
             ],
         )
 
@@ -428,8 +446,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             fixtures.foo_device_2_gamepad,
             [
                 # gamepad stuff. trigger a combination
-                new_event(EV_ABS, ABS_HAT0X, -1),
-                new_event(EV_ABS, ABS_HAT0X, 0),
+                InputEvent.abs(ABS_HAT0X, -1),
+                InputEvent.abs(ABS_HAT0X, 0),
             ],
         )
 
@@ -438,9 +456,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             fixtures.foo_device_2_keyboard,
             [
                 # just pass those over without modifying
-                new_event(EV_KEY, 10, 1),
-                new_event(EV_KEY, 10, 0),
-                new_event(3124, 3564, 6542),
+                InputEvent.key(10, 1),
+                InputEvent.key(10, 0),
+                InputEvent(0, 0, 3124, 3564, 6542),
             ],
             force=True,
         )
@@ -511,18 +529,18 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
 
     def test_is_in_capabilities(self):
-        key = InputCombination(get_combination_config((1, 2, 1)))
+        key = InputCombination(InputCombination.from_tuples((1, 2, 1)))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = InputCombination(get_combination_config((1, 2, 1), (1, 3, 1)))
+        key = InputCombination(InputCombination.from_tuples((1, 2, 1), (1, 3, 1)))
         capabilities = {1: [9, 2, 5]}
         # only one of the codes of the combination is required.
         # The goal is to make combinations= across those sub-devices possible,
         # that make up one hardware device
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = InputCombination(get_combination_config((1, 2, 1), (1, 5, 1)))
+        key = InputCombination(InputCombination.from_tuples((1, 2, 1), (1, 5, 1)))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 
@@ -571,15 +589,15 @@ class TestModifyCapabilities(unittest.TestCase):
 
         preset = Preset()
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=80)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=80)]),
                 "keyboard",
                 "a",
             )
         )
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=81)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=81)]),
                 "keyboard",
                 DISABLE_NAME,
             ),
@@ -589,8 +607,8 @@ class TestModifyCapabilities(unittest.TestCase):
         macro = parse(macro_code, preset)
 
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=60)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=60)]),
                 "keyboard",
                 macro_code,
             ),
@@ -599,9 +617,9 @@ class TestModifyCapabilities(unittest.TestCase):
         # going to be ignored, because EV_REL cannot be mapped, that's
         # mouse movements.
         preset.add(
-            get_key_mapping(
+            Mapping.from_combination(
                 InputCombination(
-                    InputConfig(type=EV_REL, code=1234, analog_threshold=3)
+                    [InputConfig(type=EV_REL, code=1234, analog_threshold=3)]
                 ),
                 "keyboard",
                 "b",

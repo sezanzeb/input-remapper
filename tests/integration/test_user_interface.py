@@ -93,7 +93,7 @@ class TestUserInterface(unittest.TestCase):
         self.message_broker.publish(
             MappingData(
                 input_combination=InputCombination(
-                    InputConfig(type=EV_KEY, code=KEY_A)
+                    [InputConfig(type=EV_KEY, code=KEY_A)]
                 ),
                 name="foo",
             )

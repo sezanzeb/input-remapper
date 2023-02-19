@@ -18,14 +18,18 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
-import copy
+import sys
 from unittest.mock import patch
 
-
-def spy(obj, name):
-    """Convenient wrapper for patch.object(..., ..., wraps=...)."""
-    return patch.object(obj, name, wraps=obj.__getattribute__(name))
+from inputremapper.injection.global_uinputs import global_uinputs
 
 
-environ_copy = copy.deepcopy(os.environ)
+def reset_global_uinputs_for_service():
+    with patch.object(sys, "argv", ["input-remapper-service"]):
+        # patch argv for global_uinputs to think it is a service
+        global_uinputs.reset()
+
+
+def reset_global_uinputs_for_gui():
+    with patch.object(sys, "argv", ["input-remapper-gtk"]):
+        global_uinputs.reset()

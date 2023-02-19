@@ -17,10 +17,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.utils import get_device_hash
+import asyncio
 
-from inputremapper.gui.messages.message_broker import MessageBroker
-from tests.lib.fixtures import new_event
 from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
 from tests.lib.logger import logger
@@ -39,6 +37,9 @@ from evdev.ecodes import EV_ABS, EV_KEY
 from inputremapper.groups import groups, _Groups
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
+from inputremapper.input_event import InputEvent
+from inputremapper.utils import get_device_hash
+from inputremapper.gui.messages.message_broker import MessageBroker
 
 
 class TestTest(unittest.TestCase):
@@ -95,7 +96,8 @@ class TestTest(unittest.TestCase):
                 # there is no point in using the global groups object
                 # because the reader-service runs in a different process
                 reader_service = ReaderService(_Groups())
-                reader_service.run()
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(reader_service.run())
 
             self.reader_service = multiprocessing.Process(target=start_reader_service)
             self.reader_service.start()
@@ -113,7 +115,7 @@ class TestTest(unittest.TestCase):
         reader_client.start_recorder()
         time.sleep(START_READING_DELAY)
 
-        event = new_event(EV_KEY, 102, 1)
+        event = InputEvent.key(102, 1)
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
         self.assertTrue(reader_client._results_pipe.poll())
@@ -123,7 +125,7 @@ class TestTest(unittest.TestCase):
 
         # can push more events to the reader-service that is inside a separate
         # process, which end up being sent to the reader
-        event = new_event(EV_KEY, 102, 0)
+        event = InputEvent.key(102, 0)
         logger.info("push_events")
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()

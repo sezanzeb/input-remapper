@@ -18,17 +18,19 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+import asyncio
 
 # the tests file needs to be imported first to make sure patches are loaded
 from contextlib import contextmanager
 from typing import Tuple, List, Optional, Iterable
 
+from inputremapper.injection.global_uinputs import global_uinputs
+from tests.lib.global_uinputs import reset_global_uinputs_for_service
 from tests.test import get_project_root
-from tests.lib.fixtures import new_event
 from tests.lib.cleanup import cleanup
 from tests.lib.stuff import spy
 from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import prepare_presets, get_combination_config
+from tests.lib.fixtures import prepare_presets
 from tests.lib.logger import logger
 from tests.lib.fixtures import fixtures
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
@@ -124,6 +126,15 @@ def launch(
     )
 
 
+def start_reader_service():
+    def process():
+        reader_service = ReaderService(_Groups())
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(reader_service.run())
+
+    multiprocessing.Process(target=process).start()
+
+
 @contextmanager
 def patch_launch():
     """patch the launch function such that we don't connect to
@@ -136,7 +147,8 @@ def patch_launch():
         # instead of running pkexec, fork instead. This will make
         # the reader-service aware of all the test patches
         if "pkexec input-remapper-control --command start-reader-service" in cmd:
-            multiprocessing.Process(target=ReaderService(_Groups()).run).start()
+            logger.info("pkexec-patch starting ReaderService process")
+            start_reader_service()
             return 0
 
         return original_os_system(cmd)
@@ -177,7 +189,8 @@ class TestGroupsFromReaderService(unittest.TestCase):
             # instead of running pkexec, fork instead. This will make
             # the reader-service aware of all the test patches
             if "pkexec input-remapper-control --command start-reader-service" in cmd:
-                self.reader_service_started()  # don't start the reader-service just log that it was.
+                # don't start the reader-service just log that it was.
+                self.reader_service_started()
                 return 0
 
             return self.original_os_system(cmd)
@@ -205,7 +218,7 @@ class TestGroupsFromReaderService(unittest.TestCase):
         self.assertEqual(len(self.data_manager.get_group_keys()), 0)
 
         # start the reader-service delayed
-        multiprocessing.Process(target=ReaderService(_Groups()).run).start()
+        start_reader_service()
         # perform some iterations so that the reader ends up reading from the pipes
         # which will make it receive devices.
         for _ in range(10):
@@ -332,7 +345,7 @@ class GuiTestBase(unittest.TestCase):
         self.assertEqual(self.target_selection.get_active_id(), "keyboard")
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
-            InputCombination(InputConfig(type=1, code=5)),
+            InputCombination([InputConfig(type=1, code=5)]),
         )
         self.assertEqual(
             self.data_manager.active_input_config, InputConfig(type=1, code=5)
@@ -520,12 +533,14 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.autoload_toggle.get_active())
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfig(type=1, code=5)),
+            InputCombination([InputConfig(type=1, code=5)]),
         )
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
             InputCombination(
-                InputConfig(type=1, code=5),
+                [
+                    InputConfig(type=1, code=5),
+                ]
             ),
         )
         self.assertEqual(self.selection_label_listbox.get_selected_row().name, "4")
@@ -659,26 +674,29 @@ class TestGui(GuiTestBase):
 
         push_events(
             fixtures.foo_device_2_keyboard,
-            [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 31, 1)],
+            [
+                InputEvent(0, 0, 1, 30, 1),
+                InputEvent(0, 0, 1, 31, 1),
+            ],
         )
-        self.throttle(40)
+        self.throttle(60)
         origin = fixtures.foo_device_2_keyboard.get_device_hash()
         mock1.assert_has_calls(
             (
                 call(
                     CombinationRecorded(
                         InputCombination(
-                            InputConfig(type=1, code=30, origin_hash=origin)
+                            [InputConfig(type=1, code=30, origin_hash=origin)]
                         )
                     )
                 ),
                 call(
                     CombinationRecorded(
                         InputCombination(
-                            (
+                            [
                                 InputConfig(type=1, code=30, origin_hash=origin),
                                 InputConfig(type=1, code=31, origin_hash=origin),
-                            )
+                            ]
                         )
                     )
                 ),
@@ -689,12 +707,12 @@ class TestGui(GuiTestBase):
         mock2.assert_not_called()
 
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 31, 0)])
-        self.throttle(40)
+        self.throttle(60)
         self.assertEqual(mock1.call_count, 2)
         mock2.assert_not_called()
 
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 0)])
-        self.throttle(40)
+        self.throttle(60)
         self.assertEqual(mock1.call_count, 2)
         mock2.assert_called_once()
 
@@ -712,14 +730,14 @@ class TestGui(GuiTestBase):
             fixtures.foo_device_2_keyboard,
             [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 30, 0)],
         )
-        self.throttle(40)
+        self.throttle(60)
 
         # if this fails with <InputCombination (1, 5, 1)>: this is the initial
         # mapping or something, so it was never overwritten.
         origin = fixtures.foo_device_2_keyboard.get_device_hash()
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
-            InputCombination(InputConfig(type=1, code=30, origin_hash=origin)),
+            InputCombination([InputConfig(type=1, code=30, origin_hash=origin)]),
         )
 
         # create a new mapping
@@ -736,7 +754,7 @@ class TestGui(GuiTestBase):
             fixtures.foo_device_2_keyboard,
             [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 30, 0)],
         )
-        self.throttle(40)
+        self.throttle(60)
         # should still be the empty mapping
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
@@ -746,36 +764,36 @@ class TestGui(GuiTestBase):
         # try to record a different combination
         self.controller.start_key_recording()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 1)])
-        self.throttle(40)
+        self.throttle(60)
         # nothing changed yet, as we got the duplicate combination
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
             InputCombination.empty_combination(),
         )
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 31, 1)])
-        self.throttle(40)
+        self.throttle(60)
         # now the combination is different
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
             InputCombination(
-                (
+                [
                     InputConfig(type=1, code=30, origin_hash=origin),
                     InputConfig(type=1, code=31, origin_hash=origin),
-                )
+                ]
             ),
         )
 
         # let's make the combination even longer
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 32, 1)])
-        self.throttle(40)
+        self.throttle(60)
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
             InputCombination(
-                (
+                [
                     InputConfig(type=1, code=30, origin_hash=origin),
                     InputConfig(type=1, code=31, origin_hash=origin),
                     InputConfig(type=1, code=32, origin_hash=origin),
-                )
+                ]
             ),
         )
 
@@ -788,21 +806,21 @@ class TestGui(GuiTestBase):
                 InputEvent(0, 0, 1, 32, 0),
             ],
         )
-        self.throttle(40)
+        self.throttle(60)
 
         # sending a combination update now should not do anything
         self.message_broker.publish(
-            CombinationRecorded(InputCombination(InputConfig(type=1, code=35)))
+            CombinationRecorded(InputCombination([InputConfig(type=1, code=35)]))
         )
         gtk_iteration()
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
             InputCombination(
-                (
+                [
                     InputConfig(type=1, code=30, origin_hash=origin),
                     InputConfig(type=1, code=31, origin_hash=origin),
                     InputConfig(type=1, code=32, origin_hash=origin),
-                )
+                ]
             ),
         )
 
@@ -833,19 +851,19 @@ class TestGui(GuiTestBase):
         self.recording_toggle.set_active(True)
         gtk_iteration()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 1)])
-        self.throttle(40)
+        self.throttle(60)
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 0)])
-        self.throttle(40)
+        self.throttle(60)
 
         # check the input_combination
         origin = fixtures.foo_device_2_keyboard.get_device_hash()
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfig(type=1, code=30, origin_hash=origin)),
+            InputCombination([InputConfig(type=1, code=30, origin_hash=origin)]),
         )
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
-            InputCombination(InputConfig(type=1, code=30, origin_hash=origin)),
+            InputCombination([InputConfig(type=1, code=30, origin_hash=origin)]),
         )
         self.assertEqual(self.selection_label_listbox.get_selected_row().name, "a")
         self.assertIsNone(self.data_manager.active_mapping.name)
@@ -862,7 +880,7 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping,
             Mapping(
                 input_combination=InputCombination(
-                    InputConfig(type=1, code=30, origin_hash=origin)
+                    [InputConfig(type=1, code=30, origin_hash=origin)]
                 ),
                 output_symbol="Shift_L",
                 target_uinput="keyboard",
@@ -876,7 +894,7 @@ class TestGui(GuiTestBase):
         )
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfig(type=1, code=30, origin_hash=origin)),
+            InputCombination([InputConfig(type=1, code=30, origin_hash=origin)]),
         )
 
         # 4. update target to mouse
@@ -886,7 +904,7 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping,
             Mapping(
                 input_combination=InputCombination(
-                    InputConfig(type=1, code=30, origin_hash=origin)
+                    [InputConfig(type=1, code=30, origin_hash=origin)]
                 ),
                 output_symbol="Shift_L",
                 target_uinput="mouse",
@@ -910,26 +928,27 @@ class TestGui(GuiTestBase):
         gtk_iteration()
 
         # it should be possible to add all of them
-        ev_1 = (EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
-        ev_2 = (EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
-        ev_3 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)
-        ev_4 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, 1)
+        ev_1 = InputEvent.abs(evdev.ecodes.ABS_HAT0X, -1)
+        ev_2 = InputEvent.abs(evdev.ecodes.ABS_HAT0X, 1)
+        ev_3 = InputEvent.abs(evdev.ecodes.ABS_HAT0Y, -1)
+        ev_4 = InputEvent.abs(evdev.ecodes.ABS_HAT0Y, 1)
 
-        def add_mapping(event_tuple, symbol) -> InputCombination:
+        def add_mapping(event, symbol) -> InputCombination:
             """adds mapping and returns the expected input combination"""
-            event = InputEvent.from_tuple(event_tuple)
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
             push_events(fixtures.foo_device_2_gamepad, [event, event.modify(value=0)])
-            self.throttle(40)
+            self.throttle(60)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
             return InputCombination(
-                InputConfig.from_input_event(event).modify(
-                    origin_hash=fixtures.foo_device_2_gamepad.get_device_hash()
-                )
+                [
+                    InputConfig.from_input_event(event).modify(
+                        origin_hash=fixtures.foo_device_2_gamepad.get_device_hash()
+                    )
+                ]
             )
 
         config_1 = add_mapping(ev_1, "a")
@@ -971,10 +990,26 @@ class TestGui(GuiTestBase):
         gtk_iteration()
 
         # it should be possible to write a combination
-        ev_1 = (EV_KEY, evdev.ecodes.KEY_A, 1)
-        ev_2 = (EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
-        ev_3 = (EV_KEY, evdev.ecodes.KEY_C, 1)
-        ev_4 = (EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
+        ev_1 = InputEvent.key(
+            evdev.ecodes.KEY_A,
+            1,
+            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+        )
+        ev_2 = InputEvent.abs(
+            evdev.ecodes.ABS_HAT0X,
+            1,
+            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+        )
+        ev_3 = InputEvent.key(
+            evdev.ecodes.KEY_C,
+            1,
+            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+        )
+        ev_4 = InputEvent.abs(
+            evdev.ecodes.ABS_HAT0X,
+            -1,
+            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+        )
         combination_1 = (ev_1, ev_2, ev_3)
         combination_2 = (ev_2, ev_1, ev_3)
 
@@ -986,34 +1021,23 @@ class TestGui(GuiTestBase):
         combination_5 = (ev_1, ev_3, ev_2)
         combination_6 = (ev_3, ev_1, ev_2)
 
-        def get_combination(combi: Iterable[Tuple[int, int, int]]) -> InputCombination:
+        def get_combination(combi: Iterable[InputEvent]) -> InputCombination:
+            """Create an InputCombination from a list of events.
+
+            Ensures the origin_hash is set correctly.
+            """
             configs = []
-            for t in combi:
-                config = InputConfig.from_input_event(InputEvent.from_tuple(t))
-                if config.type == EV_KEY:
-                    config = config.modify(
-                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash()
-                    )
-                if config.type == EV_ABS:
-                    config = config.modify(
-                        origin_hash=fixtures.foo_device_2_gamepad.get_device_hash()
-                    )
-                if config.type == EV_REL:
-                    config = config.modify(
-                        origin_hash=fixtures.foo_device_2_mouse.get_device_hash()
-                    )
+            for event in combi:
+                config = InputConfig.from_input_event(event)
                 configs.append(config)
             return InputCombination(configs)
 
-        def add_mapping(combi: Iterable[Tuple[int, int, int]], symbol):
+        def add_mapping(combi: Iterable[InputEvent], symbol):
+            logger.info("add_mapping %s", combi)
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
-            previous_event = InputEvent(0, 0, 1, 1, 1)
-            for event_tuple in combi:
-                event = InputEvent.from_tuple(event_tuple)
-                if event.type != previous_event.type:
-                    self.throttle(20)  # avoid race condition if we switch fixture
+            for event in combi:
                 if event.type == EV_KEY:
                     push_event(fixtures.foo_device_2_keyboard, event)
                 if event.type == EV_ABS:
@@ -1021,8 +1045,11 @@ class TestGui(GuiTestBase):
                 if event.type == EV_REL:
                     push_event(fixtures.foo_device_2_mouse, event)
 
-            for event_tuple in combi:
-                event = InputEvent.from_tuple(event_tuple)
+                # avoid race condition if we switch fixture in push_event. The order
+                # of events needs to be correct.
+                self.throttle(20)
+
+            for event in combi:
                 if event.type == EV_KEY:
                     push_event(fixtures.foo_device_2_keyboard, event.modify(value=0))
                 if event.type == EV_ABS:
@@ -1030,12 +1057,13 @@ class TestGui(GuiTestBase):
                 if event.type == EV_REL:
                     pass
 
-            self.throttle(40)
+            self.throttle(60)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
 
         add_mapping(combination_1, "a")
+
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
                 get_combination(combination_1)
@@ -1203,7 +1231,7 @@ class TestGui(GuiTestBase):
     def test_only_one_empty_mapping_possible(self):
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfig(type=1, code=5)),
+            InputCombination([InputConfig(type=1, code=5)]),
         )
         self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
         self.assertEqual(len(self.data_manager.active_preset), 1)
@@ -1236,7 +1264,9 @@ class TestGui(GuiTestBase):
         self.recording_toggle.set_active(True)
         gtk_iteration()
         self.message_broker.publish(
-            CombinationRecorded(InputCombination(InputConfig(type=EV_KEY, code=KEY_Q)))
+            CombinationRecorded(
+                InputCombination([InputConfig(type=EV_KEY, code=KEY_Q)])
+            )
         )
         gtk_iteration()
         self.message_broker.signal(MessageType.recording_finished)
@@ -1256,7 +1286,9 @@ class TestGui(GuiTestBase):
         self.recording_toggle.set_active(True)
         gtk_iteration()
         self.message_broker.publish(
-            CombinationRecorded(InputCombination(InputConfig(type=EV_KEY, code=KEY_Q)))
+            CombinationRecorded(
+                InputCombination([InputConfig(type=EV_KEY, code=KEY_Q)])
+            )
         )
         gtk_iteration()
         self.message_broker.signal(MessageType.recording_finished)
@@ -1367,7 +1399,7 @@ class TestGui(GuiTestBase):
                 fixtures.foo_device_2_keyboard,
                 [event.modify(value=0) for event in combi],
             )
-            self.throttle(40)
+            self.throttle(60)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
@@ -1440,11 +1472,11 @@ class TestGui(GuiTestBase):
 
         self.controller.load_preset("preset1")
         self.throttle(20)
-        self.controller.load_mapping(InputCombination(InputConfig(type=1, code=1)))
+        self.controller.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
         gtk_iteration()
         self.controller.update_mapping(output_symbol="foo")
         gtk_iteration()
-        self.controller.load_mapping(InputCombination(InputConfig(type=1, code=2)))
+        self.controller.load_mapping(InputCombination([InputConfig(type=1, code=2)]))
         gtk_iteration()
         self.controller.update_mapping(output_symbol="qux")
         gtk_iteration()
@@ -1467,7 +1499,7 @@ class TestGui(GuiTestBase):
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        self.controller.load_mapping(InputCombination(InputConfig(type=1, code=1)))
+        self.controller.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
         gtk_iteration()
         self.controller.update_mapping(output_symbol="b")
         gtk_iteration()
@@ -1561,8 +1593,8 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             mappings,
             {
-                InputCombination(InputConfig(type=1, code=1)),
-                InputCombination(InputConfig(type=1, code=2)),
+                InputCombination([InputConfig(type=1, code=1)]),
+                InputCombination([InputConfig(type=1, code=2)]),
             },
         )
         self.assertFalse(self.autoload_toggle.get_active())
@@ -1576,8 +1608,8 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             mappings,
             {
-                InputCombination(InputConfig(type=1, code=3)),
-                InputCombination(InputConfig(type=1, code=4)),
+                InputCombination([InputConfig(type=1, code=3)]),
+                InputCombination([InputConfig(type=1, code=4)]),
             },
         )
         self.assertTrue(self.autoload_toggle.get_active())
@@ -1676,7 +1708,7 @@ class TestGui(GuiTestBase):
         self.controller.create_mapping()
         gtk_iteration()
         self.controller.update_mapping(
-            input_combination=InputCombination(InputConfig.btn_left()),
+            input_combination=InputCombination([InputConfig.btn_left()]),
             output_symbol="a",
         )
         gtk_iteration()
@@ -1737,6 +1769,11 @@ class TestGui(GuiTestBase):
         self.assertIn("Stop", text)
 
     def test_start_injecting(self):
+        # It's 2023 everyone! That means this test randomly stopped working because it
+        # used FrontendUInputs instead of regular UInputs. I guess a fucking ghost
+        # was fixing this for us during 2022, but it seems to have disappeared.
+        reset_global_uinputs_for_service()
+
         self.controller.load_group("Foo Device 2")
 
         with spy(self.daemon, "set_config_dir") as spy1:
@@ -1768,8 +1805,8 @@ class TestGui(GuiTestBase):
         push_events(
             fixtures.foo_device_2_keyboard,
             [
-                new_event(evdev.events.EV_KEY, 5, 1),
-                new_event(evdev.events.EV_KEY, 5, 0),
+                InputEvent.key(5, 1),
+                InputEvent.key(5, 0),
             ],
         )
 
@@ -1791,6 +1828,8 @@ class TestGui(GuiTestBase):
             self.assertNotIn("input-remapper", device_group_entry.name)
 
     def test_stop_injecting(self):
+        reset_global_uinputs_for_service()
+
         self.controller.load_group("Foo Device 2")
         self.start_injector_btn.clicked()
         gtk_iteration()
@@ -1800,6 +1839,7 @@ class TestGui(GuiTestBase):
             gtk_iteration()
             if self.data_manager.get_state() == InjectorState.RUNNING:
                 break
+
         # fail here so we don't block forever
         self.assertEqual(self.data_manager.get_state(), InjectorState.RUNNING)
 
@@ -1813,8 +1853,8 @@ class TestGui(GuiTestBase):
         push_events(
             fixtures.foo_device_2_keyboard,
             [
-                new_event(evdev.events.EV_KEY, 5, 1),
-                new_event(evdev.events.EV_KEY, 5, 0),
+                InputEvent.key(5, 1),
+                InputEvent.key(5, 0),
             ],
         )
 
@@ -1837,8 +1877,8 @@ class TestGui(GuiTestBase):
         push_events(
             fixtures.foo_device_2_keyboard,
             [
-                new_event(evdev.events.EV_KEY, 5, 1),
-                new_event(evdev.events.EV_KEY, 5, 0),
+                InputEvent.key(5, 1),
+                InputEvent.key(5, 0),
             ],
         )
         time.sleep(0.2)

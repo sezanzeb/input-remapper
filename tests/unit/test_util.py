@@ -18,14 +18,24 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
-import copy
-from unittest.mock import patch
+
+import unittest
+
+from evdev._ecodes import EV_ABS, ABS_X, BTN_WEST, BTN_Y, EV_KEY, KEY_A
+
+from inputremapper.utils import get_evdev_constant_name
 
 
-def spy(obj, name):
-    """Convenient wrapper for patch.object(..., ..., wraps=...)."""
-    return patch.object(obj, name, wraps=obj.__getattribute__(name))
+class TestUtil(unittest.TestCase):
+    def test_get_evdev_constant_name(self):
+        # BTN_WEST and BTN_Y both are code 308. I don't care which one is chosen
+        # in the return value, but it should return one of them without crashing.
+        self.assertEqual(get_evdev_constant_name(EV_KEY, BTN_Y), "BTN_WEST")
+        self.assertEqual(get_evdev_constant_name(EV_KEY, BTN_WEST), "BTN_WEST")
 
+        self.assertEqual(get_evdev_constant_name(123, KEY_A), "unknown")
+        self.assertEqual(get_evdev_constant_name(EV_KEY, 9999), "unknown")
 
-environ_copy = copy.deepcopy(os.environ)
+        self.assertEqual(get_evdev_constant_name(EV_KEY, KEY_A), "KEY_A")
+
+        self.assertEqual(get_evdev_constant_name(EV_ABS, ABS_X), "ABS_X")

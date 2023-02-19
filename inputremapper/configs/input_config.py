@@ -20,15 +20,18 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
+from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, TypeAlias
 
 from evdev import ecodes
+from evdev._ecodes import EV_ABS, EV_KEY, EV_REL
+
 from inputremapper.input_event import InputEvent
-from pydantic import BaseModel, root_validator, validator, constr
+from pydantic import BaseModel, root_validator, validator
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logger import logger
+from inputremapper.utils import get_evdev_constant_name
 
 # having shift in combinations modifies the configured output,
 # ctrl might not work at all
@@ -41,7 +44,9 @@ DIFFICULT_COMBINATIONS = [
     ecodes.KEY_RIGHTALT,
 ]
 
-DeviceHash = constr(to_lower=True)
+DeviceHash: TypeAlias = str
+
+EMPTY_TYPE = 99
 
 
 class InputConfig(BaseModel):
@@ -55,8 +60,20 @@ class InputConfig(BaseModel):
     # origin_hash is a hash to identify a specific /dev/input/eventXX device.
     # This solves a number of bugs when multiple devices have overlapping capabilities.
     # see utils.get_device_hash for the exact hashing function
-    origin_hash: Optional[DeviceHash] = None  # type: ignore
+    origin_hash: Optional[DeviceHash] = None
     analog_threshold: Optional[int] = None
+
+    def __str__(self):
+        return f"InputConfig {get_evdev_constant_name(self.type, self.code)}"
+
+    def __repr__(self):
+        return (
+            f"<InputConfig {self.type_and_code} "
+            f"{get_evdev_constant_name(*self.type_and_code)}, "
+            f"{self.analog_threshold}, "
+            f"{self.origin_hash}, "
+            f"at {hex(id(self))}>"
+        )
 
     @property
     def input_match_hash(self) -> Hashable:
@@ -67,6 +84,10 @@ class InputConfig(BaseModel):
         because its hash includes the analog_threshold
         """
         return self.type, self.code, self.origin_hash
+
+    @property
+    def is_empty(self) -> bool:
+        return self.type == EMPTY_TYPE
 
     @property
     def defines_analog_input(self) -> bool:
@@ -122,7 +143,7 @@ class InputConfig(BaseModel):
             # if no result, look in the linux combination constants. On a german
             # keyboard for example z and y are switched, which will therefore
             # cause the wrong letter to be displayed.
-            key_name = ecodes.bytype[self.type][self.code]
+            key_name = get_evdev_constant_name(self.type, self.code)
             if isinstance(key_name, list):
                 key_name = key_name[0]
 
@@ -223,9 +244,10 @@ class InputConfig(BaseModel):
     @validator("analog_threshold")
     def _ensure_analog_threshold_is_none(cls, analog_threshold):
         """ensure the analog threshold is none, not zero."""
-        if analog_threshold:
-            return analog_threshold
-        return None
+        if analog_threshold == 0 or analog_threshold is None:
+            return None
+
+        return analog_threshold
 
     @root_validator
     def _remove_analog_threshold_for_key_input(cls, values):
@@ -235,35 +257,62 @@ class InputConfig(BaseModel):
             values["analog_threshold"] = None
         return values
 
+    @root_validator(pre=True)
+    def validate_origin_hash(cls, values):
+        origin_hash = values.get("origin_hash")
+        if origin_hash is None:
+            # For new presets, origin_hash should be set. For old ones, it can
+            # be still missing. A lot of tests didn't set an origin_hash.
+            if values.get("type") != EMPTY_TYPE:
+                logger.warning("No origin_hash set for %s", values)
+
+            return values
+
+        values["origin_hash"] = origin_hash.lower()
+        return values
+
     class Config:
         allow_mutation = False
         underscore_attrs_are_private = True
 
 
 InputCombinationInit = Union[
-    InputConfig,
     Iterable[Dict[str, Union[str, int]]],
     Iterable[InputConfig],
 ]
 
 
 class InputCombination(Tuple[InputConfig, ...]):
-    """One or more InputConfig's used to trigger a mapping"""
+    """One or more InputConfigs used to trigger a mapping."""
 
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
     def __new__(cls, configs: InputCombinationInit) -> InputCombination:
-        if isinstance(configs, InputCombination):
-            return super().__new__(cls, configs)  # type: ignore
+        """Create a new InputCombination.
+
+        Examples
+        --------
+            InputCombination([InputConfig, ...])
+            InputCombination([{type: ..., code: ..., value: ...}, ...])
+        """
+        if not isinstance(configs, Iterable):
+            raise TypeError("InputCombination requires a list of InputConfigs.")
+
         if isinstance(configs, InputConfig):
-            return super().__new__(cls, [configs])  # type: ignore
+            # wrap the argument in square brackets
+            raise TypeError("InputCombination requires a list of InputConfigs.")
 
         validated_configs = []
-        for cfg in configs:
-            if isinstance(cfg, InputConfig):
-                validated_configs.append(cfg)
+        for config in configs:
+            if isinstance(configs, InputEvent):
+                raise TypeError("InputCombinations require InputConfigs, not Events.")
+
+            if isinstance(config, InputConfig):
+                validated_configs.append(config)
+            elif isinstance(config, dict):
+                validated_configs.append(InputConfig(**config))
             else:
-                validated_configs.append(InputConfig(**cfg))
+                raise TypeError(f'Can\'t handle "{config}"')
 
         if len(validated_configs) == 0:
             raise ValueError(f"failed to create InputCombination with {configs = }")
@@ -273,10 +322,11 @@ class InputCombination(Tuple[InputConfig, ...]):
         return super().__new__(cls, validated_configs)  # type: ignore
 
     def __str__(self):
-        return " + ".join(event.description(exclude_threshold=True) for event in self)
+        return f'Combination ({" + ".join(str(event) for event in self)})'
 
     def __repr__(self):
-        return f"<InputCombination {', '.join([str((*e.type_and_code, e.analog_threshold)) for e in self])}>"
+        combination = ", ".join(repr(event) for event in self)
+        return f"<InputCombination ({combination}) at {hex(id(self))}>"
 
     @classmethod
     def __get_validators__(cls):
@@ -291,6 +341,7 @@ class InputCombination(Tuple[InputConfig, ...]):
         return cls(init_arg)
 
     def to_config(self) -> Tuple[Dict[str, int], ...]:
+        """Turn the object into a tuple of dicts."""
         return tuple(input_config.dict(exclude_defaults=True) for input_config in self)
 
     @classmethod
@@ -299,7 +350,32 @@ class InputCombination(Tuple[InputConfig, ...]):
 
         Useful for the UI to indicate that this combination is not set
         """
-        return cls([{"type": 99, "code": 99, "analog_threshold": 99}])
+        return cls([{"type": EMPTY_TYPE, "code": 99, "analog_threshold": 99}])
+
+    @classmethod
+    def from_tuples(cls, *tuples):
+        """Construct an InputCombination from (type, code, analog_threshold) tuples."""
+        dicts = []
+        for tuple_ in tuples:
+            if len(tuple_) == 3:
+                dicts.append(
+                    {
+                        "type": tuple_[0],
+                        "code": tuple_[1],
+                        "analog_threshold": tuple_[2],
+                    }
+                )
+            elif len(tuple_) == 2:
+                dicts.append(
+                    {
+                        "type": tuple_[0],
+                        "code": tuple_[1],
+                    }
+                )
+            else:
+                raise TypeError
+
+        return cls(dicts)
 
     def is_problematic(self) -> bool:
         """Is this combination going to work properly on all systems?"""

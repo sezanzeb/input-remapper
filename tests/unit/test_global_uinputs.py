@@ -17,8 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-
+from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 
 import sys
@@ -71,19 +70,19 @@ class TestGlobalUinputs(unittest.TestCase):
 
         implicitly tests get_uinput and UInput.can_emit
         """
-        ev_1 = (EV_KEY, KEY_A, 1)
-        ev_2 = (EV_ABS, ABS_X, 10)
+        ev_1 = InputEvent.key(KEY_A, 1)
+        ev_2 = InputEvent.abs(ABS_X, 10)
 
         keyboard = global_uinputs.get_uinput("keyboard")
 
-        global_uinputs.write(ev_1, "keyboard")
+        global_uinputs.write(ev_1.event_tuple, "keyboard")
         self.assertEqual(keyboard.write_count, 1)
 
         with self.assertRaises(EventNotHandled):
-            global_uinputs.write(ev_2, "keyboard")
+            global_uinputs.write(ev_2.event_tuple, "keyboard")
 
         with self.assertRaises(UinputNotAvailable):
-            global_uinputs.write(ev_1, "foo")
+            global_uinputs.write(ev_1.event_tuple, "foo")
 
     def test_creates_frontend_uinputs(self):
         frontend_uinputs = GlobalUInputs()

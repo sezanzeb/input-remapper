@@ -78,9 +78,12 @@ class EventListener(Protocol):
 
 
 class ContextProtocol(Protocol):
-    """The parts from context needed for macros."""
+    """The parts from context needed for handlers."""
 
     listeners: Set[EventListener]
+
+    def get_forward_uinput(self, origin_hash) -> evdev.UInput:
+        pass
 
 
 class NotifyCallback(Protocol):
@@ -93,7 +96,6 @@ class NotifyCallback(Protocol):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
         ...
@@ -106,7 +108,6 @@ class InputEventHandler(Protocol):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
         ...
@@ -174,7 +175,6 @@ class MappingHandler:
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
         """Notify this handler about an incoming event.
@@ -186,8 +186,6 @@ class MappingHandler:
             something else
         source
             Where `event` comes from
-        forward
-            Where to write keycodes to that were not mapped to anything
         """
         raise NotImplementedError
 

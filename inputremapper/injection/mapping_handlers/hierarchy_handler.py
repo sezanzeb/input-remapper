@@ -44,16 +44,16 @@ class HierarchyHandler(MappingHandler):
     ) -> None:
         self.handlers = handlers
         self._input_config = input_config
-        combination = InputCombination(input_config)
+        combination = InputCombination([input_config])
         # use the mapping from the first child TODO: find a better solution
         mapping = handlers[0].mapping
         super().__init__(combination, mapping)
 
     def __str__(self):
-        return f"HierarchyHandler for {self._input_config} <{id(self)}>:"
+        return f"HierarchyHandler for {self._input_config}"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):  # used for logging
@@ -63,7 +63,6 @@ class HierarchyHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice = None,
-        forward: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
         if event.input_match_hash != self._input_config.input_match_hash:
@@ -72,9 +71,9 @@ class HierarchyHandler(MappingHandler):
         success = False
         for handler in self.handlers:
             if not success:
-                success = handler.notify(event, source, forward)
+                success = handler.notify(event, source)
             else:
-                handler.notify(event, source, forward, suppress=True)
+                handler.notify(event, source, suppress=True)
         return success
 
     def reset(self) -> None:
@@ -86,12 +85,12 @@ class HierarchyHandler(MappingHandler):
             self._input_config.type == EV_ABS
             and not self._input_config.defines_analog_input
         ):
-            return {InputCombination(self._input_config): HandlerEnums.abs2btn}
+            return {InputCombination([self._input_config]): HandlerEnums.abs2btn}
         if (
             self._input_config.type == EV_REL
             and not self._input_config.defines_analog_input
         ):
-            return {InputCombination(self._input_config): HandlerEnums.rel2btn}
+            return {InputCombination([self._input_config]): HandlerEnums.rel2btn}
         return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:

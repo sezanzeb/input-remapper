@@ -17,15 +17,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+from evdev._ecodes import EV_ABS
 
-
+from inputremapper.input_event import InputEvent
 from tests.test import is_service_running
 from tests.lib.logger import logger
 from tests.lib.cleanup import cleanup
-from tests.lib.fixtures import new_event, get_combination_config
+from tests.lib.fixtures import Fixture
 from tests.lib.pipes import push_events, uinput_write_history_pipe
 from tests.lib.tmp import tmp
-from tests.lib.fixtures import fixtures, get_key_mapping
+from tests.lib.fixtures import fixtures
 
 import os
 import unittest
@@ -34,10 +35,11 @@ import subprocess
 import json
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A, ABS_X, BTN_A, BTN_B
+from evdev.ecodes import EV_KEY, KEY_B, KEY_A, ABS_X, BTN_A, BTN_B
 from pydbus import SystemBus
 
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
 from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
@@ -115,8 +117,6 @@ class TestDaemon(unittest.TestCase):
 
         preset_name = "foo"
 
-        ev = (EV_ABS, ABS_X)
-
         group = groups.find(name="gamepad")
 
         # unrelated group that shouldn't be affected at all
@@ -124,15 +124,21 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=BTN_A)),
-                "keyboard",
-                "a",
+            Mapping.from_combination(
+                input_combination=InputCombination(
+                    [InputConfig(type=EV_KEY, code=BTN_A)]
+                ),
+                target_uinput="keyboard",
+                output_symbol="a",
             )
         )
         preset.add(
-            get_key_mapping(
-                InputCombination(get_combination_config((*ev, -1))), "keyboard", "b"
+            Mapping.from_combination(
+                input_combination=InputCombination(
+                    [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=-1)]
+                ),
+                target_uinput="keyboard",
+                output_symbol="b",
             )
         )
         preset.save()
@@ -141,7 +147,10 @@ class TestDaemon(unittest.TestCase):
         """Injection 1"""
 
         # should forward the event unchanged
-        push_events(fixtures.gamepad, [new_event(EV_KEY, BTN_B, 1)])
+        push_events(
+            fixtures.gamepad,
+            [InputEvent.key(BTN_B, 1, fixtures.gamepad.get_device_hash())],
+        )
 
         self.daemon = Daemon()
 
@@ -184,7 +193,10 @@ class TestDaemon(unittest.TestCase):
 
         time.sleep(0.1)
         # -1234 will be classified as -1 by the injector
-        push_events(fixtures.gamepad, [new_event(*ev, -1234)])
+        push_events(
+            fixtures.gamepad,
+            [InputEvent.abs(ABS_X, -1234, fixtures.gamepad.get_device_hash())],
+        )
         time.sleep(0.1)
 
         self.assertTrue(uinput_write_history_pipe[0].poll())
@@ -213,7 +225,7 @@ class TestDaemon(unittest.TestCase):
             os.remove(get_config_path("xmodmap.json"))
 
         preset_name = "foo"
-        ev = (EV_KEY, 9)
+        key_code = 9
         group_name = "9876 name"
 
         # expected key of the group
@@ -228,8 +240,10 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(get_preset_path(group_name, preset_name))
         preset.add(
-            get_key_mapping(
-                InputCombination(get_combination_config(ev)), "keyboard", "a"
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=key_code)]),
+                "keyboard",
+                "a",
             )
         )
 
@@ -246,13 +260,15 @@ class TestDaemon(unittest.TestCase):
         groups.refresh()
 
         # the daemon is supposed to find this device by calling refresh
-        fixtures[self.new_fixture_path] = {
-            "capabilities": {evdev.ecodes.EV_KEY: [ev[1]]},
-            "phys": "9876 phys",
-            "info": evdev.device.DeviceInfo(4, 5, 6, 7),
-            "name": group_name,
-        }
-        push_events(fixtures[self.new_fixture_path], [new_event(*ev, 1)])
+        fixture = Fixture(
+            capabilities={evdev.ecodes.EV_KEY: [key_code]},
+            phys="9876 phys",
+            info=evdev.device.DeviceInfo(4, 5, 6, 7),
+            name=group_name,
+            path=self.new_fixture_path,
+        )
+        fixtures[self.new_fixture_path] = fixture
+        push_events(fixture, [InputEvent.key(key_code, 1, fixture.get_device_hash())])
         self.daemon.start_injecting(group_key, preset_name)
 
         # test if the injector called groups.refresh successfully
@@ -264,16 +280,16 @@ class TestDaemon(unittest.TestCase):
         self.assertTrue(uinput_write_history_pipe[0].poll())
 
         event = uinput_write_history_pipe[0].recv()
-        self.assertEqual(event.t, (EV_KEY, KEY_A, 1))
+        self.assertEqual(event, (EV_KEY, KEY_A, 1))
 
         self.daemon.stop_injecting(group_key)
         time.sleep(0.2)
         self.assertEqual(self.daemon.get_state(group_key), InjectorState.STOPPED)
 
     def test_refresh_for_unknown_key(self):
-        device = "9876 name"
+        device_9876 = "9876 name"
         # this test only makes sense if this device is unknown yet
-        self.assertIsNone(groups.find(name=device))
+        self.assertIsNone(groups.find(name=device_9876))
 
         self.daemon = Daemon()
 
@@ -282,25 +298,26 @@ class TestDaemon(unittest.TestCase):
 
         self.daemon.refresh()
 
-        fixtures[self.new_fixture_path] = {
-            "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
-            "phys": "9876 phys",
-            "info": evdev.device.DeviceInfo(4, 5, 6, 7),
-            "name": device,
-        }
+        fixtures[self.new_fixture_path] = Fixture(
+            capabilities={evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
+            phys="9876 phys",
+            info=evdev.device.DeviceInfo(4, 5, 6, 7),
+            name=device_9876,
+            path=self.new_fixture_path,
+        )
 
         self.daemon._autoload("25v7j9q4vtj")
         # this is unknown, so the daemon will scan the devices again
 
         # test if the injector called groups.refresh successfully
-        self.assertIsNotNone(groups.find(name=device))
+        self.assertIsNotNone(groups.find(name=device_9876))
 
     def test_xmodmap_file(self):
+        """Create a custom xmodmap file, expect the daemon to read keycodes from it."""
         from_keycode = evdev.ecodes.KEY_A
         target = "keyboard"
         to_name = "q"
         to_keycode = 100
-        event = (EV_KEY, from_keycode, 1)
 
         name = "Bar Device"
         preset_name = "foo"
@@ -312,15 +329,26 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(path)
         preset.add(
-            get_key_mapping(
-                InputCombination(get_combination_config(event)), target, to_name
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=from_keycode)]),
+                target,
+                to_name,
             )
         )
         preset.save()
 
         system_mapping.clear()
 
-        push_events(fixtures.bar_device, [new_event(*event)])
+        push_events(
+            fixtures.bar_device,
+            [
+                InputEvent.key(
+                    from_keycode,
+                    1,
+                    origin_hash=fixtures.bar_device.get_device_hash(),
+                )
+            ],
+        )
 
         # an existing config file is needed otherwise set_config_dir refuses
         # to use the directory
@@ -328,9 +356,12 @@ class TestDaemon(unittest.TestCase):
         global_config.path = config_path
         global_config._save_config()
 
+        # finally, create the xmodmap file
         xmodmap_path = os.path.join(config_dir, "xmodmap.json")
         with open(xmodmap_path, "w") as file:
             file.write(f'{{"{to_name}":{to_keycode}}}')
+
+        # test setup complete
 
         self.daemon = Daemon()
         self.daemon.set_config_dir(config_dir)
@@ -355,8 +386,8 @@ class TestDaemon(unittest.TestCase):
 
         pereset = Preset(group.get_preset_path(preset_name))
         pereset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=KEY_A)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=KEY_A)]),
                 "keyboard",
                 "a",
             )
@@ -423,8 +454,8 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=KEY_A)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=KEY_A)]),
                 "keyboard",
                 "a",
             )
@@ -481,8 +512,8 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(key="Foo Device 2")
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=3, code=2, analog_threshold=1)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=3, code=2, analog_threshold=1)]),
                 "keyboard",
                 "a",
             )
@@ -504,8 +535,8 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
-            get_key_mapping(
-                InputCombination(InputConfig(type=3, code=2, analog_threshold=1)),
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=3, code=2, analog_threshold=1)]),
                 "keyboard",
                 "a",
             )

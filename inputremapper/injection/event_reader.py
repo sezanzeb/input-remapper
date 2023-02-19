@@ -22,11 +22,12 @@
 
 import asyncio
 import os
+import traceback
 from typing import AsyncIterator, Protocol, Set, List
 
 import evdev
 
-from inputremapper.utils import get_device_hash
+from inputremapper.utils import get_device_hash, DeviceHash
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
     NotifyCallback,
@@ -41,7 +42,10 @@ class Context(Protocol):
     def reset(self):
         ...
 
-    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
+    def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
+        ...
+
+    def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
         ...
 
 
@@ -60,7 +64,6 @@ class EventReader:
         self,
         context: Context,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput,
         stop_event: asyncio.Event,
     ) -> None:
         """Initialize all mapping_handlers
@@ -69,14 +72,9 @@ class EventReader:
         ----------
         source
             where to read keycodes from
-        forward_to
-            where to write keycodes to that were not mapped to anything.
-            Should be an UInput with capabilities that work for all forwarded
-            events, so ideally they should be copied from source.
         """
         self._device_hash = get_device_hash(source)
         self._source = source
-        self._forward_to = forward_to
         self.context = context
         self.stop_event = stop_event
 
@@ -115,26 +113,24 @@ class EventReader:
                 yield event
 
     def send_to_handlers(self, event: InputEvent) -> bool:
-        """Send the event to callback."""
+        """Send the event to the NotifyCallbacks.
+
+        Return if anyone took care of the event.
+        """
         if event.type == evdev.ecodes.EV_MSC:
             return False
 
         if event.type == evdev.ecodes.EV_SYN:
             return False
 
-        results = set()
-        notify_callbacks = self.context.get_entry_points(event)
+        handled = False
+        notify_callbacks = self.context.get_notify_callbacks(event)
+
         if notify_callbacks:
             for notify_callback in notify_callbacks:
-                results.add(
-                    notify_callback(
-                        event,
-                        source=self._source,
-                        forward=self._forward_to,
-                    )
-                )
+                handled = notify_callback(event, source=self._source) | handled
 
-        return True in results
+        return handled
 
     async def send_to_listeners(self, event: InputEvent) -> None:
         """Send the event to listeners."""
@@ -165,10 +161,12 @@ class EventReader:
 
     def forward(self, event: InputEvent) -> None:
         """Forward an event, which injects it unmodified."""
-        if event.type == evdev.ecodes.EV_KEY:
-            logger.debug_key(event.event_tuple, "forwarding")
+        forward_to = self.context.get_forward_uinput(self._device_hash)
 
-        self._forward_to.write(*event.event_tuple)
+        if event.type == evdev.ecodes.EV_KEY:
+            logger.write(event, forward_to)
+
+        forward_to.write(*event.event_tuple)
 
     async def handle(self, event: InputEvent) -> None:
         if event.type == evdev.ecodes.EV_KEY and event.value == 2:
@@ -194,10 +192,15 @@ class EventReader:
             self._source.path,
             self._source.fd,
         )
+
         async for event in self.read_loop():
-            await self.handle(
-                InputEvent.from_event(event, origin_hash=self._device_hash)
-            )
+            try:
+                await self.handle(
+                    InputEvent.from_event(event, origin_hash=self._device_hash)
+                )
+            except Exception as e:
+                logger.error("Handling event %s failed: %s", event, e)
+                traceback.print_exception(e)
 
         self.context.reset()
         logger.info("read loop for %s stopped", self._source.path)

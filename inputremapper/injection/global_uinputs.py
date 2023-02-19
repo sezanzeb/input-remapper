@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Union, Tuple
+from typing import Dict, Union, Tuple, Optional
 
 import evdev
 
@@ -105,13 +105,22 @@ class GlobalUInputs:
     def __iter__(self):
         return iter(uinput for _, uinput in self.devices.items())
 
+    def reset(self):
+        self.is_service = inputremapper.utils.is_service()
+        self._uinput_factory = None
+        self.devices = {}
+        self.prepare_all()
+
     def ensure_uinput_factory_set(self):
         if self._uinput_factory is not None:
             return
 
+        # overwrite global_uinputs.is_service in tests to control this
         if self.is_service:
+            logger.debug("Creating regular UInputs")
             self._uinput_factory = UInput
         else:
+            logger.debug("Creating FrontendUInputs")
             self._uinput_factory = FrontendUInput
 
     def prepare_all(self):
@@ -157,10 +166,11 @@ class GlobalUInputs:
         if not uinput.can_emit(event):
             raise inputremapper.exceptions.EventNotHandled(event)
 
+        logger.write(event, uinput)
         uinput.write(*event)
         uinput.syn()
 
-    def get_uinput(self, name: str):
+    def get_uinput(self, name: str) -> Optional[evdev.UInput]:
         """UInput with name
 
         Or None if there is no uinput with this name.
@@ -170,10 +180,14 @@ class GlobalUInputs:
         name
             uniqe name of the uinput device
         """
-        if name in self.devices.keys():
-            return self.devices[name]
+        if name not in self.devices:
+            logger.error(
+                f'UInput "{name}" is unknown. '
+                + f"Available: {list(self.devices.keys())}"
+            )
+            return None
 
-        return None
+        return self.devices.get(name)
 
 
 global_uinputs = GlobalUInputs()

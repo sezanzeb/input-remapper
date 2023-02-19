@@ -151,20 +151,14 @@ class ReaderService:
             else:
                 raise ex
 
-    def run(self):
-        """Start doing stuff. Blocks."""
+    async def run(self):
+        """Start doing stuff."""
         # the reader will check for new commands later, once it is running
         # it keeps running for one device or another.
-        loop = asyncio.get_event_loop()
         logger.debug("Discovering initial groups")
         self.groups.refresh()
         self._send_groups()
-        loop.run_until_complete(
-            asyncio.gather(
-                self._read_commands(),
-                self._timeout(),
-            )
-        )
+        await asyncio.gather(self._read_commands(), self._timeout())
 
     def _send_groups(self):
         """Send the groups to the gui."""
@@ -257,7 +251,7 @@ class ReaderService:
         context = self._create_event_pipeline(sources)
         # create the event reader and start it
         for device in sources:
-            reader = EventReader(context, device, ForwardDummy, self._stop_event)
+            reader = EventReader(context, device, self._stop_event)
             self._tasks.add(asyncio.create_task(reader.run()))
 
     async def _stop_reading(self):
@@ -269,11 +263,11 @@ class ReaderService:
         self._stop_event.clear()
 
     def _create_event_pipeline(self, sources: List[evdev.InputDevice]) -> ContextDummy:
-        """Create a custom event pipeline for each event code in the
-        device capabilities.
-        Instead of sending the events to a uinput they will be sent to the frontend.
+        """Create a custom event pipeline for each event code in the capabilities.
+
+        Instead of sending the events to an uinput they will be sent to the frontend.
         """
-        context = ContextDummy()
+        context_dummy = ContextDummy()
         # create a context for each source
         for device in sources:
             device_hash = get_device_hash(device)
@@ -283,7 +277,7 @@ class ReaderService:
                 input_config = InputConfig(
                     type=EV_KEY, code=ev_code, origin_hash=device_hash
                 )
-                context.add_handler(
+                context_dummy.add_handler(
                     input_config, ForwardToUIHandler(self._results_pipe)
                 )
 
@@ -296,26 +290,26 @@ class ReaderService:
                     origin_hash=device_hash,
                 )
                 mapping = Mapping(
-                    input_combination=InputCombination(input_config),
+                    input_combination=InputCombination([input_config]),
                     target_uinput="keyboard",
                     output_symbol="KEY_A",
                 )
                 handler: MappingHandler = AbsToBtnHandler(
-                    InputCombination(input_config), mapping
+                    InputCombination([input_config]), mapping
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.add_handler(input_config, handler)
+                context_dummy.add_handler(input_config, handler)
 
                 # negative direction
                 input_config = input_config.modify(analog_threshold=-30)
                 mapping = Mapping(
-                    input_combination=InputCombination(input_config),
+                    input_combination=InputCombination([input_config]),
                     target_uinput="keyboard",
                     output_symbol="KEY_A",
                 )
-                handler = AbsToBtnHandler(InputCombination(input_config), mapping)
+                handler = AbsToBtnHandler(InputCombination([input_config]), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.add_handler(input_config, handler)
+                context_dummy.add_handler(input_config, handler)
 
             for ev_code in capabilities.get(EV_REL) or ():
                 # positive direction
@@ -326,53 +320,60 @@ class ReaderService:
                     origin_hash=device_hash,
                 )
                 mapping = Mapping(
-                    input_combination=InputCombination(input_config),
+                    input_combination=InputCombination([input_config]),
                     target_uinput="keyboard",
                     output_symbol="KEY_A",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
-                handler = RelToBtnHandler(InputCombination(input_config), mapping)
+                handler = RelToBtnHandler(InputCombination([input_config]), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.add_handler(input_config, handler)
+                context_dummy.add_handler(input_config, handler)
 
                 # negative direction
                 input_config = input_config.modify(
                     analog_threshold=-self.rel_xy_speed[ev_code]
                 )
                 mapping = Mapping(
-                    input_combination=InputCombination(input_config),
+                    input_combination=InputCombination([input_config]),
                     target_uinput="keyboard",
                     output_symbol="KEY_A",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
-                handler = RelToBtnHandler(InputCombination(input_config), mapping)
+                handler = RelToBtnHandler(InputCombination([input_config]), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.add_handler(input_config, handler)
+                context_dummy.add_handler(input_config, handler)
 
-        return context
-
-
-class ContextDummy:
-    def __init__(self):
-        self.listeners = set()
-        self._notify_callbacks = defaultdict(list)
-
-    def add_handler(self, input_config: InputConfig, handler: InputEventHandler):
-        self._notify_callbacks[input_config.input_match_hash].append(handler.notify)
-
-    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
-        return self._notify_callbacks[input_event.input_match_hash]
-
-    def reset(self):
-        pass
+        return context_dummy
 
 
 class ForwardDummy:
     @staticmethod
     def write(*_):
         pass
+
+
+class ContextDummy:
+    """Used for the reader so that no events are actually written to any uinput."""
+
+    def __init__(self):
+        self.listeners = set()
+        self._notify_callbacks = defaultdict(list)
+        self.forward_dummy = ForwardDummy()
+
+    def add_handler(self, input_config: InputConfig, handler: InputEventHandler):
+        self._notify_callbacks[input_config.input_match_hash].append(handler.notify)
+
+    def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
+        return self._notify_callbacks[input_event.input_match_hash]
+
+    def reset(self):
+        pass
+
+    def get_forward_uinput(self, origin_hash) -> evdev.UInput:
+        """Don't actually write anything."""
+        return self.forward_dummy
 
 
 class ForwardToUIHandler:
@@ -386,7 +387,6 @@ class ForwardToUIHandler:
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
         """Filter duplicates and send into the pipe."""
@@ -395,7 +395,7 @@ class ForwardToUIHandler:
             if EventActions.negative_trigger in event.actions:
                 event = event.modify(value=-1)
 
-            logger.debug_key(event.event_tuple, "to frontend:")
+            logger.debug("Sending to %s frontend", event)
             self.pipe.send(
                 {
                     "type": MSG_EVENT,
