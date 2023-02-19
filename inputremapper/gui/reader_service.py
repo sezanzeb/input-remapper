@@ -148,7 +148,7 @@ class ReaderService:
             raise Exception(f"Failed to pkexec the reader-service, code {exit_code}")
 
     async def run(self):
-        """Start doing stuff. Blocks."""
+        """Start doing stuff."""
         # the reader will check for new commands later, once it is running
         # it keeps running for one device or another.
         logger.debug("Discovering initial groups")
@@ -369,7 +369,6 @@ class ContextDummy:
 
     def get_forward_uinput(self, origin_hash) -> evdev.UInput:
         """Don't actually write anything."""
-        # TODO test that the reader_service actually uses this dummy
         return self.forward_dummy
 
 

@@ -17,8 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-
+import asyncio
 # the tests file needs to be imported first to make sure patches are loaded
 from contextlib import contextmanager
 from typing import Tuple, List, Optional, Iterable
@@ -124,6 +123,15 @@ def launch(
     )
 
 
+def start_reader_service():
+    def process():
+        reader_service = ReaderService(_Groups())
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(reader_service.run())
+
+    multiprocessing.Process(target=process).start()
+
+
 @contextmanager
 def patch_launch():
     """patch the launch function such that we don't connect to
@@ -136,7 +144,8 @@ def patch_launch():
         # instead of running pkexec, fork instead. This will make
         # the reader-service aware of all the test patches
         if "pkexec input-remapper-control --command start-reader-service" in cmd:
-            multiprocessing.Process(target=ReaderService(_Groups()).run).start()
+            logger.info('pkexec-patch starting ReaderService process')
+            start_reader_service()
             return 0
 
         return original_os_system(cmd)
@@ -185,7 +194,8 @@ class TestGroupsFromReaderService(unittest.TestCase):
             # instead of running pkexec, fork instead. This will make
             # the reader-service aware of all the test patches
             if "pkexec input-remapper-control --command start-reader-service" in cmd:
-                self.reader_service_started()  # don't start the reader-service just log that it was.
+                # don't start the reader-service just log that it was.
+                self.reader_service_started()
                 return 0
 
             return self.original_os_system(cmd)
@@ -213,7 +223,7 @@ class TestGroupsFromReaderService(unittest.TestCase):
         self.assertEqual(len(self.data_manager.get_group_keys()), 0)
 
         # start the reader-service delayed
-        multiprocessing.Process(target=ReaderService(_Groups()).run).start()
+        start_reader_service()
         # perform some iterations so that the reader ends up reading from the pipes
         # which will make it receive devices.
         for _ in range(10):

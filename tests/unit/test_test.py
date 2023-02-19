@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+import asyncio
 
 from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
@@ -95,7 +96,8 @@ class TestTest(unittest.TestCase):
                 # there is no point in using the global groups object
                 # because the reader-service runs in a different process
                 reader_service = ReaderService(_Groups())
-                reader_service.run()
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(reader_service.run())
 
             self.reader_service = multiprocessing.Process(target=start_reader_service)
             self.reader_service.start()
