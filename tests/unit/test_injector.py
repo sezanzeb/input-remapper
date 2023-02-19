@@ -226,7 +226,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset = Preset()
         preset.add(
             Mapping.from_combination(
-                # TODO origin_hash has to be set. Foo Device 2?
                 InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "a",

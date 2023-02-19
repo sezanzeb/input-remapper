@@ -65,7 +65,6 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         """Set a EventReader up for the test and run it in the background."""
         context = Context(mapping, {}, {})
         context.uinput = evdev.UInput()
-        # TODO removed usage of forward_to, test that the forwardDummy is used?
         event_reader = EventReader(context, source, self.stop_event)
         asyncio.ensure_future(event_reader.run())
         await asyncio.sleep(0.1)

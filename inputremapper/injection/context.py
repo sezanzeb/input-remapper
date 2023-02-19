@@ -118,7 +118,6 @@ class Context:
 
     def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
         """Get the "forward" uinput events from the given origin should go into."""
-        # TODO test
         return self._forward_devices[origin_hash]
 
     def get_source(self, key: DeviceHash) -> evdev.InputDevice:

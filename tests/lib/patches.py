@@ -237,24 +237,28 @@ class UInput:
         pass
 
 
-# TODO inherit from input-remappers InputEvent?
-class InputEvent(evdev.InputEvent):
-    def __init__(self, sec, usec, type, code, value):
-        self.t = (type, code, value)
-        super().__init__(sec, usec, type, code, value)
-
-    def copy(self):
-        return InputEvent(self.sec, self.usec, self.type, self.code, self.value)
-
-
 def patch_evdev():
     def list_devices():
         return [fixture_.path for fixture_ in fixtures]
 
+    class PatchedInputEvent(evdev.InputEvent):
+        def __init__(self, sec, usec, type, code, value):
+            self.t = (type, code, value)
+            super().__init__(sec, usec, type, code, value)
+
+        def copy(self):
+            return PatchedInputEvent(
+                self.sec,
+                self.usec,
+                self.type,
+                self.code,
+                self.value,
+            )
+
     evdev.list_devices = list_devices
     evdev.InputDevice = InputDevice
     evdev.UInput = UInput
-    evdev.InputEvent = InputEvent
+    evdev.InputEvent = PatchedInputEvent
 
 
 def patch_events():

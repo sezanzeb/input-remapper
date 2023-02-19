@@ -28,7 +28,7 @@ import signal
 from argparse import ArgumentParser
 
 from inputremapper.logger import update_verbosity
-from inputremapper.groups import _Groups
+from inputremapper.groups import groups
 
 
 if __name__ == '__main__':
@@ -53,8 +53,6 @@ if __name__ == '__main__':
         os.kill(os.getpid(), signal.SIGKILL)
 
     atexit.register(on_exit)
-    # TODO import `groups` instead?
-    groups = _Groups()
     reader_service = ReaderService(groups)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(reader_service.run())

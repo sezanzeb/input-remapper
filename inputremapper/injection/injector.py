@@ -465,7 +465,6 @@ class Injector(multiprocessing.Process):
             # ungrab at the end to make the next injection process not fail
             # its grabs
             try:
-                # TODO failed because source was a hash. Tested?
                 source.ungrab()
             except OSError as error:
                 # it might have disappeared
