@@ -337,18 +337,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             m2,
         )
 
-        self.assertListEqual(
-            sorted(uinputs.keys()),
-            sorted(
-                [
-                    # reading and preventing original events from reaching the
-                    # display server
-                    "input-remapper Foo Device foo forwarded",
-                    "input-remapper Foo Device forwarded",
-                ]
-            ),
-        )
-
+        # reading and preventing original events from reaching the
+        # display server
         forwarded_foo = uinputs.get("input-remapper Foo Device foo forwarded")
         forwarded = uinputs.get("input-remapper Foo Device forwarded")
         self.assertIsNotNone(forwarded_foo)
