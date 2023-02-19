@@ -147,20 +147,14 @@ class ReaderService:
         if exit_code != 0:
             raise Exception(f"Failed to pkexec the reader-service, code {exit_code}")
 
-    def run(self):
+    async def run(self):
         """Start doing stuff. Blocks."""
         # the reader will check for new commands later, once it is running
         # it keeps running for one device or another.
-        loop = asyncio.get_event_loop()
         logger.debug("Discovering initial groups")
         self.groups.refresh()
         self._send_groups()
-        loop.run_until_complete(
-            asyncio.gather(
-                self._read_commands(),
-                self._timeout(),
-            )
-        )
+        await asyncio.gather(self._read_commands(), self._timeout())
 
     def _send_groups(self):
         """Send the groups to the gui."""
@@ -253,8 +247,6 @@ class ReaderService:
         context = self._create_event_pipeline(sources)
         # create the event reader and start it
         for device in sources:
-            # TODO this used the ForwardDummy. What now?
-            # TODO test that nothing is being forwarded by the reader_service!
             reader = EventReader(context, device, self._stop_event)
             self._tasks.add(asyncio.create_task(reader.run()))
 
@@ -269,7 +261,7 @@ class ReaderService:
     def _create_event_pipeline(self, sources: List[evdev.InputDevice]) -> ContextDummy:
         """Create a custom event pipeline for each event code in the capabilities.
 
-        Instead of sending the events to a uinput they will be sent to the frontend.
+        Instead of sending the events to an uinput they will be sent to the frontend.
         """
         context_dummy = ContextDummy()
         # create a context for each source

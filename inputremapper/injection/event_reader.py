@@ -128,9 +128,7 @@ class EventReader:
 
         if notify_callbacks:
             for notify_callback in notify_callbacks:
-                # do not use `or`, otherwise notify_callback won't be called once
-                # handled is true
-                handled = handled | notify_callback(event, source=self._source)
+                handled = notify_callback(event, source=self._source) | handled
 
         return handled
 
