@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
 import os
 import json
@@ -34,7 +35,6 @@ from evdev.ecodes import (
     KEY_COMMA,
     BTN_TOOL_DOUBLETAP,
     KEY_A,
-    EV_REL,
     REL_WHEEL,
     REL_X,
     ABS_X,
@@ -51,7 +51,7 @@ from inputremapper.gui.messages.message_broker import (
 from inputremapper.gui.messages.message_data import CombinationRecorded
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
-from inputremapper.gui.reader_service import ReaderService
+from inputremapper.gui.reader_service import ReaderService, ContextDummy
 from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import new_event
 from tests.lib.cleanup import quick_cleanup
@@ -61,9 +61,9 @@ from tests.lib.constants import (
     MAX_ABS,
     MIN_ABS,
 )
-from tests.lib.logger import logger
 from tests.lib.pipes import push_event, push_events
 from tests.lib.fixtures import fixtures
+from tests.lib.stuff import spy
 
 CODE_1 = 100
 CODE_2 = 101
@@ -78,18 +78,18 @@ class Listener:
         self.calls.append(data)
 
 
-async def wait(func, timeout=1.0):
+def wait(func, timeout=1.0):
     """Wait for func to return True."""
     iterations = 0
     sleepytime = 0.1
     while not func():
-        await asyncio.sleep(sleepytime)
+        time.sleep(sleepytime)
         iterations += 1
         if iterations * sleepytime > timeout:
             break
 
 
-class TestReader2(unittest.IsolatedAsyncioTestCase):
+class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.reader_service = None
         self.groups = _Groups()
@@ -103,101 +103,63 @@ class TestReader2(unittest.IsolatedAsyncioTestCase):
         except (BrokenPipeError, OSError):
             pass
 
-        if self.reader_service is not None:
-            self.reader_service.join()
-
     async def create_reader_service(self, groups: Optional[_Groups] = None):
         # this will cause pending events to be copied over to the reader-service
         # process
         if not groups:
             groups = self.groups
 
-        reader_service = ReaderService(groups)
-        asyncio.ensure_future(reader_service.run())
+        self.reader_service = ReaderService(groups)
+        asyncio.ensure_future(self.reader_service.run())
 
-    async def test_reading(self):
-        l1 = Listener()
-        l2 = Listener()
-        self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        self.message_broker.subscribe(MessageType.recording_finished, l2)
-        await self.create_reader_service()
-        self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
-        self.reader_client.start_recorder()
-
-        push_events(fixtures.foo_device_2_gamepad, [InputEvent.abs(ABS_HAT0X, 1)])
-        # we need to sleep because we have two different fixtures,
-        # which will lead to race conditions
-        await asyncio.sleep(0.1)
-
-        # relative axis events should be released automagically after 0.3s
-        push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, 5)])
-        await asyncio.sleep(0.1)
-        # read all pending events. Having a glib mainloop would be better,
-        # as it would call read automatically periodically
-        self.reader_client._read()
-        self.assertEqual(
-            [
-                CombinationRecorded(
-                    InputCombination(
-                        [
-                            InputConfig(
-                                type=3,
-                                code=16,
-                                analog_threshold=1,
-                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                            )
-                        ]
-                    )
-                ),
-                CombinationRecorded(
-                    InputCombination(
-                        [
-                            InputConfig(
-                                type=3,
-                                code=16,
-                                analog_threshold=1,
-                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                            ),
-                            InputConfig(
-                                type=2,
-                                code=0,
-                                analog_threshold=1,
-                                origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                            ),
-                        ]
-                    )
-                ),
-            ],
-            l1.calls,
-        )
-
-        # release the hat switch should emit the recording finished event
-        # as both the hat and relative axis are released by now
-        push_events(fixtures.foo_device_2_gamepad, [InputEvent.abs(ABS_HAT0X, 0)])
-        await asyncio.sleep(0.3)
-        self.reader_client._read()
-        self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
-
-    async def test_should_not_trigger_at_low_speed_for_rel_axis(self):
-        l1 = Listener()
-        self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        await self.create_reader_service()
-        self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
-        self.reader_client.start_recorder()
-
-        push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, -1)])
-        await asyncio.sleep(0.1)
-        self.reader_client._read()
-        self.assertEqual(0, len(l1.calls))
-
+    async def test_should_forward_to_dummy(self):
         # It forwards to a ForwardDummy, because the gui process
         # 1. can't inject and
         # 2. is not even supposed to inject anything
+        # thanks to not using multiprocessing as opposed to the other tests, we can
+        # access this stuff
+        context = None
+        original_create_event_pipeline = ReaderService._create_event_pipeline
+
+        def remember_context(*args, **kwargs):
+            nonlocal context
+            context = original_create_event_pipeline(*args, **kwargs)
+            return context
+
+        with mock.patch(
+            "inputremapper.gui.reader_service.ReaderService._create_event_pipeline",
+            remember_context,
+        ):
+            await self.create_reader_service()
+
+            listener = Listener()
+            self.message_broker.subscribe(MessageType.combination_recorded, listener)
+
+            self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
+            self.reader_client.start_recorder()
+
+            await asyncio.sleep(0.1)
+            self.assertIsInstance(context, ContextDummy)
+
+            with spy(
+                context.forward_dummy,
+                "write",
+            ) as write_spy:
+                events = [InputEvent.rel(REL_X, -1)]
+                push_events(fixtures.foo_device_2_mouse, events)
+                await asyncio.sleep(0.1)
+                self.reader_client._read()
+                self.assertEqual(0, len(listener.calls))
+
+                # we want `write` to be called on the forward_dummy, because we want
+                # those events to just disappear.
+                self.assertEqual(write_spy.call_count, len(events))
+                self.assertEqual([call[0] for call in write_spy.call_args_list], events)
 
 
-class TestReader(unittest.IsolatedAsyncioTestCase):
+class TestReaderMultiprocessing(unittest.TestCase):
     def setUp(self):
-        self.reader_service = None
+        self.reader_service_process = None
         self.groups = _Groups()
         self.message_broker = MessageBroker()
         self.reader_client = ReaderClient(self.message_broker, self.groups)
@@ -209,35 +171,45 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
         except (BrokenPipeError, OSError):
             pass
 
-        if self.reader_service is not None:
-            self.reader_service.join()
+        if self.reader_service_process is not None:
+            self.reader_service_process.join()
 
-    async def create_reader_service(self, groups: Optional[_Groups] = None):
+    def create_reader_service(self, groups: Optional[_Groups] = None):
         # this will cause pending events to be copied over to the reader-service
         # process
         if not groups:
             groups = self.groups
 
-        reader_service = ReaderService(groups)
-        asyncio.ensure_future(reader_service.run())
+        def start_reader_service():
+            reader_service = ReaderService(groups)
+            # this is a new process, so create a new event loop, or something
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(reader_service.run())
 
-    async def test_reading(self):
+        self.reader_service_process = multiprocessing.Process(
+            target=start_reader_service
+        )
+        self.reader_service_process.start()
+        time.sleep(0.1)
+
+    def test_reading(self):
         l1 = Listener()
         l2 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         self.message_broker.subscribe(MessageType.recording_finished, l2)
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
         push_events(fixtures.foo_device_2_gamepad, [InputEvent.abs(ABS_HAT0X, 1)])
         # we need to sleep because we have two different fixtures,
         # which will lead to race conditions
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
 
         # relative axis events should be released automagically after 0.3s
         push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, 5)])
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         # read all pending events. Having a glib mainloop would be better,
         # as it would call read automatically periodically
         self.reader_client._read()
@@ -280,22 +252,22 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
         # release the hat switch should emit the recording finished event
         # as both the hat and relative axis are released by now
         push_events(fixtures.foo_device_2_gamepad, [InputEvent.abs(ABS_HAT0X, 0)])
-        await asyncio.sleep(0.3)
+        time.sleep(0.3)
         self.reader_client._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
-    async def test_should_release_relative_axis(self):
+    def test_should_release_relative_axis(self):
         # the timeout is set to 0.3s
         l1 = Listener()
         l2 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         self.message_broker.subscribe(MessageType.recording_finished, l2)
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
         push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, -5)])
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
 
         self.assertEqual(
@@ -317,26 +289,26 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual([], l2.calls)  # no stop recording yet
 
-        await asyncio.sleep(0.3)
+        time.sleep(0.3)
         self.reader_client._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
-    async def test_should_not_trigger_at_low_speed_for_rel_axis(self):
+    def test_should_not_trigger_at_low_speed_for_rel_axis(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
         push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, -1)])
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(0, len(l1.calls))
 
-    async def test_should_trigger_wheel_at_low_speed(self):
+    def test_should_trigger_wheel_at_low_speed(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
@@ -344,7 +316,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             fixtures.foo_device_2_mouse,
             [InputEvent.rel(REL_WHEEL, -1), InputEvent.rel(REL_HWHEEL, 1)],
         )
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
 
         self.assertEqual(
@@ -383,19 +355,19 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             l1.calls,
         )
 
-    async def test_wont_emit_the_same_combination_twice(self):
+    def test_wont_emit_the_same_combination_twice(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(KEY_A, 1)])
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
         # the duplicate event should be ignored
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(KEY_A, 1)])
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
 
         self.assertEqual(
@@ -416,12 +388,12 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             l1.calls,
         )
 
-    async def test_should_read_absolut_axis(self):
+    def test_should_read_absolut_axis(self):
         l1 = Listener()
         l2 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         self.message_broker.subscribe(MessageType.recording_finished, l2)
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
@@ -430,7 +402,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             fixtures.foo_device_2_gamepad,
             [InputEvent.abs(ABS_X, int(MAX_ABS * 0.4))],
         )
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
             [
@@ -456,7 +428,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             fixtures.foo_device_2_gamepad,
             [InputEvent.abs(ABS_X, int(MAX_ABS * 0.2))],
         )
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
             [
@@ -477,21 +449,21 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
-    async def test_should_change_direction(self):
+    def test_should_change_direction(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_A, 1))
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         push_event(
             fixtures.foo_device_2_gamepad, InputEvent.abs(ABS_X, int(MAX_ABS * 0.4))
         )
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_COMMA, 1))
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         push_events(
             fixtures.foo_device_2_gamepad,
             [
@@ -499,7 +471,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
                 InputEvent.abs(ABS_X, int(MIN_ABS * 0.4)),
             ],
         )
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
             [
@@ -579,7 +551,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             l1.calls,
         )
 
-    async def test_change_device(self):
+    def test_change_device(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
 
@@ -600,10 +572,10 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             * 3,
         )
 
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[0].combination,
@@ -619,7 +591,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
         )
 
         self.reader_client.set_group(self.groups.find(name="Bar Device"))
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
 
         # we did not get the event from the "Bar Device" because the group change
@@ -628,7 +600,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
 
         self.reader_client.start_recorder()
         push_events(fixtures.bar_device, [InputEvent.key(2, 1)])
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[1].combination,
@@ -643,7 +615,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-    async def test_reading_2(self):
+    def test_reading_2(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         # a combination of events
@@ -664,19 +636,19 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
 
         groups = _Groups()
         groups.refresh = refresh
-        await self.create_reader_service(groups)
+        self.create_reader_service(groups)
 
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
 
         # sending anything arbitrary does not stop the reader-service
         self.reader_client._commands_pipe.send(856794)
-        await asyncio.sleep(0.2)
+        time.sleep(0.2)
         push_events(
             fixtures.foo_device_2_gamepad,
             [new_event(EV_ABS, ABS_HAT0X, -1, 10002.1234)],
         )
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         # but it makes it look for new devices because maybe its list of
         # self.groups is not up-to-date
         self.assertTrue(pipe[0].poll())
@@ -707,7 +679,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-    async def test_blacklisted_events(self):
+    def test_blacklisted_events(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
 
@@ -720,10 +692,10 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             ],
             force=True,
         )
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
@@ -738,7 +710,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-    async def test_ignore_value_2(self):
+    def test_ignore_value_2(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         # this is not a combination, because (EV_KEY CODE_3, 2) is ignored
@@ -747,10 +719,10 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             [InputEvent.abs(ABS_HAT0X, 1), InputEvent.key(CODE_3, 2)],
             force=True,
         )
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
-        await asyncio.sleep(0.2)
+        time.sleep(0.2)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
@@ -766,7 +738,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-    async def test_reading_ignore_up(self):
+    def test_reading_ignore_up(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         push_events(
@@ -777,10 +749,10 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
                 new_event(EV_KEY, CODE_3, 0, 12),
             ],
         )
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
@@ -795,7 +767,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-    async def test_wrong_device(self):
+    def test_wrong_device(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
 
@@ -807,14 +779,14 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
                 InputEvent.key(CODE_3, 1),
             ],
         )
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(name="Bar Device"))
         self.reader_client.start_recorder()
-        await asyncio.sleep(EVENT_READ_TIMEOUT * 5)
+        time.sleep(EVENT_READ_TIMEOUT * 5)
         self.reader_client._read()
         self.assertEqual(len(l1.calls), 0)
 
-    async def test_inputremapper_devices(self):
+    def test_inputremapper_devices(self):
         # Don't read from inputremapper devices, their keycodes are not
         # representative for the original key. As long as this is not
         # intentionally programmed it won't even do that. But it was at some
@@ -829,38 +801,37 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
                 InputEvent.key(CODE_3, 1),
             ],
         )
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(name="Bar Device"))
         self.reader_client.start_recorder()
-        await asyncio.sleep(EVENT_READ_TIMEOUT * 5)
+        time.sleep(EVENT_READ_TIMEOUT * 5)
         self.reader_client._read()
         self.assertEqual(len(l1.calls), 0)
 
-    @patch("sys.exit", lambda: None)
-    async def test_terminate(self):
-        await self.create_reader_service()
+    def test_terminate(self):
+        self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
 
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(CODE_3, 1)])
-        await asyncio.sleep(START_READING_DELAY + EVENT_READ_TIMEOUT)
+        time.sleep(START_READING_DELAY + EVENT_READ_TIMEOUT)
         self.assertTrue(self.reader_client._results_pipe.poll())
 
         self.reader_client.terminate()
-        await asyncio.sleep(EVENT_READ_TIMEOUT)
+        time.sleep(EVENT_READ_TIMEOUT)
         self.assertFalse(self.reader_client._results_pipe.poll())
 
         # no new events arrive after terminating
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(CODE_3, 1)])
-        await asyncio.sleep(EVENT_READ_TIMEOUT * 3)
+        time.sleep(EVENT_READ_TIMEOUT * 3)
         self.assertFalse(self.reader_client._results_pipe.poll())
 
-    async def test_are_new_groups_available(self):
+    def test_are_new_groups_available(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.groups, l1)
-        await self.create_reader_service()
+        self.create_reader_service()
         self.reader_client.groups.set_groups([])
 
-        await asyncio.sleep(0.1)  # let the reader-service send the groups
+        time.sleep(0.1)  # let the reader-service send the groups
         # read stuff from the reader-service, which includes the devices
         self.assertEqual("[]", self.reader_client.groups.dumps())
         self.reader_client._read()
@@ -939,7 +910,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(len(l1.calls), 1)  # ensure we got the event
 
-    async def test_starts_the_service(self):
+    def test_starts_the_service(self):
         # if ReaderClient can't see the ReaderService, a new ReaderService should
         # be started via pkexec
         with patch.object(ReaderService, "is_running", lambda: False):
@@ -955,7 +926,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
                     "pkexec input-remapper-control --command start-reader-service -d"
                 )
 
-    async def test_wont_start_the_service(self):
+    def test_wont_start_the_service(self):
         # already running, no call to os.system
         with patch.object(ReaderService, "is_running", lambda: True):
             mock = MagicMock(return_value=0)
@@ -963,7 +934,7 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
                 self.reader_client._send_command("foo")
                 mock.assert_not_called()
 
-    async def test_reader_service_wont_start(self):
+    def test_reader_service_wont_start(self):
         # test for the "The reader-service did not start" message
 
         expected_msg = "The reader-service did not start"
@@ -986,53 +957,53 @@ class TestReader(unittest.IsolatedAsyncioTestCase):
         status = subscribe_mock.call_args[0][0]
         self.assertEqual(status.msg, expected_msg)
 
-    async def test_reader_service_times_out(self):
+    def test_reader_service_times_out(self):
         # after some time the reader-service just stops, to avoid leaving a hole
         # that exposes user-input forever
         with patch.object(ReaderService, "_maximum_lifetime", 1):
-            await self.create_reader_service()
-            self.assertTrue(self.reader_service.is_alive())
-            await asyncio.sleep(0.5)
-            self.assertTrue(self.reader_service.is_alive())
-            await asyncio.sleep(1)
-            self.assertFalse(self.reader_service.is_alive())
+            self.create_reader_service()
+            self.assertTrue(self.reader_service_process.is_alive())
+            time.sleep(0.5)
+            self.assertTrue(self.reader_service_process.is_alive())
+            time.sleep(1)
+            self.assertFalse(self.reader_service_process.is_alive())
 
-    async def test_reader_service_waits_for_client_to_finish(self):
+    def test_reader_service_waits_for_client_to_finish(self):
         # if the client is currently reading, it waits a bit longer until the
         # client finishes reading
         with patch.object(ReaderService, "_maximum_lifetime", 1):
-            await self.create_reader_service()
-            self.assertTrue(self.reader_service.is_alive())
+            self.create_reader_service()
+            self.assertTrue(self.reader_service_process.is_alive())
 
             self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
             self.reader_client.start_recorder()
 
-            await asyncio.sleep(2)
+            time.sleep(2)
             # still alive, without start_recorder it should have already exited
-            self.assertTrue(self.reader_service.is_alive())
+            self.assertTrue(self.reader_service_process.is_alive())
 
             self.reader_client.stop_recorder()
 
-            await asyncio.sleep(1)
-            self.assertFalse(self.reader_service.is_alive())
+            time.sleep(1)
+            self.assertFalse(self.reader_service_process.is_alive())
 
-    async def test_reader_service_wont_wait_forever(self):
+    def test_reader_service_wont_wait_forever(self):
         # if the client is reading forever, stop it after another timeout
         with patch.object(ReaderService, "_maximum_lifetime", 1):
             with patch.object(ReaderService, "_timeout_tolerance", 1):
-                await self.create_reader_service()
-                self.assertTrue(self.reader_service.is_alive())
+                self.create_reader_service()
+                self.assertTrue(self.reader_service_process.is_alive())
 
                 self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
                 self.reader_client.start_recorder()
 
-                await asyncio.sleep(1.5)
+                time.sleep(1.5)
                 # still alive, without start_recorder it should have already exited
-                self.assertTrue(self.reader_service.is_alive())
+                self.assertTrue(self.reader_service_process.is_alive())
 
-                await asyncio.sleep(1)
+                time.sleep(1)
                 # now it stopped, even though the reader is still reading
-                self.assertFalse(self.reader_service.is_alive())
+                self.assertFalse(self.reader_service_process.is_alive())
 
 
 if __name__ == "__main__":

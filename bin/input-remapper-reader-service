@@ -20,8 +20,7 @@
 
 
 """Starts the root reader-service."""
-
-
+import asyncio
 import os
 import sys
 import atexit
@@ -57,4 +56,5 @@ if __name__ == '__main__':
     # TODO import `groups` instead?
     groups = _Groups()
     reader_service = ReaderService(groups)
-    reader_service.run()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(reader_service.run())
