@@ -18,7 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Tuple, Optional
+from typing import Tuple
 
 import evdev
 from evdev.ecodes import EV_ABS

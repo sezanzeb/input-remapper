@@ -173,8 +173,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             Mapping.from_combination(
                 InputCombination(
                     [
-                        InputConfig.abs(
-                            ABS_HAT0X,
+                        InputConfig(
+                            type=EV_ABS,
+                            code=ABS_HAT0X,
                             analog_threshold=1,
                             origin_hash=device_hash,
                         )
@@ -204,7 +205,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset.add(
             Mapping.from_combination(
                 input_combination=InputCombination(
-                    [InputConfig.key(BTN_A, origin_hash=device_hash)]
+                    [InputConfig(type=EV_KEY, code=BTN_A, origin_hash=device_hash)]
                 ),
                 target_uinput="keyboard",
                 output_symbol="a",

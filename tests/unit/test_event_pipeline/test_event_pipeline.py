@@ -372,15 +372,29 @@ class TestIdk(EventPipelineTestBase):
         origin_hash = origin.get_device_hash()
 
         mapping_1 = Mapping.from_combination(
-            InputCombination([InputConfig.abs(ABS_X, 1, origin_hash)]),
+            InputCombination(
+                [
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_X,
+                        analog_threshold=1,
+                        origin_hash=origin_hash,
+                    )
+                ]
+            ),
             output_symbol="a",
         )
 
         mapping_2 = Mapping.from_combination(
             InputCombination(
                 [
-                    InputConfig.abs(ABS_X, 1, origin_hash),
-                    InputConfig.key(BTN_A, origin_hash),
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_X,
+                        analog_threshold=1,
+                        origin_hash=origin_hash,
+                    ),
+                    InputConfig(type=EV_KEY, code=BTN_A, origin_hash=origin_hash),
                 ]
             ),
             output_symbol="b",
@@ -389,9 +403,14 @@ class TestIdk(EventPipelineTestBase):
         mapping_3 = Mapping.from_combination(
             InputCombination(
                 [
-                    InputConfig.abs(ABS_X, 1, origin_hash),
-                    InputConfig.key(BTN_A, origin_hash),
-                    InputConfig.key(BTN_B, origin_hash),
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_X,
+                        analog_threshold=1,
+                        origin_hash=origin_hash,
+                    ),
+                    InputConfig(type=EV_KEY, code=BTN_A, origin_hash=origin_hash),
+                    InputConfig(type=EV_KEY, code=BTN_B, origin_hash=origin_hash),
                 ]
             ),
             output_symbol="c",
@@ -458,7 +477,9 @@ class TestIdk(EventPipelineTestBase):
         preset = Preset()
         preset.add(
             Mapping.from_combination(
-                input_combination=InputCombination([InputConfig.key(KEY_A)]),
+                input_combination=InputCombination(
+                    [InputConfig(type=EV_KEY, code=KEY_A)]
+                ),
                 output_symbol="a",
             )
         )

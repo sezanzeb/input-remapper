@@ -75,35 +75,6 @@ class InputConfig(BaseModel):
             f"at {hex(id(self))}>"
         )
 
-    @classmethod
-    def abs(cls, code, analog_threshold, origin_hash: Optional[DeviceHash] = None):
-        """Create a new InputConfig object for an abs input like joysticks."""
-        # TODO analog_threshold default None and move to last param?
-        return InputConfig(
-            type=EV_ABS,
-            code=code,
-            analog_threshold=analog_threshold,
-            origin_hash=origin_hash,
-        )
-
-    @classmethod
-    def key(cls, code, origin_hash: Optional[DeviceHash] = None):
-        """Create a new InputConfig object for a key/btn input."""
-        return InputConfig(
-            type=EV_KEY,
-            code=code,
-            origin_hash=origin_hash,
-        )
-
-    @classmethod
-    def rel(cls, code, origin_hash: Optional[DeviceHash] = None):
-        """Create a new InputConfig object for a rel input like mouse movements."""
-        return InputConfig(
-            type=EV_REL,
-            code=code,
-            origin_hash=origin_hash,
-        )
-
     @property
     def input_match_hash(self) -> Hashable:
         """a Hashable object which is intended to match the InputConfig with a

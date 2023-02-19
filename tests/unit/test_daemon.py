@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+from evdev._ecodes import EV_ABS
 
 from inputremapper.input_event import InputEvent
 from tests.test import is_service_running
@@ -124,14 +125,18 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
             Mapping.from_combination(
-                input_combination=InputCombination([InputConfig.key(BTN_A)]),
+                input_combination=InputCombination(
+                    [InputConfig(type=EV_KEY, code=BTN_A)]
+                ),
                 target_uinput="keyboard",
                 output_symbol="a",
             )
         )
         preset.add(
             Mapping.from_combination(
-                input_combination=InputCombination([InputConfig.abs(ABS_X, -1)]),
+                input_combination=InputCombination(
+                    [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=-1)]
+                ),
                 target_uinput="keyboard",
                 output_symbol="b",
             )
@@ -236,7 +241,9 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(get_preset_path(group_name, preset_name))
         preset.add(
             Mapping.from_combination(
-                InputCombination([InputConfig.key(key_code)]), "keyboard", "a"
+                InputCombination([InputConfig(type=EV_KEY, code=key_code)]),
+                "keyboard",
+                "a",
             )
         )
 
@@ -323,7 +330,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(path)
         preset.add(
             Mapping.from_combination(
-                InputCombination([InputConfig.key(from_keycode)]),
+                InputCombination([InputConfig(type=EV_KEY, code=from_keycode)]),
                 target,
                 to_name,
             )
