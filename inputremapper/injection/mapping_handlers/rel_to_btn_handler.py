@@ -102,7 +102,6 @@ class RelToBtnHandler(MappingHandler):
         forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-
         assert event.type == EV_REL
         if event.input_match_hash != self._input_config.input_match_hash:
             return False

@@ -722,17 +722,17 @@ class TestMacros(MacroTestBase):
 
         macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
-        await (asyncio.sleep(0.1))
+        await asyncio.sleep(0.1)
         self.assertTrue(macro.is_holding())
         self.assertEqual(len(self.result), 2)
-        await (asyncio.sleep(0.1))
+        await asyncio.sleep(0.1)
         # doesn't do fancy stuff, is blocking until the release
         self.assertEqual(len(self.result), 2)
 
         """up"""
 
         macro.release_trigger()
-        await (asyncio.sleep(0.05))
+        await asyncio.sleep(0.05)
         self.assertFalse(macro.is_holding())
         self.assertEqual(len(self.result), 4)
 
@@ -745,7 +745,7 @@ class TestMacros(MacroTestBase):
         macro = parse("key(1).hold().key(3)", self.context, DummyMapping)
 
         asyncio.ensure_future(macro.run(self.handler))
-        await (asyncio.sleep(0.1))
+        await asyncio.sleep(0.1)
         self.assertFalse(macro.is_holding())
         # since press_trigger was never called it just does the macro
         # completely
@@ -764,7 +764,7 @@ class TestMacros(MacroTestBase):
         """down"""
 
         macro.press_trigger()
-        await (asyncio.sleep(0.05))
+        await asyncio.sleep(0.05)
         self.assertTrue(macro.is_holding())
 
         asyncio.ensure_future(macro.run(self.handler))
@@ -777,7 +777,7 @@ class TestMacros(MacroTestBase):
         """up"""
 
         macro.release_trigger()
-        await (asyncio.sleep(0.05))
+        await asyncio.sleep(0.05)
         self.assertFalse(macro.is_holding())
 
         self.assertEqual(len(self.result), 2)
@@ -969,7 +969,7 @@ class TestMacros(MacroTestBase):
         asyncio.ensure_future(macro_2.run(self.handler))
 
         sleep = 0.1
-        await (asyncio.sleep(sleep))
+        await asyncio.sleep(sleep)
         self.assertTrue(macro_1.is_holding())
         self.assertTrue(macro_2.is_holding())
         macro_1.release_trigger()

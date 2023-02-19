@@ -106,6 +106,7 @@ class AutoloadHistory:
 
 def remove_timeout(func):
     """Remove timeout to ensure the call works if the daemon is not a proxy."""
+
     # the timeout kwarg is a feature of pydbus. This is needed to make tests work
     # that create a Daemon by calling its constructor instead of using pydbus.
     def wrapped(*args, **kwargs):

@@ -23,7 +23,6 @@
 see gui.reader_service.ReaderService
 """
 
-import os
 import time
 from typing import Optional, List, Generator, Dict, Tuple, Set
 
@@ -74,10 +73,7 @@ class ReaderClient:
     _timeout: int = 5
 
     def __init__(
-        self,
-        message_broker: MessageBroker,
-        groups: _Groups,
-        ignore_pkexec_errors=False
+        self, message_broker: MessageBroker, groups: _Groups, ignore_pkexec_errors=False
     ):
         self.groups = groups
         self.message_broker = message_broker

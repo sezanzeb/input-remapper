@@ -950,7 +950,6 @@ class OutputAxisSelector:
         self.model.clear()
         self.model.append(["None, None", _("No Axis")])
         for type_, code in types_codes:
-
             key_name = bytype[type_][code]
             if isinstance(key_name, list):
                 key_name = key_name[0]

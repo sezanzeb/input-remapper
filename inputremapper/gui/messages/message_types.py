@@ -41,7 +41,6 @@ class MessageType(Enum):
     mapping = "mapping"
     selected_event = "selected_event"
     combination_recorded = "combination_recorded"
-    filter_changed = "filter_changed"
 
     # only the reader_client should send those messages:
     recording_started = "recording_started"

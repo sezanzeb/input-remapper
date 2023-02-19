@@ -210,14 +210,14 @@ class ListFilterControl:
         self._filter_entry: Gtk.Entry = filter_entry
         self._clear_button: Gtk.Button = clear_button
 
-        self._filter_value:str = ""
-        self._case_sensitive:bool = bool(case_sensitive)
+        self._filter_value: str = ""
+        self._case_sensitive: bool = bool(case_sensitive)
         self._get_row_name = get_row_name or self.get_row_name
 
         self._connect_gtk_signals()
 
     @classmethod
-    def get_row_name(T, row:Gtk.ListBoxRow) -> str:
+    def get_row_name(T, row: Gtk.ListBoxRow) -> str:
         """
         Returns the visible text of a Gtk.ListBoxRow from both the row's `name`
         attribute or the row's text in the UI.
@@ -230,7 +230,7 @@ class ListFilterControl:
         return text.strip()
 
     @classmethod
-    def get_widget_tree_text(T, widget:Gtk.Widget, level=0) -> Iterator[str]:
+    def get_widget_tree_text(T, widget: Gtk.Widget, level=0) -> Iterator[str]:
         """
         Recursively traverses the tree of child widgets starting from the given
         widget, and yields the text of all text-containing widgets.
@@ -244,23 +244,19 @@ class ListFilterControl:
             yield (widget.get_text() or "").strip()
         if isinstance(widget, Gtk.Container):
             for t in widget.get_children():
-                yield from T.get_widget_tree_text(t, level=level+1)
+                yield from T.get_widget_tree_text(t, level=level + 1)
 
     def _connect_gtk_signals(self):
         if self._clear_button:
-            self._clear_button.connect("clicked",
-                self.on_gtk_clear_button_clicked
-            )
-        self._filter_entry.connect("key-release-event",
-            self.on_gtk_filter_entry_input
-        )
+            self._clear_button.connect("clicked", self.on_gtk_clear_button_clicked)
+        self._filter_entry.connect("key-release-event", self.on_gtk_filter_entry_input)
 
     # apply defined filter by sending out the corresponding events
     def apply_filter(self):
         self._apply_filter_to_listbox_children()
 
     # matches the current filter_value and filter_options with the given value
-    def match_filter(self, value:str):
+    def match_filter(self, value: str):
         value = (value or "").strip()
 
         # if filter is not set, all rows need to match

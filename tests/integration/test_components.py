@@ -93,7 +93,6 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 
 
 class GtkKeyEvent:
-
     KEY_RELEASE = "key-release-event"
     KEY_PRESS = "key-press-event"
 
@@ -103,7 +102,7 @@ class GtkKeyEvent:
     def get_keyval(self):
         return True, self.keyval
 
-    def emit_to(self, target:Gtk.Widget, event_type=KEY_RELEASE):
+    def emit_to(self, target: Gtk.Widget, event_type=KEY_RELEASE):
         ev = Gdk.Event()
         ev.key.keyval = self.keyval
         target.emit(event_type, ev)
@@ -535,12 +534,14 @@ class TestMappingFilterListbox(TestMappingListboxBase):
         self.entry.set_text("not in preset")
         GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.entry)
         self.assertEqual(self.entry.get_text(), "not in preset")
-        self.assertEqual(self.get_num_visible(), 0 , "mappings must not be visible")
+        self.assertEqual(self.get_num_visible(), 0, "mappings must not be visible")
 
         self.button.clicked()
         gtk_iteration()
         self.assertEqual(self.entry.get_text(), "", "filter must be cleared")
-        self.assertEqual(self.get_num_visible(), n, "all mappings must be visible again")
+        self.assertEqual(
+            self.get_num_visible(), n, "all mappings must be visible again"
+        )
 
         self.entry.set_text("mapping1")
         GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.entry)
@@ -1916,6 +1917,7 @@ class TestBreadcrumbs(ComponentBaseTest):
         )
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  qux")
         self.assertEqual(self.label_5.get_text(), "qux")
+
 
 if __name__ == "__main__":
     unittest.main()

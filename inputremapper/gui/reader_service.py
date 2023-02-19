@@ -149,7 +149,7 @@ class ReaderService:
             if ingore_errors:
                 logger.warn(ex)
             else:
-                raise ex            
+                raise ex
 
     def run(self):
         """Start doing stuff. Blocks."""
