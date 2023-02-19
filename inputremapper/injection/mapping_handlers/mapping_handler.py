@@ -186,8 +186,6 @@ class MappingHandler:
             something else
         source
             Where `event` comes from
-        forward_to
-            Where to write keycodes to that were not mapped to anything
         """
         raise NotImplementedError
 

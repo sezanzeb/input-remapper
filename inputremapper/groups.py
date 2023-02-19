@@ -556,4 +556,5 @@ class _Groups:
         return None
 
 
+# TODO global objects are bad practice
 groups = _Groups()
