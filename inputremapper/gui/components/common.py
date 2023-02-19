@@ -263,8 +263,6 @@ class ListFilterControl:
         if self._filter_value == "":
             return True
 
-        print(f"matching filter: {self._filter_value} with value: {value}")
-
         if self._case_sensitive:
             return self._filter_value in value
         else:
