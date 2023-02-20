@@ -529,7 +529,7 @@ class DataManager:
     def stop_combination_recording(self):
         """Stop recording user input.
 
-        Will send RecordingFinished message if a recording is running.
+        Will send a recording_finished signal if a recording is running.
         """
         self._reader_client.stop_recorder()
 

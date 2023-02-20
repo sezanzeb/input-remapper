@@ -244,8 +244,36 @@ class Controller:
         )
         self.message_broker.publish(DoStackSwitch(1))
 
+    def _auto_use_as_analog(self, combination: InputCombination) -> InputCombination:
+        """If output is analog, have the first fitting input as analog."""
+        # TODO test
+        if not self.data_manager.active_mapping.is_analog_output():
+            return combination
+
+        if combination.find_analog_input_config():
+            # something is already set to do that
+            return combination
+
+        for i, input_config in enumerate(combination):
+            # find the first analog input and set it to "use as analog"
+            if input_config.type in (EV_ABS, EV_REL):
+                logger.info('Using %s as analog input', input_config)
+
+                combination = list(combination)
+                combination[i] = input_config.modify(analog_threshold=0)
+                combination = InputCombination(combination)
+                break
+
+        # TODO if the "analog axis" output is set, and no output-axis is selected,
+        #  set the target to gamepad, because it is still keyboard and that is
+        #  completely useless
+
+        return combination
+
     def update_combination(self, combination: InputCombination):
         """Update the input_combination of the active mapping."""
+        combination = self._auto_use_as_analog(combination)
+
         try:
             self.data_manager.update_mapping(input_combination=combination)
             self.save()

@@ -61,6 +61,8 @@ class InputConfig(BaseModel):
     # This solves a number of bugs when multiple devices have overlapping capabilities.
     # see utils.get_device_hash for the exact hashing function
     origin_hash: Optional[DeviceHash] = None
+
+    # At which point is an analog input treated as "pressed"
     analog_threshold: Optional[int] = None
 
     def __str__(self):
@@ -91,7 +93,7 @@ class InputConfig(BaseModel):
 
     @property
     def defines_analog_input(self) -> bool:
-        """Whether this defines an analog input"""
+        """Whether this defines an analog input."""
         return not self.analog_threshold and self.type != ecodes.EV_KEY
 
     @property
@@ -399,7 +401,7 @@ class InputCombination(Tuple[InputConfig, ...]):
     def find_analog_input_config(
         self, type_: Optional[int] = None
     ) -> Optional[InputConfig]:
-        """Return the first event that defines an analog input"""
+        """Return the first event that defines an analog input."""
         for input_config in self:
             if input_config.defines_analog_input and (
                 type_ is None or input_config.type == type_
