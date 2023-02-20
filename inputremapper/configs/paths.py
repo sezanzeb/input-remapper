@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
@@ -32,7 +33,12 @@ from inputremapper.user import USER, HOME
 rel_path = ".config/input-remapper"
 if IS_BETA:
     rel_path = os.path.join(rel_path, f"beta_{VERSION}")
-CONFIG_PATH = os.path.join(HOME, rel_path)
+if 'XDG_CONFIG_HOME' in os.environ:
+    CONFIG_PATH = os.path.join(os.environ['XDG_CONFIG_HOME'],'input-remapper')
+    if IS_BETA:
+        CONFIG_PATH = os.path.join(CONFIG_PATH, f"beta_{VERSION}")
+else:
+    CONFIG_PATH = os.path.join(HOME, rel_path)
 
 
 def chown(path):
