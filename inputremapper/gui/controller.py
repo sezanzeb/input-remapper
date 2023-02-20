@@ -257,7 +257,7 @@ class Controller:
         for i, input_config in enumerate(combination):
             # find the first analog input and set it to "use as analog"
             if input_config.type in (EV_ABS, EV_REL):
-                logger.info('Using %s as analog input', input_config)
+                logger.info("Using %s as analog input", input_config)
 
                 combination = list(combination)
                 combination[i] = input_config.modify(analog_threshold=0)
