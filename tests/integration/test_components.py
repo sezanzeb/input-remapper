@@ -81,8 +81,9 @@ from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.common import (
     FlowBoxEntry,
     Breadcrumbs,
-    ListFilterControl,
+    FilterControl,
 )
+from inputremapper.gui.components.gtkext.listbox_filter import ListBoxFilter
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.device_groups import (
     DeviceGroupEntry,
@@ -522,10 +523,14 @@ class TestMappingFilterListbox(TestMappingListboxBase):
         super().setUp()
         self.entry = Gtk.Entry()
         self.button = Gtk.Button()
-        self.control = ListFilterControl(
-            self.gui,
+        self.toggle = Gtk.ToggleButton()
+        self.filter = ListBoxFilter(self.gui)
+        self.control = FilterControl(
+            self.message_broker,
+            MessageType.mapping_filter,
             self.entry,
             clear_button=self.button,
+            case_toggle=self.toggle,
         )
 
     def get_num_visible(self):
@@ -538,7 +543,7 @@ class TestMappingFilterListbox(TestMappingListboxBase):
         self.assertEqual(self.get_num_visible(), n, "all mappings must be visible")
 
         self.entry.set_text("not in preset")
-        GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.entry)
+        gtk_iteration()
         self.assertEqual(self.entry.get_text(), "not in preset")
         self.assertEqual(self.get_num_visible(), 0, "mappings must not be visible")
 
@@ -549,9 +554,14 @@ class TestMappingFilterListbox(TestMappingListboxBase):
             self.get_num_visible(), n, "all mappings must be visible again"
         )
 
-        self.entry.set_text("mapping1")
-        GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.entry)
+    def test_case_toggle(self):
+        self.entry.set_text("Mapping1")
+        gtk_iteration()
         self.assertEqual(self.get_num_visible(), 1, "only one mapping must be visible")
+
+        self.toggle.clicked()
+        gtk_iteration()
+        self.assertEqual(self.get_num_visible(), 0, "no mapping must be visible")
 
 
 class TestMappingSelectionLabel(ComponentBaseTest):

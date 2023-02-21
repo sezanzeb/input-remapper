@@ -54,12 +54,14 @@ from inputremapper.gui.messages.message_data import (
     UInputsData,
     PresetData,
     CombinationUpdate,
+    MappingFilter,
 )
 from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.configs.system_mapping import system_mapping, XKB_KEYCODE_OFFSET
 from inputremapper.utils import get_evdev_constant_name
+from inputremapper.gui.components.gtkext.listbox_filter import ListBoxFilter
 
 Capabilities = Dict[int, List]
 
@@ -148,9 +150,13 @@ class MappingListBox:
         self._controller = controller
         self._gui = listbox
         self._gui.set_sort_func(self._sort_func)
+        self._mapping_filter = ListBoxFilter(listbox)
 
         self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
+        self._message_broker.subscribe(
+            MessageType.mapping_filter, self._on_mapping_filter_changed
+        )
         self._gui.connect("row-selected", self._on_gtk_mapping_selected)
 
     @staticmethod
@@ -189,6 +195,11 @@ class MappingListBox:
             for row in self._gui.get_children():
                 if row.combination == combination:
                     self._gui.select_row(row)
+
+    def _on_mapping_filter_changed(self, filter: MappingFilter):
+        self._mapping_filter.set_filter(
+            filter.filter_value, case_sensitive=filter.case_sensitive
+        )
 
     def _on_gtk_mapping_selected(self, _, row: Optional[MappingSelectionLabel]):
         if not row:

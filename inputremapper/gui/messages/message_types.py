@@ -40,6 +40,7 @@ class MessageType(Enum):
     preset = "preset"
     mapping = "mapping"
     selected_event = "selected_event"
+    mapping_filter = "mapping_filter"
     combination_recorded = "combination_recorded"
 
     # only the reader_client should send those messages:

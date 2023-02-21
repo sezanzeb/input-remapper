@@ -39,7 +39,11 @@ from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_data import GroupData, PresetData
+from inputremapper.gui.messages.message_data import (
+    GroupData,
+    PresetData,
+    MappingFilter,
+)
 from inputremapper.gui.utils import HandlerDisabled
 
 
@@ -178,116 +182,69 @@ class Breadcrumbs:
         self._gui.set_label("  /  ".join(label))
 
 
-class ListFilterControl:
-    """Implements UI-side filtering of list widgets.
+class FilterControl:
+    """Watches a text input to produce filter events.
 
-    The following example creates a new ``ListFilterControl`` for a given
-    ``Gtk.ListBox`` and a given ``Gtk.Entry`` for text input. It also sets all
-    optional arguments to override some default behavior.
+    The following example creates a new ``FilterControl`` for a given ``Gtk.Entry``
+    for text input. It also sets all optional arguments to override some default behavior.
 
     >>> ListFilterControl(
-    >>>     my_gtk_listbox,
+    >>>     message_broker,
+    >>>     message_type,
     >>>     my_gtk_entry,
-    >>>     clear_button=my_gtk_button,  # use an optional clear button
-    >>>     case_sensitive=True,         # change default behavior
-    >>>     get_row_name=MyRow.get_name  # custom row name getter
+    >>>     clear_button=my_gtk_button1,  # use an optional clear button
+    >>>     case_toggle=my_gtk_button2,   # use optional case sensitivity switch
+
     >>> )
 
     """
 
-    MAX_WIDGET_TREE_TEXT_SEARCH_DEPTH = 10
-
     def __init__(
         self,
-        # message_broker: MessageBroker,
-        controlled_listbox: Gtk.ListBox,
+        message_broker: MessageBroker,
+        message_type: MessageType,
         filter_entry: Gtk.GtkEntry,
         clear_button: Gtk.Button = None,
-        case_sensitive=False,
-        get_row_name=None,
+        case_toggle: Gtk.ToggleButton = None,
     ):
-        self._controlled_listbox: Gtk.ListBox = controlled_listbox
+        self._message_broker: MessageBroker = message_broker
+        self._message_type: MessageType = message_type
         self._filter_entry: Gtk.Entry = filter_entry
         self._clear_button: Gtk.Button = clear_button
+        self._case_toggle: Gtk.ToggleButton = case_toggle
 
         self._filter_value: str = ""
-        self._case_sensitive: bool = bool(case_sensitive)
-        self._get_row_name = get_row_name or self.get_row_name
+        self._case_sensitive = case_toggle is None or case_toggle.get_active()
 
         self._connect_gtk_signals()
 
-    @classmethod
-    def get_row_name(T, row: Gtk.ListBoxRow) -> str:
-        """
-        Returns the visible text of a Gtk.ListBoxRow from both the row's `name`
-        attribute or the row's text in the UI.
-        """
-        text = getattr(row, "name", "")
+        self._update()
 
-        # find and join all text in the ListBoxRow
-        text += " ".join(v for v in T.get_widget_tree_text(row) if v != "")
-
-        return text.strip()
-
-    @classmethod
-    def get_widget_tree_text(T, widget: Gtk.Widget, level=0) -> Iterator[str]:
-        """
-        Recursively traverses the tree of child widgets starting from the given
-        widget, and yields the text of all text-containing widgets.
-        """
-        if level > T.MAX_WIDGET_TREE_TEXT_SEARCH_DEPTH:
-            return
-
-        if hasattr(widget, "get_label"):
-            yield (widget.get_label() or "").strip()
-        if hasattr(widget, "get_text"):
-            yield (widget.get_text() or "").strip()
-        if isinstance(widget, Gtk.Container):
-            for t in widget.get_children():
-                yield from T.get_widget_tree_text(t, level=level + 1)
+    def _update(self, force=False) -> bool:
+        old_value = self._filter_value
+        self._filter_value = (self._filter_entry.get_text() or "").strip()
+        if force or self._filter_value != old_value:
+            self._message_broker.publish(
+                MappingFilter(
+                    filter_value=self._filter_value,
+                    case_sensitive=self._case_sensitive,
+                )
+            )
 
     def _connect_gtk_signals(self):
+        self._filter_entry.connect("changed", self._on_gtk_input_changed)
         if self._clear_button:
-            self._clear_button.connect("clicked", self.on_gtk_clear_button_clicked)
-        self._filter_entry.connect("key-release-event", self.on_gtk_filter_entry_input)
+            self._clear_button.connect("clicked", self._on_gtk_clear_button_clicked)
+        if self._case_toggle:
+            self._case_toggle.connect("toggled", self._on_gtk_case_button_toggled)
 
-    # apply defined filter by sending out the corresponding events
-    def apply_filter(self):
-        self._apply_filter_to_listbox_children()
+    def _on_gtk_case_button_toggled(self, btn: Gtk.ToggleButton):
+        self._case_sensitive = btn.get_active()
+        if self._filter_value != "":
+            self._update(force=True)
 
-    # matches the current filter_value and filter_options with the given value
-    def match_filter(self, value: str):
-        value = (value or "").strip()
-
-        # if filter is not set, all rows need to match
-        if self._filter_value == "":
-            return True
-
-        if self._case_sensitive:
-            return self._filter_value in value
-        else:
-            return self._filter_value.lower() in value.lower()
-
-    def _apply_filter_to_listbox_children(self):
-        value = self._filter_value.lower()
-        selected: Gtk.ListBoxRow = None
-        row: Gtk.ListBoxRow = None
-        for row in self._controlled_listbox.get_children():
-            if self.match_filter(self._get_row_name(row)):
-                # show matching rows, then select the first row
-                row.show()
-                if selected is None:
-                    selected = row
-                    self._controlled_listbox.select_row(selected)
-            else:
-                # hide non-matching rows
-                row.hide()
-
-    def on_gtk_filter_entry_input(self, _, event: Gdk.EventKey):
-        self._filter_value = (self._filter_entry.get_text() or "").strip()
-        self.apply_filter()
-
-    def on_gtk_clear_button_clicked(self, *_):
+    def _on_gtk_clear_button_clicked(self, *_):
         self._filter_entry.set_text("")
-        self._filter_value = ""
-        self.apply_filter()
+
+    def _on_gtk_input_changed(self, *_):
+        self._update()
