@@ -431,7 +431,6 @@ Shortcut: ctrl + del</property>
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="spacing">6</property>
                         <child>
                           <object class="GtkEntry" id="preset_name_input">
                             <property name="visible">True</property>
@@ -459,6 +458,9 @@ Shortcut: ctrl + del</property>
                             <property name="position">1</property>
                           </packing>
                         </child>
+                        <style>
+                          <class name="linked"/>
+                        </style>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -502,7 +504,6 @@ Shortcut: ctrl + del</property>
                             <property name="can-focus">False</property>
                             <property name="margin-top">18</property>
                             <property name="orientation">vertical</property>
-                            <property name="spacing">6</property>
                             <child>
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
@@ -577,70 +578,83 @@ Shortcut: ctrl + del</property>
                             </child>
                             <child>
                               <object class="GtkBox">
-                                <property name="width-request">463</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">center</property>
-                                <property name="margin-start">6</property>
-                                <property name="margin-end">6</property>
+                                <property name="margin-start">18</property>
+                                <property name="margin-end">18</property>
+                                <property name="margin-bottom">18</property>
+                                <property name="orientation">vertical</property>
                                 <property name="spacing">6</property>
                                 <child>
-                                  <object class="GtkButton" id="create_mapping_button">
-                                    <property name="label" translatable="yes">Add</property>
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="image">image3</property>
-                                    <property name="always-show-image">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">False</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkToggleButton" id="key_recording_toggle">
-                                    <property name="label" translatable="yes">Record</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Record a button of your device that should be remapped</property>
-                                    <property name="image">image2</property>
-                                    <property name="always-show-image">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">False</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="edit-combination-btn">
-                                    <property name="label" translatable="yes">Advanced</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="image">image1</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">False</property>
-                                    <property name="position">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="delete-mapping">
-                                    <property name="label" translatable="yes">Delete</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Delete this entry</property>
-                                    <property name="image">icon-delete-row</property>
-                                    <property name="always-show-image">True</property>
-                                    <style>
-                                      <class name="delete-mapping-button"/>
-                                    </style>
+                                    <property name="can-focus">False</property>
+                                    <property name="spacing">6</property>
+                                    <property name="homogeneous">True</property>
+                                    <child>
+                                      <object class="GtkButton" id="create_mapping_button">
+                                        <property name="label" translatable="yes">Add</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="image">image3</property>
+                                        <property name="always-show-image">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkToggleButton" id="key_recording_toggle">
+                                        <property name="label" translatable="yes">Record</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Record a button of your device that should be remapped</property>
+                                        <property name="image">image2</property>
+                                        <property name="always-show-image">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="edit-combination-btn">
+                                        <property name="label" translatable="yes">Advanced</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="image">image1</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="delete-mapping">
+                                        <property name="label" translatable="yes">Delete</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Delete this entry</property>
+                                        <property name="image">icon-delete-row</property>
+                                        <property name="always-show-image">True</property>
+                                        <style>
+                                          <class name="delete-mapping-button"/>
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">3</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -652,19 +666,17 @@ Shortcut: ctrl + del</property>
                                   <object class="GtkBox" id="mapping-filter-box">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="spacing">3</property>
                                     <child>
                                       <object class="GtkSearchEntry" id="mapping-filter-input">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="valign">center</property>
                                         <property name="hexpand">True</property>
                                         <property name="truncate-multiline">True</property>
                                         <property name="placeholder-text" translatable="yes">filter mappings...</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
-                                        <property name="fill">False</property>
+                                        <property name="fill">True</property>
                                         <property name="position">0</property>
                                       </packing>
                                     </child>
@@ -677,7 +689,6 @@ Shortcut: ctrl + del</property>
                                         <property name="receives-default">True</property>
                                         <property name="tooltip-text" translatable="yes">Toggle case sensitive</property>
                                         <property name="halign">end</property>
-                                        <property name="valign">center</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -685,6 +696,9 @@ Shortcut: ctrl + del</property>
                                         <property name="position">1</property>
                                       </packing>
                                     </child>
+                                    <style>
+                                      <class name="linked"/>
+                                    </style>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
@@ -695,7 +709,7 @@ Shortcut: ctrl + del</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
-                                <property name="fill">True</property>
+                                <property name="fill">False</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>
