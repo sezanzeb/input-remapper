@@ -192,7 +192,6 @@ class FilterControl:
     >>>     message_broker,
     >>>     message_type,
     >>>     my_gtk_entry,
-    >>>     clear_button=my_gtk_button,  # use an optional clear button
     >>>     case_toggle=my_gtk_toggle,   # use optional case sensitivity switch
     >>> )
 
@@ -203,13 +202,11 @@ class FilterControl:
         message_broker: MessageBroker,
         message_type: MessageType,
         filter_entry: Gtk.GtkEntry,
-        clear_button: Gtk.Button = None,
         case_toggle: Gtk.ToggleButton = None,
     ):
         self._message_broker: MessageBroker = message_broker
         self._message_type: MessageType = message_type
         self._filter_entry: Gtk.Entry = filter_entry
-        self._clear_button: Gtk.Button = clear_button
         self._case_toggle: Gtk.ToggleButton = case_toggle
 
         self._filter_value: str = ""
@@ -232,8 +229,6 @@ class FilterControl:
 
     def _connect_gtk_signals(self):
         self._filter_entry.connect("changed", self._on_gtk_input_changed)
-        if self._clear_button:
-            self._clear_button.connect("clicked", self._on_gtk_clear_button_clicked)
         if self._case_toggle:
             self._case_toggle.connect("toggled", self._on_gtk_case_button_toggled)
 
@@ -241,9 +236,6 @@ class FilterControl:
         self._case_sensitive = btn.get_active()
         if self._filter_value != "":
             self._update(force=True)
-
-    def _on_gtk_clear_button_clicked(self, *_):
-        self._filter_entry.set_text("")
 
     def _on_gtk_input_changed(self, *_):
         self._update()

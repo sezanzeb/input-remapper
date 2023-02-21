@@ -522,14 +522,12 @@ class TestMappingFilterListbox(TestMappingListboxBase):
     def setUp(self) -> None:
         super().setUp()
         self.entry = Gtk.Entry()
-        self.button = Gtk.Button()
         self.toggle = Gtk.ToggleButton()
         self.filter = ListBoxFilter(self.gui)
         self.control = FilterControl(
             self.message_broker,
             MessageType.mapping_filter,
             self.entry,
-            clear_button=self.button,
             case_toggle=self.toggle,
         )
 
@@ -547,7 +545,7 @@ class TestMappingFilterListbox(TestMappingListboxBase):
         self.assertEqual(self.entry.get_text(), "not in preset")
         self.assertEqual(self.get_num_visible(), 0, "mappings must not be visible")
 
-        self.button.clicked()
+        self.entry.set_text("")
         gtk_iteration()
         self.assertEqual(self.entry.get_text(), "", "filter must be cleared")
         self.assertEqual(

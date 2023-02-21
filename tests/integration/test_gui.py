@@ -78,6 +78,7 @@ from inputremapper.gui.messages.message_broker import (
 from inputremapper.gui.messages.message_data import StatusData, CombinationRecorded
 from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
 from inputremapper.gui.components.device_groups import DeviceGroupEntry
+from inputremapper.gui.components.gtkext.listbox_filter import ListBoxFilter
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.reader_service import ReaderService
 from inputremapper.gui.utils import gtk_iteration, Colors, debounce, debounce_manager
@@ -296,7 +297,7 @@ class GuiTestBase(unittest.TestCase):
         self.stop_injector_btn: Gtk.Button = get("stop_injection_preset_page")
         self.rename_btn: Gtk.Button = get("rename-button")
         self.rename_input: Gtk.Entry = get("preset_name_input")
-        self.mapping_filter_btn: Gtk.Button = get("mapping-filter-clear-button")
+        self.mapping_filter_case_btn: Gtk.Button = get("mapping-filter-case-button")
         self.mapping_filter_input: Gtk.Entry = get("mapping-filter-input")
         self.create_mapping_btn: Gtk.Button = get("create_mapping_button")
         self.delete_mapping_btn: Gtk.Button = get("delete-mapping")
@@ -1441,6 +1442,15 @@ class TestGui(GuiTestBase):
             gtk_iteration()
         self.assertFalse(os.path.exists(preset_path))
 
+    def test_filter_case_button(self):
+        self.mapping_filter_case_btn.clicked()
+        gtk_iteration()
+        self.assertEqual(self.mapping_filter_case_btn.get_active(), True)
+
+        self.mapping_filter_case_btn.clicked()
+        gtk_iteration()
+        self.assertEqual(self.mapping_filter_case_btn.get_active(), False)
+
     def test_filtering_mappings(self):
         self.controller.load_preset("preset2")
         self.throttle(20)
@@ -1461,9 +1471,6 @@ class TestGui(GuiTestBase):
         self.mapping_filter_input.set_text(text1)
         gtk_iteration()
         self.assertEqual(self.data_manager.active_mapping.format_name(), text1)
-
-        self.mapping_filter_btn.clicked()
-        self.assertEqual(self.mapping_filter_input.get_text(), "")
 
     def test_check_for_unknown_symbols(self):
         status = self.user_interface.get("status_bar")

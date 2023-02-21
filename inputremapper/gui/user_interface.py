@@ -52,7 +52,6 @@ from inputremapper.gui.components.editor import (
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.common import Breadcrumbs, FilterControl
-from inputremapper.gui.components.gtkext.listbox_filter import ListBoxFilter
 from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
@@ -154,7 +153,6 @@ class UserInterface:
             message_broker,
             MessageType.mapping_filter,
             self.get("mapping-filter-input"),
-            clear_button=self.get("mapping-filter-clear-button"),
             case_toggle=self.get("mapping-filter-case-button"),
         )
 
