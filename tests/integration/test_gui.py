@@ -34,7 +34,7 @@ from tests.lib.fixtures import prepare_presets
 from tests.lib.logger import logger
 from tests.lib.fixtures import fixtures
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
-from tests.integration.test_components import FlowBoxTestUtils, GtkKeyEvent
+from tests.integration.test_components import FlowBoxTestUtils
 
 import sys
 import time
@@ -1454,12 +1454,12 @@ class TestGui(GuiTestBase):
 
         text0 = mappings[0].format_name()
         self.mapping_filter_input.set_text(text0)
-        GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.mapping_filter_input)
+        gtk_iteration()
         self.assertEqual(self.data_manager.active_mapping.format_name(), text0)
 
         text1 = mappings[1].format_name()
         self.mapping_filter_input.set_text(text1)
-        GtkKeyEvent(Gdk.KEY_Escape).emit_to(self.mapping_filter_input)
+        gtk_iteration()
         self.assertEqual(self.data_manager.active_mapping.format_name(), text1)
 
         self.mapping_filter_btn.clicked()
