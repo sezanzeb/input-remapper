@@ -192,9 +192,8 @@ class FilterControl:
     >>>     message_broker,
     >>>     message_type,
     >>>     my_gtk_entry,
-    >>>     clear_button=my_gtk_button1,  # use an optional clear button
-    >>>     case_toggle=my_gtk_button2,   # use optional case sensitivity switch
-
+    >>>     clear_button=my_gtk_button,  # use an optional clear button
+    >>>     case_toggle=my_gtk_toggle,   # use optional case sensitivity switch
     >>> )
 
     """

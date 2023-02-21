@@ -33,6 +33,8 @@ class ListBoxFilter:
     >>> filter = ListBoxFilter(
     >>>     my_listbox,                  # Gtk.ListBox to be managed
     >>>     get_row_name=MyRow.get_name  # custom row name getter
+    >>>     filter_value="text"          # inital value
+    >>>     case_sensitive=True,         # override default:False
     >>> )
 
     To apply a filter use `set_filter` as follows.
@@ -53,8 +55,9 @@ class ListBoxFilter:
     ):
         self._controlled_listbox: Gtk.ListBox = listbox
         self._get_row_name = get_row_name or self.get_row_name
-        self._filter_value : str = filter_value
-        self._case_sensitive = case_sensitive
+        self._filter_value: str = ""
+        self._case_sensitive = False
+        self.set_filter(filter_value, case_sensitive=case_sensitive)
 
     @classmethod
     def get_row_name(T, row: Gtk.ListBoxRow) -> str:
