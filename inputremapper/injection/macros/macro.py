@@ -327,6 +327,27 @@ class Macro:
 
         self.tasks.append(task)
 
+    def add_toggle(self, symbol):
+        """Press when calling toggle the first time, release it next time."""
+        _type_check_symbol(symbol)
+
+        async def task(handler):
+            key = f"_toggle_{symbol}"
+
+            resolved_symbol = _resolve(symbol, [str])
+            code = _type_check_symbol(resolved_symbol)
+
+            if macro_variables[key]:
+                macro_variables[key] = False
+                handler(EV_KEY, code, 0)
+                await self._keycode_pause()
+            else:
+                macro_variables[key] = True
+                handler(EV_KEY, code, 1)
+                await self._keycode_pause()
+
+        self.tasks.append(task)
+
     def add_key_down(self, symbol):
         """Press the symbol."""
         _type_check_symbol(symbol)
@@ -385,6 +406,10 @@ class Macro:
                     # run the child macro completely to avoid
                     # not-releasing any key
                     await macro.run(handler)
+
+                    # to avoid extremely fast loops that can freeze input-remapper
+                    # while holding down, sleep for 1 ms
+                    await asyncio.sleep(1 / 1000)
 
             self.tasks.append(task)
             self.child_macros.append(macro)

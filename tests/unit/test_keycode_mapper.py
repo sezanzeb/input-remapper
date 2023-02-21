@@ -76,7 +76,8 @@ def wait(func, timeout=1.0):
 
 
 def calculate_event_number(holdtime, before, after):
-    """
+    """Calculate how many events a k(a).h(k(b)).k(c) macro would inject
+
     Parameters
     ----------
     holdtime : int
@@ -91,6 +92,10 @@ def calculate_event_number(holdtime, before, after):
     # one initial k(a):
     events = before * 2
     holdtime -= keystroke_sleep * 2
+
+    # because it sleeps for a millisecond to prevent freezes if keystroke_sleep_ms is 0
+    holdtime -= 1
+
     # hold events
     events += (holdtime / (keystroke_sleep * 2)) * 2
     # one trailing k(c)
