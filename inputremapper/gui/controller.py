@@ -259,10 +259,12 @@ class Controller:
             if input_config.type in (EV_ABS, EV_REL):
                 logger.info("Using %s as analog input", input_config)
 
-                combination = list(combination)
-                combination[i] = input_config.modify(analog_threshold=0)
-                combination = InputCombination(combination)
-                break
+                # combinations and input_configs are immutable, a new combination
+                # is created to fit the needs instead
+                combination_list = list(combination)
+                combination_list[i] = input_config.modify(analog_threshold=0)
+                new_combination = InputCombination(combination_list)
+                return new_combination
 
         # TODO if the "analog axis" output is set, and no output-axis is selected,
         #  set the target to gamepad, because it is still keyboard and that is
