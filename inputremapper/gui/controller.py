@@ -247,6 +247,9 @@ class Controller:
     def _auto_use_as_analog(self, combination: InputCombination) -> InputCombination:
         """If output is analog, have the first fitting input as analog."""
         # TODO test
+        if self.data_manager.active_mapping is None:
+            return combination
+
         if not self.data_manager.active_mapping.is_analog_output():
             return combination
 
@@ -265,10 +268,6 @@ class Controller:
                 combination_list[i] = input_config.modify(analog_threshold=0)
                 new_combination = InputCombination(combination_list)
                 return new_combination
-
-        # TODO if the "analog axis" output is set, and no output-axis is selected,
-        #  set the target to gamepad, because it is still keyboard and that is
-        #  completely useless
 
         return combination
 
@@ -465,16 +464,16 @@ class Controller:
         self.data_manager.load_mapping(input_combination)
         self.load_input_config(input_combination[0])
 
-    def update_mapping(self, **kwargs):
+    def update_mapping(self, **changes):
         """Update the active_mapping with the given keywords and values."""
-        if "mapping_type" in kwargs.keys():
-            if not (kwargs := self._change_mapping_type(kwargs)):
+        if "mapping_type" in changes.keys():
+            if not (changes := self._change_mapping_type(changes)):
                 # we need to synchronize the gui
                 self.data_manager.publish_mapping()
                 self.data_manager.publish_event()
                 return
 
-        self.data_manager.update_mapping(**kwargs)
+        self.data_manager.update_mapping(**changes)
         self.save()
 
     def create_mapping(self):
@@ -683,17 +682,17 @@ class Controller:
         """Focus the given component."""
         self.gui.window.set_focus(component)
 
-    def _change_mapping_type(self, kwargs: Dict[str, Any]):
+    def _change_mapping_type(self, changes: Dict[str, Any]):
         """Query the user to update the mapping in order to change the mapping type."""
         mapping = self.data_manager.active_mapping
 
         if mapping is None:
-            return kwargs
+            return changes
 
-        if kwargs["mapping_type"] == mapping.mapping_type:
-            return kwargs
+        if changes["mapping_type"] == mapping.mapping_type:
+            return changes
 
-        if kwargs["mapping_type"] == "analog":
+        if changes["mapping_type"] == "analog":
             msg = _("You are about to change the mapping to analog.")
             if mapping.output_symbol:
                 msg += _('\nThis will remove "{}" ' "from the text input!").format(
@@ -707,20 +706,20 @@ class Controller:
             ]:
                 # there is no analog input configured, let's try to autoconfigure it
                 inputs: List[InputConfig] = list(mapping.input_combination)
-                for i, e in enumerate(inputs):
-                    if e.type in [EV_ABS, EV_REL]:
-                        inputs[i] = e.modify(analog_threshold=0)
-                        kwargs["input_combination"] = InputCombination(inputs)
+                for i, input_config in enumerate(inputs):
+                    if input_config.type in [EV_ABS, EV_REL]:
+                        inputs[i] = input_config.modify(analog_threshold=0)
+                        changes["input_combination"] = InputCombination(inputs)
                         msg += _(
                             '\nThe input "{}" will be used as analog input.'
-                        ).format(e.description())
+                        ).format(input_config.description())
                         break
                 else:
                     # not possible to autoconfigure inform the user
                     msg += _("\nYou need to record an analog input.")
 
             elif not mapping.output_symbol:
-                return kwargs
+                return changes
 
             answer = None
 
@@ -730,21 +729,21 @@ class Controller:
 
             self.message_broker.publish(UserConfirmRequest(msg, get_answer))
             if answer:
-                kwargs["output_symbol"] = None
-                return kwargs
+                changes["output_symbol"] = None
+                return changes
             else:
                 return None
 
-        if kwargs["mapping_type"] == "key_macro":
+        if changes["mapping_type"] == "key_macro":
             try:
                 analog_input = tuple(
                     filter(lambda i: i.defines_analog_input, mapping.input_combination)
                 )
                 analog_input = analog_input[0]
             except IndexError:
-                kwargs["output_type"] = None
-                kwargs["output_code"] = None
-                return kwargs
+                changes["output_type"] = None
+                changes["output_code"] = None
+                return changes
 
             answer = None
 
@@ -761,10 +760,10 @@ class Controller:
                 )
             )
             if answer:
-                kwargs["output_type"] = None
-                kwargs["output_code"] = None
-                return kwargs
+                changes["output_type"] = None
+                changes["output_code"] = None
+                return changes
             else:
                 return None
 
-        return kwargs
+        return changes
