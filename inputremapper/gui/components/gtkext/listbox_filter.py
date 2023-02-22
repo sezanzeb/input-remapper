@@ -110,14 +110,14 @@ class ListBoxFilter:
         else:
             return self._filter_value.lower() in value.lower()
 
-    # set and apply filter
     def set_filter(self, filter_value: str, case_sensitive=False):
+        """Set and apply filter."""
         self._filter_value = str(filter_value)
         self._case_sensitive = bool(case_sensitive)
         self._gtk_apply_filter_to_listbox_children()
 
-    # apply filter to widget tree
     def _gtk_apply_filter_to_listbox_children(self):
+        """Apply filter to widget tree."""
         value = self._filter_value.lower()
         selected: Gtk.ListBoxRow = None
         row: Gtk.ListBoxRow = None
