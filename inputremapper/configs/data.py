@@ -48,6 +48,12 @@ def _try_standard_locations():
 
     return data
 
+def _try_gtk_path():
+    # See GTK_PATH docs at https://docs.gtk.org/gtk3/running.html
+    if os.environ.get("GTK_PATH"):
+        data = os.path.join(os.environ.get("GTK_PATH"), "data")
+        if os.path.exists(data):
+            return data
 
 def _try_python_package_location():
     """Look for the data dir at the packages installation location."""
@@ -86,7 +92,7 @@ def get_data_path(filename=""):
     # prefix path for data
     # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
 
-    data = _try_python_package_location() or _try_standard_locations()
+    data = _try_gtk_path() or _try_python_package_location() or _try_standard_locations()
 
     if data is None:
         logger.error("Could not find the application data")
