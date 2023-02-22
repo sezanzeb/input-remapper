@@ -97,8 +97,8 @@ class ListBoxFilter:
     def case_sensitive(self):
         return self._case_sensitive
 
-    # matches the current filter_value and filter_options with the given value
     def match_filter(self, value: str):
+        """Match the current filter_value and filter_options with the given value."""
         value = (value or "").strip()
 
         # if filter is not set, all rows need to match
