@@ -297,7 +297,9 @@ class GuiTestBase(unittest.TestCase):
         self.stop_injector_btn: Gtk.Button = get("stop_injection_preset_page")
         self.rename_btn: Gtk.Button = get("rename-button")
         self.rename_input: Gtk.Entry = get("preset_name_input")
-        self.mapping_filter_case_btn: Gtk.ToggleButton = get("mapping-filter-case-button")
+        self.mapping_filter_case_btn: Gtk.ToggleButton = get(
+            "mapping-filter-case-button"
+        )
         self.mapping_filter_input: Gtk.Entry = get("mapping-filter-input")
         self.create_mapping_btn: Gtk.Button = get("create_mapping_button")
         self.delete_mapping_btn: Gtk.Button = get("delete-mapping")
