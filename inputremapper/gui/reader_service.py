@@ -136,20 +136,23 @@ class ReaderService:
         return True
 
     @staticmethod
-    def pkexec_reader_service(ingore_errors=False):
+    def pkexec_reader_service():
         """Start reader-service via pkexec to run in the background."""
         debug = " -d" if logger.level <= logging.DEBUG else ""
-        cmd = f"pkexec input-remapper-control --command start-reader-service{debug}"
+        cmd = f"input-remapper-control --command start-reader-service{debug}"
 
         logger.debug("Running `%s`", cmd)
         exit_code = os.system(cmd)
+        if exit_code == 0:
+            return
 
-        if exit_code != 0:
-            ex = Exception(f"Failed to pkexec the reader-service, code {exit_code}")
-            if ingore_errors:
-                logger.warn(ex)
-            else:
-                raise ex
+        cmd = f"pkexec {cmd}"
+        logger.debug("Running `%s`", cmd)
+        exit_code = os.system(cmd)
+        if exit_code == 0:
+            return
+
+        raise Exception(f"Failed to start the reader-service, code {exit_code}")
 
     async def run(self):
         """Start doing stuff."""
