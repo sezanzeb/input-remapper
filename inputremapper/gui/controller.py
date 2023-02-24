@@ -245,8 +245,7 @@ class Controller:
         self.message_broker.publish(DoStackSwitch(1))
 
     def _auto_use_as_analog(self, combination: InputCombination) -> InputCombination:
-        """If output is analog, have the first fitting input as analog."""
-        # TODO test
+        """If output is analog, set the first fitting input to analog."""
         if self.data_manager.active_mapping is None:
             return combination
 
