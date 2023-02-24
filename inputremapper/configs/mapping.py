@@ -85,6 +85,13 @@ class KnownUinput(str, enum.Enum):
     KEYBOARD_MOUSE = "keyboard + mouse"
 
 
+class MappingType(str, enum.Enum):
+    """What kind of output the mapping produces."""
+
+    KEY_MACRO = "key_macro"
+    ANALOG = "analog"
+
+
 CombinationChangedCallback = Optional[
     Callable[[InputCombination, InputCombination], None]
 ]
@@ -126,7 +133,7 @@ class UIMapping(BaseModel):
     output_code: Optional[int] = None  # The event code of the mapped event
 
     name: Optional[str] = None
-    mapping_type: Optional[Literal["key_macro", "analog"]] = None
+    mapping_type: Optional[MappingType] = None
 
     # if release events will be sent to the forwarded device as soon as a combination
     # triggers see also #229
@@ -243,6 +250,9 @@ class UIMapping(BaseModel):
             REL_WHEEL_HI_RES,
             REL_HWHEEL_HI_RES,
         )
+
+    def is_analog_output(self):
+        return self.mapping_type == MappingType.ANALOG
 
     def set_combination_changed_callback(self, callback: CombinationChangedCallback):
         self._combination_changed = callback

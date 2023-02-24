@@ -181,7 +181,7 @@ class ReaderClient:
     def stop_recorder(self) -> None:
         """Stop recording the input.
 
-        Will send RecordingFinished message.
+        Will send recording_finished signals.
         """
         logger.debug("Stopping recorder.")
         self._send_command(CMD_STOP_READING)
