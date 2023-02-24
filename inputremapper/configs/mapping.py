@@ -133,7 +133,7 @@ class UIMapping(BaseModel):
     output_code: Optional[int] = None  # The event code of the mapped event
 
     name: Optional[str] = None
-    mapping_type: Optional[Literal[MappingType.KEY_MACRO, MappingType.ANALOG]] = None
+    mapping_type: Optional[MappingType] = None
 
     # if release events will be sent to the forwarded device as soon as a combination
     # triggers see also #229
