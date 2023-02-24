@@ -216,7 +216,7 @@ class FilterControl:
 
         self._update()
 
-    def _update(self, force=False) -> bool:
+    def _update(self, force=False):
         old_value = self._filter_value
         self._filter_value = (self._filter_entry.get_text() or "").strip()
         if force or self._filter_value != old_value:
