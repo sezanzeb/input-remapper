@@ -28,6 +28,7 @@ from evdev.ecodes import EV_ABS, ABS_X, ABS_Y, ABS_RX
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.injector import InjectorState
+from tests.lib.logger import logger
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -608,20 +609,23 @@ class TestController(unittest.TestCase):
         )
         self.data_manager.load_mapping(InputCombination([input_config]))
 
-        self.controller.update_combination(
-            InputCombination(
-                [
-                    InputConfig(
-                        type=EV_ABS,
-                        code=ABS_Y,
-                        analog_threshold=50,
-                    ),
-                    InputConfig(
-                        type=EV_ABS,
-                        code=ABS_RX,
-                        analog_threshold=60,
-                    ),
-                ]
+        self.controller.start_key_recording()
+        self.message_broker.publish(
+            CombinationRecorded(
+                InputCombination(
+                    [
+                        InputConfig(
+                            type=EV_ABS,
+                            code=ABS_Y,
+                            analog_threshold=50,
+                        ),
+                        InputConfig(
+                            type=EV_ABS,
+                            code=ABS_RX,
+                            analog_threshold=60,
+                        ),
+                    ]
+                )
             )
         )
 

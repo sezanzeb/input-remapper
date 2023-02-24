@@ -138,7 +138,8 @@ class Controller:
             self.message_broker.publish(MappingData(**MAPPING_DEFAULTS))
 
     def _on_combination_recorded(self, data: CombinationRecorded):
-        self.update_combination(data.combination)
+        combination = self._auto_use_as_analog(data.combination)
+        self.update_combination(combination)
 
     def _publish_mapping_errors_as_status_msg(self, *__):
         """Send mapping ValidationErrors to the MessageBroker."""
