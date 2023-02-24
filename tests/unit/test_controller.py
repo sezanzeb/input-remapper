@@ -620,7 +620,7 @@ class TestController(unittest.TestCase):
                         type=EV_ABS,
                         code=ABS_RX,
                         analog_threshold=60,
-                    )
+                    ),
                 ]
             )
         )
