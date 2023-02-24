@@ -24,10 +24,12 @@ import asyncio
 from contextlib import contextmanager
 from typing import Tuple, List, Optional, Iterable
 
+from inputremapper.gui.autocompletion import get_incomplete_parameter, _get_left_text
+
 from inputremapper.injection.global_uinputs import global_uinputs
 from tests.lib.global_uinputs import reset_global_uinputs_for_service
 from tests.test import get_project_root
-from tests.lib.cleanup import cleanup
+from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.stuff import spy
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import prepare_presets
@@ -2024,6 +2026,44 @@ class TestAutocompletion(GuiTestBase):
         event = Gdk.EventKey()
         event.keyval = keyval
         self.user_interface.autocompletion.navigate(None, event)
+
+    def get_suggestions(self, autocompletion):
+        return ([
+            row.get_children()[0].get_text() for row in
+            autocompletion.list_box.get_children()
+        ])
+
+    def test_get_incomplete_parameter(self):
+        def test(text, expected):
+            text_view = Gtk.TextView()
+            Gtk.TextView.do_insert_at_cursor(text_view, text)
+            text_iter = text_view.get_iter_at_location(0, 0)[1]
+            text_iter.set_offset(len(text))
+            self.assertEqual(get_incomplete_parameter(text_iter), expected)
+
+        test('bar(foo', 'foo')
+        test('bar(a=foo', 'foo')
+        test('bar(qux, foo', 'foo')
+        test('foo', 'foo')
+        test('bar + foo', 'foo')
+
+    def test_autocomplete_names(self):
+        autocompletion = self.user_interface.autocompletion
+
+        def setup(text):
+            self.set_focus(self.code_editor)
+            Gtk.TextView.do_insert_at_cursor(self.code_editor, text)
+            self.throttle(200)
+            text_iter = self.code_editor.get_iter_at_location(0, 0)[1]
+            text_iter.set_offset(len(text))
+
+        setup('disa')
+        self.assertNotIn('KEY_A', self.get_suggestions(autocompletion))
+        self.assertIn('disable', self.get_suggestions(autocompletion))
+
+        setup(' + _A')
+        self.assertIn('KEY_A', self.get_suggestions(autocompletion))
+        self.assertNotIn('disable', self.get_suggestions(autocompletion))
 
     def test_autocomplete_key(self):
         self.controller.update_mapping(output_symbol="")
