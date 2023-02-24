@@ -29,7 +29,7 @@ from gi.repository import Gdk, Gtk, GLib, GObject
 
 from inputremapper.gui.controller import Controller
 from inputremapper.configs.mapping import MappingData
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.gui.components.editor import CodeEditor
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.messages.message_data import UInputsData
@@ -93,7 +93,7 @@ def get_incomplete_parameter(iter_: Gtk.TextIter) -> Optional[str]:
     #  foo
     #  bar + foo
     match = re.match(rf"(?:{PARAMETER}|^)(\w+)$", left_text)
-    logger.debug("get_incomplete_parameter text: %s match: %s", left_text, match)
+    logger.debug('get_incomplete_parameter text: "%s" match: %s', left_text, match)
 
     if match is None:
         return None
@@ -110,9 +110,11 @@ def propose_symbols(text_iter: Gtk.TextIter, codes: List[int]) -> List[Tuple[str
 
     incomplete_name = incomplete_name.lower()
 
+    names = list(system_mapping.list_names(codes=codes)) + [DISABLE_NAME]
+
     return [
         (name, name)
-        for name in list(system_mapping.list_names(codes=codes))
+        for name in names
         if incomplete_name in name.lower() and incomplete_name != name.lower()
     ]
 
