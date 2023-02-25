@@ -26,7 +26,7 @@ from __future__ import annotations
 import time
 
 import gi
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango
 
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
@@ -79,6 +79,10 @@ class StatusBar:
         self._error_icon = error_icon
         self._warning_icon = warning_icon
 
+        self._gui.get_message_area().get_children()[0].set_ellipsize(
+            Pango.EllipsizeMode.END
+        )
+
         self._message_broker.subscribe(MessageType.status_msg, self._on_status_update)
 
         # keep track if there is an error or warning in the stack of statusbar
@@ -128,10 +132,6 @@ class StatusBar:
         if context_id == CTX_WARNING:
             self._warning_icon.show()
             self._warning = True
-
-        max_length = 135
-        if len(message) > max_length:
-            message = message[: max_length - 3] + "..."
 
         status_bar.push(context_id, message)
         status_bar.set_tooltip_text(tooltip)
