@@ -110,19 +110,6 @@ class ImmutableCfg(Cfg):
     allow_mutation = False
 
 
-def pydantify(error: type):
-    """Generate a string as it would appear IN pydantic error types.
-
-    This does not include the base class name, which is transformed to snake case in
-    pydantic. Example pydantic error type: "value_error.foobar" for FooBarError.
-    """
-    # See https://github.com/pydantic/pydantic/discussions/5112
-    lower_classname = error.__name__.lower()
-    if lower_classname.endswith("error"):
-        return lower_classname[: -len("error")]
-    return lower_classname
-
-
 class OutputSymbolVariantError(ValueError):
     pass
 
