@@ -145,6 +145,7 @@ class Controller:
         """Send mapping ValidationErrors to the MessageBroker."""
         if not self.data_manager.active_preset:
             return
+
         if self.data_manager.active_preset.is_valid():
             self.message_broker.publish(StatusData(CTX_MAPPING))
             return
@@ -154,15 +155,20 @@ class Controller:
                 continue
 
             position = mapping.format_name()
-            msg = _("Mapping error at %s, hover for info") % position
-            self.show_status(CTX_MAPPING, msg, self._get_ui_error_string(mapping))
+            error_strings = self._get_ui_error_strings(mapping)
+            if len(error_strings) > 1:
+                msg = _('%d Mapping errors at "%s", hover for info') % (
+                    len(error_strings),
+                    position,
+                )
+            else:
+                msg = f'"{position}": {error_strings[0]}'
+
+            self.show_status(CTX_MAPPING, msg, '\n'.join(error_strings))
 
     @staticmethod
-    def _get_ui_error_string(mapping: UIMapping) -> str:
-        """Get a human readable error message from a mapping error."""
-        error_string = str(mapping.get_error())
-
-        # check all the different error messages which are not useful for the user
+    def format_error(mapping, error_string: str) -> str:
+        """Check all the different error messages which are not useful for the user."""
         if (
             "output_symbol is a macro:" in error_string
             or "output_symbol and output_code mismatch:" in error_string
@@ -180,8 +186,8 @@ class Controller:
                 "Remove the Analog Output Axis when specifying a macro or key output"
             )
 
-        if "missing output axis:" in error_string:
-            message = _(
+        if "Missing output axis:" in error_string:
+            error_string = _(
                 "The input specifies an analog axis, but no output axis is selected."
             )
             if mapping.output_symbol is not None:
@@ -190,27 +196,54 @@ class Controller:
                     for event in mapping.input_combination
                     if event.defines_analog_input
                 ][0]
-                message += _(
+                error_string += _(
                     "\nIf you mean to create a key or macro mapping "
                     "go to the advanced input configuration"
                     ' and set a "Trigger Threshold" for '
                     f'"{event.description()}"'
                 )
-            return message
+            return error_string
 
         if "missing macro or key:" in error_string and mapping.output_symbol is None:
-            message = _(
+            error_string = _(
                 "The input specifies a key or macro input, but no macro or key is "
                 "programmed."
             )
             if mapping.output_type in (EV_ABS, EV_REL):
-                message += _(
+                error_string += _(
                     "\nIf you mean to create an analog axis mapping go to the "
                     'advanced input configuration and set an input to "Use as Analog".'
                 )
-            return message
+            return error_string
 
         return error_string
+
+    @staticmethod
+    def _get_ui_error_strings(mapping: UIMapping) -> List[str]:
+        """Get a human readable error message from a mapping error."""
+        validation_error = mapping.get_error()
+
+        if validation_error is None:
+            # shouldn't be possible to get to this point
+            logger.error("_get_ui_error_string was called without an error")
+            return ""
+
+        logger.error(str(validation_error))
+
+        error_strings = []
+
+        for error in validation_error.errors():
+            f'"{mapping.format_name()}":'
+            error_string = f'"{mapping.format_name()}": '
+            error_message = error["msg"]
+            error_location = error["loc"][0]
+            if error_location != "__root__":
+                error_string += f"{error_location}: "
+
+            # check all the different error messages which are not useful for the user
+            error_strings.append(Controller.format_error(mapping, error_message))
+
+        return error_strings
 
     def get_a_preset(self) -> str:
         """Attempts to get the newest preset in the current group

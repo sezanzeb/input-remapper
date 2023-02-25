@@ -51,6 +51,7 @@ from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
+from inputremapper.injection.global_uinputs import global_uinputs, DEFAULT_UINPUTS
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.utils import get_evdev_constant_name
 
@@ -337,28 +338,48 @@ class Mapping(UIMapping):
         """If the mapping is valid."""
         return True
 
-    @validator("output_symbol", pre=True)
-    def validate_symbol(cls, symbol):
+    @root_validator(pre=True)
+    def validate_symbol(cls, values):
         """Parse a macro to check for syntax errors."""
+        symbol = values.get("output_symbol")
+
         if not symbol:
-            return None
+            return values
 
         symbol = symbol.strip()
 
         if is_this_a_macro(symbol):
             try:
                 parse(symbol, verbose=False)  # raises MacroParsingError
-                return symbol
+                return values
             except MacroParsingError as exception:
                 # pydantic only catches ValueError, TypeError, and AssertionError
                 raise ValueError(exception) from exception
 
-        if system_mapping.get(symbol) is not None:
-            return symbol
+        code = system_mapping.get(symbol)
+        if code is None:
+            raise ValueError(
+                f'The output_symbol "{symbol}" is not a macro and not a valid '
+                + "keycode-name"
+            )
 
-        raise ValueError(
-            f'The output_symbol "{symbol}" is not a macro and not a valid keycode-name'
-        )
+        target = values.get("target_uinput")
+        capabilities = DEFAULT_UINPUTS.get(target, {}).get(EV_KEY)
+        if code not in capabilities:
+            fitting_targets = [
+                uinput
+                for uinput in DEFAULT_UINPUTS
+                if code in DEFAULT_UINPUTS[uinput].get(EV_KEY)
+            ]
+
+            fitting_targets_string = '", "'.join(fitting_targets)
+
+            raise ValueError(
+                f'The output_symbol "{symbol}" is not available for the "{target}" '
+                + f'target. Try "{fitting_targets_string}".'
+            )
+
+        return values
 
     @validator("input_combination")
     def only_one_analog_input(cls, combination) -> InputCombination:

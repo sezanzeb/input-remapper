@@ -23,9 +23,9 @@
 
 from __future__ import annotations
 
+import time
+
 import gi
-
-
 from gi.repository import Gtk
 
 from inputremapper.gui.controller import Controller
@@ -34,7 +34,7 @@ from inputremapper.gui.messages.message_broker import (
     MessageType,
 )
 from inputremapper.gui.messages.message_data import StatusData, DoStackSwitch
-from inputremapper.gui.utils import CTX_ERROR, CTX_MAPPING, CTX_WARNING
+from inputremapper.gui.utils import CTX_ERROR, CTX_MAPPING, CTX_WARNING, gtk_iteration
 
 
 class Stack:
@@ -80,16 +80,11 @@ class StatusBar:
         self._warning_icon = warning_icon
 
         self._message_broker.subscribe(MessageType.status_msg, self._on_status_update)
-        self._message_broker.subscribe(MessageType.init, self._on_init)
 
         # keep track if there is an error or warning in the stack of statusbar
         # unfortunately this is not exposed over the api
         self._error = False
         self._warning = False
-
-    def _on_init(self, _):
-        self._error_icon.hide()
-        self._warning_icon.hide()
 
     def _on_status_update(self, data: StatusData):
         """Show a status message and set its tooltip.
@@ -118,24 +113,25 @@ class StatusBar:
                     self._error_icon.show()
 
             status_bar.set_tooltip_text("")
-        else:
-            if tooltip is None:
-                tooltip = message
+            return
 
-            self._error_icon.hide()
-            self._warning_icon.hide()
+        if tooltip is None:
+            tooltip = message
 
-            if context_id in (CTX_ERROR, CTX_MAPPING):
-                self._error_icon.show()
-                self._error = True
+        self._error_icon.hide()
+        self._warning_icon.hide()
 
-            if context_id == CTX_WARNING:
-                self._warning_icon.show()
-                self._warning = True
+        if context_id in (CTX_ERROR, CTX_MAPPING):
+            self._error_icon.show()
+            self._error = True
 
-            max_length = 135
-            if len(message) > max_length:
-                message = message[: max_length - 3] + "..."
+        if context_id == CTX_WARNING:
+            self._warning_icon.show()
+            self._warning = True
 
-            status_bar.push(context_id, message)
-            status_bar.set_tooltip_text(tooltip)
+        max_length = 135
+        if len(message) > max_length:
+            message = message[: max_length - 3] + "..."
+
+        status_bar.push(context_id, message)
+        status_bar.set_tooltip_text(tooltip)
