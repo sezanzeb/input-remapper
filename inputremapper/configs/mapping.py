@@ -365,7 +365,7 @@ class Mapping(UIMapping):
 
         target = values.get("target_uinput")
         capabilities = DEFAULT_UINPUTS.get(target, {}).get(EV_KEY)
-        if code not in capabilities:
+        if capabilities is not None and code not in capabilities:
             fitting_targets = [
                 uinput
                 for uinput in DEFAULT_UINPUTS
