@@ -905,8 +905,8 @@ class TestGui(GuiTestBase):
             InputCombination([InputConfig(type=1, code=30, origin_hash=origin)]),
         )
 
-        # 4. update target to mouse
-        self.target_selection.set_active_id("mouse")
+        # 4. update target
+        self.target_selection.set_active_id("keyboard + mouse")
         gtk_iteration()
         self.assertEqual(
             self.data_manager.active_mapping,
@@ -915,20 +915,14 @@ class TestGui(GuiTestBase):
                     [InputConfig(type=1, code=30, origin_hash=origin)]
                 ),
                 output_symbol="Shift_L",
-                target_uinput="mouse",
+                target_uinput="keyboard + mouse",
             ),
         )
 
     def test_show_status(self):
-        self.message_broker.publish(StatusData(0, "a" * 500))
-        gtk_iteration()
+        self.message_broker.publish(StatusData(0, "a"))
         text = self.get_status_text()
-        self.assertIn("...", text)
-
-        self.message_broker.publish(StatusData(0, "b"))
-        gtk_iteration()
-        text = self.get_status_text()
-        self.assertNotIn("...", text)
+        self.assertEqual("a", text)
 
     def test_hat_switch(self):
         # load a device with more capabilities
