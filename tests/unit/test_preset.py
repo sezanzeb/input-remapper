@@ -426,7 +426,7 @@ class TestPreset(unittest.TestCase):
         mapping.output_symbol = "BTN_Left"
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
-        mapping.target_uinput = "keyboard"
+        mapping.target_uinput = "keyboard + mouse"
         mapping.output_symbol = "3"
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
 

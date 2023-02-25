@@ -51,7 +51,7 @@ from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
-from inputremapper.injection.global_uinputs import global_uinputs, DEFAULT_UINPUTS
+from inputremapper.injection.global_uinputs import DEFAULT_UINPUTS
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.utils import get_evdev_constant_name
 
@@ -343,10 +343,18 @@ class Mapping(UIMapping):
         """Parse a macro to check for syntax errors."""
         symbol = values.get("output_symbol")
 
-        if not symbol:
+        if symbol == '':
+            values["output_symbol"] = None
+            return values
+
+        if symbol is None:
             return values
 
         symbol = symbol.strip()
+        values["output_symbol"] = symbol
+
+        if symbol == DISABLE_NAME:
+            return values
 
         if is_this_a_macro(symbol):
             try:
@@ -430,10 +438,13 @@ class Mapping(UIMapping):
         type_ = values.get("output_type")
         code = values.get("output_code")
         if symbol is None:
-            return values  # type and code can be anything
+            # If symbol is "", then validate_symbol changes it to None
+            # type and code can be anything
+            return values
 
         if type_ is None and code is None:
-            return values  # we have a symbol: no type and code is fine
+            # we have a symbol: no type and code is fine
+            return values
 
         if is_this_a_macro(symbol):  # disallow output type and code for macros
             if type_ is not None or code is not None:
