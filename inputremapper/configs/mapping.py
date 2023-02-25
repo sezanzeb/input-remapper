@@ -118,8 +118,8 @@ def pydantify(error: type):
     """
     # See https://github.com/pydantic/pydantic/discussions/5112
     lower_classname = error.__name__.lower()
-    if lower_classname.endswith('error'):
-        return lower_classname[:-len('error')]
+    if lower_classname.endswith("error"):
+        return lower_classname[: -len("error")]
     return lower_classname
 
 
@@ -525,9 +525,7 @@ class Mapping(UIMapping):
         output_symbol = values.get("output_symbol")
 
         if not use_as_analog and not output_symbol and output_type != EV_KEY:
-            raise MissingMacroOrKeyError(
-                f'missing macro or key'
-            )
+            raise MissingMacroOrKeyError(f"missing macro or key")
 
         if (
             use_as_analog

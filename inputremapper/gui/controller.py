@@ -38,9 +38,16 @@ from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import MappingData, UIMapping, \
-    MacroButTypeOrCodeSetError, SymbolAndCodeMismatchError, MissingOutputAxisError, \
-    MissingMacroOrKeyError, OutputSymbolVariantError, pydantify
+from inputremapper.configs.mapping import (
+    MappingData,
+    UIMapping,
+    MacroButTypeOrCodeSetError,
+    SymbolAndCodeMismatchError,
+    MissingOutputAxisError,
+    MissingMacroOrKeyError,
+    OutputSymbolVariantError,
+    pydantify,
+)
 from inputremapper.configs.paths import sanitize_path_component
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
@@ -185,8 +192,8 @@ class Controller:
         # There is no more elegant way of comparing error_type with the base class.
         # https://github.com/pydantic/pydantic/discussions/5112
         if (
-            pydantify(MacroButTypeOrCodeSetError) in error_type or
-            pydantify(SymbolAndCodeMismatchError) in error_type
+            pydantify(MacroButTypeOrCodeSetError) in error_type
+            or pydantify(SymbolAndCodeMismatchError) in error_type
         ) and mapping.input_combination.defines_analog_input:
             return _(
                 "Remove the macro or key from the macro input field "
@@ -194,8 +201,8 @@ class Controller:
             )
 
         if (
-            pydantify(MacroButTypeOrCodeSetError) in error_type or
-            pydantify(SymbolAndCodeMismatchError) in error_type
+            pydantify(MacroButTypeOrCodeSetError) in error_type
+            or pydantify(SymbolAndCodeMismatchError) in error_type
         ) and not mapping.input_combination.defines_analog_input:
             return _(
                 "Remove the Analog Output Axis when specifying a macro or key output"
@@ -220,8 +227,8 @@ class Controller:
             return error_message
 
         if (
-            pydantify(MissingMacroOrKeyError) in error_type and
-            mapping.output_symbol is None
+            pydantify(MissingMacroOrKeyError) in error_type
+            and mapping.output_symbol is None
         ):
             error_message = _(
                 "The input specifies a key or macro input, but no macro or key is "
