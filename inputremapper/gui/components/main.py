@@ -23,8 +23,6 @@
 
 from __future__ import annotations
 
-import time
-
 import gi
 from gi.repository import Gtk, Pango
 
@@ -34,7 +32,7 @@ from inputremapper.gui.messages.message_broker import (
     MessageType,
 )
 from inputremapper.gui.messages.message_data import StatusData, DoStackSwitch
-from inputremapper.gui.utils import CTX_ERROR, CTX_MAPPING, CTX_WARNING, gtk_iteration
+from inputremapper.gui.utils import CTX_ERROR, CTX_MAPPING, CTX_WARNING
 
 
 class Stack:
