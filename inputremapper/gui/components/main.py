@@ -77,9 +77,9 @@ class StatusBar:
         self._error_icon = error_icon
         self._warning_icon = warning_icon
 
-        self._gui.get_message_area().get_children()[0].set_ellipsize(
-            Pango.EllipsizeMode.END
-        )
+        label = self._gui.get_message_area().get_children()[0]
+        label.set_ellipsize(Pango.EllipsizeMode.END)
+        label.set_selectable(True)
 
         self._message_broker.subscribe(MessageType.status_msg, self._on_status_update)
 
