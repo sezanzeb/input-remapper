@@ -38,7 +38,9 @@ from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.configs.mapping import MappingData, UIMapping, \
+    MacroButTypeOrCodeSetError, SymbolAndCodeMismatchError, MissingOutputAxisError, \
+    MissingMacroOrKeyError, OutputSymbolVariantError, pydantify
 from inputremapper.configs.paths import sanitize_path_component
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
@@ -156,6 +158,7 @@ class Controller:
 
             position = mapping.format_name()
             error_strings = self._get_ui_error_strings(mapping)
+            tooltip = ""
             if len(error_strings) == 0:
                 # shouldn't be possible to get to this point
                 logger.error("Expected an error")
@@ -165,21 +168,25 @@ class Controller:
                     len(error_strings),
                     position,
                 )
+                tooltip = "– " + "\n– ".join(error_strings)
             else:
                 msg = f'"{position}": {error_strings[0]}'
+                tooltip = error_strings[0]
 
             self.show_status(
                 CTX_MAPPING,
                 msg.replace("\n", " "),
-                "\n".join(error_strings),
+                tooltip,
             )
 
     @staticmethod
-    def format_error_message(mapping, error_message: str) -> str:
+    def format_error_message(mapping, error_type, error_message: str) -> str:
         """Check all the different error messages which are not useful for the user."""
+        # There is no more elegant way of comparing error_type with the base class.
+        # https://github.com/pydantic/pydantic/discussions/5112
         if (
-            "output_symbol is a macro:" in error_message
-            or "output_symbol and output_code mismatch:" in error_message
+            pydantify(MacroButTypeOrCodeSetError) in error_type or
+            pydantify(SymbolAndCodeMismatchError) in error_type
         ) and mapping.input_combination.defines_analog_input:
             return _(
                 "Remove the macro or key from the macro input field "
@@ -187,14 +194,14 @@ class Controller:
             )
 
         if (
-            "output_symbol is a macro:" in error_message
-            or "output_symbol and output_code mismatch:" in error_message
+            pydantify(MacroButTypeOrCodeSetError) in error_type or
+            pydantify(SymbolAndCodeMismatchError) in error_type
         ) and not mapping.input_combination.defines_analog_input:
             return _(
                 "Remove the Analog Output Axis when specifying a macro or key output"
             )
 
-        if "Missing output axis:" in error_message:
+        if pydantify(MissingOutputAxisError) in error_type:
             error_message = _(
                 "The input specifies an analog axis, but no output axis is selected."
             )
@@ -212,7 +219,10 @@ class Controller:
                 )
             return error_message
 
-        if "missing macro or key:" in error_message and mapping.output_symbol is None:
+        if (
+            pydantify(MissingMacroOrKeyError) in error_type and
+            mapping.output_symbol is None
+        ):
             error_message = _(
                 "The input specifies a key or macro input, but no macro or key is "
                 "programmed."
@@ -239,7 +249,12 @@ class Controller:
         formatted_errors = []
 
         for error in validation_error.errors():
-            f'"{mapping.format_name()}":'
+            if pydantify(OutputSymbolVariantError) in error["type"]:
+                # this is rather internal, when this error appears in the gui, there is
+                # also always another more readable error at the same time that explains
+                # this problem.
+                continue
+
             error_string = f'"{mapping.format_name()}": '
             error_message = error["msg"]
             error_location = error["loc"][0]
@@ -248,7 +263,11 @@ class Controller:
 
             # check all the different error messages which are not useful for the user
             formatted_errors.append(
-                Controller.format_error_message(mapping, error_message)
+                Controller.format_error_message(
+                    mapping,
+                    error["type"],
+                    error_message,
+                )
             )
 
         return formatted_errors

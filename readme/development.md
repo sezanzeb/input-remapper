@@ -87,6 +87,9 @@ sudo pip install .
 New badges, if needed, will be created in `readme/` and they
 just need to be commited.
 
+Beware that coverage can suffer if old files reside in your python path. Remove the build folder
+and reinstall it.
+
 ## Translations
 
 To regenerate the `po/input-remapper.pot` file, run

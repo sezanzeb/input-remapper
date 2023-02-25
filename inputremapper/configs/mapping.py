@@ -110,6 +110,55 @@ class ImmutableCfg(Cfg):
     allow_mutation = False
 
 
+def pydantify(error: type):
+    """Generate a string as it would appear IN pydantic error types.
+
+    This does not include the base class name, which is transformed to snake case in
+    pydantic. Example pydantic error type: "value_error.foobar" for FooBarError.
+    """
+    # See https://github.com/pydantic/pydantic/discussions/5112
+    lower_classname = error.__name__.lower()
+    if lower_classname.endswith('error'):
+        return lower_classname[:-len('error')]
+    return lower_classname
+
+
+class OutputSymbolVariantError(ValueError):
+    pass
+
+
+class TriggerPointInRangeError(ValueError):
+    pass
+
+
+class OnlyOneAnalogInputError(ValueError):
+    pass
+
+
+class SymbolNotAvailableInTargetError(ValueError):
+    pass
+
+
+class OutputSymbolUnknownError(ValueError):
+    pass
+
+
+class MacroButTypeOrCodeSetError(ValueError):
+    pass
+
+
+class SymbolAndCodeMismatchError(ValueError):
+    pass
+
+
+class MissingMacroOrKeyError(ValueError):
+    pass
+
+
+class MissingOutputAxisError(ValueError):
+    pass
+
+
 class UIMapping(BaseModel):
     """Holds all the data for mapping an input action to an output action.
 
@@ -343,7 +392,7 @@ class Mapping(UIMapping):
         """Parse a macro to check for syntax errors."""
         symbol = values.get("output_symbol")
 
-        if symbol == '':
+        if symbol == "":
             values["output_symbol"] = None
             return values
 
@@ -366,7 +415,7 @@ class Mapping(UIMapping):
 
         code = system_mapping.get(symbol)
         if code is None:
-            raise ValueError(
+            raise OutputSymbolUnknownError(
                 f'The output_symbol "{symbol}" is not a macro and not a valid '
                 + "keycode-name"
             )
@@ -382,7 +431,7 @@ class Mapping(UIMapping):
 
             fitting_targets_string = '", "'.join(fitting_targets)
 
-            raise ValueError(
+            raise SymbolNotAvailableInTargetError(
                 f'The output_symbol "{symbol}" is not available for the "{target}" '
                 + f'target. Try "{fitting_targets_string}".'
             )
@@ -396,7 +445,7 @@ class Mapping(UIMapping):
         """
         analog_events = [event for event in combination if event.defines_analog_input]
         if len(analog_events) > 1:
-            raise ValueError(
+            raise OnlyOneAnalogInputError(
                 f"Cannot map a combination of multiple analog inputs: {analog_events}"
                 "add trigger points (event.value != 0) to map as a button"
             )
@@ -412,9 +461,10 @@ class Mapping(UIMapping):
                 and input_config.analog_threshold
                 and abs(input_config.analog_threshold) >= 100
             ):
-                raise ValueError(
-                    f"{input_config = } maps an absolute axis to a button, but the trigger "
-                    "point (event.analog_threshold) is not between -100[%] and 100[%]"
+                raise TriggerPointInRangeError(
+                    f"{input_config = } maps an absolute axis to a button, but the "
+                    "trigger point (event.analog_threshold) is not between -100[%] "
+                    "and 100[%]"
                 )
         return combination
 
@@ -425,7 +475,7 @@ class Mapping(UIMapping):
         o_type = values.get("output_type")
         o_code = values.get("output_code")
         if o_symbol is None and (o_type is None or o_code is None):
-            raise ValueError(
+            raise OutputSymbolVariantError(
                 "Missing Argument: Mapping must either contain "
                 "`output_symbol` or `output_type` and `output_code`"
             )
@@ -446,18 +496,19 @@ class Mapping(UIMapping):
             # we have a symbol: no type and code is fine
             return values
 
-        if is_this_a_macro(symbol):  # disallow output type and code for macros
+        if is_this_a_macro(symbol):
+            # disallow output type and code for macros
             if type_ is not None or code is not None:
-                raise ValueError(
+                raise MacroButTypeOrCodeSetError(
                     "output_symbol is a macro: output_type "
                     "and output_code must be None"
                 )
 
         if code is not None and code != system_mapping.get(symbol) or type_ != EV_KEY:
-            raise ValueError(
+            raise SymbolAndCodeMismatchError(
                 "output_symbol and output_code mismatch: "
-                f"output macro is {symbol} --> {system_mapping.get(symbol)} "
-                f"but output_code is {code} --> {system_mapping.get_name(code)} "
+                f"output macro is {symbol} -> {system_mapping.get(symbol)} "
+                f"but output_code is {code} -> {system_mapping.get_name(code)} "
             )
         return values
 
@@ -467,16 +518,15 @@ class Mapping(UIMapping):
         And vice versa."""
         assert isinstance(values.get("input_combination"), InputCombination)
         combination: InputCombination = values["input_combination"]
-        use_as_analog = True in [event.defines_analog_input for event in combination]
+        analog_input_config = combination.find_analog_input_config()
+        use_as_analog = analog_input_config is not None
 
         output_type = values.get("output_type")
         output_symbol = values.get("output_symbol")
 
         if not use_as_analog and not output_symbol and output_type != EV_KEY:
-            raise ValueError(
-                "missing macro or key: "
-                f'"{str(combination)}" is not used as analog input, '
-                f"but no output macro or key is programmed"
+            raise MissingMacroOrKeyError(
+                f'missing macro or key'
             )
 
         if (
@@ -484,9 +534,9 @@ class Mapping(UIMapping):
             and output_type not in (EV_ABS, EV_REL)
             and output_symbol != DISABLE_NAME
         ):
-            raise ValueError(
+            raise MissingOutputAxisError(
                 "Missing output axis: "
-                f'"{str(combination)}" is used as analog input, '
+                f'"{analog_input_config}" is used as analog input, '
                 f"but the {output_type = } is not an axis "
             )
 
