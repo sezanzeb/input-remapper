@@ -156,7 +156,11 @@ class Controller:
 
             position = mapping.format_name()
             error_strings = self._get_ui_error_strings(mapping)
-            if len(error_strings) > 1:
+            if len(error_strings) == 0:
+                # shouldn't be possible to get to this point
+                logger.error("Expected an error")
+                return
+            elif len(error_strings) > 1:
                 msg = _('%d Mapping errors at "%s", hover for info') % (
                     len(error_strings),
                     position,
@@ -164,14 +168,18 @@ class Controller:
             else:
                 msg = f'"{position}": {error_strings[0]}'
 
-            self.show_status(CTX_MAPPING, msg, '\n'.join(error_strings))
+            self.show_status(
+                CTX_MAPPING,
+                msg.replace("\n", " "),
+                "\n".join(error_strings),
+            )
 
     @staticmethod
-    def format_error(mapping, error_string: str) -> str:
+    def format_error_message(mapping, error_message: str) -> str:
         """Check all the different error messages which are not useful for the user."""
         if (
-            "output_symbol is a macro:" in error_string
-            or "output_symbol and output_code mismatch:" in error_string
+            "output_symbol is a macro:" in error_message
+            or "output_symbol and output_code mismatch:" in error_message
         ) and mapping.input_combination.defines_analog_input:
             return _(
                 "Remove the macro or key from the macro input field "
@@ -179,15 +187,15 @@ class Controller:
             )
 
         if (
-            "output_symbol is a macro:" in error_string
-            or "output_symbol and output_code mismatch:" in error_string
+            "output_symbol is a macro:" in error_message
+            or "output_symbol and output_code mismatch:" in error_message
         ) and not mapping.input_combination.defines_analog_input:
             return _(
                 "Remove the Analog Output Axis when specifying a macro or key output"
             )
 
-        if "Missing output axis:" in error_string:
-            error_string = _(
+        if "Missing output axis:" in error_message:
+            error_message = _(
                 "The input specifies an analog axis, but no output axis is selected."
             )
             if mapping.output_symbol is not None:
@@ -196,27 +204,27 @@ class Controller:
                     for event in mapping.input_combination
                     if event.defines_analog_input
                 ][0]
-                error_string += _(
+                error_message += _(
                     "\nIf you mean to create a key or macro mapping "
                     "go to the advanced input configuration"
                     ' and set a "Trigger Threshold" for '
                     f'"{event.description()}"'
                 )
-            return error_string
+            return error_message
 
-        if "missing macro or key:" in error_string and mapping.output_symbol is None:
-            error_string = _(
+        if "missing macro or key:" in error_message and mapping.output_symbol is None:
+            error_message = _(
                 "The input specifies a key or macro input, but no macro or key is "
                 "programmed."
             )
             if mapping.output_type in (EV_ABS, EV_REL):
-                error_string += _(
+                error_message += _(
                     "\nIf you mean to create an analog axis mapping go to the "
                     'advanced input configuration and set an input to "Use as Analog".'
                 )
-            return error_string
+            return error_message
 
-        return error_string
+        return error_message
 
     @staticmethod
     def _get_ui_error_strings(mapping: UIMapping) -> List[str]:
@@ -224,13 +232,11 @@ class Controller:
         validation_error = mapping.get_error()
 
         if validation_error is None:
-            # shouldn't be possible to get to this point
-            logger.error("_get_ui_error_string was called without an error")
-            return ""
+            return []
 
         logger.error(str(validation_error))
 
-        error_strings = []
+        formatted_errors = []
 
         for error in validation_error.errors():
             f'"{mapping.format_name()}":'
@@ -241,9 +247,11 @@ class Controller:
                 error_string += f"{error_location}: "
 
             # check all the different error messages which are not useful for the user
-            error_strings.append(Controller.format_error(mapping, error_message))
+            formatted_errors.append(
+                Controller.format_error_message(mapping, error_message)
+            )
 
-        return error_strings
+        return formatted_errors
 
     def get_a_preset(self) -> str:
         """Attempts to get the newest preset in the current group
