@@ -263,8 +263,6 @@ class Controller:
         if validation_error is None:
             return []
 
-        logger.error(str(validation_error).replace('\n', ' / '))
-
         formatted_errors = []
 
         for error in validation_error.errors():
