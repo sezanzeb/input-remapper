@@ -55,7 +55,11 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.exceptions import MacroParsingError
+from inputremapper.configs.validation_errors import (
+    SymbolNotAvailableInTargetError,
+    MacroParsingError,
+)
+from inputremapper.injection.global_uinputs import can_default_uinput_emit
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.logger import logger
 
@@ -123,21 +127,6 @@ def _type_check(value: Any, allowed_types, display_name=None, position=None) -> 
     raise MacroParsingError(
         msg=f"Expected parameter to be one of {allowed_types}, but got {value}"
     )
-
-
-def _type_check_symbol(keyname: Union[str, Variable]) -> int:
-    """Same as _type_check, but checks if the key-name is valid."""
-    if isinstance(keyname, Variable):
-        # it is a variable and will be read at runtime
-        return keyname
-
-    symbol = str(keyname)
-    code = system_mapping.get(symbol)
-
-    if code is None:
-        raise MacroParsingError(msg=f'Unknown key "{symbol}"')
-
-    return code
 
 
 def _type_check_variablename(name: str):
@@ -215,6 +204,8 @@ class Macro:
         self.code = code
         self.context = context
         self.mapping = mapping
+
+        # TODO check if mapping is ever none by throwing an error
 
         # List of coroutines that will be called sequentially.
         # This is the compiled code
@@ -317,12 +308,12 @@ class Macro:
         """Write the symbol."""
         # This is done to figure out if the macro is broken at compile time, because
         # if KEY_A was unknown we can show this in the gui before the injection starts.
-        _type_check_symbol(symbol)
+        self._type_check_symbol(symbol)
 
         async def task(handler: Callable):
             # if the code is $foo, figure out the correct code now.
             resolved_symbol = _resolve(symbol, [str])
-            code = _type_check_symbol(resolved_symbol)
+            code = self._type_check_symbol(resolved_symbol)
 
             resolved_code = _resolve(code, [int])
             handler(EV_KEY, resolved_code, 1)
@@ -334,11 +325,11 @@ class Macro:
 
     def add_key_down(self, symbol: str):
         """Press the symbol."""
-        _type_check_symbol(symbol)
+        self._type_check_symbol(symbol)
 
         async def task(handler: Callable):
             resolved_symbol = _resolve(symbol, [str])
-            code = _type_check_symbol(resolved_symbol)
+            code = self._type_check_symbol(resolved_symbol)
 
             resolved_code = _resolve(code, [int])
             handler(EV_KEY, resolved_code, 1)
@@ -347,11 +338,11 @@ class Macro:
 
     def add_key_up(self, symbol: str):
         """Release the symbol."""
-        _type_check_symbol(symbol)
+        self._type_check_symbol(symbol)
 
         async def task(handler: Callable):
             resolved_symbol = _resolve(symbol, [str])
-            code = _type_check_symbol(resolved_symbol)
+            code = self._type_check_symbol(resolved_symbol)
 
             resolved_code = _resolve(code, [int])
             handler(EV_KEY, resolved_code, 0)
@@ -370,11 +361,11 @@ class Macro:
             # if macro is a key name, hold down the key while the
             # keyboard key is physically held down
             symbol = macro
-            _type_check_symbol(symbol)
+            self._type_check_symbol(symbol)
 
             async def task(handler: Callable):
                 resolved_symbol = _resolve(symbol, [str])
-                code = _type_check_symbol(resolved_symbol)
+                code = self._type_check_symbol(resolved_symbol)
 
                 resolved_code = _resolve(code, [int])
                 handler(EV_KEY, resolved_code, 1)
@@ -405,14 +396,14 @@ class Macro:
         macro
         """
         _type_check(macro, [Macro], "modify", 2)
-        _type_check_symbol(modifier)
+        self._type_check_symbol(modifier)
 
         self.child_macros.append(macro)
 
         async def task(handler: Callable):
             # TODO test var
             resolved_modifier = _resolve(modifier, [str])
-            code = _type_check_symbol(resolved_modifier)
+            code = self._type_check_symbol(resolved_modifier)
 
             handler(EV_KEY, code, 1)
             await self._keycode_pause()
@@ -425,11 +416,11 @@ class Macro:
     def add_hold_keys(self, *symbols):
         """Hold down multiple keys, equivalent to `a + b + c + ...`."""
         for symbol in symbols:
-            _type_check_symbol(symbol)
+            self._type_check_symbol(symbol)
 
         async def task(handler: Callable):
             resolved_symbols = [_resolve(symbol, [str]) for symbol in symbols]
-            codes = [_type_check_symbol(symbol) for symbol in resolved_symbols]
+            codes = [self._type_check_symbol(symbol) for symbol in resolved_symbols]
 
             for code in codes:
                 handler(EV_KEY, code, 1)
@@ -698,3 +689,22 @@ class Macro:
                 await else_.run(handler)
 
         self.tasks.append(task)
+
+    def _type_check_symbol(self, keyname: Union[str, Variable]) -> Union[Variable, int]:
+        """Same as _type_check, but checks if the key-name is valid."""
+        if isinstance(keyname, Variable):
+            # it is a variable and will be read at runtime
+            return keyname
+
+        symbol = str(keyname)
+        code = system_mapping.get(symbol)
+
+        if code is None:
+            raise MacroParsingError(msg=f'Unknown key "{symbol}"')
+
+        if self.mapping is not None:
+            target = self.mapping.target_uinput
+            if target is not None and not can_default_uinput_emit(target, EV_KEY, code):
+                raise SymbolNotAvailableInTargetError(symbol, target)
+
+        return code

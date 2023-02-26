@@ -42,7 +42,10 @@ from evdev.ecodes import (
 
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.exceptions import MacroParsingError
+from inputremapper.configs.validation_errors import (
+    MacroParsingError,
+    SymbolNotAvailableInTargetError,
+)
 from inputremapper.injection.context import Context
 from inputremapper.injection.macros.macro import (
     Macro,
@@ -117,6 +120,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
 class DummyMapping:
     macro_key_sleep_ms = 10
     rel_rate = 60
+    target_uinput = "keyboard + mouse"
 
 
 class TestMacros(MacroTestBase):
@@ -520,7 +524,7 @@ class TestMacros(MacroTestBase):
         self.assertRaises(MacroParsingError, parse, "wait(a)", self.context)
         parse("ifeq(a, 2, k(a),)", self.context)  # no error
         parse("ifeq(a, 2, , k(a))", self.context)  # no error
-        parse("ifeq(a, 2, None, k(a))", self.context, True)  # no error
+        parse("ifeq(a, 2, None, k(a))", self.context)  # no error
         self.assertRaises(MacroParsingError, parse, "ifeq(a, 2, 1,)", self.context)
         self.assertRaises(MacroParsingError, parse, "ifeq(a, 2, , 2)", self.context)
         parse("if_eq(2, $a, k(a),)", self.context)  # no error
@@ -546,6 +550,15 @@ class TestMacros(MacroTestBase):
 
         parse("add(a, 1)", self.context)  # no error
         self.assertRaises(MacroParsingError, parse, "add(a, b)", self.context)
+
+        # wrong target for BTN_A
+        self.assertRaises(
+            SymbolNotAvailableInTargetError,
+            parse,
+            "key(BTN_A)",
+            self.context,
+            DummyMapping,
+        )
 
     async def test_key(self):
         code_a = system_mapping.get("a")

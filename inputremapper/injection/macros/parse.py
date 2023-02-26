@@ -25,7 +25,7 @@ import inspect
 import re
 from typing import Optional, Any
 
-from inputremapper.exceptions import MacroParsingError
+from inputremapper.configs.validation_errors import MacroParsingError
 from inputremapper.injection.macros.macro import Macro, Variable
 from inputremapper.logger import logger
 
@@ -452,6 +452,7 @@ def parse(macro: str, context=None, mapping=None, verbose: bool = True):
     verbose
         log the parsing True by default
     """
+    # TODO pass mapping in frontend and do the target check for keys?
     logger.debug("parsing macro %s", macro.replace("\n", ""))
     macro = clean(macro)
     macro = handle_plus_syntax(macro)

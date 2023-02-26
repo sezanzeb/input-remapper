@@ -28,6 +28,7 @@ from evdev.ecodes import (
     REL_Y,
     REL_WHEEL,
     REL_WHEEL_HI_RES,
+    KEY_1,
 )
 from pydantic import ValidationError
 
@@ -366,63 +367,103 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         m = Mapping(**cfg)
         self.assertTrue(m.is_valid())
 
+    def test_wrong_target(self):
+        mapping = Mapping(
+            input_combination=[{"type": EV_KEY, "code": KEY_1}],
+            target_uinput="keyboard",
+            output_symbol="a",
+        )
+        mapping.set_combination_changed_callback(lambda *args: None)
+        self.assertRaisesRegex(
+            ValidationError,
+            # the error should mention
+            # - the symbol
+            # - the current incorrect target
+            # - the target that works for this symbol
+            ".*BTN_A.*keyboard.*gamepad",
+            mapping.__setattr__,
+            "output_symbol",
+            "BTN_A",
+        )
+
+    def test_wrong_target_for_macro(self):
+        mapping = Mapping(
+            input_combination=[{"type": EV_KEY, "code": KEY_1}],
+            target_uinput="keyboard",
+            output_symbol="key(a)",
+        )
+        mapping.set_combination_changed_callback(lambda *args: None)
+        self.assertRaisesRegex(
+            ValidationError,
+            # the error should mention
+            # - the symbol
+            # - the current incorrect target
+            # - the target that works for this symbol
+            ".*BTN_A.*keyboard.*gamepad",
+            mapping.__setattr__,
+            "output_symbol",
+            "key(BTN_A)",
+        )
+
 
 class TestUIMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
-        """should be able to initialize without an error"""
+        """Should be able to initialize without throwing errors."""
         UIMapping()
 
     def test_is_valid(self):
-        """should be invalid at first
-        and become valid once all data is provided"""
-        m = UIMapping()
-        self.assertFalse(m.is_valid())
+        """Should be invalid at first and become valid once all data is provided."""
+        mapping = UIMapping()
+        self.assertFalse(mapping.is_valid())
 
-        m.input_combination = [{"type": 1, "code": 2}]
-        m.output_symbol = "a"
-        self.assertFalse(m.is_valid())
-        m.target_uinput = "keyboard"
-        self.assertTrue(m.is_valid())
+        mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
+        mapping.output_symbol = "a"
+        self.assertFalse(mapping.is_valid())
+        mapping.target_uinput = "keyboard"
+        self.assertTrue(mapping.is_valid())
 
     def test_updates_validation_error(self):
-        m = UIMapping()
-        self.assertGreaterEqual(len(m.get_error().errors()), 2)
-        m.input_combination = [{"type": 1, "code": 2}]
-        m.output_symbol = "a"
+        mapping = UIMapping()
+        self.assertGreaterEqual(len(mapping.get_error().errors()), 2)
+        mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
+        mapping.output_symbol = "a"
         self.assertIn(
-            "1 validation error for Mapping\ntarget_uinput", str(m.get_error())
+            "1 validation error for Mapping\ntarget_uinput",
+            str(mapping.get_error()),
         )
-        m.target_uinput = "keyboard"
-        self.assertTrue(m.is_valid())
-        self.assertIsNone(m.get_error())
+        mapping.target_uinput = "keyboard"
+        self.assertTrue(mapping.is_valid())
+        self.assertIsNone(mapping.get_error())
 
     def test_copy_returns_ui_mapping(self):
-        """copy should also be a UIMapping with all the invalid data"""
-        m = UIMapping()
-        m2 = m.copy()
-        self.assertIsInstance(m2, UIMapping)
-        self.assertEqual(m2.input_combination, InputCombination.empty_combination())
-        self.assertIsNone(m2.output_symbol)
+        """Copy should also be a UIMapping with all the invalid data."""
+        mapping = UIMapping()
+        mapping_2 = mapping.copy()
+        self.assertIsInstance(mapping_2, UIMapping)
+        self.assertEqual(
+            mapping_2.input_combination, InputCombination.empty_combination()
+        )
+        self.assertIsNone(mapping_2.output_symbol)
 
     def test_get_bus_massage(self):
-        m = UIMapping()
-        m2 = m.get_bus_message()
-        self.assertEqual(m2.message_type, MessageType.mapping)
+        mapping = UIMapping()
+        mapping_2 = mapping.get_bus_message()
+        self.assertEqual(mapping_2.message_type, MessageType.mapping)
 
         with self.assertRaises(TypeError):
             # the massage should be immutable
-            m2.output_symbol = "a"
-        self.assertIsNone(m2.output_symbol)
+            mapping_2.output_symbol = "a"
+        self.assertIsNone(mapping_2.output_symbol)
 
         # the original should be not immutable
-        m.output_symbol = "a"
-        self.assertEqual(m.output_symbol, "a")
+        mapping.output_symbol = "a"
+        self.assertEqual(mapping.output_symbol, "a")
 
     def test_has_input_defined(self):
-        m = UIMapping()
-        self.assertFalse(m.has_input_defined())
-        m.input_combination = InputCombination([InputConfig(type=EV_KEY, code=1)])
-        self.assertTrue(m.has_input_defined())
+        mapping = UIMapping()
+        self.assertFalse(mapping.has_input_defined())
+        mapping.input_combination = InputCombination([InputConfig(type=EV_KEY, code=1)])
+        self.assertTrue(mapping.has_input_defined())
 
 
 if __name__ == "__main__":

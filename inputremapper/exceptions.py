@@ -20,8 +20,6 @@
 
 """Exceptions specific to inputremapper."""
 
-from typing import Optional
-
 
 class Error(Exception):
     """Base class for exceptions in inputremapper.
@@ -42,14 +40,6 @@ class EventNotHandled(Error):
 
     def __init__(self, event):
         super().__init__(f"Event {event} can not be handled by the configured target")
-
-
-class MacroParsingError(Error):
-    """Macro syntax errors."""
-
-    def __init__(self, symbol: Optional[str] = None, msg="Error while parsing a macro"):
-        self.symbol = symbol
-        super().__init__(msg)
 
 
 class MappingParsingError(Error):

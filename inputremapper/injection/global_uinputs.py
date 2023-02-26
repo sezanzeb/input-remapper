@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Union, Tuple, Optional
+from typing import Dict, Union, Tuple, Optional, List
 
 import evdev
 
@@ -57,6 +57,21 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
         *DEFAULT_UINPUTS["mouse"][evdev.ecodes.EV_REL],
     ],
 }
+
+
+def can_default_uinput_emit(target: str, type_: int, code: int) -> bool:
+    """Check if the uinput with the target name is capable of the event."""
+    capabilities = DEFAULT_UINPUTS.get(target, {}).get(type_)
+    return capabilities is not None and code in capabilities
+
+
+def find_fitting_default_uinputs(type_: int, code: int) -> List[str]:
+    """Find the names of default uinputs that are able to emit this event."""
+    return [
+        uinput
+        for uinput in DEFAULT_UINPUTS
+        if code in DEFAULT_UINPUTS[uinput].get(type_, [])
+    ]
 
 
 class UInput(evdev.UInput):
