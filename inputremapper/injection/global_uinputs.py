@@ -70,7 +70,7 @@ def find_fitting_default_uinputs(type_: int, code: int) -> List[str]:
     return [
         uinput
         for uinput in DEFAULT_UINPUTS
-        if code in DEFAULT_UINPUTS[uinput].get(type_)
+        if code in DEFAULT_UINPUTS[uinput].get(type_, [])
     ]
 
 
