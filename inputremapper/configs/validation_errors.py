@@ -23,6 +23,8 @@
 # be intelligent to avoid redundant code, and they need imports, which would cause
 # circular imports.
 
+# pydantic only catches ValueError, TypeError, and AssertionError
+
 from __future__ import annotations
 
 from typing import Optional
