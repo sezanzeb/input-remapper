@@ -851,13 +851,13 @@ Shortcut: ctrl + del</property>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Available output axes are affected by the Target setting.</property>
                                     <property name="spacing">12</property>
                                     <child>
                                       <object class="GtkLabel">
                                         <property name="width-request">100</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="tooltip-text" translatable="yes">Available output axes are affected by the Target setting.</property>
                                         <property name="opacity">0.5</property>
                                         <property name="label" translatable="yes">Output axis</property>
                                         <property name="xalign">1</property>
