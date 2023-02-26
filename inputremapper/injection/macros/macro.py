@@ -690,7 +690,7 @@ class Macro:
 
         self.tasks.append(task)
 
-    def _type_check_symbol(self, keyname: Union[str, Variable]) -> Union[str, int]:
+    def _type_check_symbol(self, keyname: Union[str, Variable]) -> Union[Variable, int]:
         """Same as _type_check, but checks if the key-name is valid."""
         if isinstance(keyname, Variable):
             # it is a variable and will be read at runtime
