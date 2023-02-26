@@ -30,7 +30,6 @@ from typing import Optional
 from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.exceptions import Error
 from inputremapper.injection.global_uinputs import find_fitting_default_uinputs
 
 
