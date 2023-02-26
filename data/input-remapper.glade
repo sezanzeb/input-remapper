@@ -419,6 +419,7 @@ Shortcut: ctrl + del</property>
                       <object class="GtkSwitch" id="preset_autoload_switch">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Activate this to load the preset next time the device connects, or when the user logs in</property>
                         <property name="halign">start</property>
                         <property name="valign">center</property>
                       </object>
