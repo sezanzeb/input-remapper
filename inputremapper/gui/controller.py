@@ -688,9 +688,9 @@ class Controller:
                 self.show_status,
                 CTX_ERROR,
                 "The device was not grabbed",
-                "Either another application is already grabbing it or "
+                "Either another application is already grabbing it, "
                 "your preset doesn't contain anything that is sent by the "
-                "device.",
+                "device or your preset contains errors",
             ),
             InjectorState.UPGRADE_EVDEV: partial(
                 self.show_status,

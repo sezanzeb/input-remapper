@@ -367,6 +367,44 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         m = Mapping(**cfg)
         self.assertTrue(m.is_valid())
 
+    def test_wrong_target(self):
+        mapping = Mapping(
+            input_combination=[{"type": EV_KEY, "code": KEY_1}],
+            target_uinput="keyboard",
+            output_symbol="a",
+        )
+        mapping.set_combination_changed_callback(lambda *args: None)
+        self.assertRaisesRegex(
+            ValidationError,
+            # the error should mention
+            # - the symbol
+            # - the current incorrect target
+            # - the target that works for this symbol
+            ".*BTN_A.*keyboard.*gamepad",
+            mapping.__setattr__,
+            "output_symbol",
+            "BTN_A",
+        )
+
+    def test_wrong_target_for_macro(self):
+        mapping = Mapping(
+            input_combination=[{"type": EV_KEY, "code": KEY_1}],
+            target_uinput="keyboard",
+            output_symbol="key(a)",
+        )
+        mapping.set_combination_changed_callback(lambda *args: None)
+        self.assertRaisesRegex(
+            ValidationError,
+            # the error should mention
+            # - the symbol
+            # - the current incorrect target
+            # - the target that works for this symbol
+            ".*BTN_A.*keyboard.*gamepad",
+            mapping.__setattr__,
+            "output_symbol",
+            "key(BTN_A)",
+        )
+
 
 class TestUIMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):

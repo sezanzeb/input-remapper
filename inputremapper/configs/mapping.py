@@ -20,9 +20,9 @@
 from __future__ import annotations
 
 import enum
-from typing import Optional, Callable, Tuple, TypeVar, Literal, Union, Any, Dict
+from collections import namedtuple
+from typing import Optional, Callable, Tuple, TypeVar, Union, Any, Dict
 
-import evdev
 import pkg_resources
 from evdev.ecodes import (
     EV_KEY,
@@ -48,10 +48,21 @@ from pydantic import (
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
-from inputremapper.exceptions import MacroParsingError
+from inputremapper.configs.validation_errors import (
+    OutputSymbolUnknownError,
+    SymbolNotAvailableInTargetError,
+    OnlyOneAnalogInputError,
+    TriggerPointInRangeError,
+    OutputSymbolVariantError,
+    MacroButTypeOrCodeSetError,
+    SymbolAndCodeMismatchError,
+    MissingMacroOrKeyError,
+    MissingOutputAxisError,
+    MacroParsingError,
+)
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
-from inputremapper.injection.global_uinputs import DEFAULT_UINPUTS
+from inputremapper.injection.global_uinputs import can_default_uinput_emit
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.utils import get_evdev_constant_name
 
@@ -108,42 +119,6 @@ class Cfg(BaseConfig):
 
 class ImmutableCfg(Cfg):
     allow_mutation = False
-
-
-class OutputSymbolVariantError(ValueError):
-    pass
-
-
-class TriggerPointInRangeError(ValueError):
-    pass
-
-
-class OnlyOneAnalogInputError(ValueError):
-    pass
-
-
-class SymbolNotAvailableInTargetError(ValueError):
-    pass
-
-
-class OutputSymbolUnknownError(ValueError):
-    pass
-
-
-class MacroButTypeOrCodeSetError(ValueError):
-    pass
-
-
-class SymbolAndCodeMismatchError(ValueError):
-    pass
-
-
-class MissingMacroOrKeyError(ValueError):
-    pass
-
-
-class MissingOutputAxisError(ValueError):
-    pass
 
 
 class UIMapping(BaseModel):
@@ -394,7 +369,9 @@ class Mapping(UIMapping):
 
         if is_this_a_macro(symbol):
             try:
-                parse(symbol, verbose=False)  # raises MacroParsingError
+                mapping_mock = namedtuple("Mapping", values.keys())(**values)
+                # raises MacroParsingError
+                parse(symbol, mapping=mapping_mock, verbose=False)
                 return values
             except MacroParsingError as exception:
                 # pydantic only catches ValueError, TypeError, and AssertionError
@@ -402,26 +379,11 @@ class Mapping(UIMapping):
 
         code = system_mapping.get(symbol)
         if code is None:
-            raise OutputSymbolUnknownError(
-                f'The output_symbol "{symbol}" is not a macro and not a valid '
-                + "keycode-name"
-            )
+            raise OutputSymbolUnknownError(symbol)
 
         target = values.get("target_uinput")
-        capabilities = DEFAULT_UINPUTS.get(target, {}).get(EV_KEY)
-        if capabilities is not None and code not in capabilities:
-            fitting_targets = [
-                uinput
-                for uinput in DEFAULT_UINPUTS
-                if code in DEFAULT_UINPUTS[uinput].get(EV_KEY)
-            ]
-
-            fitting_targets_string = '", "'.join(fitting_targets)
-
-            raise SymbolNotAvailableInTargetError(
-                f'The output_symbol "{symbol}" is not available for the "{target}" '
-                + f'target. Try "{fitting_targets_string}".'
-            )
+        if target is not None and not can_default_uinput_emit(target, EV_KEY, code):
+            raise SymbolNotAvailableInTargetError(symbol, target)
 
         return values
 
@@ -432,10 +394,7 @@ class Mapping(UIMapping):
         """
         analog_events = [event for event in combination if event.defines_analog_input]
         if len(analog_events) > 1:
-            raise OnlyOneAnalogInputError(
-                f"Cannot map a combination of multiple analog inputs: {analog_events}"
-                "add trigger points (event.value != 0) to map as a button"
-            )
+            raise OnlyOneAnalogInputError(analog_events)
 
         return combination
 
@@ -448,11 +407,7 @@ class Mapping(UIMapping):
                 and input_config.analog_threshold
                 and abs(input_config.analog_threshold) >= 100
             ):
-                raise TriggerPointInRangeError(
-                    f"{input_config = } maps an absolute axis to a button, but the "
-                    "trigger point (event.analog_threshold) is not between -100[%] "
-                    "and 100[%]"
-                )
+                raise TriggerPointInRangeError(input_config)
         return combination
 
     @root_validator
@@ -462,10 +417,7 @@ class Mapping(UIMapping):
         o_type = values.get("output_type")
         o_code = values.get("output_code")
         if o_symbol is None and (o_type is None or o_code is None):
-            raise OutputSymbolVariantError(
-                "Missing Argument: Mapping must either contain "
-                "`output_symbol` or `output_type` and `output_code`"
-            )
+            raise OutputSymbolVariantError()
         return values
 
     @root_validator
@@ -486,17 +438,10 @@ class Mapping(UIMapping):
         if is_this_a_macro(symbol):
             # disallow output type and code for macros
             if type_ is not None or code is not None:
-                raise MacroButTypeOrCodeSetError(
-                    "output_symbol is a macro: output_type "
-                    "and output_code must be None"
-                )
+                raise MacroButTypeOrCodeSetError()
 
         if code is not None and code != system_mapping.get(symbol) or type_ != EV_KEY:
-            raise SymbolAndCodeMismatchError(
-                "output_symbol and output_code mismatch: "
-                f"output macro is {symbol} -> {system_mapping.get(symbol)} "
-                f"but output_code is {code} -> {system_mapping.get_name(code)} "
-            )
+            raise SymbolAndCodeMismatchError(symbol, code)
         return values
 
     @root_validator
@@ -512,18 +457,14 @@ class Mapping(UIMapping):
         output_symbol = values.get("output_symbol")
 
         if not use_as_analog and not output_symbol and output_type != EV_KEY:
-            raise MissingMacroOrKeyError(f"missing macro or key")
+            raise MissingMacroOrKeyError()
 
         if (
             use_as_analog
             and output_type not in (EV_ABS, EV_REL)
             and output_symbol != DISABLE_NAME
         ):
-            raise MissingOutputAxisError(
-                "Missing output axis: "
-                f'"{analog_input_config}" is used as analog input, '
-                f"but the {output_type = } is not an axis "
-            )
+            raise MissingOutputAxisError(analog_input_config, output_type)
 
         return values
 
