@@ -49,6 +49,7 @@ from inputremapper.configs.mapping import (
 )
 from inputremapper.configs.paths import sanitize_path_component
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.validation_errors import pydantify
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
@@ -76,19 +77,6 @@ if TYPE_CHECKING:
 
 
 MAPPING_DEFAULTS = {"target_uinput": "keyboard"}
-
-
-def pydantify(error: type):
-    """Generate a string as it would appear IN pydantic error types.
-
-    This does not include the base class name, which is transformed to snake case in
-    pydantic. Example pydantic error type: "value_error.foobar" for FooBarError.
-    """
-    # See https://github.com/pydantic/pydantic/discussions/5112
-    lower_classname = error.__name__.lower()
-    if lower_classname.endswith("error"):
-        return lower_classname[: -len("error")]
-    return lower_classname
 
 
 class Controller:
