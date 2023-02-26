@@ -368,14 +368,10 @@ class Mapping(UIMapping):
             return values
 
         if is_this_a_macro(symbol):
-            try:
-                mapping_mock = namedtuple("Mapping", values.keys())(**values)
-                # raises MacroParsingError
-                parse(symbol, mapping=mapping_mock, verbose=False)
-                return values
-            except MacroParsingError as exception:
-                # pydantic only catches ValueError, TypeError, and AssertionError
-                raise ValueError(exception) from exception
+            mapping_mock = namedtuple("Mapping", values.keys())(**values)
+            # raises MacroParsingError
+            parse(symbol, mapping=mapping_mock, verbose=False)
+            return values
 
         code = system_mapping.get(symbol)
         if code is None:
