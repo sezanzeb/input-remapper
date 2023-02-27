@@ -54,7 +54,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import is_this_a_macro
-from inputremapper.logger import logger, VERSION, IS_BETA
+from inputremapper.logger import logger, VERSION
 from inputremapper.user import HOME
 
 
@@ -169,12 +169,12 @@ def _update_version():
         json.dump(config, file, indent=4)
 
 
-def _rename_config(new_path=CONFIG_PATH):
+def _rename_to_input_remapper():
     """Rename .config/key-mapper to .config/input-remapper."""
     old_config_path = os.path.join(HOME, ".config/key-mapper")
-    if not os.path.exists(new_path) and os.path.exists(old_config_path):
-        logger.info("Moving %s to %s", old_config_path, new_path)
-        shutil.move(old_config_path, new_path)
+    if not os.path.exists(CONFIG_PATH) and os.path.exists(old_config_path):
+        logger.info("Moving %s to %s", old_config_path, CONFIG_PATH)
+        shutil.move(old_config_path, CONFIG_PATH)
 
 
 def _find_target(symbol):
@@ -429,19 +429,29 @@ def _convert_to_individual_mappings():
         migrated_preset.save()
 
 
-def _copy_to_beta():
-    if os.path.exists(CONFIG_PATH) or not IS_BETA:
+def _copy_to_v2():
+    """Move the beta config to the v2 path, or copy the v1 config to the v2 path."""
+    # TODO test
+    if os.path.exists(CONFIG_PATH):
         # don't copy to already existing folder
-        # users should delete the beta folder if they need to
+        # users should delete the input-remapper-2 folder if they need to
         return
 
-    regular_path = os.path.join(*os.path.split(CONFIG_PATH)[:-1])
-    # workaround to maker sure the rename from key-mapper to input-remapper
-    # does not move everythig to the beta folder
-    _rename_config(regular_path)
-    if os.path.exists(regular_path):
-        logger.debug("copying all from %s to %s", regular_path, CONFIG_PATH)
-        shutil.copytree(regular_path, CONFIG_PATH)
+    # there has never been a different version than "1.6.0-beta" in beta, so we only
+    # need to check for that exact directory
+    beta_path = os.path.join(HOME, ".config/input-remapper/beta_1.6.0-beta")
+    if os.path.exists(beta_path):
+        # already migrated, possibly new presets in them, move to v2 path
+        logger.debug("moving %s to %s", beta_path, CONFIG_PATH)
+        shutil.move(beta_path, CONFIG_PATH)
+        return
+
+    old_path = os.path.join(HOME, ".config/input-remapper")
+    if os.path.exists(old_path):
+        # no beta path, only old presets exist. COPY to v2 path, which will then be
+        # migrated by the various migrations.
+        logger.debug("copying all from %s to %s", old_path, CONFIG_PATH)
+        shutil.copytree(old_path, CONFIG_PATH)
 
 
 def _remove_logs():
@@ -459,17 +469,18 @@ def _remove_logs():
 def migrate():
     """Migrate config files to the current release."""
 
-    _copy_to_beta()
+    _rename_to_input_remapper()
+
+    _copy_to_v2()
+
     v = config_version()
+
     if v < pkg_resources.parse_version("0.4.0"):
         _config_suffix()
         _preset_path()
 
     if v < pkg_resources.parse_version("1.2.2"):
         _mapping_keys()
-
-    if v < pkg_resources.parse_version("1.3.0"):
-        _rename_config()
 
     if v < pkg_resources.parse_version("1.4.0"):
         global_uinputs.prepare_all()

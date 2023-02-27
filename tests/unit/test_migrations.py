@@ -42,7 +42,6 @@ from inputremapper.configs.migrations import migrate, config_version
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.paths import touch, CONFIG_PATH, mkdir, get_preset_path
-from inputremapper.logger import IS_BETA
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.user import HOME
 
@@ -73,10 +72,7 @@ class TestMigrations(unittest.TestCase):
 
     def test_rename_config(self):
         old = os.path.join(HOME, ".config", "key-mapper")
-        if IS_BETA:
-            new = os.path.join(*os.path.split(CONFIG_PATH)[:-1])
-        else:
-            new = CONFIG_PATH
+        new = CONFIG_PATH
 
         # we are not destroying our actual config files with this test
         self.assertTrue(new.startswith(tmp), f'Expected "{new}" to start with "{tmp}"')
