@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright [year] [name] -->
+<component type="desktop-application">
+  <id>io.github.sezanzeb.input_remapper</id>
+  
+  <name>Input Remapper</name>
+  <summary>An easy to use tool to change the mapping of your input device buttons</summary>
+  
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>gamepad</control>
+  </supports>
+  
+  <description>
+    <p>
+      An easy to use tool to change the mapping of your input device buttons. Supports mice, keyboards, gamepads, X11, Wayland, combined buttons and programmable macros. Allows mapping non-keyboard events (click, joystick, wheel) to keys of keyboard devices.
+    </p>
+  </description>
+  
+  <launchable type="desktop-id">input-remapper.desktop</launchable>
+  
+  <screenshots>
+    <screenshot type="default">
+      <caption>Defining a new mapping</caption>
+      <image>https://raw.githubusercontent.com/sezanzeb/input-remapper/main/readme/screenshot.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/sezanzeb/input-remapper/main/readme/screenshot_2.png</image>
+    </screenshot>
+  </screenshots>
+  
+  <url type="homepage">https://github.com/sezanzeb/input-remapper</url>
+  
+  <content_rating type="oars-1.1" />
+  
+  <releases>
+    <release version="1.5.0" date="2022-06-22" />
+  </releases>
+  
+</component>

@@ -10,7 +10,7 @@ build_deb() {
   cp ./DEBIAN build/deb/ -r
   mkdir dist -p
   rm dist/input-remapper-1.6.0-beta.deb || true
-  dpkg -b build/deb dist/input-remapper-1.6.0-beta.deb
+  dpkg-deb -Z gzip -b build/deb dist/input-remapper-1.6.0-beta.deb
 }
 
 build_deb &
