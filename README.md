@@ -1,6 +1,6 @@
 <p align="center"><img src="data/input-remapper.svg" width=100/></p>
 
-<h1 align="center">Input Remapper (Beta)</h1>
+<h1 align="center">Input Remapper</h1>
 
 <p align="center">
   An easy to use tool to change the behaviour of your input devices.<br/>
@@ -59,10 +59,3 @@ sudo systemctl restart input-remapper
 ```
 
 If it doesn't seem to install, you can also try `sudo python3 setup.py install`
-
-##### Beta
-
-The `beta` branch contains features that still require work, but that are ready for testing. It uses a different
-config path, so your presets won't break. `input-remapper-beta-git` can be installed from the AUR. If you are
-facing problems, please open up an [issue](https://github.com/sezanzeb/input-remapper/issues).
-
