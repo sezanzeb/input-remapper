@@ -23,9 +23,13 @@
 
 ##### Migrating old configs to v2
 
-If you want to migrate your beta configs to v2, run `mv ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2`
+If you want to migrate your beta configs to v2, run
 
-If you want to migrate your v1 configs to v2, run `mv ~/.config/input-remapper/ ~/.config/input-remapper-2`
+`mv ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2`
+
+If you want to migrate your v1 configs to v2, run
+
+`mv ~/.config/input-remapper/ ~/.config/input-remapper-2`
 
 Then start input-remapper
 
