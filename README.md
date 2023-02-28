@@ -21,18 +21,6 @@
 
 ## Installation
 
-##### Migrating old configs to v2
-
-If you want to migrate your beta configs to v2, run
-
-`mv ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2`
-
-If you want to migrate your v1 configs to v2, run
-
-`mv ~/.config/input-remapper/ ~/.config/input-remapper-2`
-
-Then start input-remapper
-
 ##### Manjaro/Arch
 
 ```bash
@@ -69,5 +57,17 @@ sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remappe
 sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
 ```
+
+##### Migrating old configs to v2
+
+If you want to migrate your beta configs to v2, run
+
+`mv ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2`
+
+If you want to migrate your v1 configs to v2, run
+
+`mv ~/.config/input-remapper/ ~/.config/input-remapper-2`
+
+Then start input-remapper
 
 If it doesn't seem to install, you can also try `sudo python3 setup.py install`
