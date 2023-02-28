@@ -62,6 +62,8 @@ sudo systemctl restart input-remapper
 
 ## Migrating old configs to v2
 
+If you never installed beta alongside v1, there is no need to do anything.
+
 If you want to migrate your beta configs to v2, run
 
 `mv ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2`
