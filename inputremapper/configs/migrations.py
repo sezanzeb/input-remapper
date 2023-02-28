@@ -437,21 +437,23 @@ def _copy_to_v2():
         # users should delete the input-remapper-2 folder if they need to
         return
 
-    # there has never been a different version than "1.6.0-beta" in beta, so we only
-    # need to check for that exact directory
-    beta_path = os.path.join(HOME, ".config/input-remapper/beta_1.6.0-beta")
-    if os.path.exists(beta_path):
-        # already migrated, possibly new presets in them, move to v2 path
-        logger.debug("moving %s to %s", beta_path, CONFIG_PATH)
-        shutil.move(beta_path, CONFIG_PATH)
-        return
-
+    # prioritize the v1 configs over beta configs
     old_path = os.path.join(HOME, ".config/input-remapper")
     if os.path.exists(old_path):
         # no beta path, only old presets exist. COPY to v2 path, which will then be
         # migrated by the various migrations.
         logger.debug("copying all from %s to %s", old_path, CONFIG_PATH)
         shutil.copytree(old_path, CONFIG_PATH)
+        return
+
+    # if v1 configs don't exist, try to find beta configs.
+    beta_path = os.path.join(HOME, ".config/input-remapper/beta_1.6.0-beta")
+    if os.path.exists(beta_path):
+        # There has never been a different version than "1.6.0-beta" in beta, so we
+        # only need to check for that exact directory
+        # already migrated, possibly new presets in them, move to v2 path
+        logger.debug("moving %s to %s", beta_path, CONFIG_PATH)
+        shutil.move(beta_path, CONFIG_PATH)
 
 
 def _remove_logs():
