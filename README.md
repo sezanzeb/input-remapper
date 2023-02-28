@@ -50,6 +50,8 @@ Python packages need to be installed globally for the service to be able to impo
 
 Conda can cause problems due to changed python paths and versions.
 
+If it doesn't seem to install, you can also try `sudo python3 setup.py install`
+
 ```bash
 sudo pip install evdev -U  # If newest version not in distros repo
 sudo pip uninstall key-mapper  # In case the old package is still installed
@@ -69,5 +71,3 @@ If you want to migrate your v1 configs to v2, run
 `mv ~/.config/input-remapper/ ~/.config/input-remapper-2`
 
 Then start input-remapper
-
-If it doesn't seem to install, you can also try `sudo python3 setup.py install`
