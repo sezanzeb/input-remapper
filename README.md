@@ -66,10 +66,14 @@ If you never installed beta alongside v1, there is no need to do anything.
 
 If you want to migrate your beta configs to v2, run
 
-`cp ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2 -r`
+```
+cp ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2 -r
+```
 
 If you want to migrate your v1 configs to v2, run
 
-`cp ~/.config/input-remapper/ ~/.config/input-remapper-2 -r`
+```
+cp ~/.config/input-remapper/ ~/.config/input-remapper-2 -r
+```
 
 Then start input-remapper
