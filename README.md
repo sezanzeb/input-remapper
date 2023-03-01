@@ -62,19 +62,12 @@ sudo systemctl restart input-remapper
 
 ## Migrating beta configs to version 2
 
-By default Inputremapper will only migrate configurations from the v1 main branch.
-If you want to use configurations created on the beta branch you will need to copy 
-them manually. Make sure the `~/.config/input-remapper-2` folder is empty before 
-you do so.
+By default, Input Remapper will not migrate configurations from the beta.
+If you want to use those you will need to copy them manually.
 
 ```
+rm ~/.config/input-remapper-2 -r
 cp ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2 -r
-```
-
-If you want to migrate your v1 configs to v2, run
-
-```
-cp ~/.config/input-remapper/ ~/.config/input-remapper-2 -r
 ```
 
 Then start input-remapper
