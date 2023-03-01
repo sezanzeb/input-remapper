@@ -439,7 +439,7 @@ def _copy_to_v2():
 
     # prioritize the v1 configs over beta configs
     old_path = os.path.join(HOME, ".config/input-remapper")
-    if os.path.exists(old_path):
+    if os.path.exists(os.path.join(old_path, "config.json")):
         # no beta path, only old presets exist. COPY to v2 path, which will then be
         # migrated by the various migrations.
         logger.debug("copying all from %s to %s", old_path, CONFIG_PATH)

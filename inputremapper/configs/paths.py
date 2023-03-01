@@ -43,7 +43,7 @@ def chown(path):
         shutil.chown(path, user=USER)
 
 
-def touch(path: os.PathLike, log=True):
+def touch(path: Union[str, os.PathLike], log=True):
     """Create an empty file and all its parent dirs, give it to the user."""
     if str(path).endswith("/"):
         raise ValueError(f"Expected path to not end with a slash: {path}")
@@ -142,6 +142,6 @@ def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = No
     return os.path.join(presets_base, group_name, preset)
 
 
-def get_config_path(*paths):
+def get_config_path(*paths) -> str:
     """Get a path in ~/.config/input-remapper/."""
     return os.path.join(CONFIG_PATH, *paths)
