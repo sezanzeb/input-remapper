@@ -65,7 +65,7 @@ sudo systemctl restart input-remapper
 By default, Input Remapper will not migrate configurations from the beta.
 If you want to use those you will need to copy them manually.
 
-```
+```bash
 rm ~/.config/input-remapper-2 -r
 cp ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2 -r
 ```

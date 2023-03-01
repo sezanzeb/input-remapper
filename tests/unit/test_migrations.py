@@ -549,6 +549,33 @@ class TestMigrations(unittest.TestCase):
             ),
         )
 
+    def prioritize_v1_over_beta_configs(self):
+        v1_dir = os.path.join(HOME, ".config", "input-remapper")
+        # TODO create config.json, presets/, presets/foo/bar.json
+        #  and insert something outdated that will be migrated
+
+        beta_dir = os.path.join(HOME, ".config", "input-remapper", "beta_1.6.0-beta")
+        # TODO create config.json, presets/, presets/qux/baz.json
+
+        migrate()
+
+        # TODO expect ~/.config/input-remapper-2/presets/foo/bar.json to exist,
+        #  expect ~/.config/input-remapper-2/config.json to exist,
+        #  but not ~/.config/input-remapper-2/qux/baz.json
+
+        # TODO expect all original files to still exist
+
+    def copy_over_beta_configs(self):
+        beta_dir = os.path.join(HOME, ".config", "input-remapper", "beta_1.6.0-beta")
+        # TODO create config.json, presets/, presets/qux/baz.json
+
+        migrate()
+
+        # TODO expect ~/.config/input-remapper-2/presets/qux/baz.json to exist
+        #  expect ~/.config/input-remapper-2/config.json to exist,
+
+        # TODO expect all original files to still exist
+
 
 if __name__ == "__main__":
     unittest.main()
