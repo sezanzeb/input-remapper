@@ -85,6 +85,7 @@ class TestControl(unittest.TestCase):
 
         start_history = []
         stop_counter = 0
+
         # using an actual injector is not within the scope of this test
         class Injector:
             def stop_injecting(self, *args, **kwargs):

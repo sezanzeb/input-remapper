@@ -132,7 +132,6 @@ class EventCombination(Tuple[InputEvent]):
         result = []
 
         for event in self:
-
             if event.type not in ecodes.bytype:
                 logger.error("Unknown type for %s", event)
                 result.append(str(event.code))

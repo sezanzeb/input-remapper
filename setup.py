@@ -115,7 +115,10 @@ setup(
         *lang_data,
         ("/usr/share/input-remapper/", glob.glob("data/*")),
         ("/usr/share/applications/", ["data/input-remapper.desktop"]),
-        ("/usr/share/metainfo/", ["data/io.github.sezanzeb.input_remapper.metainfo.xml"]),
+        (
+            "/usr/share/metainfo/",
+            ["data/io.github.sezanzeb.input_remapper.metainfo.xml"],
+        ),
         ("/usr/share/polkit-1/actions/", ["data/input-remapper.policy"]),
         ("/usr/lib/systemd/system", ["data/input-remapper.service"]),
         ("/etc/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),

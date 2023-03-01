@@ -97,6 +97,7 @@ ICON_PRIORITIES = [GRAPHICS_TABLET, TOUCHPAD, GAMEPAD, MOUSE, KEYBOARD, UNKNOWN]
 
 def if_group_selected(func):
     """Decorate a function to only execute if a device is selected."""
+
     # this should only happen if no device was found at all
     def wrapped(self, *args, **kwargs):
         if self.group is None:
@@ -109,6 +110,7 @@ def if_group_selected(func):
 
 def if_preset_selected(func):
     """Decorate a function to only execute if a preset is selected."""
+
     # this should only happen if no device was found at all
     def wrapped(self, *args, **kwargs):
         if self.preset_name is None or self.group is None:
