@@ -60,7 +60,7 @@ sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
 ```
 
-## Migrating old configs to version 2
+## Migrating beta configs to version 2
 
 If you never installed beta alongside v1, there is no need to do anything.
 
