@@ -224,7 +224,7 @@ class InputEvent:
         type_: Optional[int] = None,
         code: Optional[int] = None,
         value: Optional[int] = None,
-        actions: Tuple[EventActions, ...] = None,
+        actions: Optional[Tuple[EventActions, ...]] = None,
         origin_hash: Optional[str] = None,
     ) -> InputEvent:
         """Return a new modified event."""

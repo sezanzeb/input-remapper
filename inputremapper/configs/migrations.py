@@ -286,7 +286,11 @@ def _input_combination_from_string(combination_string: str) -> InputCombination:
     for event_str in combination_string.split("+"):
         type_, code, analog_threshold = event_str.split(",")
         configs.append(
-            {"type": type_, "code": code, "analog_threshold": analog_threshold}
+            {
+                "type": int(type_),
+                "code": int(code),
+                "analog_threshold": int(analog_threshold),
+            }
         )
 
     return InputCombination(configs)

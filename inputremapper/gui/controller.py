@@ -803,8 +803,7 @@ class Controller:
             try:
                 analog_input = tuple(
                     filter(lambda i: i.defines_analog_input, mapping.input_combination)
-                )
-                analog_input = analog_input[0]
+                )[0]
             except IndexError:
                 changes["output_type"] = None
                 changes["output_code"] = None

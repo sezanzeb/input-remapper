@@ -50,6 +50,7 @@ class MacroHandler(MappingHandler):
     ):
         super().__init__(combination, mapping)
         self._active = False
+        assert self.mapping.output_symbol is not None
         self._macro = parse(self.mapping.output_symbol, context, mapping)
 
     def __str__(self):
