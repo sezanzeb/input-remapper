@@ -31,7 +31,7 @@ or install the latest changes via:
 sudo apt install git python3-setuptools gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper && ./scripts/build.sh
-sudo apt install ./dist/input-remapper-1.5.0.deb
+sudo apt install -f ./dist/input-remapper-1.5.1.deb
 ```
 
 input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/input-remapper)

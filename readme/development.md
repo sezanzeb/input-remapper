@@ -54,7 +54,7 @@ ssh/login into a debian/ubuntu environment
 ./scripts/build.sh
 ```
 
-This will generate `input-remapper/deb/input-remapper-1.5.0.deb`
+This will generate `input-remapper/deb/input-remapper-1.5.1.deb`
 
 ## Badges
 
