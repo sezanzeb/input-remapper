@@ -14,9 +14,9 @@
 
 
 <p align="center">
-  <img src="readme/screenshot.png" width="49%"/>
-
-  <img src="readme/screenshot_2.png" width="49%"/>
+  <img src="readme/screenshot.png" width="48%"/>
+  &#160;
+  <img src="readme/screenshot_2.png" width="48%"/>
 </p>
 
 ## Installation
