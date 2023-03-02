@@ -124,3 +124,18 @@ class DoStackSwitch:
 
     message_type = MessageType.do_stack_switch
     page_index: int
+
+
+@dataclass(frozen=True)
+class FilterData:
+    """Stores filter data for any kind of text-based filter"""
+
+    filter_value: str
+    case_sensitive: bool = False
+
+
+@dataclass(frozen=True)
+class MappingFilter(FilterData):
+    """Message sent by the mapping list filter."""
+
+    message_type = MessageType.mapping_filter

@@ -51,7 +51,7 @@ from inputremapper.gui.components.editor import (
 )
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.main import Stack, StatusBar
-from inputremapper.gui.components.common import Breadcrumbs
+from inputremapper.gui.components.common import Breadcrumbs, FilterControl
 from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
@@ -148,6 +148,13 @@ class UserInterface:
         PresetSelection(message_broker, controller, self.get("preset_selection"))
         MappingListBox(message_broker, controller, self.get("selection_label_listbox"))
         TargetSelection(message_broker, controller, self.get("target-selector"))
+
+        FilterControl(
+            message_broker,
+            MessageType.mapping_filter,
+            self.get("mapping-filter-input"),
+            case_toggle=self.get("mapping-filter-case-button"),
+        )
 
         Breadcrumbs(
             message_broker,
@@ -366,7 +373,7 @@ class UserInterface:
                 "key-press-event", self.on_gtk_shortcut
             )
 
-    def get(self, name: str):
+    def get(self, name: str) -> Gtk.Widget:
         """Get a widget from the window."""
         return self.builder.get_object(name)
 

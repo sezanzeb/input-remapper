@@ -143,9 +143,15 @@ class ReaderService:
 
         logger.debug("Running `%s`", cmd)
         exit_code = os.system(cmd)
+        if exit_code == 0:
+            return
 
-        if exit_code != 0:
-            raise Exception(f"Failed to pkexec the reader-service, code {exit_code}")
+        ex = Exception(f"Failed to pkexec the reader-service, code {exit_code}")
+        if os.environ.get("IGNORE_PKEXEC_ERRORS"):
+            logger.warn(ex)
+            return
+
+        raise ex
 
     async def run(self):
         """Start doing stuff."""

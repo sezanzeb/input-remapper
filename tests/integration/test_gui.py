@@ -80,6 +80,7 @@ from inputremapper.gui.messages.message_broker import (
 from inputremapper.gui.messages.message_data import StatusData, CombinationRecorded
 from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
 from inputremapper.gui.components.device_groups import DeviceGroupEntry
+from inputremapper.gui.components.gtkext.listbox_filter import ListBoxFilter
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.reader_service import ReaderService
 from inputremapper.gui.utils import gtk_iteration, Colors, debounce, debounce_manager
@@ -173,14 +174,6 @@ def clean_up_integration(test):
     test.daemon.stop_all()
     if isinstance(test.daemon, Daemon):
         atexit.unregister(test.daemon.stop_all)
-
-
-class GtkKeyEvent:
-    def __init__(self, keyval):
-        self.keyval = keyval
-
-    def get_keyval(self):
-        return True, self.keyval
 
 
 class TestGroupsFromReaderService(unittest.TestCase):
@@ -306,6 +299,10 @@ class GuiTestBase(unittest.TestCase):
         self.stop_injector_btn: Gtk.Button = get("stop_injection_preset_page")
         self.rename_btn: Gtk.Button = get("rename-button")
         self.rename_input: Gtk.Entry = get("preset_name_input")
+        self.mapping_filter_case_btn: Gtk.ToggleButton = get(
+            "mapping-filter-case-button"
+        )
+        self.mapping_filter_input: Gtk.Entry = get("mapping-filter-input")
         self.create_mapping_btn: Gtk.Button = get("create_mapping_button")
         self.delete_mapping_btn: Gtk.Button = get("delete-mapping")
 
@@ -1442,6 +1439,36 @@ class TestGui(GuiTestBase):
             self.delete_preset_btn.clicked()
             gtk_iteration()
         self.assertFalse(os.path.exists(preset_path))
+
+    def test_filter_case_button(self):
+        self.mapping_filter_case_btn.clicked()
+        gtk_iteration()
+        self.assertEqual(self.mapping_filter_case_btn.get_active(), True)
+
+        self.mapping_filter_case_btn.clicked()
+        gtk_iteration()
+        self.assertEqual(self.mapping_filter_case_btn.get_active(), False)
+
+    def test_filtering_mappings(self):
+        self.controller.load_preset("preset2")
+        self.throttle(20)
+
+        mappings = list(self.data_manager.get_mappings())
+        self.assertGreaterEqual(len(mappings), 2)
+
+        self.assertGreater(len(mappings), 0, "at least one mapping must be loaded")
+        num_rows = len(self.selection_label_listbox.get_children())
+        self.assertEqual(len(mappings), num_rows, "all mappimgs must be in the listbox")
+
+        text0 = mappings[0].format_name()
+        self.mapping_filter_input.set_text(text0)
+        gtk_iteration()
+        self.assertEqual(self.data_manager.active_mapping.format_name(), text0)
+
+        text1 = mappings[1].format_name()
+        self.mapping_filter_input.set_text(text1)
+        gtk_iteration()
+        self.assertEqual(self.data_manager.active_mapping.format_name(), text1)
 
     def test_check_for_unknown_symbols(self):
         status = self.user_interface.get("status_bar")

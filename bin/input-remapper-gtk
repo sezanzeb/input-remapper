@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(
         '-d', '--debug', action='store_true', dest='debug',
-        help=_('Displays additional debug information'),
+        help=_('displays additional debug information'),
         default=False
     )
 

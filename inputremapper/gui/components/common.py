@@ -27,7 +27,10 @@ import gi
 
 from gi.repository import Gtk
 
-from typing import Optional
+from typing import (
+    Optional,
+    Iterator,
+)
 
 from inputremapper.configs.mapping import MappingData
 
@@ -36,7 +39,11 @@ from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_data import GroupData, PresetData
+from inputremapper.gui.messages.message_data import (
+    GroupData,
+    PresetData,
+    MappingFilter,
+)
 from inputremapper.gui.utils import HandlerDisabled
 
 
@@ -173,3 +180,62 @@ class Breadcrumbs:
             label.append(self._mapping_name or "?")
 
         self._gui.set_label("  /  ".join(label))
+
+
+class FilterControl:
+    """Watches a text input to produce filter events.
+
+    The following example creates a new ``FilterControl`` for a given ``Gtk.Entry``
+    for text input. It also sets all optional arguments to override some default behavior.
+
+    >>> ListFilterControl(
+    >>>     message_broker,
+    >>>     message_type,
+    >>>     my_gtk_entry,
+    >>>     case_toggle=my_gtk_toggle,   # use optional case sensitivity switch
+    >>> )
+
+    """
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        message_type: MessageType,
+        filter_entry: Gtk.GtkEntry,
+        case_toggle: Gtk.ToggleButton = None,
+    ):
+        self._message_broker: MessageBroker = message_broker
+        self._message_type: MessageType = message_type
+        self._filter_entry: Gtk.Entry = filter_entry
+        self._case_toggle: Gtk.ToggleButton = case_toggle
+
+        self._filter_value: str = ""
+        self._case_sensitive = case_toggle is None or case_toggle.get_active()
+
+        self._connect_gtk_signals()
+
+        self._update()
+
+    def _update(self, force=False):
+        old_value = self._filter_value
+        self._filter_value = (self._filter_entry.get_text() or "").strip()
+        if force or self._filter_value != old_value:
+            self._message_broker.publish(
+                MappingFilter(
+                    filter_value=self._filter_value,
+                    case_sensitive=self._case_sensitive,
+                )
+            )
+
+    def _connect_gtk_signals(self):
+        self._filter_entry.connect("changed", self._on_gtk_input_changed)
+        if self._case_toggle:
+            self._case_toggle.connect("toggled", self._on_gtk_case_button_toggled)
+
+    def _on_gtk_case_button_toggled(self, btn: Gtk.ToggleButton):
+        self._case_sensitive = btn.get_active()
+        if self._filter_value != "":
+            self._update(force=True)
+
+    def _on_gtk_input_changed(self, *_):
+        self._update()

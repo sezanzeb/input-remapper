@@ -84,7 +84,7 @@ class UInput(evdev.UInput):
         # gather the capabilities. (can_emit is called regularly)
         self._capabilities_cache = self.capabilities(absinfo=False)
 
-    def can_emit(self, event: Tuple[int, int, int]):
+    def can_emit(self, event: Tuple[int, int, int]) -> bool:
         """Check if an event can be emitted by the UIinput.
 
         Wrong events might be injected if the group mappings are wrong,
@@ -104,6 +104,9 @@ class FrontendUInput:
 
     def capabilities(self):
         return self.events
+
+    def can_emit(self, event: Tuple[int, int, int]) -> bool:
+        return False
 
 
 class GlobalUInputs:
