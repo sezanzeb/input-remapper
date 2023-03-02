@@ -26,12 +26,11 @@ import os
 import shutil
 from typing import List, Union, Optional
 
-from inputremapper.logger import logger, VERSION, IS_BETA
+from inputremapper.logger import logger, VERSION
 from inputremapper.user import USER, HOME
 
-rel_path = ".config/input-remapper"
-if IS_BETA:
-    rel_path = os.path.join(rel_path, f"beta_{VERSION}")
+rel_path = ".config/input-remapper-2"
+
 CONFIG_PATH = os.path.join(HOME, rel_path)
 
 
@@ -44,7 +43,7 @@ def chown(path):
         shutil.chown(path, user=USER)
 
 
-def touch(path: os.PathLike, log=True):
+def touch(path: Union[str, os.PathLike], log=True):
     """Create an empty file and all its parent dirs, give it to the user."""
     if str(path).endswith("/"):
         raise ValueError(f"Expected path to not end with a slash: {path}")
@@ -143,6 +142,6 @@ def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = No
     return os.path.join(presets_base, group_name, preset)
 
 
-def get_config_path(*paths):
+def get_config_path(*paths) -> str:
     """Get a path in ~/.config/input-remapper/."""
     return os.path.join(CONFIG_PATH, *paths)

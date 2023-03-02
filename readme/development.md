@@ -72,7 +72,7 @@ ssh/login into a debian/ubuntu environment
 ./scripts/build.sh
 ```
 
-This will generate `input-remapper/deb/input-remapper-1.6.0-beta.deb`
+This will generate `input-remapper/deb/input-remapper-2.0.0-rc.deb`
 
 ## Badges
 
@@ -121,3 +121,4 @@ https://miro.com/app/board/uXjVPLa8ilM=/?share_link_id=272180986764
 - [GNOME HIG](https://developer.gnome.org/hig/stable/)
 - [GtkSource Example](https://github.com/wolfthefallen/py-GtkSourceCompletion-example)
 - [linux/input-event-codes.h](https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h)
+- [Screenshot Guidelines](https://www.freedesktop.org/software/appstream/docs/chap-Quickstart.html)

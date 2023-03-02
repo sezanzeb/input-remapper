@@ -9,8 +9,8 @@ build_deb() {
   mv build/deb/usr/local/lib/python3.*/ build/deb/usr/lib/python3/
   cp ./DEBIAN build/deb/ -r
   mkdir dist -p
-  rm dist/input-remapper-1.6.0-beta.deb || true
-  dpkg-deb -Z gzip -b build/deb dist/input-remapper-1.6.0-beta.deb
+  rm dist/input-remapper-2.0.0-rc.deb || true
+  dpkg-deb -Z gzip -b build/deb dist/input-remapper-2.0.0-rc.deb
 }
 
 build_deb &
