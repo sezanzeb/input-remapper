@@ -113,7 +113,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
             # this still might cause race conditions and the test to fail
             await asyncio.sleep(0)
 
-        if macro.is_holding:
+        if macro.is_holding():
             macro.release_trigger()
 
 

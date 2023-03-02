@@ -63,6 +63,7 @@ class AbsToAbsHandler(MappingHandler):
         self._output_axis = (mapping.output_type, mapping.output_code)
 
         target_uinput = global_uinputs.get_uinput(mapping.target_uinput)
+        assert target_uinput is not None
         abs_capabilities = target_uinput.capabilities(absinfo=True)[EV_ABS]
         self._target_absinfo = dict(abs_capabilities)[mapping.output_code]
 

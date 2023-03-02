@@ -938,22 +938,26 @@ class OutputAxisSelector:
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
         self._message_broker.subscribe(MessageType.uinputs, self._on_uinputs_message)
 
-    def _set_model(self, target: str):
+    def _set_model(self, target: Optional[str]):
         if target == self._current_target:
             return
 
-        capabilities = self._uinputs.get(target) or defaultdict(list)
-        types_codes = [
-            (EV_ABS, code) for code, absinfo in capabilities.get(EV_ABS) or ()
-        ]
-        types_codes.extend((EV_REL, code) for code in capabilities.get(EV_REL) or ())
         self.model.clear()
         self.model.append(["None, None", _("No Axis")])
-        for type_, code in types_codes:
-            key_name = get_evdev_constant_name(type_, code)
-            if isinstance(key_name, list):
-                key_name = key_name[0]
-            self.model.append([f"{type_}, {code}", key_name])
+
+        if target is not None:
+            capabilities = self._uinputs.get(target) or defaultdict(list)
+            types_codes = [
+                (EV_ABS, code) for code, absinfo in capabilities.get(EV_ABS) or ()
+            ]
+            types_codes.extend(
+                (EV_REL, code) for code in capabilities.get(EV_REL) or ()
+            )
+            for type_, code in types_codes:
+                key_name = get_evdev_constant_name(type_, code)
+                if isinstance(key_name, list):
+                    key_name = key_name[0]
+                self.model.append([f"{type_}, {code}", key_name])
 
         self._current_target = target
 

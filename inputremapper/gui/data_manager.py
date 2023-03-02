@@ -224,7 +224,7 @@ class DataManager:
             self._config.set_autoload_preset(
                 self.active_group.key, self.active_preset.name
             )
-        elif self.get_autoload:
+        elif self.get_autoload():
             self._config.set_autoload_preset(self.active_group.key, None)
 
         self.publish_preset()
