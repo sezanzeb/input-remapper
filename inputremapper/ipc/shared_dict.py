@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -21,9 +21,10 @@
 """Share a dictionary across processes."""
 
 
-import multiprocessing
 import atexit
+import multiprocessing
 import select
+from typing import Optional, Any
 
 from inputremapper.logger import logger
 
@@ -88,14 +89,14 @@ class SharedDict:
         """Clears the memory."""
         self.pipe[1].send(("clear",))
 
-    def get(self, key):
+    def get(self, key: str):
         """Get a value from the dictionary.
 
         If it doesn't exist, returns None.
         """
-        return self.__getitem__(key)
+        return self[key]
 
-    def is_alive(self, timeout=None):
+    def is_alive(self, timeout: Optional[int] = None):
         """Check if the manager process is running."""
         self.pipe[1].send(("ping",))
         select.select([self.pipe[1]], [], [], timeout or self._timeout)
@@ -104,10 +105,10 @@ class SharedDict:
 
         return False
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any):
         self.pipe[1].send(("set", key, value))
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         self.pipe[1].send(("get", key))
 
         select.select([self.pipe[1]], [], [], self._timeout)

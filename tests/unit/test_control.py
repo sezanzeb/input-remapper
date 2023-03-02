@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -22,7 +22,8 @@
 """Testing the input-remapper-control command"""
 
 
-from tests.test import quick_cleanup, tmp
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.tmp import tmp
 
 import os
 import time
@@ -32,7 +33,6 @@ import collections
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
-from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.daemon import Daemon
 from inputremapper.configs.preset import Preset
@@ -42,9 +42,11 @@ from inputremapper.groups import groups
 
 def import_control():
     """Import the core function of the input-remapper-control command."""
-    active_preset.empty()
-
-    bin_path = os.path.join(os.getcwd(), "bin", "input-remapper-control")
+    bin_path = os.path.join(
+        os.getcwd().replace("/tests", ""),
+        "bin",
+        "input-remapper-control",
+    )
 
     loader = SourceFileLoader("__not_main_idk__", bin_path)
     spec = spec_from_loader("__not_main_idk__", loader)
@@ -77,21 +79,22 @@ class TestControl(unittest.TestCase):
             get_preset_path(groups_[1].name, presets[2]),
         ]
 
-        Preset().save(paths[0])
-        Preset().save(paths[1])
-        Preset().save(paths[2])
+        Preset(paths[0]).save()
+        Preset(paths[1]).save()
+        Preset(paths[2]).save()
 
         daemon = Daemon()
 
         start_history = []
         stop_counter = 0
+
         # using an actual injector is not within the scope of this test
         class Injector:
             def stop_injecting(self, *args, **kwargs):
                 nonlocal stop_counter
                 stop_counter += 1
 
-        def start_injecting(device, preset):
+        def start_injecting(device: str, preset: str):
             print(f'\033[90mstart_injecting "{device}" "{preset}"\033[0m')
             start_history.append((device, preset))
             daemon.injectors[device] = Injector()
@@ -127,7 +130,8 @@ class TestControl(unittest.TestCase):
 
         # unless the injection in question ist stopped
         communicate(
-            options("stop", None, None, groups_[0].key, False, False, False), daemon
+            options("stop", None, None, groups_[0].key, False, False, False),
+            daemon,
         )
         self.assertEqual(stop_counter, 1)
         self.assertTrue(
@@ -157,7 +161,8 @@ class TestControl(unittest.TestCase):
         self.assertEqual(stop_counter, 3)
         global_config.set_autoload_preset(groups_[1].key, presets[2])
         communicate(
-            options("autoload", None, None, groups_[1].key, False, False, False), daemon
+            options("autoload", None, None, groups_[1].key, False, False, False),
+            daemon,
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(start_history[3], (groups_[1].key, presets[2]))
@@ -171,7 +176,8 @@ class TestControl(unittest.TestCase):
         # autoloading for the same device again redundantly will not autoload
         # again
         communicate(
-            options("autoload", None, None, groups_[1].key, False, False, False), daemon
+            options("autoload", None, None, groups_[1].key, False, False, False),
+            daemon,
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(stop_counter, 3)
@@ -201,8 +207,8 @@ class TestControl(unittest.TestCase):
             os.path.join(config_dir, "presets", device_names[1], presets[1] + ".json"),
         ]
 
-        Preset().save(paths[0])
-        Preset().save(paths[1])
+        Preset(paths[0]).save()
+        Preset(paths[1]).save()
 
         daemon = Daemon()
 
@@ -298,9 +304,13 @@ class TestControl(unittest.TestCase):
 
     def test_internals(self):
         with mock.patch("os.system") as os_system_patch:
-            internals(options("helper", None, None, None, False, False, False))
+            internals(
+                options("start-reader-service", None, None, None, False, False, False)
+            )
             os_system_patch.assert_called_once()
-            self.assertIn("input-remapper-helper", os_system_patch.call_args.args[0])
+            self.assertIn(
+                "input-remapper-reader-service", os_system_patch.call_args.args[0]
+            )
             self.assertNotIn("-d", os_system_patch.call_args.args[0])
 
         with mock.patch("os.system") as os_system_patch:

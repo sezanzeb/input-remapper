@@ -1,62 +1,14 @@
-row {
-    padding: 0;
-}
-
 .status_bar frame {
     /* the status bar is ugly in elementary os otherwise */
     border: 0px;
-}
-
-/* adds a bottom border for themes that don't add one in primary-toolbar
-classes. Interestingly, those that do add a border ignore this separator,
-which is perfect. */
-.top_separator {
-    border: 0px; /* fixes light pixels on each end in arc-dark */
-}
-
-.table-header, .row-box {
-    padding: 2px;
-}
-
-.changed {
-    background: @selected_bg_color;
-}
-
-list entry {
-    background-color: transparent;
-    border-radius: 4px;
-    border: 0px;
-    box-shadow: none;
-}
-
-list.basic-editor button:not(:focus) {
-    border-color: transparent;
-    background: transparent;
-    box-shadow: none;
-}
-
-list button {
-    border-color: transparent;
-}
-
-.invalid_input {
-    background-color: #ea9697;
 }
 
 .transparent {
     background: transparent;
 }
 
-.code-editor-text-view > * {
-    border-radius: 2px;
-}
-
 .copyright {
     font-size: 7pt;
-}
-
-.editor-key-list label {
-    padding: 11px;
 }
 
 .autocompletion label {
@@ -68,14 +20,25 @@ list button {
     box-shadow: none;
 }
 
-.no-border {
-    border: 0px;
-    box-shadow: none;
+.no-v-padding {
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
-.code-editor-text-view.multiline {
-  /* extra space between text editor and line numbers */
-  padding-left: 18px;
+.transformation-draw-area {
+    border: 1px solid @borders;
+    border-radius: 6px;
+    background: @theme_base_color;
 }
 
-/* @theme_bg_color, @theme_fg_color */
+.multiline > *:first-child {
+    /* source view suddenly started showing a white background behind line-numbers */
+    /* solution found by furiously trying css rules out in the gtk inspector */
+    background: @theme_bg_color;
+}
+
+/*
+@theme_bg_color
+@theme_selected_bg_color
+@theme_base_color
+*/

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Find, classify and group devices.
 
 Because usually connected devices pop up multiple times in /dev/input,
@@ -29,15 +28,20 @@ events are being read from all of the paths of an individual group in the gui
 and the injector.
 """
 
+from __future__ import annotations
 
-import re
-import multiprocessing
-import threading
 import asyncio
+import enum
 import json
-from typing import List
+import multiprocessing
+import os
+import re
+import threading
+import traceback
+from typing import List, Optional
 
 import evdev
+from evdev import InputDevice
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -52,9 +56,9 @@ from evdev.ecodes import (
     REL_WHEEL,
 )
 
-from inputremapper.logger import logger
 from inputremapper.configs.paths import get_preset_path
-
+from inputremapper.logger import logger
+from inputremapper.utils import get_device_hash
 
 TABLET_KEYS = [
     evdev.ecodes.BTN_STYLUS,
@@ -63,13 +67,15 @@ TABLET_KEYS = [
     evdev.ecodes.BTN_TOOL_RUBBER,
 ]
 
-GAMEPAD = "gamepad"
-KEYBOARD = "keyboard"
-MOUSE = "mouse"
-TOUCHPAD = "touchpad"
-GRAPHICS_TABLET = "graphics-tablet"
-CAMERA = "camera"
-UNKNOWN = "unknown"
+
+class DeviceType(str, enum.Enum):
+    GAMEPAD = "gamepad"
+    KEYBOARD = "keyboard"
+    MOUSE = "mouse"
+    TOUCHPAD = "touchpad"
+    GRAPHICS_TABLET = "graphics-tablet"
+    CAMERA = "camera"
+    UNKNOWN = "unknown"
 
 
 if not hasattr(evdev.InputDevice, "path"):
@@ -155,7 +161,7 @@ def _is_camera(capabilities):
     return key_capa and len(key_capa) == 1 and key_capa[0] == KEY_CAMERA
 
 
-def classify(device):
+def classify(device) -> DeviceType:
     """Figure out what kind of device this is.
 
     Use this instead of functions like _is_keyboard to avoid getting false
@@ -166,37 +172,37 @@ def classify(device):
     if _is_graphics_tablet(capabilities):
         # check this before is_gamepad to avoid classifying abs_x
         # as joysticks when they are actually stylus positions
-        return GRAPHICS_TABLET
+        return DeviceType.GRAPHICS_TABLET
 
     if _is_touchpad(capabilities):
-        return TOUCHPAD
+        return DeviceType.TOUCHPAD
 
     if _is_gamepad(capabilities):
-        return GAMEPAD
+        return DeviceType.GAMEPAD
 
     if _is_mouse(capabilities):
-        return MOUSE
+        return DeviceType.MOUSE
 
     if _is_camera(capabilities):
-        return CAMERA
+        return DeviceType.CAMERA
 
     if _is_keyboard(capabilities):
         # very low in the chain to avoid classifying most devices
         # as keyboard, because there are many with ev_key capabilities
-        return KEYBOARD
+        return DeviceType.KEYBOARD
 
-    return UNKNOWN
+    return DeviceType.UNKNOWN
 
 
 DENYLIST = [".*Yubico.*YubiKey.*", "Eee PC WMI hotkeys"]
 
 
-def is_denylisted(device):
+def is_denylisted(device: InputDevice):
     """Check if a device should not be used in input-remapper.
 
     Parameters
     ----------
-    device : InputDevice
+    device
     """
     for name in DENYLIST:
         if re.match(name, str(device.name), re.IGNORECASE):
@@ -205,15 +211,11 @@ def is_denylisted(device):
     return False
 
 
-def get_unique_key(device):
+def get_unique_key(device: InputDevice):
     """Find a string key that is unique for a single hardware device.
 
     All InputDevices in /dev/input that originate from the same physical
     hardware device should return the same key via this function.
-
-    Parameters
-    ----------
-    device : InputDevice
     """
     # Keys that should not be used:
     # - device.phys is empty sometimes and varies across virtual
@@ -252,18 +254,24 @@ class _Group:
         presets folder structure
     """
 
-    def __init__(self, paths: List[str], names: List[str], types: List[str], key: str):
+    def __init__(
+        self,
+        paths: List[os.PathLike],
+        names: List[str],
+        types: List[DeviceType | str],
+        key: str,
+    ):
         """Specify a group
 
         Parameters
         ----------
-        paths : str[]
+        paths
             Paths in /dev/input of the grouped devices
-        names : str[]
+        names
             Names of the grouped devices
-        types : str[]
+        types
             Types of the grouped devices
-        key : str
+        key
             Unique identifier of the group.
 
             It should be human readable and if possible equal to group.name.
@@ -282,9 +290,9 @@ class _Group:
 
         self.paths = paths
         self.names = names
-        self.types = types
+        self.types = [DeviceType(type_) for type_ in types]
 
-    def get_preset_path(self, preset=None):
+    def get_preset_path(self, preset: Optional[str] = None):
         """Get a path to the stored preset, or to store a preset to.
 
         This path is unique per device-model, not per group. Groups
@@ -292,20 +300,30 @@ class _Group:
         """
         return get_preset_path(self.name, preset)
 
+    def get_devices(self) -> List[evdev.InputDevice]:
+        devices: List[evdev.InputDevice] = []
+        for path in self.paths:
+            try:
+                devices.append(evdev.InputDevice(path))
+            except (FileNotFoundError, OSError):
+                logger.error('Could not find "%s"', path)
+                continue
+        return devices
+
     def dumps(self):
         """Return a string representing this object."""
         return json.dumps(
-            dict(paths=self.paths, names=self.names, types=self.types, key=self.key)
+            dict(paths=self.paths, names=self.names, types=self.types, key=self.key),
         )
 
     @classmethod
-    def loads(cls, serialized):
+    def loads(cls, serialized: str):
         """Load a serialized representation."""
         group = cls(**json.loads(serialized))
         return group
 
     def __repr__(self):
-        return f"Group({self.key})"
+        return f"<Group ({self.key}) at {hex(id(self))}>"
 
 
 class _FindGroups(threading.Thread):
@@ -316,12 +334,12 @@ class _FindGroups(threading.Thread):
     slowing down the initialization.
     """
 
-    def __init__(self, pipe):
+    def __init__(self, pipe: multiprocessing.Pipe):
         """Construct the process.
 
         Parameters
         ----------
-        pipe : multiprocessing.Pipe
+        pipe
             used to communicate the result
         """
         self.pipe = pipe
@@ -347,7 +365,12 @@ class _FindGroups(threading.Thread):
                 # without setting an error"
                 # - "FileNotFoundError: [Errno 2] No such file or directory:
                 # '/dev/input/event12'"
-                logger.error("Failed to access %s: %s", path, str(error))
+                logger.error(
+                    'Failed to access path "%s": %s %s',
+                    path,
+                    error.__class__.__name__,
+                    str(error),
+                )
                 continue
 
             if device.name == "Power Button":
@@ -355,7 +378,7 @@ class _FindGroups(threading.Thread):
 
             device_type = classify(device)
 
-            if device_type == CAMERA:
+            if device_type == DeviceType.CAMERA:
                 continue
 
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
@@ -363,11 +386,13 @@ class _FindGroups(threading.Thread):
 
             key_capa = capabilities.get(EV_KEY)
 
-            if key_capa is None and device_type != GAMEPAD:
+            if key_capa is None and device_type != DeviceType.GAMEPAD:
                 # skip devices that don't provide buttons that can be mapped
+                logger.debug('"%s" has no useful capabilities', device.name)
                 continue
 
             if is_denylisted(device):
+                logger.debug('"%s" is denylisted', device.name)
                 continue
 
             key = get_unique_key(device)
@@ -375,7 +400,12 @@ class _FindGroups(threading.Thread):
                 grouped[key] = []
 
             logger.debug(
-                'Found "%s", "%s", "%s", type: %s', key, path, device.name, device_type
+                'Found %s "%s" at "%s", hash "%s", key "%s"',
+                device_type.value,
+                device.name,
+                path,
+                get_device_hash(device),
+                key,
             )
 
             grouped[key].append((device.name, path, device_type))
@@ -400,14 +430,17 @@ class _FindGroups(threading.Thread):
                 key=key,
                 paths=devs,
                 names=names,
-                types=sorted(list({item[2] for item in group if item[2] != UNKNOWN})),
+                types=sorted(
+                    list({item[2] for item in group if item[2] != DeviceType.UNKNOWN})
+                ),
             )
 
             result.append(group.dumps())
 
         self.pipe.send(json.dumps(result))
+        loop.close()  # avoid resource allocation warnings
         # now that everything is sent via the pipe, the InputDevice
-        # destructors can go on an take ages to complete in the thread
+        # destructors can go on and take ages to complete in the thread
         # without blocking anything
 
 
@@ -417,14 +450,14 @@ class _Groups:
     def __init__(self):
         self._groups: List[_Group] = None
 
-    def __getattribute__(self, key):
+    def __getattribute__(self, key: str):
         """To lazy load group info only when needed.
 
-        For example, this helps to keep logs of input-remapper-control clear when it doesnt
-        need it the information.
+        For example, this helps to keep logs of input-remapper-control clear when it
+        doesn't need it the information.
         """
         if key == "_groups" and object.__getattribute__(self, "_groups") is None:
-            object.__setattr__(self, "_groups", {})
+            object.__setattr__(self, "_groups", [])
             object.__getattribute__(self, "refresh")()
 
         return object.__getattribute__(self, key)
@@ -447,7 +480,7 @@ class _Groups:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
 
-    def filter(self, include_inputremapper=False):
+    def filter(self, include_inputremapper: bool = False) -> List[_Group]:
         """Filter groups."""
         result = []
         for group in self._groups:
@@ -459,8 +492,9 @@ class _Groups:
 
         return result
 
-    def set_groups(self, new_groups):
+    def set_groups(self, new_groups: List[_Group]):
         """Overwrite all groups."""
+        logger.debug("Overwriting groups with %s", new_groups)
         self._groups = new_groups
 
     def list_group_names(self) -> List[str]:
@@ -481,21 +515,27 @@ class _Groups:
         """Create a deserializable string representation."""
         return json.dumps([group.dumps() for group in self._groups])
 
-    def loads(self, dump):
+    def loads(self, dump: str):
         """Load a serialized representation created via dumps."""
         self._groups = [_Group.loads(group) for group in json.loads(dump)]
 
-    def find(self, name=None, key=None, path=None, include_inputremapper=False):
+    def find(
+        self,
+        name: Optional[str] = None,
+        key: Optional[str] = None,
+        path: Optional[str] = None,
+        include_inputremapper: bool = False,
+    ) -> Optional[_Group]:
         """Find a group that matches the provided parameters.
 
         Parameters
         ----------
-        name : str
+        name
             "USB Keyboard"
             Not unique, will return the first group that matches.
-        key : str
+        key
             "USB Keyboard", "USB Keyboard 2", ...
-        path : str
+        path
             "/dev/input/event3"
         """
         for group in self._groups:
@@ -516,4 +556,5 @@ class _Groups:
         return None
 
 
+# TODO global objects are bad practice
 groups = _Groups()

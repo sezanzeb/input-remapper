@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -17,14 +17,16 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Dict, Union, Tuple, Optional, List
 
 import evdev
 
-import inputremapper.utils
 import inputremapper.exceptions
+import inputremapper.utils
 from inputremapper.logger import logger
 
-
+MIN_ABS = -(2**15)  # -32768
+MAX_ABS = 2**15  # 32768
 DEV_NAME = "input-remapper"
 DEFAULT_UINPUTS = {
     # for event codes see linux/input-event-codes.h
@@ -34,13 +36,16 @@ DEFAULT_UINPUTS = {
     "gamepad": {
         evdev.ecodes.EV_KEY: [*range(0x130, 0x13F)],  # BTN_SOUTH - BTN_THUMBR
         evdev.ecodes.EV_ABS: [
-            *range(0x00, 0x06),
-            *range(0x10, 0x12),
+            *(
+                (i, evdev.AbsInfo(0, MIN_ABS, MAX_ABS, 0, 0, 0))
+                for i in range(0x00, 0x06)
+            ),
+            *((i, evdev.AbsInfo(0, -1, 1, 0, 0, 0)) for i in range(0x10, 0x12)),
         ],  # 6-axis and 1 hat switch
     },
     "mouse": {
         evdev.ecodes.EV_KEY: [*range(0x110, 0x118)],  # BTN_LEFT - BTN_TASK
-        evdev.ecodes.EV_REL: [*range(0x00, 0x0A)],  # all REL axis
+        evdev.ecodes.EV_REL: [*range(0x00, 0x0D)],  # all REL axis
     },
 }
 DEFAULT_UINPUTS["keyboard + mouse"] = {
@@ -54,56 +59,84 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
 }
 
 
+def can_default_uinput_emit(target: str, type_: int, code: int) -> bool:
+    """Check if the uinput with the target name is capable of the event."""
+    capabilities = DEFAULT_UINPUTS.get(target, {}).get(type_)
+    return capabilities is not None and code in capabilities
+
+
+def find_fitting_default_uinputs(type_: int, code: int) -> List[str]:
+    """Find the names of default uinputs that are able to emit this event."""
+    return [
+        uinput
+        for uinput in DEFAULT_UINPUTS
+        if code in DEFAULT_UINPUTS[uinput].get(type_, [])
+    ]
+
+
 class UInput(evdev.UInput):
     def __init__(self, *args, **kwargs):
-        logger.debug(f"creating UInput device: '{kwargs['name']}'")
+        name = kwargs["name"]
+        logger.debug('creating UInput device: "%s"', name)
         super().__init__(*args, **kwargs)
 
-    def can_emit(self, event):
-        """check if an event can be emitted by the uinput
+        # this will never change, so we cache it since evdev runs an expensive loop to
+        # gather the capabilities. (can_emit is called regularly)
+        self._capabilities_cache = self.capabilities(absinfo=False)
 
-        Wrong events might be injected if the group mappings are wrong
+    def can_emit(self, event: Tuple[int, int, int]):
+        """Check if an event can be emitted by the UIinput.
+
+        Wrong events might be injected if the group mappings are wrong,
         """
-        # TODO check for event value especially for EV_ABS
-        return event[1] in self.capabilities().get(event[0], [])
+        return event[1] in self._capabilities_cache.get(event[0], [])
 
 
 class FrontendUInput:
-    """Uinput which can not actually send events, for use in the frontend"""
+    """Uinput which can not actually send events, for use in the frontend."""
 
     def __init__(self, *args, events=None, name="py-evdev-uinput", **kwargs):
-        # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
+        # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput  # noqa pylint: disable=line-too-long
         self.events = events
         self.name = name
 
-        logger.debug(f"creating fake UInput device: '{self.name}'")
+        logger.debug('creating fake UInput device: "%s"', self.name)
 
     def capabilities(self):
         return self.events
 
 
 class GlobalUInputs:
-    """Manages all uinputs that are shared between all injection processes."""
+    """Manages all UInputs that are shared between all injection processes."""
 
     def __init__(self):
-        self.devices = {}
+        self.devices: Dict[str, Union[UInput, FrontendUInput]] = {}
         self._uinput_factory = None
         self.is_service = inputremapper.utils.is_service()
 
     def __iter__(self):
         return iter(uinput for _, uinput in self.devices.items())
 
+    def reset(self):
+        self.is_service = inputremapper.utils.is_service()
+        self._uinput_factory = None
+        self.devices = {}
+        self.prepare_all()
+
     def ensure_uinput_factory_set(self):
         if self._uinput_factory is not None:
             return
 
+        # overwrite global_uinputs.is_service in tests to control this
         if self.is_service:
+            logger.debug("Creating regular UInputs")
             self._uinput_factory = UInput
         else:
+            logger.debug("Creating FrontendUInputs")
             self._uinput_factory = FrontendUInput
 
     def prepare_all(self):
-        """Generate uinputs."""
+        """Generate UInputs."""
         self.ensure_uinput_factory_set()
 
         for name, events in DEFAULT_UINPUTS.items():
@@ -136,8 +169,8 @@ class GlobalUInputs:
             events=DEFAULT_UINPUTS[name],
         )
 
-    def write(self, event, target_uinput):
-        """write event to target uinput"""
+    def write(self, event: Tuple[int, int, int], target_uinput):
+        """Write event to target uinput."""
         uinput = self.get_uinput(target_uinput)
         if not uinput:
             raise inputremapper.exceptions.UinputNotAvailable(target_uinput)
@@ -145,22 +178,28 @@ class GlobalUInputs:
         if not uinput.can_emit(event):
             raise inputremapper.exceptions.EventNotHandled(event)
 
+        logger.write(event, uinput)
         uinput.write(*event)
         uinput.syn()
 
-    def get_uinput(self, name: str):
+    def get_uinput(self, name: str) -> Optional[evdev.UInput]:
         """UInput with name
 
         Or None if there is no uinput with this name.
 
         Parameters
         ----------
-        name : uniqe name of the uinput device
+        name
+            uniqe name of the uinput device
         """
-        if name in self.devices.keys():
-            return self.devices[name]
+        if name not in self.devices:
+            logger.error(
+                f'UInput "{name}" is unknown. '
+                + f"Available: {list(self.devices.keys())}"
+            )
+            return None
 
-        return None
+        return self.devices.get(name)
 
 
 global_uinputs = GlobalUInputs()

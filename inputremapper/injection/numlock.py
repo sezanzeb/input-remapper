@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -35,7 +35,8 @@ def is_numlock_on():
     """Get the current state of the numlock."""
     try:
         xset_q = subprocess.check_output(
-            ["xset", "q"], stderr=subprocess.STDOUT
+            ["xset", "q"],
+            stderr=subprocess.STDOUT,
         ).decode()
         num_lock_status = re.search(r"Num Lock:\s+(.+?)\s", xset_q)
 

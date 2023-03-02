@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -18,14 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Starts the user interface."""
 
+from __future__ import annotations
 
 import sys
 import atexit
 from argparse import ArgumentParser
-from inputremapper.gui.gettext import _, LOCALE_DIR
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -33,12 +32,25 @@ gi.require_version('GLib', '2.0')
 gi.require_version('GtkSource', '4')
 from gi.repository import Gtk
 
-
 # https://github.com/Nuitka/Nuitka/issues/607#issuecomment-650217096
 Gtk.init()
 
+from inputremapper.gui.gettext import _, LOCALE_DIR
+from inputremapper.gui.reader_service import ReaderService
+from inputremapper.daemon import DaemonProxy
 from inputremapper.logger import logger, update_verbosity, log_info
-from inputremapper.configs.migrations import migrate
+
+
+def start_processes() -> DaemonProxy:
+    """Start reader-service and daemon via pkexec to run in the background."""
+    # this function is overwritten in tests
+    try:
+        ReaderService.pkexec_reader_service()
+    except Exception as e:
+        logger.error(e)
+        sys.exit(11)
+
+    return Daemon.connect()
 
 
 if __name__ == '__main__':
@@ -55,21 +67,42 @@ if __name__ == '__main__':
     logger.debug('Using locale directory: {}'.format(LOCALE_DIR))
 
     # import input-remapper stuff after setting the log verbosity
+    from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
+    from inputremapper.configs.system_mapping import system_mapping
+    from inputremapper.gui.data_manager import DataManager
     from inputremapper.gui.user_interface import UserInterface
+    from inputremapper.gui.controller import Controller
+    from inputremapper.injection.global_uinputs import GlobalUInputs
+    from inputremapper.groups import _Groups
+    from inputremapper.gui.reader_client import ReaderClient
     from inputremapper.daemon import Daemon
-    from inputremapper.configs.global_config import global_config
+    from inputremapper.configs.global_config import GlobalConfig
+    from inputremapper.configs.migrations import migrate
 
     migrate()
-    global_config.load_config()
 
-    user_interface = UserInterface()
+    message_broker = MessageBroker()
+
+    # create the reader before we start the reader-service (start_processes) otherwise
+    # it can come to race conditions with the creation of pipes
+    reader_client = ReaderClient(message_broker, _Groups())
+    daemon = start_processes()
+
+    data_manager = DataManager(
+        message_broker, GlobalConfig(), reader_client, daemon, GlobalUInputs(), system_mapping
+    )
+    controller = Controller(message_broker, data_manager)
+    user_interface = UserInterface(message_broker, controller)
+    controller.set_gui(user_interface)
+
+    message_broker.signal(MessageType.init)
 
     def stop():
-        if isinstance(user_interface.dbus, Daemon):
+        if isinstance(daemon, Daemon):
             # have fun debugging completely unrelated tests if you remove this
-            user_interface.dbus.stop_all()
+            daemon.stop_all()
 
-        user_interface.on_close()
+        controller.close()
 
     atexit.register(stop)
 

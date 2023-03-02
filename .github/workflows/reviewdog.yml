@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10"]
+        python-version: ["3.11"]
 
     steps:
       - uses: actions/checkout@v2
@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           scripts/ci-install-deps.sh
-          pip install flake8 pylint mypy black
+          pip install flake8 pylint mypy black types-pkg_resources
       - name: Set env for PR
         if: github.event_name == 'pull_request'
         shell: bash

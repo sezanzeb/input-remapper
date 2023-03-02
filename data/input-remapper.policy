@@ -7,8 +7,9 @@
     <action id="inputremapper">
         <description>Run Input Remapper as root</description>
         <message>Authentication is required to discover and read devices.</message>
-	<message xml:lang="sk">Vyžaduje sa prihlásenie na objavenie a prístup k zariadeniam.</message>
-	<message xml:lang="ru">Требуется аутентификация для обнаружения и чтения устройств.</message>
+        <message xml:lang="sk">Vyžaduje sa prihlásenie na objavenie a prístup k zariadeniam.</message>
+        <message xml:lang="ua">Потрібна автентифікація для виявлення та читання пристроїв.</message>
+        <message xml:lang="ru">Требуется аутентификация для обнаружения и чтения устройств.</message>
         <defaults>
             <allow_any>no</allow_any>
             <allow_inactive>auth_admin_keep</allow_inactive>

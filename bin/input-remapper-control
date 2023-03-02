@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -43,7 +43,7 @@ HELLO = 'hello'
 
 # internal stuff that the gui uses
 START_DAEMON = 'start-daemon'
-HELPER = 'helper'
+START_READER_SERVICE = 'start-reader-service'
 
 
 def run(cmd):
@@ -56,7 +56,7 @@ def run(cmd):
 
 COMMANDS = [AUTOLOAD, START, STOP, HELLO, STOP_ALL]
 
-INTERNALS = [START_DAEMON, HELPER]
+INTERNALS = [START_DAEMON, START_READER_SERVICE]
 
 
 def utils(options):
@@ -73,7 +73,7 @@ def utils(options):
 
 
 def communicate(options, daemon):
-    """Commands that require a running daemon"""
+    """Commands that require a running daemon."""
     # import stuff late to make sure the correct log level is applied
     # before anything is logged
     from inputremapper.groups import groups
@@ -166,8 +166,8 @@ def internals(options):
     """
     debug = ' -d' if options.debug else ''
 
-    if options.command == HELPER:
-        cmd = f'input-remapper-helper{debug}'
+    if options.command == START_READER_SERVICE:
+        cmd = f'input-remapper-reader-service{debug}'
     elif options.command == START_DAEMON:
         cmd = f'input-remapper-service --hide-info{debug}'
     else:
@@ -175,6 +175,7 @@ def internals(options):
 
     # daemonize
     cmd = f'{cmd} &'
+    logger.debug(f'Running `{cmd}`')
     os.system(cmd)
 
 
@@ -202,14 +203,16 @@ def _systemd_finished():
 
 def boot_finished():
     """Check if booting is completed."""
-    # Get as much information as needed to really safely determine if booting up is complete.
+    # Get as much information as needed to really safely determine if booting up is
+    # complete.
     # - `who` returns an empty list on some system for security purposes
     # - something might be broken and might make systemd_analyze fail:
-    #       Bootup is not yet finished (org.freedesktop.systemd1.Manager.FinishTimestampMonotonic=0).
+    #       Bootup is not yet finished
+    #       (org.freedesktop.systemd1.Manager.FinishTimestampMonotonic=0).
     #       Please try again later.
     #       Hint: Use 'systemctl list-jobs' to see active jobs
     if _systemd_finished():
-        logger.debug('Booting finished')
+        logger.debug('System is booted')
         return True
 
     if _num_logged_in_users() > 0:

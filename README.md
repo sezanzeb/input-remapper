@@ -2,24 +2,29 @@
 
 <h1 align="center">Input Remapper</h1>
 
-<p align="center"><b>Formerly Key Mapper</b></p>
-
 <p align="center">
-  An easy to use tool to change the mapping of your input device buttons.<br/>
-  Supports mice, keyboards, gamepads, X11, Wayland, combined buttons and programmable macros.<br/>
-  Allows mapping non-keyboard events (click, joystick, wheel) to keys of keyboard devices.
+  An easy to use tool to change the behaviour of your input devices.<br/>
+  Supports X11, Wayland, combinations, programmable macros, joysticks, wheels,<br/>
+  triggers, keys, mouse-movements and more. Maps any input to any other input.
 </p>
 
-<p align="center"><a href="readme/usage.md">Usage</a> - <a href="readme/macros.md">Macros</a> - <a href="#installation">Installation</a> - <a href="readme/development.md">Development</a> - <a href="#screenshots">Screenshots</a> - <a href="readme/examples.md">Examples</a></p>
+<p align="center"><a href="readme/usage.md">Usage</a> - <a href="readme/macros.md">Macros</a> - <a href="#installation">Installation</a> - <a href="readme/development.md">Development</a> - <a href="readme/examples.md">Examples</a></p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
+
+
+<p align="center">
+  <img src="readme/screenshot.png" width="48%"/>
+  &#160;
+  <img src="readme/screenshot_2.png" width="48%"/>
+</p>
 
 ## Installation
 
 ##### Manjaro/Arch
 
 ```bash
-pacaur -S input-remapper-git
+yay -S input-remapper-git
 ```
 
 ##### Ubuntu/Debian
@@ -31,17 +36,21 @@ or install the latest changes via:
 sudo apt install git python3-setuptools gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper && ./scripts/build.sh
-sudo apt install ./dist/input-remapper-1.5.0.deb
+sudo apt install -f ./dist/input-remapper-2.0.0-rc.deb
 ```
 
-input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/input-remapper)
-and of [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
+input-remapper is available in [Debian](https://tracker.debian.org/pkg/input-remapper)
+and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
 
 ##### Manual
 
 Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`
 
 Python packages need to be installed globally for the service to be able to import them. Don't use `--user`
+
+Conda can cause problems due to changed python paths and versions.
+
+If it doesn't seem to install, you can also try `sudo python3 setup.py install`
 
 ```bash
 sudo pip install evdev -U  # If newest version not in distros repo
@@ -51,20 +60,14 @@ sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
 ```
 
-If it doesn't seem to install, you can also try `sudo python3 setup.py install`
+## Migrating beta configs to version 2
 
-##### Beta
+By default, Input Remapper will not migrate configurations from the beta.
+If you want to use those you will need to copy them manually.
 
-The `beta` branch contains features that still require work, but that are ready for testing. It uses a different
-config path, so your presets won't break. `input-remapper-beta-git` can be installed from the AUR. If you are
-facing problems, please open up an [issue](https://github.com/sezanzeb/input-remapper/issues).
+```bash
+rm ~/.config/input-remapper-2 -r
+cp ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2 -r
+```
 
-## Screenshots
-
-<p align="center">
-  <img src="readme/screenshot.png"/>
-</p>
-
-<p align="center">
-  <img src="readme/screenshot_2.png"/>
-</p>
+Then start input-remapper

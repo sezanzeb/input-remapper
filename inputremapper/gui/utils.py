@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -17,11 +17,21 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
 
-from gi.repository import Gtk, GLib
+import time
+from dataclasses import dataclass
+from typing import List, Callable, Dict, Optional
+
+import gi
+
+from gi.repository import Gtk, GLib, Gdk
+
+from inputremapper.logger import logger
 
 
 # status ctx ids
+
 CTX_SAVE = 0
 CTX_APPLY = 1
 CTX_KEYCODE = 2
@@ -29,31 +39,141 @@ CTX_ERROR = 3
 CTX_WARNING = 4
 CTX_MAPPING = 5
 
-debounces = {}
+
+@dataclass()
+class DebounceInfo:
+    # constant after register:
+    function: Optional[Callable]
+    other: object
+    key: int
+
+    # can change when called again:
+    args: list
+    kwargs: dict
+    glib_timeout: Optional[int]
+
+
+class DebounceManager:
+    """Stops all debounced functions if needed."""
+
+    debounce_infos: Dict[int, DebounceInfo] = {}
+
+    def _register(self, other, function):
+        debounce_info = DebounceInfo(
+            function=function,
+            glib_timeout=None,
+            other=other,
+            args=[],
+            kwargs={},
+            key=self._get_key(other, function),
+        )
+        key = self._get_key(other, function)
+        self.debounce_infos[key] = debounce_info
+        return debounce_info
+
+    def get(self, other: object, function: Callable) -> Optional[DebounceInfo]:
+        """Find the debounce_info that matches the given callable."""
+        key = self._get_key(other, function)
+        return self.debounce_infos.get(key)
+
+    def _get_key(self, other, function):
+        return f"{id(other)},{function.__name__}"
+
+    def debounce(self, other, function, timeout_ms, *args, **kwargs):
+        """Call this function with the given args later."""
+        debounce_info = self.get(other, function)
+        if debounce_info is None:
+            debounce_info = self._register(other, function)
+
+        debounce_info.args = args
+        debounce_info.kwargs = kwargs
+
+        glib_timeout = debounce_info.glib_timeout
+        if glib_timeout is not None:
+            GLib.source_remove(glib_timeout)
+
+        def run():
+            self.stop(other, function)
+            return function(other, *args, **kwargs)
+
+        debounce_info.glib_timeout = GLib.timeout_add(
+            timeout_ms,
+            lambda: run(),
+        )
+
+    def stop(self, other: object, function: Callable):
+        """Stop the current debounce timeout of this function and don't call it.
+
+        New calls to that function will be debounced again.
+        """
+        debounce_info = self.get(other, function)
+        if debounce_info is None:
+            logger.debug("Tried to stop function that is not currently scheduled")
+            return
+
+        if debounce_info.glib_timeout is not None:
+            GLib.source_remove(debounce_info.glib_timeout)
+            debounce_info.glib_timeout = None
+
+    def stop_all(self):
+        """No debounced function should be called anymore after this.
+
+        New calls to that function will be debounced again.
+        """
+        for debounce_info in self.debounce_infos.values():
+            self.stop(debounce_info.other, debounce_info.function)
+
+    def run_all_now(self):
+        """Don't wait any longer."""
+        for debounce_info in self.debounce_infos.values():
+            if debounce_info.glib_timeout is None:
+                # nothing is currently waiting for this function to be called
+                continue
+
+            self.stop(debounce_info.other, debounce_info.function)
+            try:
+                logger.warning(
+                    'Running "%s" now without waiting',
+                    debounce_info.function.__name__,
+                )
+                debounce_info.function(
+                    debounce_info.other,
+                    *debounce_info.args,
+                    **debounce_info.kwargs,
+                )
+            except Exception as exception:
+                # if individual functions fails, continue calling the others.
+                # also, don't raise this because there is nowhere this exception
+                # could be caught in a useful way
+                logger.error(exception)
+
+
+debounce_manager = DebounceManager()
 
 
 def debounce(timeout):
-    """Debounce a function call to improve performance.
+    """Debounce a method call to improve performance.
 
-    Calling this creates the decorator, so use something like
+    Calling this with a millisecond value creates the decorator, so use something like
 
     @debounce(50)
-    def foo():
+    def function(self):
         ...
+
+    In tests, run_all_now can be used to avoid waiting to speed them up.
     """
+    # the outside `debounce` function is needed to obtain the millisecond value
 
-    def decorator(func):
-        def clear_debounce(self, *args):
-            debounces[func.__name__] = None
-            return func(self, *args)
+    def decorator(function):
+        # the regular decorator.
+        # @decorator
+        # def foo():
+        #   ...
+        def wrapped(self, *args, **kwargs):
+            # this is the function that will actually be called
+            debounce_manager.debounce(self, function, timeout, *args, **kwargs)
 
-        def wrapped(self, *args):
-            if debounces.get(func.__name__) is not None:
-                GLib.source_remove(debounces[func.__name__])
-
-            debounces[func.__name__] = GLib.timeout_add(
-                timeout, lambda: clear_debounce(self, *args)
-            )
+        wrapped.__name__ = function.__name__
 
         return wrapped
 
@@ -63,21 +183,93 @@ def debounce(timeout):
 class HandlerDisabled:
     """Safely modify a widget without causing handlers to be called.
 
-    Use in a with statement.
+    Use in a `with` statement.
     """
 
-    def __init__(self, widget, handler):
+    def __init__(self, widget: Gtk.Widget, handler: Callable):
         self.widget = widget
         self.handler = handler
 
     def __enter__(self):
-        self.widget.handler_block_by_func(self.handler)
+        try:
+            self.widget.handler_block_by_func(self.handler)
+        except TypeError as error:
+            # if nothing is connected to the given signal, it is not critical
+            # at all
+            logger.warning('HandlerDisabled entry failed: "%s"', error)
 
     def __exit__(self, *_):
-        self.widget.handler_unblock_by_func(self.handler)
+        try:
+            self.widget.handler_unblock_by_func(self.handler)
+        except TypeError as error:
+            logger.warning('HandlerDisabled exit failed: "%s"', error)
 
 
-def gtk_iteration():
+def gtk_iteration(iterations=0):
     """Iterate while events are pending."""
     while Gtk.events_pending():
         Gtk.main_iteration()
+    for _ in range(iterations):
+        time.sleep(0.002)
+        while Gtk.events_pending():
+            Gtk.main_iteration()
+
+
+class Colors:
+    """Looks up colors from the GTK theme.
+
+    Defaults to libadwaita-light theme colors if the lookup fails.
+    """
+
+    fallback_accent = Gdk.RGBA(0.21, 0.52, 0.89, 1)
+    fallback_background = Gdk.RGBA(0.98, 0.98, 0.98, 1)
+    fallback_base = Gdk.RGBA(1, 1, 1, 1)
+    fallback_border = Gdk.RGBA(0.87, 0.87, 0.87, 1)
+    fallback_font = Gdk.RGBA(0.20, 0.20, 0.20, 1)
+
+    @staticmethod
+    def get_color(names: List[str], fallback: Gdk.RGBA) -> Gdk.RGBA:
+        """Get theme colors. Provide multiple names for fallback purposes."""
+        for name in names:
+            found, color = Gtk.StyleContext().lookup_color(name)
+            if found:
+                return color
+
+        return fallback
+
+    @staticmethod
+    def get_accent_color() -> Gdk.RGBA:
+        """Look up the accent color from the current theme."""
+        return Colors.get_color(
+            ["accent_bg_color", "theme_selected_bg_color"],
+            Colors.fallback_accent,
+        )
+
+    @staticmethod
+    def get_background_color() -> Gdk.RGBA:
+        """Look up the background-color from the current theme."""
+        return Colors.get_color(
+            ["theme_bg_color"],
+            Colors.fallback_background,
+        )
+
+    @staticmethod
+    def get_base_color() -> Gdk.RGBA:
+        """Look up the base-color from the current theme."""
+        return Colors.get_color(
+            ["theme_base_color"],
+            Colors.fallback_base,
+        )
+
+    @staticmethod
+    def get_border_color() -> Gdk.RGBA:
+        """Look up the border from the current theme."""
+        return Colors.get_color(["borders"], Colors.fallback_border)
+
+    @staticmethod
+    def get_font_color() -> Gdk.RGBA:
+        """Look up the border from the current theme."""
+        return Colors.get_color(
+            ["theme_fg_color"],
+            Colors.fallback_font,
+        )

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -18,343 +18,466 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
-from tests.test import tmp, quick_cleanup
-
 import os
 import unittest
-import json
 from unittest.mock import patch
 
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_A
-from inputremapper.input_event import InputEvent
+from evdev.ecodes import EV_KEY, EV_ABS
 
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import UIMapping
+from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.paths import get_preset_path
-from inputremapper.event_combination import EventCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
+from tests.lib.cleanup import quick_cleanup
 
 
-class TestSystemMapping(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
-    def test_update(self):
-        system_mapping = SystemMapping()
-        system_mapping.update({"foo1": 101, "bar1": 102})
-        system_mapping.update({"foo2": 201, "bar2": 202})
-        self.assertEqual(system_mapping.get("foo1"), 101)
-        self.assertEqual(system_mapping.get("bar2"), 202)
-
-    def test_xmodmap_file(self):
-        system_mapping = SystemMapping()
-        path = os.path.join(tmp, XMODMAP_FILENAME)
-        os.remove(path)
-
-        system_mapping.populate()
-        self.assertTrue(os.path.exists(path))
-        with open(path, "r") as file:
-            content = json.load(file)
-            self.assertEqual(content["a"], KEY_A)
-            # only xmodmap stuff should be present
-            self.assertNotIn("key_a", content)
-            self.assertNotIn("KEY_A", content)
-            self.assertNotIn("disable", content)
-
-    def test_correct_case(self):
-        system_mapping = SystemMapping()
-        system_mapping.clear()
-        system_mapping._set("A", 31)
-        system_mapping._set("a", 32)
-        system_mapping._set("abcd_B", 33)
-
-        self.assertEqual(system_mapping.correct_case("a"), "a")
-        self.assertEqual(system_mapping.correct_case("A"), "A")
-        self.assertEqual(system_mapping.correct_case("ABCD_b"), "abcd_B")
-        # unknown stuff is returned as is
-        self.assertEqual(system_mapping.correct_case("FOo"), "FOo")
-
-        self.assertEqual(system_mapping.get("A"), 31)
-        self.assertEqual(system_mapping.get("a"), 32)
-        self.assertEqual(system_mapping.get("ABCD_b"), 33)
-        self.assertEqual(system_mapping.get("abcd_B"), 33)
-
-    def test_system_mapping(self):
-        system_mapping = SystemMapping()
-        system_mapping.populate()
-        self.assertGreater(len(system_mapping._mapping), 100)
-
-        # this is case-insensitive
-        self.assertEqual(system_mapping.get("1"), 2)
-        self.assertEqual(system_mapping.get("KeY_1"), 2)
-
-        self.assertEqual(system_mapping.get("AlT_L"), 56)
-        self.assertEqual(system_mapping.get("KEy_LEFtALT"), 56)
-
-        self.assertEqual(system_mapping.get("kEY_LeFTSHIFT"), 42)
-        self.assertEqual(system_mapping.get("ShiFt_L"), 42)
-
-        self.assertEqual(system_mapping.get("BTN_left"), 272)
-
-        self.assertIsNotNone(system_mapping.get("KEY_KP4"))
-        self.assertEqual(system_mapping.get("KP_Left"), system_mapping.get("KEY_KP4"))
-
-        # this only lists the correct casing,
-        # includes linux constants and xmodmap symbols
-        names = system_mapping.list_names()
-        self.assertIn("2", names)
-        self.assertIn("c", names)
-        self.assertIn("KEY_3", names)
-        self.assertNotIn("key_3", names)
-        self.assertIn("KP_Down", names)
-        self.assertNotIn("kp_down", names)
-        names = system_mapping._mapping.keys()
-        self.assertIn("F4", names)
-        self.assertNotIn("f4", names)
-        self.assertIn("BTN_RIGHT", names)
-        self.assertNotIn("btn_right", names)
-        self.assertIn("KEY_KP7", names)
-        self.assertIn("KP_Home", names)
-        self.assertNotIn("kp_home", names)
-
-        self.assertEqual(system_mapping.get("disable"), -1)
-
-
-class TestMapping(unittest.TestCase):
+class TestPreset(unittest.TestCase):
     def setUp(self):
-        self.preset = Preset()
+        self.preset = Preset(get_preset_path("foo", "bar2"))
         self.assertFalse(self.preset.has_unsaved_changes())
 
     def tearDown(self):
         quick_cleanup()
 
-    def test_config(self):
-        self.preset.save(get_preset_path("foo", "bar2"))
-
-        self.assertEqual(self.preset.get("a"), None)
-
-        self.assertFalse(self.preset.has_unsaved_changes())
-
-        self.preset.set("a", 1)
-        self.assertEqual(self.preset.get("a"), 1)
-        self.assertTrue(self.preset.has_unsaved_changes())
-
-        self.preset.remove("a")
-        self.preset.set("a.b", 2)
-        self.assertEqual(self.preset.get("a.b"), 2)
-        self.assertEqual(self.preset._config["a"]["b"], 2)
-
-        self.preset.remove("a.b")
-        self.preset.set("a.b.c", 3)
-        self.assertEqual(self.preset.get("a.b.c"), 3)
-        self.assertEqual(self.preset._config["a"]["b"]["c"], 3)
-
-        # setting preset.whatever does not overwrite the preset
-        # after saving. It should be ignored.
-        self.preset.change(EventCombination([EV_KEY, 81, 1]), "keyboard", " a ")
-        self.preset.set("mapping.a", 2)
-        self.assertEqual(self.preset.num_saved_keys, 0)
-        self.preset.save(get_preset_path("foo", "bar"))
-        self.assertEqual(self.preset.num_saved_keys, len(self.preset))
-        self.assertFalse(self.preset.has_unsaved_changes())
-        self.preset.load(get_preset_path("foo", "bar"))
-        self.assertEqual(
-            self.preset.get_mapping(EventCombination([EV_KEY, 81, 1])),
-            ("a", "keyboard"),
+    def test_is_mapped_multiple_times(self):
+        combination = InputCombination(
+            InputCombination.from_tuples((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4))
         )
-        self.assertIsNone(self.preset.get("mapping.a"))
+        permutations = combination.get_permutations()
+        self.assertEqual(len(permutations), 6)
+
+        self.preset._mappings[permutations[0]] = Mapping(
+            input_combination=permutations[0],
+            target_uinput="keyboard",
+            output_symbol="a",
+        )
+        self.assertFalse(self.preset._is_mapped_multiple_times(permutations[2]))
+
+        self.preset._mappings[permutations[1]] = Mapping(
+            input_combination=permutations[1],
+            target_uinput="keyboard",
+            output_symbol="a",
+        )
+        self.assertTrue(self.preset._is_mapped_multiple_times(permutations[2]))
+
+    def test_has_unsaved_changes(self):
+        self.preset.path = get_preset_path("foo", "bar2")
+        self.preset.add(Mapping.from_combination())
+        self.assertTrue(self.preset.has_unsaved_changes())
+        self.preset.save()
         self.assertFalse(self.preset.has_unsaved_changes())
 
-        # loading a different preset also removes the configs from memory
-        self.preset.remove("a")
+        self.preset.empty()
+        self.assertEqual(len(self.preset), 0)
+        # empty preset but non-empty file
         self.assertTrue(self.preset.has_unsaved_changes())
-        self.preset.set("a.b.c", 6)
-        self.preset.load(get_preset_path("foo", "bar2"))
-        self.assertIsNone(self.preset.get("a.b.c"))
 
-    def test_fallback(self):
-        global_config.set("d.e.f", 5)
-        self.assertEqual(self.preset.get("d.e.f"), 5)
-        self.preset.set("d.e.f", 3)
-        self.assertEqual(self.preset.get("d.e.f"), 3)
+        # load again from the disc
+        self.preset.load()
+        self.assertEqual(
+            self.preset.get_mapping(InputCombination.empty_combination()),
+            Mapping.from_combination(),
+        )
+        self.assertFalse(self.preset.has_unsaved_changes())
+
+        # change the path to a non exiting file
+        self.preset.path = get_preset_path("bar", "foo")
+        # the preset has a mapping, the file has not
+        self.assertTrue(self.preset.has_unsaved_changes())
+
+        # change back to the original path
+        self.preset.path = get_preset_path("foo", "bar2")
+        # no difference between file and memory
+        self.assertFalse(self.preset.has_unsaved_changes())
+
+        # modify the mapping
+        mapping = self.preset.get_mapping(InputCombination.empty_combination())
+        mapping.gain = 0.5
+        self.assertTrue(self.preset.has_unsaved_changes())
+        self.preset.load()
+
+        self.preset.path = get_preset_path("bar", "foo")
+        self.preset.remove(Mapping.from_combination().input_combination)
+        # empty preset and empty file
+        self.assertFalse(self.preset.has_unsaved_changes())
+
+        self.preset.path = get_preset_path("foo", "bar2")
+        # empty preset, but non-empty file
+        self.assertTrue(self.preset.has_unsaved_changes())
+        self.preset.load()
+        self.assertEqual(len(self.preset), 1)
+        self.assertFalse(self.preset.has_unsaved_changes())
+
+        # delete the preset from the system:
+        self.preset.empty()
+        self.preset.save()
+        self.preset.load()
+        self.assertFalse(self.preset.has_unsaved_changes())
+        self.assertEqual(len(self.preset), 0)
 
     def test_save_load(self):
-        one = InputEvent.from_tuple((EV_KEY, 10, 1))
-        two = InputEvent.from_tuple((EV_KEY, 11, 1))
-        three = InputEvent.from_tuple((EV_KEY, 12, 1))
+        one = InputConfig(type=EV_KEY, code=10)
+        two = InputConfig(type=EV_KEY, code=11)
+        three = InputConfig(type=EV_KEY, code=12)
 
-        self.preset.change(EventCombination(one), "keyboard", "1")
-        self.preset.change(EventCombination(two), "keyboard", "2")
-        self.preset.change(EventCombination(two, three), "keyboard", "3")
-        self.preset._config["foo"] = "bar"
-        self.preset.save(get_preset_path("Foo Device", "test"))
+        self.preset.add(
+            Mapping.from_combination(InputCombination([one]), "keyboard", "1")
+        )
+        self.preset.add(
+            Mapping.from_combination(InputCombination([two]), "keyboard", "2")
+        )
+        self.preset.add(
+            Mapping.from_combination(InputCombination((two, three)), "keyboard", "3"),
+        )
+        self.preset.path = get_preset_path("Foo Device", "test")
+        self.preset.save()
 
-        path = os.path.join(tmp, "presets", "Foo Device", "test.json")
+        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
         self.assertTrue(os.path.exists(path))
 
-        loaded = Preset()
+        loaded = Preset(get_preset_path("Foo Device", "test"))
         self.assertEqual(len(loaded), 0)
-        loaded.load(get_preset_path("Foo Device", "test"))
+        loaded.load()
 
         self.assertEqual(len(loaded), 3)
         self.assertRaises(TypeError, loaded.get_mapping, one)
-        self.assertEqual(loaded.get_mapping(EventCombination(one)), ("1", "keyboard"))
-        self.assertEqual(loaded.get_mapping(EventCombination(two)), ("2", "keyboard"))
         self.assertEqual(
-            loaded.get_mapping(EventCombination(two, three)), ("3", "keyboard")
+            loaded.get_mapping(InputCombination([one])),
+            Mapping.from_combination(InputCombination([one]), "keyboard", "1"),
         )
-        self.assertEqual(loaded._config["foo"], "bar")
-
-    def test_change(self):
-        # the reader would not report values like 111 or 222, only 1 or -1.
-        # the preset just does what it is told, so it accepts them.
-        ev_1 = EventCombination((EV_KEY, 1, 111))
-        ev_2 = EventCombination((EV_KEY, 1, 222))
-        ev_3 = EventCombination((EV_KEY, 2, 111))
-        ev_4 = EventCombination((EV_ABS, 1, 111))
-
-        self.assertRaises(
-            TypeError, self.preset.change, [(EV_KEY, 10, 1), "keyboard", "a", ev_2]
+        self.assertEqual(
+            loaded.get_mapping(InputCombination([two])),
+            Mapping.from_combination(InputCombination([two]), "keyboard", "2"),
         )
-        self.assertRaises(
-            TypeError, self.preset.change, [ev_1, "keyboard", "a", (EV_KEY, 1, 222)]
+        self.assertEqual(
+            loaded.get_mapping(InputCombination([two, three])),
+            Mapping.from_combination(InputCombination([two, three]), "keyboard", "3"),
         )
 
-        # 1 is not assigned yet, ignore it
-        self.preset.change(ev_1, "keyboard", "a", ev_2)
+        # load missing file
+        preset = Preset(get_config_path("missing_file.json"))
+        self.assertRaises(FileNotFoundError, preset.load)
+
+    def test_modify_mapping(self):
+        ev_1 = InputCombination([InputConfig(type=EV_KEY, code=1)])
+        ev_3 = InputCombination([InputConfig(type=EV_KEY, code=2)])
+        # only values between -99 and 99 are allowed as mapping for EV_ABS or EV_REL
+        ev_4 = InputCombination([InputConfig(type=EV_ABS, code=1, analog_threshold=99)])
+
+        # add the first mapping
+        self.preset.add(Mapping.from_combination(ev_1, "keyboard", "a"))
         self.assertTrue(self.preset.has_unsaved_changes())
-        self.assertIsNone(self.preset.get_mapping(ev_2))
-        self.assertEqual(self.preset.get_mapping(ev_1), ("a", "keyboard"))
         self.assertEqual(len(self.preset), 1)
 
         # change ev_1 to ev_3 and change a to b
-        self.preset.change(ev_3, "keyboard", "b", ev_1)
+        mapping = self.preset.get_mapping(ev_1)
+        mapping.input_combination = ev_3
+        mapping.output_symbol = "b"
         self.assertIsNone(self.preset.get_mapping(ev_1))
-        self.assertEqual(self.preset.get_mapping(ev_3), ("b", "keyboard"))
+        self.assertEqual(
+            self.preset.get_mapping(ev_3),
+            Mapping.from_combination(ev_3, "keyboard", "b"),
+        )
         self.assertEqual(len(self.preset), 1)
 
         # add 4
-        self.preset.change(ev_4, "keyboard", "c", None)
-        self.assertEqual(self.preset.get_mapping(ev_3), ("b", "keyboard"))
-        self.assertEqual(self.preset.get_mapping(ev_4), ("c", "keyboard"))
+        self.preset.add(Mapping.from_combination(ev_4, "keyboard", "c"))
+        self.assertEqual(
+            self.preset.get_mapping(ev_3),
+            Mapping.from_combination(ev_3, "keyboard", "b"),
+        )
+        self.assertEqual(
+            self.preset.get_mapping(ev_4),
+            Mapping.from_combination(ev_4, "keyboard", "c"),
+        )
         self.assertEqual(len(self.preset), 2)
 
         # change the preset of 4 to d
-        self.preset.change(ev_4, "keyboard", "d", None)
-        self.assertEqual(self.preset.get_mapping(ev_4), ("d", "keyboard"))
-        self.assertEqual(len(self.preset), 2)
-
-        # this also works in the same way
-        self.preset.change(ev_4, "keyboard", "e", ev_4)
-        self.assertEqual(self.preset.get_mapping(ev_4), ("e", "keyboard"))
-        self.assertEqual(len(self.preset), 2)
-
-        self.assertEqual(self.preset.num_saved_keys, 0)
-
-    def test_rejects_empty(self):
-        key = EventCombination([EV_KEY, 1, 111])
-        self.assertEqual(len(self.preset), 0)
-        self.assertRaises(
-            ValueError, lambda: self.preset.change(key, "keyboard", " \n ")
+        mapping = self.preset.get_mapping(ev_4)
+        mapping.output_symbol = "d"
+        self.assertEqual(
+            self.preset.get_mapping(ev_4),
+            Mapping.from_combination(ev_4, "keyboard", "d"),
         )
-        self.assertRaises(ValueError, lambda: self.preset.change(key, " \n ", "b"))
-        self.assertEqual(len(self.preset), 0)
+        self.assertEqual(len(self.preset), 2)
 
-    def test_avoids_redundant_changes(self):
-        # to avoid logs that don't add any value
-        def clear(*_):
-            # should not be called
-            raise AssertionError
+        # try to change combination of 4 to 3
+        mapping = self.preset.get_mapping(ev_4)
+        with self.assertRaises(KeyError):
+            mapping.input_combination = ev_3
 
-        key = EventCombination([EV_KEY, 987, 1])
-        target = "keyboard"
-        symbol = "foo"
+        self.assertEqual(
+            self.preset.get_mapping(ev_3),
+            Mapping.from_combination(ev_3, "keyboard", "b"),
+        )
+        self.assertEqual(
+            self.preset.get_mapping(ev_4),
+            Mapping.from_combination(ev_4, "keyboard", "d"),
+        )
+        self.assertEqual(len(self.preset), 2)
 
-        self.preset.change(key, target, symbol)
-        with patch.object(self.preset, "clear", clear):
-            self.preset.change(key, target, symbol)
-            self.preset.change(key, target, symbol, previous_combination=key)
+    def test_avoids_redundant_saves(self):
+        with patch.object(self.preset, "has_unsaved_changes", lambda: False):
+            self.preset.path = get_preset_path("foo", "bar2")
+            self.preset.add(Mapping.from_combination())
+            self.preset.save()
+
+        with open(get_preset_path("foo", "bar2"), "r") as f:
+            content = f.read()
+
+        self.assertFalse(content)
 
     def test_combinations(self):
-        ev_1 = InputEvent.from_tuple((EV_KEY, 1, 111))
-        ev_2 = InputEvent.from_tuple((EV_KEY, 1, 222))
-        ev_3 = InputEvent.from_tuple((EV_KEY, 2, 111))
-        ev_4 = InputEvent.from_tuple((EV_ABS, 1, 111))
-        combi_1 = EventCombination(ev_1, ev_2, ev_3)
-        combi_2 = EventCombination(ev_2, ev_1, ev_3)
-        combi_3 = EventCombination(ev_1, ev_2, ev_4)
+        ev_1 = InputConfig(type=EV_KEY, code=1, analog_threshold=111)
+        ev_2 = InputConfig(type=EV_KEY, code=1, analog_threshold=222)
+        ev_3 = InputConfig(type=EV_KEY, code=2, analog_threshold=111)
+        ev_4 = InputConfig(type=EV_ABS, code=1, analog_threshold=99)
+        combi_1 = InputCombination((ev_1, ev_2, ev_3))
+        combi_2 = InputCombination((ev_2, ev_1, ev_3))
+        combi_3 = InputCombination((ev_1, ev_2, ev_4))
 
-        self.preset.change(combi_1, "keyboard", "a")
-        self.assertEqual(self.preset.get_mapping(combi_1), ("a", "keyboard"))
-        self.assertEqual(self.preset.get_mapping(combi_2), ("a", "keyboard"))
-        # since combi_1 and combi_2 are equivalent, a changes to b
-        self.preset.change(combi_2, "keyboard", "b")
-        self.assertEqual(self.preset.get_mapping(combi_1), ("b", "keyboard"))
-        self.assertEqual(self.preset.get_mapping(combi_2), ("b", "keyboard"))
+        self.preset.add(Mapping.from_combination(combi_1, "keyboard", "a"))
+        self.assertEqual(
+            self.preset.get_mapping(combi_1),
+            Mapping.from_combination(combi_1, "keyboard", "a"),
+        )
+        self.assertEqual(
+            self.preset.get_mapping(combi_2),
+            Mapping.from_combination(combi_1, "keyboard", "a"),
+        )
+        # since combi_1 and combi_2 are equivalent, this raises a KeyError
+        self.assertRaises(
+            KeyError,
+            self.preset.add,
+            Mapping.from_combination(combi_2, "keyboard", "b"),
+        )
+        self.assertEqual(
+            self.preset.get_mapping(combi_1),
+            Mapping.from_combination(combi_1, "keyboard", "a"),
+        )
+        self.assertEqual(
+            self.preset.get_mapping(combi_2),
+            Mapping.from_combination(combi_1, "keyboard", "a"),
+        )
 
-        self.preset.change(combi_3, "keyboard", "c")
-        self.assertEqual(self.preset.get_mapping(combi_1), ("b", "keyboard"))
-        self.assertEqual(self.preset.get_mapping(combi_2), ("b", "keyboard"))
-        self.assertEqual(self.preset.get_mapping(combi_3), ("c", "keyboard"))
+        self.preset.add(Mapping.from_combination(combi_3, "keyboard", "c"))
+        self.assertEqual(
+            self.preset.get_mapping(combi_1),
+            Mapping.from_combination(combi_1, "keyboard", "a"),
+        )
+        self.assertEqual(
+            self.preset.get_mapping(combi_2),
+            Mapping.from_combination(combi_1, "keyboard", "a"),
+        )
+        self.assertEqual(
+            self.preset.get_mapping(combi_3),
+            Mapping.from_combination(combi_3, "keyboard", "c"),
+        )
 
-        self.preset.change(combi_3, "keyboard", "c", combi_1)
-        self.assertIsNone(self.preset.get_mapping(combi_1))
-        self.assertIsNone(self.preset.get_mapping(combi_2))
-        self.assertEqual(self.preset.get_mapping(combi_3), ("c", "keyboard"))
+        mapping = self.preset.get_mapping(combi_1)
+        mapping.output_symbol = "c"
+        with self.assertRaises(KeyError):
+            mapping.input_combination = combi_3
 
-    def test_clear(self):
+        self.assertEqual(
+            self.preset.get_mapping(combi_1),
+            Mapping.from_combination(combi_1, "keyboard", "c"),
+        )
+        self.assertEqual(
+            self.preset.get_mapping(combi_2),
+            Mapping.from_combination(combi_1, "keyboard", "c"),
+        )
+        self.assertEqual(
+            self.preset.get_mapping(combi_3),
+            Mapping.from_combination(combi_3, "keyboard", "c"),
+        )
+
+    def test_remove(self):
         # does nothing
-        ev_1 = EventCombination((EV_KEY, 40, 1))
-        ev_2 = EventCombination((EV_KEY, 30, 1))
-        ev_3 = EventCombination((EV_KEY, 20, 1))
-        ev_4 = EventCombination((EV_KEY, 10, 1))
+        ev_1 = InputCombination([InputConfig(type=EV_KEY, code=40)])
+        ev_2 = InputCombination([InputConfig(type=EV_KEY, code=30)])
+        ev_3 = InputCombination([InputConfig(type=EV_KEY, code=20)])
+        ev_4 = InputCombination([InputConfig(type=EV_KEY, code=10)])
 
-        self.assertRaises(TypeError, self.preset.clear, (EV_KEY, 10, 1))
-        self.preset.clear(ev_1)
+        self.assertRaises(TypeError, self.preset.remove, (EV_KEY, 10, 1))
+        self.preset.remove(ev_1)
         self.assertFalse(self.preset.has_unsaved_changes())
         self.assertEqual(len(self.preset), 0)
 
-        self.preset._mapping[ev_1] = "b"
+        self.preset.add(Mapping.from_combination(input_combination=ev_1))
         self.assertEqual(len(self.preset), 1)
-        self.preset.clear(ev_1)
+        self.preset.remove(ev_1)
         self.assertEqual(len(self.preset), 0)
-        self.assertTrue(self.preset.has_unsaved_changes())
 
-        self.preset.change(ev_4, "keyboard", "KEY_KP1", None)
+        self.preset.add(Mapping.from_combination(ev_4, "keyboard", "KEY_KP1"))
         self.assertTrue(self.preset.has_unsaved_changes())
-        self.preset.change(ev_3, "keyboard", "KEY_KP2", None)
-        self.preset.change(ev_2, "keyboard", "KEY_KP3", None)
+        self.preset.add(Mapping.from_combination(ev_3, "keyboard", "KEY_KP2"))
+        self.preset.add(Mapping.from_combination(ev_2, "keyboard", "KEY_KP3"))
         self.assertEqual(len(self.preset), 3)
-        self.preset.clear(ev_3)
+        self.preset.remove(ev_3)
         self.assertEqual(len(self.preset), 2)
-        self.assertEqual(self.preset.get_mapping(ev_4), ("KEY_KP1", "keyboard"))
+        self.assertEqual(
+            self.preset.get_mapping(ev_4),
+            Mapping.from_combination(ev_4, "keyboard", "KEY_KP1"),
+        )
         self.assertIsNone(self.preset.get_mapping(ev_3))
-        self.assertEqual(self.preset.get_mapping(ev_2), ("KEY_KP3", "keyboard"))
+        self.assertEqual(
+            self.preset.get_mapping(ev_2),
+            Mapping.from_combination(ev_2, "keyboard", "KEY_KP3"),
+        )
 
     def test_empty(self):
-        self.preset.change(EventCombination([EV_KEY, 10, 1]), "keyboard", "1")
-        self.preset.change(EventCombination([EV_KEY, 11, 1]), "keyboard", "2")
-        self.preset.change(EventCombination([EV_KEY, 12, 1]), "keyboard", "3")
+        self.preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=10)]),
+                "keyboard",
+                "1",
+            ),
+        )
+        self.preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=11)]),
+                "keyboard",
+                "2",
+            ),
+        )
+        self.preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=12)]),
+                "keyboard",
+                "3",
+            ),
+        )
         self.assertEqual(len(self.preset), 3)
+        self.preset.path = get_config_path("test.json")
+        self.preset.save()
+        self.assertFalse(self.preset.has_unsaved_changes())
+
         self.preset.empty()
+        self.assertEqual(self.preset.path, get_config_path("test.json"))
+        self.assertTrue(self.preset.has_unsaved_changes())
+        self.assertEqual(len(self.preset), 0)
+
+    def test_clear(self):
+        self.preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=10)]),
+                "keyboard",
+                "1",
+            ),
+        )
+        self.preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=11)]),
+                "keyboard",
+                "2",
+            ),
+        )
+        self.preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=12)]),
+                "keyboard",
+                "3",
+            ),
+        )
+        self.assertEqual(len(self.preset), 3)
+        self.preset.path = get_config_path("test.json")
+        self.preset.save()
+        self.assertFalse(self.preset.has_unsaved_changes())
+
+        self.preset.clear()
+        self.assertFalse(self.preset.has_unsaved_changes())
+        self.assertIsNone(self.preset.path)
         self.assertEqual(len(self.preset), 0)
 
     def test_dangerously_mapped_btn_left(self):
-        self.preset.change(EventCombination(InputEvent.btn_left()), "keyboard", "1")
+        # btn left is mapped
+        self.preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig.btn_left()]),
+                "keyboard",
+                "1",
+            )
+        )
+        self.assertTrue(self.preset.dangerously_mapped_btn_left())
+        self.preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=41)]),
+                "keyboard",
+                "2",
+            )
+        )
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
 
-        self.preset.change(EventCombination([EV_KEY, 41, 1]), "keyboard", "2")
-        self.assertTrue(self.preset.dangerously_mapped_btn_left())
-
-        self.preset.change(EventCombination([EV_KEY, 42, 1]), "gamepad", "btn_left")
+        # another mapping maps to btn_left
+        self.preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=EV_KEY, code=42)]),
+                "mouse",
+                "btn_left",
+            )
+        )
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
-        self.preset.change(EventCombination([EV_KEY, 42, 1]), "gamepad", "BTN_Left")
+        mapping = self.preset.get_mapping(
+            InputCombination([InputConfig(type=EV_KEY, code=42)])
+        )
+        mapping.output_symbol = "BTN_Left"
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
-        self.preset.change(EventCombination([EV_KEY, 42, 1]), "keyboard", "3")
+        mapping.target_uinput = "keyboard + mouse"
+        mapping.output_symbol = "3"
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
+
+        # btn_left is not mapped
+        self.preset.remove(InputCombination([InputConfig.btn_left()]))
+        self.assertFalse(self.preset.dangerously_mapped_btn_left())
+
+    def test_save_load_with_invalid_mappings(self):
+        ui_preset = Preset(get_config_path("test.json"), mapping_factory=UIMapping)
+
+        ui_preset.add(UIMapping())
+        self.assertFalse(ui_preset.is_valid())
+
+        # make the mapping valid
+        m = ui_preset.get_mapping(InputCombination.empty_combination())
+        m.output_symbol = "a"
+        m.target_uinput = "keyboard"
+        self.assertTrue(ui_preset.is_valid())
+
+        m2 = UIMapping(
+            input_combination=InputCombination([InputConfig(type=1, code=2)])
+        )
+        ui_preset.add(m2)
+        self.assertFalse(ui_preset.is_valid())
+        ui_preset.save()
+
+        # only the valid preset is loaded
+        preset = Preset(get_config_path("test.json"))
+        preset.load()
+        self.assertEqual(len(preset), 1)
+
+        a = preset.get_mapping(m.input_combination).dict()
+        b = m.dict()
+        a.pop("mapping_type")
+        b.pop("mapping_type")
+        self.assertEqual(a, b)
+        # self.assertEqual(preset.get_mapping(m.input_combination), m)
+
+        # both presets load
+        ui_preset.clear()
+        ui_preset.path = get_config_path("test.json")
+        ui_preset.load()
+        self.assertEqual(len(ui_preset), 2)
+
+        a = ui_preset.get_mapping(m.input_combination).dict()
+        b = m.dict()
+        a.pop("mapping_type")
+        b.pop("mapping_type")
+        self.assertEqual(a, b)
+        # self.assertEqual(ui_preset.get_mapping(m.input_combination), m)
+        self.assertEqual(ui_preset.get_mapping(m2.input_combination), m2)
 
 
 if __name__ == "__main__":

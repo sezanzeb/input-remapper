@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -19,49 +19,57 @@
 
 
 """Keeps injecting keycodes in the background based on the preset."""
+from __future__ import annotations
 
-import os
-import sys
 import asyncio
-import time
+import enum
 import multiprocessing
+import sys
+import time
+from collections import defaultdict
+from dataclasses import dataclass
+from multiprocessing.connection import Connection
+from typing import Dict, List, Optional, Tuple, Union
 
 import evdev
 
-from typing import Dict, List, Optional
-
+from inputremapper.configs.input_config import InputCombination, InputConfig, DeviceHash
 from inputremapper.configs.preset import Preset
-
-from inputremapper.logger import logger
-from inputremapper.groups import classify, GAMEPAD, _Group
+from inputremapper.groups import (
+    _Group,
+    classify,
+    DeviceType,
+)
+from inputremapper.gui.messages.message_broker import MessageType
 from inputremapper.injection.context import Context
+from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
-from inputremapper.injection.consumer_control import ConsumerControl
-from inputremapper.event_combination import EventCombination
-
+from inputremapper.logger import logger
+from inputremapper.utils import get_device_hash
 
 CapabilitiesDict = Dict[int, List[int]]
-GroupSources = List[evdev.InputDevice]
 
 DEV_NAME = "input-remapper"
 
-# messages
-CLOSE = 0
-UPGRADE_EVDEV = 7
 
-# states
-UNKNOWN = -1
-STARTING = 2
-FAILED = 3
-RUNNING = 4
-STOPPED = 5
+# messages sent to the injector process
+class InjectorCommand(str, enum.Enum):
+    CLOSE = "CLOSE"
 
-# for both states and messages
-NO_GRAB = 6
+
+# messages the injector process reports back to the service
+class InjectorState(str, enum.Enum):
+    UNKNOWN = "UNKNOWN"
+    STARTING = "STARTING"
+    FAILED = "FAILED"
+    RUNNING = "RUNNING"
+    STOPPED = "STOPPED"
+    NO_GRAB = "NO_GRAB"
+    UPGRADE_EVDEV = "UPGRADE_EVDEV"
 
 
 def is_in_capabilities(
-    combination: EventCombination, capabilities: CapabilitiesDict
+    combination: InputCombination, capabilities: CapabilitiesDict
 ) -> bool:
     """Are this combination or one of its sub keys in the capabilities?"""
     for event in combination:
@@ -80,6 +88,18 @@ def get_udev_name(name: str, suffix: str) -> str:
     return name
 
 
+@dataclass(frozen=True)
+class InjectorStateMessage:
+    message_type = MessageType.injector_state
+    state: Union[InjectorState]
+
+    def active(self) -> bool:
+        return self.state in [InjectorState.RUNNING, InjectorState.STARTING]
+
+    def inactive(self) -> bool:
+        return self.state in [InjectorState.STOPPED, InjectorState.NO_GRAB]
+
+
 class Injector(multiprocessing.Process):
     """Initializes, starts and stops injections.
 
@@ -91,9 +111,11 @@ class Injector(multiprocessing.Process):
     group: _Group
     preset: Preset
     context: Optional[Context]
-    _state: int
-    _msg_pipe: multiprocessing.Pipe
-    _consumer_controls: List[ConsumerControl]
+    _devices: List[evdev.InputDevice]
+    _state: InjectorState
+    _msg_pipe: Tuple[Connection, Connection]
+    _event_readers: List[EventReader]
+    _stop_event: asyncio.Event
 
     regrab_timeout = 0.2
 
@@ -102,12 +124,11 @@ class Injector(multiprocessing.Process):
 
         Parameters
         ----------
-        group : _Group
+        group
             the device group
-        preset : Preset
         """
         self.group = group
-        self._state = UNKNOWN
+        self._state = InjectorState.UNKNOWN
 
         # used to interact with the parts of this class that are running within
         # the new process
@@ -116,40 +137,46 @@ class Injector(multiprocessing.Process):
         self.preset = preset
         self.context = None  # only needed inside the injection process
 
-        self._consumer_controls = []
+        self._event_readers = []
 
-        super().__init__(name=group)
+        super().__init__(name=group.key)
 
-    """Functions to interact with the running process"""
+    """Functions to interact with the running process."""
 
-    def get_state(self) -> int:
+    def get_state(self) -> InjectorState:
         """Get the state of the injection.
 
         Can be safely called from the main process.
         """
+        # before we try to we try to guess anything lets check if there is a message
+        state = self._state
+        while self._msg_pipe[1].poll():
+            state = self._msg_pipe[1].recv()
+
         # figure out what is going on step by step
         alive = self.is_alive()
 
-        if self._state == UNKNOWN and not alive:
-            # `self.start()` has not been called yet
-            return self._state
+        # if `self.start()` has been called
+        started = state != InjectorState.UNKNOWN or alive
 
-        if self._state == UNKNOWN and alive:
-            # if it is alive, it is definitely at least starting up.
-            self._state = STARTING
+        if started:
+            if state == InjectorState.UNKNOWN and alive:
+                # if it is alive, it is definitely at least starting up.
+                state = InjectorState.STARTING
 
-        if self._state == STARTING and self._msg_pipe[1].poll():
-            # if there is a message available, it might have finished starting up
-            # and the injector has the real status for us
-            msg = self._msg_pipe[1].recv()
-            self._state = msg
+            if state in (InjectorState.STARTING, InjectorState.RUNNING) and not alive:
+                # we thought it is running (maybe it was when get_state was previously),
+                # but the process is not alive. It probably crashed
+                state = InjectorState.FAILED
+                logger.error("Injector was unexpectedly found stopped")
 
-        if self._state in [STARTING, RUNNING] and not alive:
-            # we thought it is running (maybe it was when get_state was previously),
-            # but the process is not alive. It probably crashed
-            self._state = FAILED
-            logger.error("Injector was unexpectedly found stopped")
-
+        logger.debug(
+            'Injector state of "%s", "%s": %s',
+            self.group.key,
+            self.preset.name,
+            state,
+        )
+        self._state = state
         return self._state
 
     @ensure_numlock
@@ -159,80 +186,130 @@ class Injector(multiprocessing.Process):
         Can be safely called from the main procss.
         """
         logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
-        self._msg_pipe[1].send(CLOSE)
-        self._state = STOPPED
+        self._msg_pipe[1].send(InjectorCommand.CLOSE)
 
-    """Process internal stuff"""
+    """Process internal stuff."""
 
-    def _grab_devices(self) -> GroupSources:
-        """Grab all devices that are needed for the injection."""
-        sources = []
-        for path in self.group.paths:
-            source = self._grab_device(path)
-            if source is None:
-                # this path doesn't need to be grabbed for injection, because
-                # it doesn't provide the events needed to execute the preset
+    def _find_input_device(
+        self, input_config: InputConfig
+    ) -> Optional[evdev.InputDevice]:
+        """find the InputDevice specified by the InputConfig
+
+        ensures the devices supports the type and code specified by the InputConfig"""
+        devices_by_hash = {get_device_hash(device): device for device in self._devices}
+
+        # mypy thinks None is the wrong type for dict.get()
+        if device := devices_by_hash.get(input_config.origin_hash):  # type: ignore
+            if input_config.code in device.capabilities(absinfo=False).get(
+                input_config.type, []
+            ):
+                return device
+        return None
+
+    def _find_input_device_fallback(
+        self, input_config: InputConfig
+    ) -> Optional[evdev.InputDevice]:
+        """find the InputDevice specified by the InputConfig fallback logic"""
+        ranking = [
+            DeviceType.KEYBOARD,
+            DeviceType.GAMEPAD,
+            DeviceType.MOUSE,
+            DeviceType.TOUCHPAD,
+            DeviceType.GRAPHICS_TABLET,
+            DeviceType.CAMERA,
+            DeviceType.UNKNOWN,
+        ]
+        candidates: List[evdev.InputDevice] = [
+            device
+            for device in self._devices
+            if input_config.code
+            in device.capabilities(absinfo=False).get(input_config.type, [])
+        ]
+
+        if len(candidates) > 1:
+            # there is more than on input device which can be used for this
+            # event we choose only one determined by the ranking
+            return sorted(candidates, key=lambda d: ranking.index(classify(d)))[0]
+        if len(candidates) == 1:
+            return candidates.pop()
+
+        logger.error(f"Could not find input for {input_config}")
+        return None
+
+    def _grab_devices(self) -> Dict[DeviceHash, evdev.InputDevice]:
+        """Grab all InputDevices that match a mappings' origin_hash."""
+        # use a dict because the InputDevice is not directly hashable
+        needed_devices = {}
+        input_configs = set()
+
+        # find all unique input_config's
+        for mapping in self.preset:
+            for input_config in mapping.input_combination:
+                input_configs.add(input_config)
+
+        # find all unique input_device's
+        for input_config in input_configs:
+            if not (device := self._find_input_device(input_config)):
+                # there is no point in trying the fallback because
+                # self._update_preset already did that.
                 continue
-            sources.append(source)
+            needed_devices[device.path] = device
 
-        return sources
+        grabbed_devices = {}
+        for device in needed_devices.values():
+            if device := self._grab_device(device):
+                grabbed_devices[get_device_hash(device)] = device
 
-    def _grab_device(self, path: os.PathLike) -> Optional[evdev.InputDevice]:
-        """Try to grab the device, return None if not needed/possible.
+        return grabbed_devices
+
+    def _update_preset(self):
+        """Update all InputConfigs in the preset to include correct origin_hash
+        information."""
+        mappings_by_input = defaultdict(list)
+        for mapping in self.preset:
+            for input_config in mapping.input_combination:
+                mappings_by_input[input_config].append(mapping)
+
+        for input_config in mappings_by_input:
+            if self._find_input_device(input_config):
+                continue
+
+            if not (device := self._find_input_device_fallback(input_config)):
+                # fallback failed, this mapping will be ignored
+                continue
+
+            for mapping in mappings_by_input[input_config]:
+                combination: List[InputConfig] = list(mapping.input_combination)
+                device_hash = get_device_hash(device)
+                idx = combination.index(input_config)
+                combination[idx] = combination[idx].modify(origin_hash=device_hash)
+                mapping.input_combination = combination
+
+    def _grab_device(self, device: evdev.InputDevice) -> Optional[evdev.InputDevice]:
+        """Try to grab the device, return None if not possible.
 
         Without grab, original events from it would reach the display server
         even though they are mapped.
         """
-        try:
-            device = evdev.InputDevice(path)
-        except (FileNotFoundError, OSError):
-            logger.error('Could not find "%s"', path)
-            return None
-
-        capabilities = device.capabilities(absinfo=False)
-
-        needed = False
-        for key, _ in self.context.preset:
-            if is_in_capabilities(key, capabilities):
-                logger.debug('Grabbing "%s" because of "%s"', path, key)
-                needed = True
-                break
-
-        gamepad = classify(device) == GAMEPAD
-
-        if gamepad and self.context.maps_joystick():
-            logger.debug('Grabbing "%s" because of maps_joystick', path)
-            needed = True
-
-        if not needed:
-            # skipping reading and checking on events from those devices
-            # may be beneficial for performance.
-            logger.debug("No need to grab %s", path)
-            return None
-
-        attempts = 0
-        while True:
+        error = None
+        for attempt in range(10):
             try:
                 device.grab()
-                logger.debug("Grab %s", path)
-                break
-            except IOError as error:
-                attempts += 1
-
+                logger.debug("Grab %s", device.path)
+                return device
+            except IOError as err:
                 # it might take a little time until the device is free if
                 # it was previously grabbed.
-                logger.debug("Failed attempts to grab %s: %d", path, attempts)
+                error = err
+                logger.debug("Failed attempts to grab %s: %d", device.path, attempt + 1)
+                time.sleep(self.regrab_timeout)
 
-                if attempts >= 10:
-                    logger.error("Cannot grab %s, it is possibly in use", path)
-                    logger.error(str(error))
-                    return None
+        logger.error("Cannot grab %s, it is possibly in use", device.path)
+        logger.error(str(error))
+        return None
 
-            time.sleep(self.regrab_timeout)
-
-        return device
-
-    def _copy_capabilities(self, input_device: evdev.InputDevice) -> CapabilitiesDict:
+    @staticmethod
+    def _copy_capabilities(input_device: evdev.InputDevice) -> CapabilitiesDict:
         """Copy capabilities for a new device."""
         ecodes = evdev.ecodes
 
@@ -263,12 +340,47 @@ class Injector(multiprocessing.Process):
             await frame_available.wait()
             frame_available.clear()
             msg = self._msg_pipe[0].recv()
-            if msg == CLOSE:
+            if msg == InjectorCommand.CLOSE:
                 logger.debug("Received close signal")
+                self._stop_event.set()
+                # give the event pipeline some time to reset devices
+                # before shutting the loop down
+                await asyncio.sleep(0.1)
+
                 # stop the event loop and cause the process to reach its end
                 # cleanly. Using .terminate prevents coverage from working.
                 loop.stop()
+                self._msg_pipe[0].send(InjectorState.STOPPED)
                 return
+
+    def _create_forwarding_device(self, source: evdev.InputDevice) -> evdev.UInput:
+        # copy as much information as possible, because libinput uses the extra
+        # information to enable certain features like "Disable touchpad while
+        # typing"
+        try:
+            forward_to = evdev.UInput(
+                name=get_udev_name(source.name, "forwarded"),
+                events=self._copy_capabilities(source),
+                # phys=source.phys,  # this leads to confusion. the appearance of
+                # a uinput with this "phys" property causes the udev rule to
+                # autoload for the original device, overwriting our previous
+                # attempts at starting an injection.
+                vendor=source.info.vendor,
+                product=source.info.product,
+                version=source.info.version,
+                bustype=source.info.bustype,
+                input_props=source.input_props(),
+            )
+        except TypeError as e:
+            if "input_props" in str(e):
+                # UInput constructor doesn't support input_props and
+                # source.input_props doesn't exist with old python-evdev versions.
+                logger.error("Please upgrade your python-evdev version. Exiting")
+                self._msg_pipe[0].send(InjectorState.UPGRADE_EVDEV)
+                sys.exit(12)
+
+            raise e
+        return forward_to
 
     def run(self) -> None:
         """The injection worker that keeps injecting until terminated.
@@ -279,24 +391,6 @@ class Injector(multiprocessing.Process):
         Use this function as starting point in a process. It creates
         the loops needed to read and map events and keeps running them.
         """
-        # TODO run all injections in a single process via asyncio
-        #   - Make sure that closing asyncio fds won't lag the service
-        #   - SharedDict becomes obsolete
-        #   - quick_cleanup needs to be able to reliably stop the injection
-        #   - I think I want an event listener architecture so that macros,
-        #     joystick_to_mouse, keycode_mapper and possibly other modules can get
-        #     what they filter for whenever they want, without having to wire
-        #     things through multiple other objects all the time
-        #   - _new_event_arrived moves to the place where events are emitted. injector?
-        #   - active macros and unreleased need to be per injection. it probably
-        #     should move into the keycode_mapper class, but that only works if there
-        #     is only one keycode_mapper per injection, and not per source. Problem was
-        #     that I had to excessively pass around to which device to forward to...
-        #     I also need to have information somewhere which source is a gamepad, I
-        #     probably don't want to evaluate that from scratch each time `notify` is
-        #     called.
-        #   - benefit: writing macros that listen for events from other devices
-
         logger.info('Starting injecting the preset for "%s"', self.group.key)
 
         # create a new event loop, because somehow running an infinite loop
@@ -306,55 +400,42 @@ class Injector(multiprocessing.Process):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        # create this within the process after the event loop creation,
-        # so that the macros use the correct loop
-        self.context = Context(self.preset)
+        self._devices = self.group.get_devices()
+
+        # InputConfigs may not contain the origin_hash information, this will try to make a
+        # good guess if the origin_hash information is missing or invalid.
+        self._update_preset()
 
         # grab devices as early as possible. If events appear that won't get
-        # released anymore before the grab they appear to be held down
-        # forever
+        # released anymore before the grab they appear to be held down forever
         sources = self._grab_devices()
+        forward_devices = {}
+        for device_hash, device in sources.items():
+            forward_devices[device_hash] = self._create_forwarding_device(device)
+
+        # create this within the process after the event loop creation,
+        # so that the macros use the correct loop
+        self.context = Context(self.preset, sources, forward_devices)
+        self._stop_event = asyncio.Event()
 
         if len(sources) == 0:
+            # maybe the preset was empty or something
             logger.error("Did not grab any device")
-            self._msg_pipe[0].send(NO_GRAB)
+            self._msg_pipe[0].send(InjectorState.NO_GRAB)
             return
 
         numlock_state = is_numlock_on()
         coroutines = []
 
-        for source in sources:
-            # copy as much information as possible, because libinput uses the extra
-            # information to enable certain features like "Disable touchpad while
-            # typing"
-            try:
-                forward_to = evdev.UInput(
-                    name=get_udev_name(source.name, "forwarded"),
-                    events=self._copy_capabilities(source),
-                    # phys=source.phys,  # this leads to confusion. the appearance of
-                    # an uinput with this "phys" property causes the udev rule to
-                    # autoload for the original device, overwriting our previous
-                    # attempts at starting an injection.
-                    vendor=source.info.vendor,
-                    product=source.info.product,
-                    version=source.info.version,
-                    bustype=source.info.bustype,
-                    input_props=source.input_props(),
-                )
-            except TypeError as e:
-                if "input_props" in str(e):
-                    # UInput constructor doesn't support input_props and
-                    # source.input_props doesn't exist with old python-evdev versions.
-                    logger.error("Please upgrade your python-evdev version. Exiting")
-                    self._msg_pipe[0].send(UPGRADE_EVDEV)
-                    sys.exit(12)
-
-                raise e
-
+        for device_hash in sources:
             # actually doing things
-            consumer_control = ConsumerControl(self.context, source, forward_to)
-            coroutines.append(consumer_control.run())
-            self._consumer_controls.append(consumer_control)
+            event_reader = EventReader(
+                self.context,
+                sources[device_hash],
+                self._stop_event,
+            )
+            coroutines.append(event_reader.run())
+            self._event_readers.append(event_reader)
 
         coroutines.append(self._msg_listener())
 
@@ -362,7 +443,7 @@ class Injector(multiprocessing.Process):
         # grabbing devices screws this up
         set_numlock(numlock_state)
 
-        self._msg_pipe[0].send(RUNNING)
+        self._msg_pipe[0].send(InjectorState.RUNNING)
 
         try:
             loop.run_until_complete(asyncio.gather(*coroutines))
@@ -380,7 +461,7 @@ class Injector(multiprocessing.Process):
             # reached otherwise.
             logger.debug("Injector coroutines ended")
 
-        for source in sources:
+        for source in sources.values():
             # ungrab at the end to make the next injection process not fail
             # its grabs
             try:

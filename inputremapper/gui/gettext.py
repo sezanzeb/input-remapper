@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -17,11 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import os.path
 import gettext
 import locale
+import os.path
+
 from inputremapper.configs.data import get_data_path
-from argparse import ArgumentParser
 
 APP_NAME = "input-remapper"
 LOCALE_DIR = os.path.join(get_data_path(), "lang")

@@ -6,3 +6,12 @@ debug = multiproc
 omit =
     # not used currently due to problems
     /usr/lib/python3.9/site-packages/inputremapper/ipc/socket.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+
+    # Don't complain about abstract methods, they aren't run:
+    @(abc\.)?abstractmethod
+    # Don't cover Protocol classes
+    class .*\(.*Protocol.*\):

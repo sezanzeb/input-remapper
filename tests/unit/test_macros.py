@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -19,26 +19,34 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import logger, quick_cleanup, new_event
-
-import time
-import unittest
-import re
 import asyncio
 import multiprocessing
+import re
+import time
+import unittest
 from unittest import mock
 
 from evdev.ecodes import (
     EV_REL,
+    EV_ABS,
     EV_KEY,
+    ABS_Y,
     REL_Y,
     REL_HWHEEL,
+    REL_HWHEEL_HI_RES,
     KEY_A,
     KEY_B,
     KEY_C,
     KEY_E,
 )
 
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.validation_errors import (
+    MacroParsingError,
+    SymbolNotAvailableInTargetError,
+)
+from inputremapper.injection.context import Context
 from inputremapper.injection.macros.macro import (
     Macro,
     _type_check,
@@ -60,11 +68,9 @@ from inputremapper.injection.macros.parse import (
     get_macro_argument_names,
     get_num_parameters,
 )
-from inputremapper.injection.context import Context
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.utils import PRESS, RELEASE
+from inputremapper.input_event import InputEvent
+from tests.lib.logger import logger
+from tests.lib.cleanup import quick_cleanup
 
 
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):
@@ -79,17 +85,42 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
-        self.context = Context(Preset())
+        self.context = Context(Preset(), source_devices={}, forward_devices={})
 
     def tearDown(self):
         self.result = []
-        self.context.preset.clear_config()
         quick_cleanup()
 
-    def handler(self, ev_type, code, value):
+    def handler(self, type_: int, code: int, value: int):
         """Where macros should write codes to."""
-        logger.info(f"macro wrote{(ev_type, code, value)}")
-        self.result.append((ev_type, code, value))
+        logger.info(f"macro wrote{(type_, code, value)}")
+        self.result.append((type_, code, value))
+
+    async def trigger_sequence(self, macro: Macro, event):
+        for listener in self.context.listeners:
+            asyncio.ensure_future(listener(event))
+            # this still might cause race conditions and the test to fail
+            await asyncio.sleep(0)
+
+        macro.press_trigger()
+        if macro.running:
+            return
+        asyncio.ensure_future(macro.run(self.handler))
+
+    async def release_sequence(self, macro: Macro, event):
+        for listener in self.context.listeners:
+            asyncio.ensure_future(listener(event))
+            # this still might cause race conditions and the test to fail
+            await asyncio.sleep(0)
+
+        if macro.is_holding():
+            macro.release_trigger()
+
+
+class DummyMapping:
+    macro_key_sleep_ms = 10
+    rel_rate = 60
+    target_uinput = "keyboard + mouse"
 
 
 class TestMacros(MacroTestBase):
@@ -100,9 +131,15 @@ class TestMacros(MacroTestBase):
             result.append((a, b, c, d))
 
         functions = {"key": patch}
-        with mock.patch("inputremapper.injection.macros.parse.FUNCTIONS", functions):
-            await parse("key(1, d=4, b=2, c=3)", self.context).run(self.handler)
-            await parse("key(1, b=2, c=3)", self.context).run(self.handler)
+        with mock.patch(
+            "inputremapper.injection.macros.parse.TASK_FACTORIES", functions
+        ):
+            await parse("key(1, d=4, b=2, c=3)", self.context, DummyMapping).run(
+                self.handler
+            )
+            await parse("key(1, b=2, c=3)", self.context, DummyMapping).run(
+                self.handler
+            )
             self.assertListEqual(result, [(1, 2, 3, 4), (1, 2, 3, 400)])
 
     def test_get_macro_argument_names(self):
@@ -195,37 +232,49 @@ class TestMacros(MacroTestBase):
         self.assertEqual(_type_check("1", [int, None], "foo", 1), 1)
         self.assertEqual(_type_check(1.2, [str], "foo", 2), "1.2")
 
-        self.assertRaises(TypeError, lambda: _type_check("1.2", [int], "foo", 3))
-        self.assertRaises(TypeError, lambda: _type_check("a", [None], "foo", 0))
-        self.assertRaises(TypeError, lambda: _type_check("a", [int], "foo", 1))
-        self.assertRaises(TypeError, lambda: _type_check("a", [int, float], "foo", 2))
-        self.assertRaises(TypeError, lambda: _type_check("a", [int, None], "foo", 3))
+        self.assertRaises(
+            MacroParsingError,
+            lambda: _type_check("1.2", [int], "foo", 3),
+        )
+        self.assertRaises(MacroParsingError, lambda: _type_check("a", [None], "foo", 0))
+        self.assertRaises(MacroParsingError, lambda: _type_check("a", [int], "foo", 1))
+        self.assertRaises(
+            MacroParsingError,
+            lambda: _type_check("a", [int, float], "foo", 2),
+        )
+        self.assertRaises(
+            MacroParsingError,
+            lambda: _type_check("a", [int, None], "foo", 3),
+        )
         self.assertEqual(_type_check("a", [int, float, None, str], "foo", 4), "a")
 
         # variables are expected to be of the Variable type here, not a $string
-        self.assertRaises(TypeError, lambda: _type_check("$a", [int], "foo", 4))
+        self.assertRaises(MacroParsingError, lambda: _type_check("$a", [int], "foo", 4))
         variable = Variable("a")
         self.assertEqual(_type_check(variable, [int], "foo", 4), variable)
 
-        self.assertRaises(TypeError, lambda: _type_check("a", [Macro], "foo", 0))
-        self.assertRaises(TypeError, lambda: _type_check(1, [Macro], "foo", 0))
+        self.assertRaises(
+            MacroParsingError,
+            lambda: _type_check("a", [Macro], "foo", 0),
+        )
+        self.assertRaises(MacroParsingError, lambda: _type_check(1, [Macro], "foo", 0))
         self.assertEqual(_type_check("1", [Macro, int], "foo", 4), 1)
 
     def test_type_check_variablename(self):
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("1a"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("$a"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("a()"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("1"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("+"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("-"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("*"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("a,b"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("a,b"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename("#"))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename(1))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename(None))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename([]))
-        self.assertRaises(SyntaxError, lambda: _type_check_variablename(()))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("1a"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("$a"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("a()"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("1"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("+"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("-"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("*"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("a,b"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("a,b"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("#"))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename(1))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename(None))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename([]))
+        self.assertRaises(MacroParsingError, lambda: _type_check_variablename(()))
 
         # doesn't raise
         _type_check_variablename("a")
@@ -241,7 +290,8 @@ class TestMacros(MacroTestBase):
         self.assertTupleEqual(_split_keyword_arg("_A=b"), ("_A", "b"))
         self.assertTupleEqual(_split_keyword_arg("a_=1"), ("a_", "1"))
         self.assertTupleEqual(
-            _split_keyword_arg("a=repeat(2, KEY_A)"), ("a", "repeat(2, KEY_A)")
+            _split_keyword_arg("a=repeat(2, KEY_A)"),
+            ("a", "repeat(2, KEY_A)"),
         )
         self.assertTupleEqual(_split_keyword_arg('a="=,#+."'), ("a", '"=,#+."'))
 
@@ -272,7 +322,7 @@ class TestMacros(MacroTestBase):
         # of this function to begin with.
         strings = ["+", "a+", "+b", "a\n+\n+\nb", "key(a + b)"]
         for string in strings:
-            with self.assertRaises(ValueError):
+            with self.assertRaises(MacroParsingError):
                 logger.info(f'testing "%s"', string)
                 handle_plus_syntax(string)
 
@@ -289,7 +339,7 @@ class TestMacros(MacroTestBase):
         self.assertEqual(macro.code, "key(a)")
 
     async def test_run_plus_syntax(self):
-        macro = parse("a + b + c + d", self.context)
+        macro = parse("a + b + c + d", self.context, DummyMapping)
 
         macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
@@ -350,49 +400,56 @@ class TestMacros(MacroTestBase):
         expect(",,", ["", "", ""])
 
     async def test_parse_params(self):
-        self.assertEqual(_parse_recurse("", self.context), None)
+        self.assertEqual(_parse_recurse("", self.context, DummyMapping, True), None)
 
         # strings. If it is wrapped in quotes, don't parse the contents
-        self.assertEqual(_parse_recurse('"foo"', self.context), "foo")
-        self.assertEqual(_parse_recurse('"\tf o o\n"', self.context), "\tf o o\n")
-        self.assertEqual(_parse_recurse('"foo(a,b)"', self.context), "foo(a,b)")
-        self.assertEqual(_parse_recurse('",,,()"', self.context), ",,,()")
+        self.assertEqual(
+            _parse_recurse('"foo"', self.context, DummyMapping, True), "foo"
+        )
+        self.assertEqual(
+            _parse_recurse('"\tf o o\n"', self.context, DummyMapping, True),
+            "\tf o o\n",
+        )
+        self.assertEqual(
+            _parse_recurse('"foo(a,b)"', self.context, DummyMapping, True),
+            "foo(a,b)",
+        )
+        self.assertEqual(
+            _parse_recurse('",,,()"', self.context, DummyMapping, True), ",,,()"
+        )
 
         # strings without quotes only work as long as there is no function call or
         # anything. This is only really acceptable for constants like KEY_A and for
         # variable names, which are not allowed to contain special characters that may
         # have a meaning in the macro syntax.
-        self.assertEqual(_parse_recurse("foo", self.context), "foo")
+        self.assertEqual(_parse_recurse("foo", self.context, DummyMapping, True), "foo")
 
-        self.assertEqual(_parse_recurse("", self.context), None)
-        self.assertEqual(_parse_recurse("None", self.context), None)
+        self.assertEqual(_parse_recurse("", self.context, DummyMapping, True), None)
+        self.assertEqual(_parse_recurse("None", self.context, DummyMapping, True), None)
 
-        self.assertEqual(_parse_recurse("5", self.context), 5)
-        self.assertEqual(_parse_recurse("5.2", self.context), 5.2)
-        self.assertIsInstance(_parse_recurse("$foo", self.context), Variable)
-        self.assertEqual(_parse_recurse("$foo", self.context).name, "foo")
-
-    async def test_fails(self):
-        self.assertIsNone(parse("repeat(1, a)", self.context))
-        self.assertIsNone(parse("repeat(a, key(b))", self.context))
-        self.assertIsNone(parse("modify(a, b)", self.context))
-
-        # passing a string parameter. This is not a macro, even though
-        # it might look like it without the string quotes.
-        self.assertIsNone(parse('"modify(a, b)"', self.context))
+        self.assertEqual(_parse_recurse("5", self.context, DummyMapping, True), 5)
+        self.assertEqual(_parse_recurse("5.2", self.context, DummyMapping, True), 5.2)
+        self.assertIsInstance(
+            _parse_recurse("$foo", self.context, DummyMapping, True),
+            Variable,
+        )
+        self.assertEqual(
+            _parse_recurse("$foo", self.context, DummyMapping, True).name, "foo"
+        )
 
     async def test_0(self):
-        macro = parse("key(1)", self.context)
+        macro = parse("key(1)", self.context, DummyMapping, True)
         one_code = system_mapping.get("1")
 
         await macro.run(self.handler)
         self.assertListEqual(
-            self.result, [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)]
+            self.result,
+            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
         )
         self.assertEqual(len(macro.child_macros), 0)
 
     async def test_1(self):
-        macro = parse('key(1).key("KEY_A").key(3)', self.context)
+        macro = parse('key(1).key("KEY_A").key(3)', self.context, DummyMapping)
 
         await macro.run(self.handler)
         self.assertListEqual(
@@ -408,133 +465,105 @@ class TestMacros(MacroTestBase):
         )
         self.assertEqual(len(macro.child_macros), 0)
 
-    async def test_return_errors(self):
-        error = parse("k(1).h(k(a)).k(3)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("k(1))", self.context, True)
+    async def test_raises_error(self):
+        # passing a string parameter. This is not a macro, even though
+        # it might look like it without the string quotes.
+        self.assertRaises(MacroParsingError, parse, '"modify(a, b)"', self.context)
+        parse("k(1).h(k(a)).k(3)", self.context)  # No error
+        with self.assertRaises(MacroParsingError) as cm:
+            parse("k(1))", self.context)
+        error = str(cm.exception)
         self.assertIn("bracket", error)
-        error = parse("key((1)", self.context, True)
+        with self.assertRaises(MacroParsingError) as cm:
+            parse("key((1)", self.context)
+        error = str(cm.exception)
         self.assertIn("bracket", error)
-        error = parse("k((1).k)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("k()", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("key(1)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("k(1, 1)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("key($a)", self.context, True)
-        self.assertIsNone(error)
-
-        error = parse("h(1, 1)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("h(hold(h(1, 1)))", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("r(1)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("repeat(a, k(1))", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("repeat($a, k(1))", self.context, True)
-        self.assertIsNone(error)
-        error = parse("r(1, 1)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("r(k(1), 1)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("r(1, macro=k(1))", self.context, True)
-        self.assertIsNone(error)
-        error = parse("r(a=1, b=k(1))", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("r(repeats=1, macro=k(1), a=2)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("r(repeats=1, macro=k(1), repeats=2)", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("modify(asdf, k(a))", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("if_tap(, k(a), 1000)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("if_tap(, k(a), timeout=1000)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("if_tap(, k(a), $timeout)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("if_tap(, k(a), timeout=$t)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("if_tap(, key(a))", self.context, True)
-        self.assertIsNone(error)
-        error = parse("if_tap(k(a),)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("if_tap(k(a), b)", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("if_single(k(a),)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("if_single(1,)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("if_single(,1)", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("mouse(up, 3)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("mouse(up, speed=$a)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("mouse(3, up)", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("wheel(left, 3)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("wheel(3, left)", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("w(2)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("wait(a)", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("ifeq(a, 2, k(a),)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("ifeq(a, 2, , k(a))", self.context, True)
-        self.assertIsNone(error)
-        error = parse("ifeq(a, 2, None, k(a))", self.context, True)
-        self.assertIsNone(error)
-        error = parse("ifeq(a, 2, 1,)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("ifeq(a, 2, , 2)", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("if_eq(2, $a, k(a),)", self.context, True)
-        self.assertIsNone(error)
-        error = parse("if_eq(2, $a, , else=k(a))", self.context, True)
-        self.assertIsNone(error)
-        error = parse("if_eq(2, $a, 1,)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("if_eq(2, $a, , 2)", self.context, True)
-        self.assertIsNotNone(error)
-
-        error = parse("foo(a)", self.context, True)
+        self.assertRaises(MacroParsingError, parse, "k((1).k)", self.context)
+        self.assertRaises(MacroParsingError, parse, "k()", self.context)
+        parse("key(1)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "k(1, 1)", self.context)
+        parse("key($a)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "h(1, 1)", self.context)
+        self.assertRaises(MacroParsingError, parse, "h(hold(h(1, 1)))", self.context)
+        self.assertRaises(MacroParsingError, parse, "r(1)", self.context)
+        self.assertRaises(MacroParsingError, parse, "repeat(a, k(1))", self.context)
+        parse("repeat($a, k(1))", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "r(1, 1)", self.context)
+        self.assertRaises(MacroParsingError, parse, "r(k(1), 1)", self.context)
+        parse("r(1, macro=k(1))", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "r(a=1, b=k(1))", self.context)
+        self.assertRaises(
+            MacroParsingError,
+            parse,
+            "r(repeats=1, macro=k(1), a=2)",
+            self.context,
+        )
+        self.assertRaises(
+            MacroParsingError,
+            parse,
+            "r(repeats=1, macro=k(1), repeats=2)",
+            self.context,
+        )
+        self.assertRaises(MacroParsingError, parse, "modify(asdf, k(a))", self.context)
+        parse("if_tap(, k(a), 1000)", self.context)  # no error
+        parse("if_tap(, k(a), timeout=1000)", self.context)  # no error
+        parse("if_tap(, k(a), $timeout)", self.context)  # no error
+        parse("if_tap(, k(a), timeout=$t)", self.context)  # no error
+        parse("if_tap(, key(a))", self.context)  # no error
+        parse("if_tap(k(a),)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "if_tap(k(a), b)", self.context)
+        parse("if_single(k(a),)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "if_single(1,)", self.context)
+        self.assertRaises(MacroParsingError, parse, "if_single(,1)", self.context)
+        parse("mouse(up, 3)", self.context)  # no error
+        parse("mouse(up, speed=$a)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "mouse(3, up)", self.context)
+        parse("wheel(left, 3)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "wheel(3, left)", self.context)
+        parse("w(2)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "wait(a)", self.context)
+        parse("ifeq(a, 2, k(a),)", self.context)  # no error
+        parse("ifeq(a, 2, , k(a))", self.context)  # no error
+        parse("ifeq(a, 2, None, k(a))", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "ifeq(a, 2, 1,)", self.context)
+        self.assertRaises(MacroParsingError, parse, "ifeq(a, 2, , 2)", self.context)
+        parse("if_eq(2, $a, k(a),)", self.context)  # no error
+        parse("if_eq(2, $a, , else=k(a))", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "if_eq(2, $a, 1,)", self.context)
+        self.assertRaises(MacroParsingError, parse, "if_eq(2, $a, , 2)", self.context)
+        with self.assertRaises(MacroParsingError) as cm:
+            parse("foo(a)", self.context)
+        error = str(cm.exception)
         self.assertIn("unknown", error.lower())
         self.assertIn("foo", error)
 
-        error = parse("set($a, 1)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("set(1, 2)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("set(+, 2)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("set(a(), 2)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("set('b,c', 2)", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse('set("b,c", 2)', self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("set(A, 2)", self.context, True)
-        self.assertIsNone(error)
+        self.assertRaises(MacroParsingError, parse, "set($a, 1)", self.context)
+        self.assertRaises(MacroParsingError, parse, "set(1, 2)", self.context)
+        self.assertRaises(MacroParsingError, parse, "set(+, 2)", self.context)
+        self.assertRaises(MacroParsingError, parse, "set(a(), 2)", self.context)
+        self.assertRaises(MacroParsingError, parse, "set('b,c', 2)", self.context)
+        self.assertRaises(MacroParsingError, parse, 'set("b,c", 2)', self.context)
+        parse("set(A, 2)", self.context)  # no error
+
+        self.assertRaises(MacroParsingError, parse, "key(a)key(b)", self.context)
+        self.assertRaises(MacroParsingError, parse, "hold(key(a)key(b))", self.context)
+
+        parse("add(a, 1)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "add(a, b)", self.context)
+
+        # wrong target for BTN_A
+        self.assertRaises(
+            SymbolNotAvailableInTargetError,
+            parse,
+            "key(BTN_A)",
+            self.context,
+            DummyMapping,
+        )
 
     async def test_key(self):
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
-        macro = parse("set(foo, b).key($foo).key(a)", self.context)
+        macro = parse("set(foo, b).key($foo).key(a)", self.context, DummyMapping)
         await macro.run(self.handler)
         self.assertListEqual(
             self.result,
@@ -552,6 +581,7 @@ class TestMacros(MacroTestBase):
         macro = parse(
             "set(foo, b).key_down($foo).key_up($foo).key_up(a).key_down(a)",
             self.context,
+            DummyMapping,
         )
         await macro.run(self.handler)
         self.assertListEqual(
@@ -568,7 +598,11 @@ class TestMacros(MacroTestBase):
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
         code_c = system_mapping.get("c")
-        macro = parse("set(foo, b).modify($foo, modify(a, key(c)))", self.context)
+        macro = parse(
+            "set(foo, b).modify($foo, modify(a, key(c)))",
+            self.context,
+            DummyMapping,
+        )
         await macro.run(self.handler)
         self.assertListEqual(
             self.result,
@@ -584,7 +618,7 @@ class TestMacros(MacroTestBase):
 
     async def test_hold_variable(self):
         code_a = system_mapping.get("a")
-        macro = parse("set(foo, a).hold($foo)", self.context)
+        macro = parse("set(foo, a).hold($foo)", self.context, DummyMapping)
         await macro.run(self.handler)
         self.assertListEqual(
             self.result,
@@ -595,7 +629,7 @@ class TestMacros(MacroTestBase):
         )
 
     async def test_hold_keys(self):
-        macro = parse("set(foo, b).hold_keys(a, $foo, c)", self.context)
+        macro = parse("set(foo, b).hold_keys(a, $foo, c)", self.context, DummyMapping)
         # press first
         macro.press_trigger()
         # then run, just like how it is going to happen during runtime
@@ -632,7 +666,7 @@ class TestMacros(MacroTestBase):
 
     async def test_hold(self):
         # repeats key(a) as long as the key is held down
-        macro = parse("key(1).hold(key(a)).key(3)", self.context)
+        macro = parse("key(1).hold(key(a)).key(3)", self.context, DummyMapping)
 
         """down"""
 
@@ -660,8 +694,27 @@ class TestMacros(MacroTestBase):
 
         self.assertEqual(len(macro.child_macros), 1)
 
+    async def test_hold_failing_child(self):
+        # if a child macro fails, hold will not try to run it again.
+        # The exception is properly propagated through both `hold`s and the macro
+        # stops. If the code is broken, this test might enter an infinite loop.
+        macro = parse("hold(hold(key(a)))", self.context, DummyMapping)
+
+        class MyException(Exception):
+            pass
+
+        def f(*_):
+            raise MyException("foo")
+
+        macro.press_trigger()
+        with self.assertRaises(MyException):
+            await macro.run(f)
+
+        await asyncio.sleep(0.1)
+        self.assertFalse(macro.running)
+
     async def test_dont_hold(self):
-        macro = parse("key(1).hold(key(a)).key(3)", self.context)
+        macro = parse("key(1).hold(key(a)).key(3)", self.context, DummyMapping)
 
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.2)
@@ -676,23 +729,23 @@ class TestMacros(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 1)
 
     async def test_just_hold(self):
-        macro = parse("key(1).hold().key(3)", self.context)
+        macro = parse("key(1).hold().key(3)", self.context, DummyMapping)
 
         """down"""
 
         macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
-        await (asyncio.sleep(0.1))
+        await asyncio.sleep(0.1)
         self.assertTrue(macro.is_holding())
         self.assertEqual(len(self.result), 2)
-        await (asyncio.sleep(0.1))
+        await asyncio.sleep(0.1)
         # doesn't do fancy stuff, is blocking until the release
         self.assertEqual(len(self.result), 2)
 
         """up"""
 
         macro.release_trigger()
-        await (asyncio.sleep(0.05))
+        await asyncio.sleep(0.05)
         self.assertFalse(macro.is_holding())
         self.assertEqual(len(self.result), 4)
 
@@ -702,10 +755,10 @@ class TestMacros(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 0)
 
     async def test_dont_just_hold(self):
-        macro = parse("key(1).hold().key(3)", self.context)
+        macro = parse("key(1).hold().key(3)", self.context, DummyMapping)
 
         asyncio.ensure_future(macro.run(self.handler))
-        await (asyncio.sleep(0.1))
+        await asyncio.sleep(0.1)
         self.assertFalse(macro.is_holding())
         # since press_trigger was never called it just does the macro
         # completely
@@ -718,13 +771,13 @@ class TestMacros(MacroTestBase):
 
     async def test_hold_down(self):
         # writes down and waits for the up event until the key is released
-        macro = parse("hold(a)", self.context)
+        macro = parse("hold(a)", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 0)
 
         """down"""
 
         macro.press_trigger()
-        await (asyncio.sleep(0.05))
+        await asyncio.sleep(0.05)
         self.assertTrue(macro.is_holding())
 
         asyncio.ensure_future(macro.run(self.handler))
@@ -737,7 +790,7 @@ class TestMacros(MacroTestBase):
         """up"""
 
         macro.release_trigger()
-        await (asyncio.sleep(0.05))
+        await asyncio.sleep(0.05)
         self.assertFalse(macro.is_holding())
 
         self.assertEqual(len(self.result), 2)
@@ -748,17 +801,22 @@ class TestMacros(MacroTestBase):
         start = time.time()
         repeats = 20
 
-        macro = parse(f"repeat({repeats}, key(k)).repeat(1, key(k))", self.context)
+        macro = parse(
+            f"repeat({repeats}, key(k)).repeat(1, key(k))",
+            self.context,
+            DummyMapping,
+        )
         k_code = system_mapping.get("k")
 
         await macro.run(self.handler)
-        keystroke_sleep = self.context.preset.get("macros.keystroke_sleep_ms")
+        keystroke_sleep = DummyMapping.macro_key_sleep_ms
         sleep_time = 2 * repeats * keystroke_sleep / 1000
         self.assertGreater(time.time() - start, sleep_time * 0.9)
-        self.assertLess(time.time() - start, sleep_time * 1.2)
+        self.assertLess(time.time() - start, sleep_time * 1.3)
 
         self.assertListEqual(
-            self.result, [(EV_KEY, k_code, 1), (EV_KEY, k_code, 0)] * (repeats + 1)
+            self.result,
+            [(EV_KEY, k_code, 1), (EV_KEY, k_code, 0)] * (repeats + 1),
         )
 
         self.assertEqual(len(macro.child_macros), 2)
@@ -766,11 +824,11 @@ class TestMacros(MacroTestBase):
 
     async def test_3(self):
         start = time.time()
-        macro = parse("repeat(3, key(m).w(100))", self.context)
+        macro = parse("repeat(3, key(m).w(100))", self.context, DummyMapping)
         m_code = system_mapping.get("m")
         await macro.run(self.handler)
 
-        keystroke_time = 6 * self.context.preset.get("macros.keystroke_sleep_ms")
+        keystroke_time = 6 * DummyMapping.macro_key_sleep_ms
         total_time = keystroke_time + 300
         total_time /= 1000
 
@@ -791,7 +849,11 @@ class TestMacros(MacroTestBase):
         self.assertEqual(len(macro.child_macros[0].child_macros), 0)
 
     async def test_4(self):
-        macro = parse("  repeat(2,\nkey(\nr ).key(minus\n )).key(m)  ", self.context)
+        macro = parse(
+            "  repeat(2,\nkey(\nr ).key(minus\n )).key(m)  ",
+            self.context,
+            DummyMapping,
+        )
 
         r = system_mapping.get("r")
         minus = system_mapping.get("minus")
@@ -821,6 +883,7 @@ class TestMacros(MacroTestBase):
         macro = parse(
             "w(200).repeat(2,modify(w,\nrepeat(2,\tkey(BtN_LeFt))).w(10).key(k))",
             self.context,
+            DummyMapping,
         )
 
         self.assertEqual(len(macro.child_macros), 1)
@@ -833,9 +896,7 @@ class TestMacros(MacroTestBase):
         await macro.run(self.handler)
 
         num_pauses = 8 + 6 + 4
-        keystroke_time = num_pauses * self.context.preset.get(
-            "macros.keystroke_sleep_ms"
-        )
+        keystroke_time = num_pauses * DummyMapping.macro_key_sleep_ms
         wait_time = 220
         total_time = (keystroke_time + wait_time) / 1000
 
@@ -854,26 +915,6 @@ class TestMacros(MacroTestBase):
         self.assertIsInstance(macro, Macro)
         self.assertListEqual(self.result, [])
 
-    async def test_keystroke_sleep_config(self):
-        # global_config as fallback
-        global_config.set("macros.keystroke_sleep_ms", 100)
-        start = time.time()
-        macro = parse("key(a).key(b)", self.context)
-        await macro.run(self.handler)
-        delta = time.time() - start
-        # is currently over 400, key(b) adds another sleep afterwards
-        # that doesn't do anything
-        self.assertGreater(delta, 0.300)
-
-        # now set the value in the preset, which is prioritized
-        self.context.preset.set("macros.keystroke_sleep_ms", 50)
-        start = time.time()
-        macro = parse("key(a).key(b)", self.context)
-        await macro.run(self.handler)
-        delta = time.time() - start
-        self.assertGreater(delta, 0.150)
-        self.assertLess(delta, 0.300)
-
     async def test_duplicate_run(self):
         # it won't restart the macro, because that may screw up the
         # internal state (in particular the _trigger_release_event).
@@ -883,7 +924,7 @@ class TestMacros(MacroTestBase):
         b = system_mapping.get("b")
         c = system_mapping.get("c")
 
-        macro = parse("key(a).modify(b, hold()).key(c)", self.context)
+        macro = parse("key(a).modify(b, hold()).key(c)", self.context, DummyMapping)
         asyncio.ensure_future(macro.run(self.handler))
         self.assertFalse(macro.is_holding())
 
@@ -932,31 +973,47 @@ class TestMacros(MacroTestBase):
         self.assertListEqual(self.result, expected)
 
     async def test_mouse(self):
-        wheel_speed = 100
-        macro_1 = parse("mouse(up, 4)", self.context)
-        macro_2 = parse(f"wheel(left, {wheel_speed})", self.context)
+        wheel_speed = 60
+        macro_1 = parse("mouse(up, 4)", self.context, DummyMapping)
+        macro_2 = parse(f"wheel(left, {wheel_speed})", self.context, DummyMapping)
         macro_1.press_trigger()
         macro_2.press_trigger()
         asyncio.ensure_future(macro_1.run(self.handler))
         asyncio.ensure_future(macro_2.run(self.handler))
 
         sleep = 0.1
-        await (asyncio.sleep(sleep))
+        await asyncio.sleep(sleep)
         self.assertTrue(macro_1.is_holding())
         self.assertTrue(macro_2.is_holding())
         macro_1.release_trigger()
         macro_2.release_trigger()
 
         self.assertIn((EV_REL, REL_Y, -4), self.result)
-        expected_wheel_event_count = sleep / (1 / wheel_speed)
+        expected_wheel_hi_res_event_count = sleep * DummyMapping.rel_rate
+        expected_wheel_event_count = int(
+            expected_wheel_hi_res_event_count / 120 * wheel_speed
+        )
         actual_wheel_event_count = self.result.count((EV_REL, REL_HWHEEL, 1))
+        actual_wheel_hi_res_event_count = self.result.count(
+            (
+                EV_REL,
+                REL_HWHEEL_HI_RES,
+                wheel_speed,
+            )
+        )
         # this seems to have a tendency of injecting less wheel events,
         # especially if the sleep is short
         self.assertGreater(actual_wheel_event_count, expected_wheel_event_count * 0.8)
         self.assertLess(actual_wheel_event_count, expected_wheel_event_count * 1.1)
+        self.assertGreater(
+            actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 0.8
+        )
+        self.assertLess(
+            actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 1.1
+        )
 
     async def test_event_1(self):
-        macro = parse("e(EV_KEY, KEY_A, 1)", self.context)
+        macro = parse("e(EV_KEY, KEY_A, 1)", self.context, DummyMapping)
         a_code = system_mapping.get("a")
 
         await macro.run(self.handler)
@@ -964,56 +1021,29 @@ class TestMacros(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 0)
 
     async def test_event_2(self):
-        macro = parse("repeat(1, event(type=5421, code=324, value=154))", self.context)
+        macro = parse(
+            "repeat(1, event(type=5421, code=324, value=154))",
+            self.context,
+            DummyMapping,
+        )
         code = 324
 
         await macro.run(self.handler)
         self.assertListEqual(self.result, [(5421, code, 154)])
         self.assertEqual(len(macro.child_macros), 1)
 
-    async def test__wait_for_event(self):
-        macro = parse("hold(a)", self.context)
-
-        try:
-            # should timeout, no event known
-            await asyncio.wait_for(macro._wait_for_event(), 0.1)
-            raise AssertionError("Expected asyncio.TimeoutError")
-        except asyncio.TimeoutError:
-            pass
-
-        # should not timeout because a new event arrived
-        macro.notify(new_event(EV_KEY, 1, 1), PRESS)
-        await asyncio.wait_for(macro._wait_for_event(), 0.1)
-
-        try:
-            # should timeout, because the previous event doesn't match the filter
-            await asyncio.wait_for(
-                macro._wait_for_event(lambda e, a: e.value == 3),
-                0.1,
-            )
-            raise AssertionError("Expected asyncio.TimeoutError")
-        except asyncio.TimeoutError:
-            pass
-
-        # should not timeout because a new event arrived
-        macro.notify(new_event(EV_KEY, 1, 3), RELEASE)
-        await asyncio.wait_for(macro._wait_for_event(), 0.1)
-
-        try:
-            # should timeout, because the previous event doesn't match the filter
-            await asyncio.wait_for(macro._wait_for_event(lambda _, a: a == PRESS), 0.1)
-            raise AssertionError("Expected asyncio.TimeoutError")
-        except asyncio.TimeoutError:
-            pass
-
     async def test_macro_breaks(self):
         # the first parameter for `repeat` requires an integer, not "foo",
         # which makes `repeat` throw
-        macro = parse('set(a, "foo").repeat($a, key(KEY_A)).key(KEY_B)', self.context)
+        macro = parse(
+            'set(a, "foo").repeat($a, key(KEY_A)).key(KEY_B)',
+            self.context,
+            DummyMapping,
+        )
 
         try:
             await macro.run(self.handler)
-        except TypeError as e:
+        except MacroParsingError as e:
             self.assertIn("foo", str(e))
 
         self.assertFalse(macro.running)
@@ -1022,17 +1052,54 @@ class TestMacros(MacroTestBase):
         self.assertListEqual(self.result, [])
 
     async def test_set(self):
-        await parse('set(a, "foo")', self.context).run(self.handler)
+        await parse('set(a, "foo")', self.context, DummyMapping).run(self.handler)
         self.assertEqual(macro_variables.get("a"), "foo")
 
-        await parse('set( \t"b" \n, "1")', self.context).run(self.handler)
+        await parse('set( \t"b" \n, "1")', self.context, DummyMapping).run(self.handler)
         self.assertEqual(macro_variables.get("b"), "1")
 
-        await parse("set(a, 1)", self.context).run(self.handler)
+        await parse("set(a, 1)", self.context, DummyMapping).run(self.handler)
         self.assertEqual(macro_variables.get("a"), 1)
 
-        await parse("set(a, )", self.context).run(self.handler)
+        await parse("set(a, )", self.context, DummyMapping).run(self.handler)
         self.assertEqual(macro_variables.get("a"), None)
+
+    async def test_add(self):
+        await parse("set(a, 1).add(a, 1)", self.context, DummyMapping).run(self.handler)
+        self.assertEqual(macro_variables.get("a"), 2)
+
+        await parse("set(b, 1).add(b, -1)", self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("b"), 0)
+
+        await parse("set(c, -1).add(c, 500)", self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("c"), 499)
+
+        await parse("add(d, 500)", self.context, DummyMapping).run(self.handler)
+        self.assertEqual(macro_variables.get("d"), 500)
+
+        # for invalid input it should do nothing (except to log to the console)
+
+        await parse('set(e, "foo").add(e, 1)', self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("e"), "foo")
+
+        await parse('set(e, "2").add(e, 3)', self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("e"), "2")
+
+        await parse('set(e, 2).add(e, "3")', self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("e"), 2)
+
+        await parse('add(f, "3")', self.context, DummyMapping).run(self.handler)
+        self.assertEqual(macro_variables.get("f"), 0)
 
     async def test_multiline_macro_and_comments(self):
         # the parser is not confused by the code in the comments and can use hashtags
@@ -1053,6 +1120,7 @@ class TestMacros(MacroTestBase):
             {comment}
         """,
             self.context,
+            DummyMapping,
         )
         await macro.run(self.handler)
         self.assertListEqual(
@@ -1073,7 +1141,11 @@ class TestMacros(MacroTestBase):
 class TestIfEq(MacroTestBase):
     async def test_ifeq_runs(self):
         # deprecated ifeq function, but kept for compatibility reasons
-        macro = parse("set(foo, 2).ifeq(foo, 2, key(a), key(b))", self.context)
+        macro = parse(
+            "set(foo, 2).ifeq(foo, 2, key(a), key(b))",
+            self.context,
+            DummyMapping,
+        )
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
 
@@ -1085,14 +1157,18 @@ class TestIfEq(MacroTestBase):
         code_a = system_mapping.get("a")
 
         # first param None
-        macro = parse("set(foo, 2).ifeq(foo, 2, None, key(b))", self.context)
+        macro = parse(
+            "set(foo, 2).ifeq(foo, 2, None, key(b))", self.context, DummyMapping
+        )
         self.assertEqual(len(macro.child_macros), 1)
         await macro.run(self.handler)
         self.assertListEqual(self.result, [])
 
         # second param None
         self.result = []
-        macro = parse("set(foo, 2).ifeq(foo, 2, key(a), None)", self.context)
+        macro = parse(
+            "set(foo, 2).ifeq(foo, 2, key(a), None)", self.context, DummyMapping
+        )
         self.assertEqual(len(macro.child_macros), 1)
         await macro.run(self.handler)
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
@@ -1101,20 +1177,20 @@ class TestIfEq(MacroTestBase):
 
         # first param ""
         self.result = []
-        macro = parse("set(foo, 2).ifeq(foo, 2, , key(b))", self.context)
+        macro = parse("set(foo, 2).ifeq(foo, 2, , key(b))", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 1)
         await macro.run(self.handler)
         self.assertListEqual(self.result, [])
 
         # second param ""
         self.result = []
-        macro = parse("set(foo, 2).ifeq(foo, 2, key(a), )", self.context)
+        macro = parse("set(foo, 2).ifeq(foo, 2, key(a), )", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 1)
         await macro.run(self.handler)
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
 
     async def test_ifeq_unknown_key(self):
-        macro = parse("ifeq(qux, 2, key(a), key(b))", self.context)
+        macro = parse("ifeq(qux, 2, key(a), key(b))", self.context, DummyMapping)
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
 
@@ -1138,7 +1214,7 @@ class TestIfEq(MacroTestBase):
             self.result.clear()
 
             # test
-            macro = parse(macro, self.context)
+            macro = parse(macro, self.context, DummyMapping)
             await macro.run(self.handler)
             self.assertListEqual(self.result, expected)
 
@@ -1177,7 +1253,7 @@ class TestIfEq(MacroTestBase):
 
     async def test_if_eq_runs_multiprocessed(self):
         """ifeq on variables that have been set in other processes works."""
-        macro = parse("if_eq($foo, 3, key(a), key(b))", self.context)
+        macro = parse("if_eq($foo, 3, key(a), key(b))", self.context, DummyMapping)
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
 
@@ -1185,7 +1261,7 @@ class TestIfEq(MacroTestBase):
 
         def set_foo(value):
             # will write foo = 2 into the shared dictionary of macros
-            macro_2 = parse(f"set(foo, {value})", self.context)
+            macro_2 = parse(f"set(foo, {value})", self.context, DummyMapping)
             loop = asyncio.new_event_loop()
             loop.run_until_complete(macro_2.run(lambda: None))
 
@@ -1216,7 +1292,7 @@ class TestIfEq(MacroTestBase):
 
 class TestIfSingle(MacroTestBase):
     async def test_if_single(self):
-        macro = parse("if_single(key(x), key(y))", self.context)
+        macro = parse("if_single(key(x), key(y))", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 2)
 
         a = system_mapping.get("a")
@@ -1224,10 +1300,9 @@ class TestIfSingle(MacroTestBase):
         x = system_mapping.get("x")
         y = system_mapping.get("y")
 
-        macro.notify(new_event(EV_KEY, a, 1), PRESS)
-        asyncio.ensure_future(macro.run(self.handler))
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
         await asyncio.sleep(0.1)
-        macro.notify(new_event(EV_KEY, a, 0), RELEASE)
+        await self.release_sequence(macro, InputEvent.key(a, 0))
         # the key that triggered the macro is released
         await asyncio.sleep(0.1)
 
@@ -1237,7 +1312,11 @@ class TestIfSingle(MacroTestBase):
     async def test_if_single_ignores_releases(self):
         # the timeout won't break the macro, everything happens well within that
         # timeframe.
-        macro = parse("if_single(key(x), else=key(y), timeout=100000)", self.context)
+        macro = parse(
+            "if_single(key(x), else=key(y), timeout=100000)",
+            self.context,
+            DummyMapping,
+        )
         self.assertEqual(len(macro.child_macros), 2)
 
         a = system_mapping.get("a")
@@ -1246,21 +1325,22 @@ class TestIfSingle(MacroTestBase):
         x = system_mapping.get("x")
         y = system_mapping.get("y")
 
-        macro.notify(new_event(EV_KEY, a, 1), PRESS)
-        asyncio.ensure_future(macro.run(self.handler))
+        # pressing the macro key
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
         await asyncio.sleep(0.05)
 
         # if_single only looks out for newly pressed keys,
         # it doesn't care if keys were released that have been
         # pressed before if_single. This was decided because it is a lot
         # less tricky and more fluently to use if you type fast
-        macro.notify(new_event(EV_KEY, b, 0), RELEASE)
+        for listener in self.context.listeners:
+            asyncio.ensure_future(listener(InputEvent.key(b, 0)))
         await asyncio.sleep(0.05)
         self.assertListEqual(self.result, [])
 
-        # pressing an actual key triggers if_single
+        # releasing the actual key triggers if_single
         await asyncio.sleep(0.05)
-        macro.notify(new_event(EV_KEY, a, 1), PRESS)
+        await self.release_sequence(macro, InputEvent.key(a, 0))
         await asyncio.sleep(0.05)
         self.assertListEqual(self.result, [(EV_KEY, x, 1), (EV_KEY, x, 0)])
         self.assertFalse(macro.running)
@@ -1269,7 +1349,11 @@ class TestIfSingle(MacroTestBase):
         # Will run the `else` macro if another key is pressed.
         # Also works if if_single is a child macro, i.e. the event is passed to it
         # from the outside macro correctly.
-        macro = parse("repeat(1, if_single(then=key(x), else=key(y)))", self.context)
+        macro = parse(
+            "repeat(1, if_single(then=key(x), else=key(y)))",
+            self.context,
+            DummyMapping,
+        )
         self.assertEqual(len(macro.child_macros), 1)
         self.assertEqual(len(macro.child_macros[0].child_macros), 2)
 
@@ -1279,17 +1363,19 @@ class TestIfSingle(MacroTestBase):
         x = system_mapping.get("x")
         y = system_mapping.get("y")
 
-        macro.notify(new_event(EV_KEY, a, 1), PRESS)
-        asyncio.ensure_future(macro.run(self.handler))
+        # press the trigger key
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
         await asyncio.sleep(0.1)
-        macro.notify(new_event(EV_KEY, b, 1), PRESS)
+        # press another key
+        for listener in self.context.listeners:
+            asyncio.ensure_future(listener(InputEvent.key(b, 1)))
         await asyncio.sleep(0.1)
 
         self.assertListEqual(self.result, [(EV_KEY, y, 1), (EV_KEY, y, 0)])
         self.assertFalse(macro.running)
 
     async def test_if_not_single_none(self):
-        macro = parse("if_single(key(x),)", self.context)
+        macro = parse("if_single(key(x),)", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 1)
 
         a = system_mapping.get("a")
@@ -1297,24 +1383,29 @@ class TestIfSingle(MacroTestBase):
 
         x = system_mapping.get("x")
 
-        macro.notify(new_event(EV_KEY, a, 1), PRESS)
-        asyncio.ensure_future(macro.run(self.handler))
+        # press trigger key
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
         await asyncio.sleep(0.1)
-        macro.notify(new_event(EV_KEY, b, 1), PRESS)
+        # press another key
+        for listener in self.context.listeners:
+            asyncio.ensure_future(listener(InputEvent.key(b, 1)))
         await asyncio.sleep(0.1)
 
         self.assertListEqual(self.result, [])
         self.assertFalse(macro.running)
 
     async def test_if_single_times_out(self):
-        macro = parse("set(t, 300).if_single(key(x), key(y), timeout=$t)", self.context)
+        macro = parse(
+            "set(t, 300).if_single(key(x), key(y), timeout=$t)",
+            self.context,
+            DummyMapping,
+        )
         self.assertEqual(len(macro.child_macros), 2)
 
         a = system_mapping.get("a")
         y = system_mapping.get("y")
 
-        macro.notify(new_event(EV_KEY, a, 1), PRESS)
-        asyncio.ensure_future(macro.run(self.handler))
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
 
         # no timeout yet
         await asyncio.sleep(0.2)
@@ -1326,10 +1417,29 @@ class TestIfSingle(MacroTestBase):
         self.assertListEqual(self.result, [(EV_KEY, y, 1), (EV_KEY, y, 0)])
         self.assertFalse(macro.running)
 
+    async def test_if_single_ignores_joystick(self):
+        """Triggers else + delayed_handle_keycode."""
+        # Integration test style for if_single.
+        # If a joystick that is mapped to a button is moved, if_single stops
+        macro = parse("if_single(k(a), k(KEY_LEFTSHIFT))", self.context, DummyMapping)
+        code_shift = system_mapping.get("KEY_LEFTSHIFT")
+        code_a = system_mapping.get("a")
+        trigger = 1
+
+        await self.trigger_sequence(macro, InputEvent.key(trigger, 1))
+        await asyncio.sleep(0.1)
+        for listener in self.context.listeners:
+            asyncio.ensure_future(listener(InputEvent.abs(ABS_Y, 10)))
+        await asyncio.sleep(0.1)
+        await self.release_sequence(macro, InputEvent.key(trigger, 0))
+        await asyncio.sleep(0.1)
+        self.assertFalse(macro.running)
+        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
+
 
 class TestIfTap(MacroTestBase):
     async def test_if_tap(self):
-        macro = parse("if_tap(key(x), key(y), 100)", self.context)
+        macro = parse("if_tap(key(x), key(y), 100)", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 2)
 
         x = system_mapping.get("x")
@@ -1350,7 +1460,7 @@ class TestIfTap(MacroTestBase):
         # when the press arrives shortly after run.
         # a tap will happen within the timeout even if the tigger is not pressed when
         # it does into if_tap
-        macro = parse("if_tap(key(a), key(b), 100)", self.context)
+        macro = parse("if_tap(key(a), key(b), 100)", self.context, DummyMapping)
         asyncio.ensure_future(macro.run(self.handler))
 
         await asyncio.sleep(0.01)
@@ -1363,7 +1473,11 @@ class TestIfTap(MacroTestBase):
         self.result.clear()
 
     async def test_if_double_tap(self):
-        macro = parse("if_tap(if_tap(key(a), key(b), 100), key(c), 100)", self.context)
+        macro = parse(
+            "if_tap(if_tap(key(a), key(b), 100), key(c), 100)",
+            self.context,
+            DummyMapping,
+        )
         self.assertEqual(len(macro.child_macros), 2)
         self.assertEqual(len(macro.child_macros[0].child_macros), 2)
 
@@ -1407,7 +1521,7 @@ class TestIfTap(MacroTestBase):
 
     async def test_if_tap_none(self):
         # first param none
-        macro = parse("if_tap(, key(y), 100)", self.context)
+        macro = parse("if_tap(, key(y), 100)", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 1)
         y = system_mapping.get("y")
         macro.press_trigger()
@@ -1418,7 +1532,7 @@ class TestIfTap(MacroTestBase):
         self.assertListEqual(self.result, [])
 
         # second param none
-        macro = parse("if_tap(key(y), , 50)", self.context)
+        macro = parse("if_tap(key(y), , 50)", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 1)
         y = system_mapping.get("y")
         macro.press_trigger()
@@ -1431,7 +1545,7 @@ class TestIfTap(MacroTestBase):
         self.assertFalse(macro.running)
 
     async def test_if_not_tap(self):
-        macro = parse("if_tap(key(x), key(y), 50)", self.context)
+        macro = parse("if_tap(key(x), key(y), 50)", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 2)
 
         x = system_mapping.get("x")
@@ -1447,7 +1561,7 @@ class TestIfTap(MacroTestBase):
         self.assertFalse(macro.running)
 
     async def test_if_not_tap_named(self):
-        macro = parse("if_tap(key(x), key(y), timeout=50)", self.context)
+        macro = parse("if_tap(key(x), key(y), timeout=50)", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 2)
 
         x = system_mapping.get("x")

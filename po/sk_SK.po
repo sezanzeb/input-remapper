@@ -1,5 +1,5 @@
 # Slovak translation of input-remapper.
-# Copyright (C) 2022.
+# Copyright (C) 2023.
 # This file is distributed under the same license as the input-remapper package.
 # Jose Riha <jose 1711 gmail com>, 2021.
 #
@@ -225,7 +225,7 @@ msgid "Starting injection..."
 msgstr "Spúšťanie injektáže..."
 
 #: data/input-remapper.glade:217
-msgid "Stop Injection"
+msgid "Stop"
 msgstr "Zastaviť injektáž"
 
 #: inputremapper/gui/user_interface.py:477
@@ -257,7 +257,7 @@ msgid "Usage"
 msgstr "Použitie"
 
 #: inputremapper/gui/editor/editor.py:482
-msgid "Use \"Stop Injection\" to stop before editing"
+msgid "Use \"Stop\" to stop before editing"
 msgstr "Pred editovaním použite \"Zastaviť injektáž\""
 
 #: data/input-remapper.glade:1015
@@ -328,12 +328,12 @@ msgstr "kombinácie pôvodných a emulovaných kláves a takto "
 
 #: data/input-remapper.glade:1052
 msgid ""
-"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"© 2023 Sezanzeb proxima@sezanzeb.de\n"
 "This program comes with absolutely no warranty.\n"
 "See the <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
 "Public License, version 3 or later</a> for details."
 msgstr ""
-"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"© 2023 Sezanzeb proxima@sezanzeb.de\n"
 "Tento program je poskytovaný bez akýchkoľvek záruk.\n"
 "Podrobnosti nájdete v podmienkach licencie <a href=\"https://www.gnu.org/"
 "licenses/gpl-3.0.html\">GNU General Public License, version 3 alebo novšej</"

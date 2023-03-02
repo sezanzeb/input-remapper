@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -19,7 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import quick_cleanup, tmp
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.tmp import tmp
 
 import os
 import unittest
@@ -32,13 +33,6 @@ class TestConfig(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
         self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
-
-    def test_get_default(self):
-        global_config._config = {}
-        self.assertEqual(global_config.get("gamepad.joystick.non_linearity"), 4)
-
-        global_config.set("gamepad.joystick.non_linearity", 3)
-        self.assertEqual(global_config.get("gamepad.joystick.non_linearity"), 3)
 
     def test_basic(self):
         self.assertEqual(global_config.get("a"), None)
@@ -92,9 +86,13 @@ class TestConfig(unittest.TestCase):
         self.assertFalse(global_config.is_autoloaded("d2.foo", "b"))
         self.assertFalse(global_config.is_autoloaded("d2.foo", "c"))
         self.assertListEqual(
-            list(global_config.iterate_autoload_presets()), [("d1", "a")]
+            list(global_config.iterate_autoload_presets()),
+            [("d1", "a")],
         )
         self.assertEqual(global_config.get(["autoload", "d1"]), "a")
+
+        self.assertRaises(ValueError, global_config.is_autoloaded, "d1", None)
+        self.assertRaises(ValueError, global_config.is_autoloaded, None, "a")
 
     def test_initial(self):
         # when loading for the first time, create a config file with
@@ -106,7 +104,7 @@ class TestConfig(unittest.TestCase):
 
         with open(global_config.path, "r") as file:
             contents = file.read()
-            self.assertIn('"keystroke_sleep_ms": 10', contents)
+            self.assertIn('"autoload": {}', contents)
 
     def test_save_load(self):
         self.assertEqual(len(global_config.iterate_autoload_presets()), 0)

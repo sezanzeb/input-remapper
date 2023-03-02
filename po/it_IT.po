@@ -150,7 +150,7 @@ msgid "Rename"
 msgstr "Rinomina"
 
 #: data/input-remapper.glade:120
-msgid "Stop Injection"
+msgid "Stop"
 msgstr "Ripristina impostazioni predefinite"
 
 #: data/input-remapper.glade:509
@@ -349,12 +349,12 @@ msgstr "scrive un evento"
 
 #: data/input-remapper.glade:880
 msgid ""
-"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"© 2023 Sezanzeb proxima@sezanzeb.de\n"
 "This program comes with absolutely no warranty.\n"
 "See the <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
 "Public License, version 3 or later</a> for details."
 msgstr ""
-"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"© 2023 Sezanzeb proxima@sezanzeb.de\n"
 "Questo programma non ha assolutamente alcuna garanzia.\n"
 "Vedi il <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">Generale GNU "
 "Licenza pubblica, versione 3 o successiva</a> per i dettagli."

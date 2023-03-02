@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -34,16 +34,37 @@ w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 """
 
 
+from __future__ import annotations
+
 import asyncio
+import copy
+import math
 import re
+from typing import List, Callable, Awaitable, Tuple, Optional, Union, Any
 
-from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
+from evdev.ecodes import (
+    ecodes,
+    EV_KEY,
+    EV_REL,
+    REL_X,
+    REL_Y,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL,
+    REL_HWHEEL,
+)
 
-from inputremapper.logger import logger
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.validation_errors import (
+    SymbolNotAvailableInTargetError,
+    MacroParsingError,
+)
+from inputremapper.injection.global_uinputs import can_default_uinput_emit
 from inputremapper.ipc.shared_dict import SharedDict
-from inputremapper.utils import PRESS, PRESS_NEGATIVE
+from inputremapper.logger import logger
 
+Handler = Callable[[Tuple[int, int, int]], None]
+MacroTask = Callable[[Handler], Awaitable]
 
 macro_variables = SharedDict()
 
@@ -57,7 +78,7 @@ class Variable:
     during runtime.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
 
     def resolve(self):
@@ -65,10 +86,10 @@ class Variable:
         return macro_variables.get(self.name)
 
     def __repr__(self):
-        return f'<Variable "{self.name}">'
+        return f'<Variable "{self.name}" at {hex(id(self))}>'
 
 
-def _type_check(value, allowed_types, display_name=None, position=None):
+def _type_check(value: Any, allowed_types, display_name=None, position=None) -> Any:
     """Validate a parameter used in a macro.
 
     If the value is a Variable, it will be returned and should be resolved
@@ -86,39 +107,29 @@ def _type_check(value, allowed_types, display_name=None, position=None):
             continue
 
         # try to parse "1" as 1 if possible
-        try:
-            return allowed_type(value)
-        except (TypeError, ValueError):
-            pass
+        if allowed_type != Macro:
+            # the macro constructor with a single argument always succeeds,
+            # but will definitely not result in the correct macro
+            try:
+                return allowed_type(value)
+            except (TypeError, ValueError):
+                pass
 
         if isinstance(value, allowed_type):
             return value
 
     if display_name is not None and position is not None:
-        raise TypeError(
-            f"Expected parameter {position} for {display_name} to be "
+        raise MacroParsingError(
+            msg=f"Expected parameter {position} for {display_name} to be "
             f"one of {allowed_types}, but got {value}"
         )
 
-    raise TypeError(f"Expected parameter to be one of {allowed_types}, but got {value}")
+    raise MacroParsingError(
+        msg=f"Expected parameter to be one of {allowed_types}, but got {value}"
+    )
 
 
-def _type_check_symbol(keyname):
-    """Same as _type_check, but checks if the key-name is valid."""
-    if isinstance(keyname, Variable):
-        # it is a variable and will be read at runtime
-        return keyname
-
-    symbol = str(keyname)
-    code = system_mapping.get(symbol)
-
-    if code is None:
-        raise KeyError(f'Unknown key "{symbol}"')
-
-    return code
-
-
-def _type_check_variablename(name):
+def _type_check_variablename(name: str):
     """Check if this is a legit variable name.
 
     Because they could clash with language features. If the macro is able to be
@@ -128,7 +139,7 @@ def _type_check_variablename(name):
     Not allowed: "1_foo", "foo=blub", "$foo", "foo,1234", "foo()"
     """
     if not isinstance(name, str) or not re.match(r"^[A-Za-z_][A-Za-z_0-9]*$", name):
-        raise SyntaxError(f'"{name}" is not a legit variable name')
+        raise MacroParsingError(msg=f'"{name}" is not a legit variable name')
 
 
 def _resolve(argument, allowed_types=None):
@@ -175,21 +186,30 @@ class Macro:
     4. `Macro.run` will run all tasks in self.tasks
     """
 
-    def __init__(self, code, context):
+    def __init__(
+        self,
+        code: Optional[str],
+        context=None,
+        mapping=None,
+    ):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
         ----------
-        code : string or None
+        code
             The original parsed code, for logging purposes.
-        context : Context, or None for use in frontend
+        context : Context
+        mapping : UIMapping
         """
         self.code = code
         self.context = context
+        self.mapping = mapping
+
+        # TODO check if mapping is ever none by throwing an error
 
         # List of coroutines that will be called sequentially.
         # This is the compiled code
-        self.tasks = []
+        self.tasks: List[MacroTask] = []
 
         # can be used to wait for the release of the event
         self._trigger_release_event = asyncio.Event()
@@ -200,54 +220,33 @@ class Macro:
 
         self.running = False
 
-        self.child_macros = []
-
+        self.child_macros: List[Macro] = []
         self.keystroke_sleep_ms = None
-
-        self._new_event_arrived = asyncio.Event()
-        self._newest_event = None
-        self._newest_action = None
-
-    def notify(self, event, action):
-        """Tell the macro about the newest event."""
-        for macro in self.child_macros:
-            macro.notify(event, action)
-
-        self._newest_event = event
-        self._newest_action = action
-        self._new_event_arrived.set()
-
-    async def _wait_for_event(self, filter=None):
-        """Wait until a specific event arrives.
-
-        The parameters can be used to provide a filter. It will block
-        until an event arrives that matches them.
-
-        Parameters
-        ----------
-        filter : function
-            Receives the event. Stop waiting if it returns true.
-        """
-        while True:
-            await self._new_event_arrived.wait()
-            self._new_event_arrived.clear()
-
-            if filter is not None:
-                if not filter(self._newest_event, self._newest_action):
-                    continue
-
-            break
 
     def is_holding(self):
         """Check if the macro is waiting for a key to be released."""
         return not self._trigger_release_event.is_set()
 
-    async def run(self, handler):
+    def get_capabilities(self):
+        """Get the merged capabilities of the macro and its children."""
+        capabilities = copy.deepcopy(self.capabilities)
+
+        for macro in self.child_macros:
+            macro_capabilities = macro.get_capabilities()
+            for type_ in macro_capabilities:
+                if type_ not in capabilities:
+                    capabilities[type_] = set()
+
+                capabilities[type_].update(macro_capabilities[type_])
+
+        return capabilities
+
+    async def run(self, handler: Callable):
         """Run the macro.
 
         Parameters
         ----------
-        handler : function
+        handler
             Will receive int type, code and value for an event to write
         """
         if not callable(handler):
@@ -257,10 +256,7 @@ class Macro:
             logger.error('Tried to run already running macro "%s"', self.code)
             return
 
-        # newly arriving events are only interesting if they arrive after the
-        # macro started
-        self._new_event_arrived.clear()
-        self.keystroke_sleep_ms = self.context.preset.get("macros.keystroke_sleep_ms")
+        self.keystroke_sleep_ms = self.mapping.macro_key_sleep_ms
 
         self.running = True
 
@@ -269,7 +265,7 @@ class Macro:
                 coroutine = task(handler)
                 if asyncio.iscoroutine(coroutine):
                     await coroutine
-        except Exception as e:
+        except Exception:
             raise
         finally:
             # done
@@ -304,20 +300,20 @@ class Macro:
         await asyncio.sleep(self.keystroke_sleep_ms / 1000)
 
     def __repr__(self):
-        return f'<Macro "{self.code}">'
+        return f'<Macro "{self.code}" at {hex(id(self))}>'
 
-    """Functions that prepare the macro"""
+    """Functions that prepare the macro."""
 
-    def add_key(self, symbol):
+    def add_key(self, symbol: str):
         """Write the symbol."""
         # This is done to figure out if the macro is broken at compile time, because
         # if KEY_A was unknown we can show this in the gui before the injection starts.
-        _type_check_symbol(symbol)
+        self._type_check_symbol(symbol)
 
-        async def task(handler):
+        async def task(handler: Callable):
             # if the code is $foo, figure out the correct code now.
             resolved_symbol = _resolve(symbol, [str])
-            code = _type_check_symbol(resolved_symbol)
+            code = self._type_check_symbol(resolved_symbol)
 
             resolved_code = _resolve(code, [int])
             handler(EV_KEY, resolved_code, 1)
@@ -327,26 +323,26 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_key_down(self, symbol):
+    def add_key_down(self, symbol: str):
         """Press the symbol."""
-        _type_check_symbol(symbol)
+        self._type_check_symbol(symbol)
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_symbol = _resolve(symbol, [str])
-            code = _type_check_symbol(resolved_symbol)
+            code = self._type_check_symbol(resolved_symbol)
 
             resolved_code = _resolve(code, [int])
             handler(EV_KEY, resolved_code, 1)
 
         self.tasks.append(task)
 
-    def add_key_up(self, symbol):
+    def add_key_up(self, symbol: str):
         """Release the symbol."""
-        _type_check_symbol(symbol)
+        self._type_check_symbol(symbol)
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_symbol = _resolve(symbol, [str])
-            code = _type_check_symbol(resolved_symbol)
+            code = self._type_check_symbol(resolved_symbol)
 
             resolved_code = _resolve(code, [int])
             handler(EV_KEY, resolved_code, 0)
@@ -365,11 +361,11 @@ class Macro:
             # if macro is a key name, hold down the key while the
             # keyboard key is physically held down
             symbol = macro
-            _type_check_symbol(symbol)
+            self._type_check_symbol(symbol)
 
-            async def task(handler):
+            async def task(handler: Callable):
                 resolved_symbol = _resolve(symbol, [str])
-                code = _type_check_symbol(resolved_symbol)
+                code = self._type_check_symbol(resolved_symbol)
 
                 resolved_code = _resolve(code, [int])
                 handler(EV_KEY, resolved_code, 1)
@@ -380,32 +376,34 @@ class Macro:
 
         if isinstance(macro, Macro):
             # repeat the macro forever while the key is held down
-            async def task(handler):
+            async def task(handler: Callable):
                 while self.is_holding():
                     # run the child macro completely to avoid
                     # not-releasing any key
                     await macro.run(handler)
+                    # give some other code a chance to run
+                    await asyncio.sleep(1 / 1000)
 
             self.tasks.append(task)
             self.child_macros.append(macro)
 
-    def add_modify(self, modifier, macro):
+    def add_modify(self, modifier: str, macro: Macro):
         """Do stuff while a modifier is activated.
 
         Parameters
         ----------
-        modifier : str
-        macro : Macro
+        modifier
+        macro
         """
         _type_check(macro, [Macro], "modify", 2)
-        _type_check_symbol(modifier)
+        self._type_check_symbol(modifier)
 
         self.child_macros.append(macro)
 
-        async def task(handler):
+        async def task(handler: Callable):
             # TODO test var
             resolved_modifier = _resolve(modifier, [str])
-            code = _type_check_symbol(resolved_modifier)
+            code = self._type_check_symbol(resolved_modifier)
 
             handler(EV_KEY, code, 1)
             await self._keycode_pause()
@@ -418,11 +416,11 @@ class Macro:
     def add_hold_keys(self, *symbols):
         """Hold down multiple keys, equivalent to `a + b + c + ...`."""
         for symbol in symbols:
-            _type_check_symbol(symbol)
+            self._type_check_symbol(symbol)
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_symbols = [_resolve(symbol, [str]) for symbol in symbols]
-            codes = [_type_check_symbol(symbol) for symbol in resolved_symbols]
+            codes = [self._type_check_symbol(symbol) for symbol in resolved_symbols]
 
             for code in codes:
                 handler(EV_KEY, code, 1)
@@ -436,34 +434,28 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_repeat(self, repeats, macro):
-        """Repeat actions.
-
-        Parameters
-        ----------
-        repeats : int or Macro
-        macro : Macro
-        """
+    def add_repeat(self, repeats: Union[str, int], macro: Macro):
+        """Repeat actions."""
         repeats = _type_check(repeats, [int], "repeat", 1)
         _type_check(macro, [Macro], "repeat", 2)
 
-        async def task(handler):
+        async def task(handler: Callable):
             for _ in range(_resolve(repeats, [int])):
                 await macro.run(handler)
 
         self.tasks.append(task)
         self.child_macros.append(macro)
 
-    def add_event(self, type_, code, value):
+    def add_event(self, type_: Union[str, int], code: Union[str, int], value: int):
         """Write any event.
 
         Parameters
         ----------
-        type_: str or int
+        type_
             examples: 2, 'EV_KEY'
-        code : str or int
+        code
             examples: 52, 'KEY_A'
-        value : int
+        value
         """
         type_ = _type_check(type_, [int, str], "event", 1)
         code = _type_check(code, [int, str], "event", 2)
@@ -477,7 +469,7 @@ class Macro:
         self.tasks.append(lambda handler: handler(type_, code, value))
         self.tasks.append(self._keycode_pause)
 
-    def add_mouse(self, direction, speed):
+    def add_mouse(self, direction: str, speed: int):
         """Move the mouse cursor."""
         _type_check(direction, [str], "mouse", 1)
         speed = _type_check(speed, [int], "mouse", 2)
@@ -489,40 +481,40 @@ class Macro:
             "right": (REL_X, 1),
         }[direction.lower()]
 
-        # how long to pause in ms between the injection of mouse events
-        injection_throttle = 10
-
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_speed = value * _resolve(speed, [int])
             while self.is_holding():
                 handler(EV_REL, code, resolved_speed)
-                await asyncio.sleep(injection_throttle / 1000)
+                await asyncio.sleep(1 / self.mapping.rel_rate)
 
         self.tasks.append(task)
 
-    def add_wheel(self, direction, speed):
+    def add_wheel(self, direction: str, speed: int):
         """Move the scroll wheel."""
         _type_check(direction, [str], "wheel", 1)
         speed = _type_check(speed, [int], "wheel", 2)
 
         code, value = {
-            "up": (REL_WHEEL, 1),
-            "down": (REL_WHEEL, -1),
-            "left": (REL_HWHEEL, 1),
-            "right": (REL_HWHEEL, -1),
+            "up": ([REL_WHEEL, REL_WHEEL_HI_RES], [1 / 120, 1]),
+            "down": ([REL_WHEEL, REL_WHEEL_HI_RES], [-1 / 120, -1]),
+            "left": ([REL_HWHEEL, REL_HWHEEL_HI_RES], [1 / 120, 1]),
+            "right": ([REL_HWHEEL, REL_HWHEEL_HI_RES], [-1 / 120, -1]),
         }[direction.lower()]
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_speed = _resolve(speed, [int])
+            remainder = [0.0, 0.0]
             while self.is_holding():
-                handler(EV_REL, code, value)
-                # scrolling moves much faster than mouse, so this
-                # waits between injections instead to make it slower
-                await asyncio.sleep(1 / resolved_speed)
+                for i in range(0, 2):
+                    float_value = value[i] * resolved_speed + remainder[i]
+                    remainder[i] = math.fmod(float_value, 1)
+                    if abs(float_value) >= 1:
+                        handler(EV_REL, code[i], int(float_value))
+                await asyncio.sleep(1 / self.mapping.rel_rate)
 
         self.tasks.append(task)
 
-    def add_wait(self, time):
+    def add_wait(self, time: Union[int, float]):
         """Wait time in milliseconds."""
         time = _type_check(time, [int, float], "wait", 1)
 
@@ -531,7 +523,7 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_set(self, variable, value):
+    def add_set(self, variable: str, value):
         """Set a variable to a certain value."""
         _type_check_variablename(variable)
 
@@ -540,6 +532,36 @@ class Macro:
             resolved_value = _resolve(value)
             logger.debug('"%s" set to "%s"', variable, resolved_value)
             macro_variables[variable] = value
+
+        self.tasks.append(task)
+
+    def add_add(self, variable: str, value: Union[int, float]):
+        """Add a number to a variable."""
+        _type_check_variablename(variable)
+        _type_check(value, [int, float], "value", 1)
+
+        async def task(_):
+            current = macro_variables[variable]
+            if current is None:
+                logger.debug('"%s" initialized with 0', variable)
+                macro_variables[variable] = 0
+                current = 0
+
+            resolved_value = _resolve(value)
+            if not isinstance(resolved_value, (int, float)):
+                logger.error('Expected delta "%s" to be a number', resolved_value)
+                return
+
+            if not isinstance(current, (int, float)):
+                logger.error(
+                    'Expected variable "%s" to contain a number, but got "%s"',
+                    variable,
+                    current,
+                )
+                return
+
+            logger.debug('"%s" += "%s"', variable, resolved_value)
+            macro_variables[variable] += value
 
         self.tasks.append(task)
 
@@ -553,7 +575,7 @@ class Macro:
         _type_check(then, [Macro, None], "ifeq", 3)
         _type_check(else_, [Macro, None], "ifeq", 4)
 
-        async def task(handler):
+        async def task(handler: Callable):
             set_value = macro_variables.get(variable)
             logger.debug('"%s" is "%s"', variable, set_value)
             if set_value == value:
@@ -574,7 +596,7 @@ class Macro:
         _type_check(then, [Macro, None], "if_eq", 3)
         _type_check(else_, [Macro, None], "if_eq", 4)
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_value_1 = _resolve(value_1)
             resolved_value_2 = _resolve(value_2)
             if resolved_value_1 == resolved_value_2:
@@ -615,7 +637,7 @@ class Macro:
                 await self._trigger_press_event.wait()
                 await self._trigger_release_event.wait()
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_timeout = _resolve(timeout, [int, float]) / 1000
             try:
                 await asyncio.wait_for(wait(), resolved_timeout)
@@ -637,41 +659,52 @@ class Macro:
         if isinstance(else_, Macro):
             self.child_macros.append(else_)
 
-        async def task(handler):
-            triggering_event = (self._newest_event.type, self._newest_event.code)
+        async def task(handler: Callable):
+            listener_done = asyncio.Event()
 
-            def event_filter(event, action):
-                """Which event may wake if_single up."""
-                # release event of the actual key
-                if (event.type, event.code) == triggering_event:
-                    return True
-
-                # press event of another key
-                if action in (PRESS, PRESS_NEGATIVE):
-                    return True
-
-            coroutine = self._wait_for_event(event_filter)
-            resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
-            try:
-                if resolved_timeout is not None:
-                    await asyncio.wait_for(coroutine, resolved_timeout / 1000)
-                else:
-                    await coroutine
-
-                newest_event = (self._newest_event.type, self._newest_event.code)
-                # if newest_event == triggering_event, then no other key was pressed.
-                # if it is !=, then a new key was pressed in the meantime.
-                new_key_pressed = triggering_event != newest_event
-
-                if not new_key_pressed:
-                    # no timeout and not combined
-                    if then:
-                        await then.run(handler)
+            async def listener(event):
+                if event.type != EV_KEY:
+                    # ignore anything that is not a key
                     return
-            except asyncio.TimeoutError:
-                pass
 
-            if else_:
+                if event.value == 1:
+                    # another key was pressed, trigger else
+                    listener_done.set()
+                    return
+
+            self.context.listeners.add(listener)
+
+            resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
+            await asyncio.wait(
+                [listener_done.wait(), self._trigger_release_event.wait()],
+                timeout=resolved_timeout / 1000 if resolved_timeout else None,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            self.context.listeners.remove(listener)
+
+            if not listener_done.is_set() and self._trigger_release_event.is_set():
+                await then.run(handler)  # was trigger release
+            else:
                 await else_.run(handler)
 
         self.tasks.append(task)
+
+    def _type_check_symbol(self, keyname: Union[str, Variable]) -> Union[Variable, int]:
+        """Same as _type_check, but checks if the key-name is valid."""
+        if isinstance(keyname, Variable):
+            # it is a variable and will be read at runtime
+            return keyname
+
+        symbol = str(keyname)
+        code = system_mapping.get(symbol)
+
+        if code is None:
+            raise MacroParsingError(msg=f'Unknown key "{symbol}"')
+
+        if self.mapping is not None:
+            target = self.mapping.target_uinput
+            if target is not None and not can_default_uinput_emit(target, EV_KEY, code):
+                raise SymbolNotAvailableInTargetError(symbol, target)
+
+        return code

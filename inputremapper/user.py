@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -21,8 +21,8 @@
 """Figure out the user."""
 
 
-import os
 import getpass
+import os
 import pwd
 
 
@@ -65,5 +65,3 @@ def get_home(user):
 USER = get_user()
 
 HOME = get_home(USER)
-
-CONFIG_PATH = os.path.join(HOME, ".config/input-remapper")

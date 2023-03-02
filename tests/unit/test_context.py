@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -17,17 +17,22 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-
-from tests.test import quick_cleanup
-
+from inputremapper.input_event import InputEvent
+from tests.lib.cleanup import quick_cleanup
+from evdev.ecodes import (
+    EV_REL,
+    EV_ABS,
+    ABS_X,
+    ABS_Y,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
+)
 import unittest
 
 from inputremapper.injection.context import Context
 from inputremapper.configs.preset import Preset
-from inputremapper.event_combination import EventCombination
-from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.input_config import InputConfig, InputCombination
 
 
 class TestContext(unittest.TestCase):
@@ -35,95 +40,75 @@ class TestContext(unittest.TestCase):
     def setUpClass(cls):
         quick_cleanup()
 
-    def setUp(self):
-        self.mapping = Preset()
-        self.mapping.set("gamepad.joystick.left_purpose", WHEEL)
-        self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
-        self.mapping.change(EventCombination([1, 31, 1]), "keyboard", "k(a)")
-        self.mapping.change(EventCombination([1, 32, 1]), "keyboard", "b")
-        self.mapping.change(
-            EventCombination((1, 33, 1), (1, 34, 1), (1, 35, 1)), "keyboard", "c"
+    def test_callbacks(self):
+        preset = Preset()
+        cfg = {
+            "input_combination": InputCombination.from_tuples((EV_ABS, ABS_X)),
+            "target_uinput": "mouse",
+            "output_type": EV_REL,
+            "output_code": REL_HWHEEL_HI_RES,
+        }
+        preset.add(Mapping(**cfg))  # abs x -> wheel
+        cfg["input_combination"] = InputCombination.from_tuples((EV_ABS, ABS_Y))
+        cfg["output_code"] = REL_WHEEL_HI_RES
+        preset.add(Mapping(**cfg))  # abs y -> wheel
+
+        preset.add(
+            Mapping.from_combination(
+                InputCombination.from_tuples((1, 31)), "keyboard", "k(a)"
+            )
         )
-        self.context = Context(self.mapping)
+        preset.add(
+            Mapping.from_combination(
+                InputCombination.from_tuples((1, 32)), "keyboard", "b"
+            )
+        )
 
-    def test_update_purposes(self):
-        self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
-        self.mapping.set("gamepad.joystick.right_purpose", MOUSE)
-        self.context.update_purposes()
-        self.assertEqual(self.context.left_purpose, BUTTONS)
-        self.assertEqual(self.context.right_purpose, MOUSE)
+        # overlapping combination for (1, 32, 1)
+        preset.add(
+            Mapping.from_combination(
+                InputCombination.from_tuples((1, 32), (1, 33), (1, 34)),
+                "keyboard",
+                "c",
+            )
+        )
 
-    def test_parse_macros(self):
-        self.assertEqual(len(self.context.macros), 1)
-        self.assertEqual(self.context.macros[((1, 31, 1),)][1], "keyboard")
-        self.assertEqual(self.context.macros[((1, 31, 1),)][0].code, "k(a)")
+        # map abs x to key "b"
+        preset.add(
+            Mapping.from_combination(
+                InputCombination.from_tuples((EV_ABS, ABS_X, 20)),
+                "keyboard",
+                "d",
+            ),
+        )
 
-    def test_map_keys_to_codes(self):
-        b = system_mapping.get("b")
-        c = system_mapping.get("c")
-        self.assertEqual(len(self.context.key_to_code), 3)
-        self.assertEqual(self.context.key_to_code[((1, 32, 1),)], (b, "keyboard"))
+        context = Context(preset, {}, {})
+
+        expected_num_callbacks = {
+            # ABS_X -> "d" and ABS_X -> wheel have the same type and code
+            InputEvent.abs(ABS_X, 1): 2,
+            InputEvent.abs(ABS_Y, 1): 1,
+            InputEvent.key(31, 1): 1,
+            # even though we have 2 mappings with this type and code, we only expect
+            # one callback because they both map to keys. We don't want to trigger two
+            # mappings with the same key press
+            InputEvent.key(32, 1): 1,
+            InputEvent.key(33, 1): 1,
+            InputEvent.key(34, 1): 1,
+        }
+
         self.assertEqual(
-            self.context.key_to_code[(1, 33, 1), (1, 34, 1), (1, 35, 1)],
-            (c, "keyboard"),
+            set([event.input_match_hash for event in expected_num_callbacks.keys()]),
+            set(context._notify_callbacks.keys()),
         )
-        self.assertEqual(
-            self.context.key_to_code[(1, 34, 1), (1, 33, 1), (1, 35, 1)],
-            (c, "keyboard"),
-        )
+        for input_event, num_callbacks in expected_num_callbacks.items():
+            self.assertEqual(
+                num_callbacks,
+                len(context.get_notify_callbacks(input_event)),
+            )
 
-    def test_is_mapped(self):
-        self.assertTrue(self.context.is_mapped(((1, 32, 1),)))
-        self.assertTrue(self.context.is_mapped(((1, 33, 1), (1, 34, 1), (1, 35, 1))))
-        self.assertTrue(self.context.is_mapped(((1, 34, 1), (1, 33, 1), (1, 35, 1))))
-
-        self.assertFalse(self.context.is_mapped(((1, 34, 1), (1, 35, 1), (1, 33, 1))))
-        self.assertFalse(self.context.is_mapped(((1, 36, 1),)))
-
-    def test_maps_joystick(self):
-        self.assertTrue(self.context.maps_joystick())
-        self.mapping.set("gamepad.joystick.left_purpose", NONE)
-        self.mapping.set("gamepad.joystick.right_purpose", NONE)
-        self.context.update_purposes()
-        self.assertFalse(self.context.maps_joystick())
-
-    def test_joystick_as_dpad(self):
-        self.assertTrue(self.context.maps_joystick())
-
-        self.mapping.set("gamepad.joystick.left_purpose", WHEEL)
-        self.mapping.set("gamepad.joystick.right_purpose", MOUSE)
-        self.context.update_purposes()
-        self.assertFalse(self.context.joystick_as_dpad())
-
-        self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
-        self.mapping.set("gamepad.joystick.right_purpose", NONE)
-        self.context.update_purposes()
-        self.assertTrue(self.context.joystick_as_dpad())
-
-        self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
-        self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
-        self.context.update_purposes()
-        self.assertTrue(self.context.joystick_as_dpad())
-
-    def test_joystick_as_mouse(self):
-        self.assertTrue(self.context.maps_joystick())
-
-        self.mapping.set("gamepad.joystick.right_purpose", MOUSE)
-        self.context.update_purposes()
-        self.assertTrue(self.context.joystick_as_mouse())
-
-        self.mapping.set("gamepad.joystick.left_purpose", NONE)
-        self.mapping.set("gamepad.joystick.right_purpose", NONE)
-        self.context.update_purposes()
-        self.assertFalse(self.context.joystick_as_mouse())
-
-        self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
-        self.context.update_purposes()
-        self.assertFalse(self.context.joystick_as_mouse())
-
-    def test_writes_keys(self):
-        self.assertTrue(self.context.writes_keys())
-        self.assertFalse(Context(Preset()).writes_keys())
+        # 7 unique input events in the preset
+        self.assertEqual(7, len(context._handlers))
 
 
 if __name__ == "__main__":

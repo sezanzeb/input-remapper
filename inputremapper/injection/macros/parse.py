@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -21,15 +21,16 @@
 """Parse macro code"""
 
 
-import re
-import traceback
 import inspect
+import re
+from typing import Optional, Any
 
-from inputremapper.logger import logger
+from inputremapper.configs.validation_errors import MacroParsingError
 from inputremapper.injection.macros.macro import Macro, Variable
+from inputremapper.logger import logger
 
 
-def is_this_a_macro(output):
+def is_this_a_macro(output: Any):
     """Figure out if this is a macro."""
     if not isinstance(output, str):
         return False
@@ -41,7 +42,7 @@ def is_this_a_macro(output):
     return "(" in output and ")" in output and len(output) >= 4
 
 
-FUNCTIONS = {
+TASK_FACTORIES = {
     "modify": Macro.add_modify,
     "repeat": Macro.add_repeat,
     "key": Macro.add_key,
@@ -57,6 +58,7 @@ FUNCTIONS = {
     "set": Macro.add_set,
     "if_tap": Macro.add_if_tap,
     "if_single": Macro.add_if_single,
+    "add": Macro.add_add,
     # Those are only kept for backwards compatibility with old macros. The space for
     # writing macro was very constrained in the past, so shorthands were introduced:
     "m": Macro.add_modify,
@@ -121,14 +123,14 @@ def get_num_parameters(function):
     return min_num_args, max_num_args
 
 
-def _extract_args(inner):
+def _extract_args(inner: str):
     """Extract parameters from the inner contents of a call.
 
     This does not parse them.
 
     Parameters
     ----------
-    inner : string
+    inner
         for example '1, r, r(2, k(a))' should result in ['1', 'r', 'r(2, k(a))']
     """
     inner = inner.strip()
@@ -166,7 +168,9 @@ def _count_brackets(macro):
     openings = macro.count("(")
     closings = macro.count(")")
     if openings != closings:
-        raise SyntaxError(f"Found {openings} opening and {closings} closing brackets")
+        raise MacroParsingError(
+            macro, f"Found {openings} opening and {closings} closing brackets"
+        )
 
     brackets = 0
     position = 0
@@ -206,24 +210,38 @@ def _is_number(value):
         return False
 
 
-def _parse_recurse(code, context, macro_instance=None, depth=0):
+def _parse_recurse(
+    code: str,
+    context,
+    mapping,
+    verbose: bool,
+    macro_instance: Optional[Macro] = None,
+    depth: int = 0,
+):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Not using eval for security reasons.
 
     Parameters
     ----------
-    code : string
+    code
         Just like parse. A single parameter or the complete macro as string.
         Comments and redundant whitespace characters are expected to be removed already.
+        TODO add some examples.
+          Are all of "foo(1);bar(2)" "foo(1)" and "1" valid inputs?
     context : Context
-    macro_instance : Macro or None
-        A macro instance to add tasks to
-    depth : int
+    macro_instance
+        A macro instance to add tasks to. This is the output of the parser, and is
+        organized like a tree.
+    depth
         For logging porposes
     """
     assert isinstance(code, str)
     assert isinstance(depth, int)
+
+    def debug(*args, **kwargs):
+        if verbose:
+            logger.debug(*args, **kwargs)
 
     space = "  " * depth
 
@@ -231,12 +249,15 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
 
     if code == "" or code == "None":
         # A function parameter probably
+        # I think "" is the deprecated alternative to "None"
         return None
 
     if code.startswith('"'):
+        # TODO and endswith check, if endswith fails throw error?
+        #  what is currently the error if only one quote is set?
         # a string, don't parse. remove quotes
         string = code[1:-1]
-        logger.debug("%sstring %s", space, string)
+        debug("%sstring %s", space, string)
         return string
 
     if code.startswith("$"):
@@ -248,7 +269,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
             code = float(code)
         else:
             code = int(code)
-        logger.debug("%snumber %s", space, code)
+        debug("%snumber %s", space, code)
         return code
 
     # is it another macro?
@@ -257,19 +278,19 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
     if call is not None:
         if macro_instance is None:
             # start a new chain
-            macro_instance = Macro(code, context)
+            macro_instance = Macro(code, context, mapping)
         else:
             # chain this call to the existing instance
             assert isinstance(macro_instance, Macro)
 
-        function = FUNCTIONS.get(call)
-        if function is None:
-            raise Exception(f"Unknown function {call}")
+        task_factory = TASK_FACTORIES.get(call)
+        if task_factory is None:
+            raise MacroParsingError(code, f"Unknown function {call}")
 
         # get all the stuff inbetween
-        position = _count_brackets(code)
-        inner = code[code.index("(") + 1 : position - 1]
-        logger.debug("%scalls %s with %s", space, call, inner)
+        closing_bracket_position = _count_brackets(code) - 1
+        inner = code[code.index("(") + 1 : closing_bracket_position]
+        debug("%scalls %s with %s", space, call, inner)
 
         # split "3, foo=a(2, k(a).w(10))" into arguments
         raw_string_args = _extract_args(inner)
@@ -279,18 +300,22 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
         keyword_args = {}
         for param in raw_string_args:
             key, value = _split_keyword_arg(param)
-            parsed = _parse_recurse(value.strip(), context, None, depth + 1)
+            parsed = _parse_recurse(
+                value.strip(), context, mapping, verbose, None, depth + 1
+            )
             if key is None:
                 if len(keyword_args) > 0:
                     msg = f'Positional argument "{key}" follows keyword argument'
-                    raise SyntaxError(msg)
+                    raise MacroParsingError(code, msg)
                 positional_args.append(parsed)
             else:
                 if key in keyword_args:
-                    raise SyntaxError(f'The "{key}" argument was specified twice')
+                    raise MacroParsingError(
+                        code, f'The "{key}" argument was specified twice'
+                    )
                 keyword_args[key] = parsed
 
-        logger.debug(
+        debug(
             "%sadd call to %s with %s, %s",
             space,
             call,
@@ -298,7 +323,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
             keyword_args,
         )
 
-        min_args, max_args = get_num_parameters(function)
+        min_args, max_args = get_num_parameters(task_factory)
         num_provided_args = len(raw_string_args)
         if num_provided_args < min_args or num_provided_args > max_args:
             if min_args != max_args:
@@ -309,40 +334,57 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
             else:
                 msg = f"{call} takes {min_args}, not {num_provided_args} parameters"
 
-            raise ValueError(msg)
+            raise MacroParsingError(code, msg)
 
         use_safe_argument_names(keyword_args)
 
-        function(macro_instance, *positional_args, **keyword_args)
+        try:
+            task_factory(macro_instance, *positional_args, **keyword_args)
+        except TypeError as exception:
+            raise MacroParsingError(msg=str(exception)) from exception
 
         # is after this another call? Chain it to the macro_instance
-        if len(code) > position and code[position] == ".":
-            chain = code[position + 1 :]
-            logger.debug("%sfollowed by %s", space, chain)
-            _parse_recurse(chain, context, macro_instance, depth)
+        more_code_exists = len(code) > closing_bracket_position + 1
+        if more_code_exists:
+            next_char = code[closing_bracket_position + 1]
+            statement_closed = next_char == "."
+
+            if statement_closed:
+                # skip over the ")."
+                chain = code[closing_bracket_position + 2 :]
+                debug("%sfollowed by %s", space, chain)
+                _parse_recurse(chain, context, mapping, verbose, macro_instance, depth)
+            elif re.match(r"[a-zA-Z_]", next_char):
+                # something like foo()bar
+                raise MacroParsingError(
+                    code,
+                    f'Expected a "." to follow after '
+                    f"{code[:closing_bracket_position + 1]}",
+                )
 
         return macro_instance
 
     # It is probably either a key name like KEY_A or a variable name as in `set(var,1)`,
     # both won't contain special characters that can break macro syntax so they don't
     # have to be wrapped in quotes.
-    logger.debug("%sstring %s", space, code)
+    debug("%sstring %s", space, code)
     return code
 
 
 def handle_plus_syntax(macro):
-    """transform a + b + c to hold_keys(a,b,c)"""
+    """Transform a + b + c to hold_keys(a,b,c)."""
     if "+" not in macro:
         return macro
 
     if "(" in macro or ")" in macro:
-        # TODO: MacroParsingError
-        raise ValueError(f'Mixing "+" and macros is unsupported: "{ macro}"')
+        raise MacroParsingError(
+            macro, f'Mixing "+" and macros is unsupported: "{ macro}"'
+        )
 
     chunks = [chunk.strip() for chunk in macro.split("+")]
 
     if "" in chunks:
-        raise ValueError(f'Invalid syntax for "{macro}"')
+        raise MacroParsingError(f'Invalid syntax for "{macro}"')
 
     output = f"hold_keys({','.join(chunks)})"
 
@@ -395,49 +437,28 @@ def clean(code):
     return remove_whitespaces(remove_comments(code), '"')
 
 
-def parse(macro, context=None, return_errors=False):
-    """parse and generate a Macro that can be run as often as you want.
-
-    If it could not be parsed, possibly due to syntax errors, will log the
-    error and return None.
+def parse(macro: str, context=None, mapping=None, verbose: bool = True):
+    """Parse and generate a Macro that can be run as often as you want.
 
     Parameters
     ----------
-    macro : string
+    macro
         "repeat(3, key(a).wait(10))"
         "repeat(2, key(a).key(KEY_A)).key(b)"
         "wait(1000).modify(Shift_L, repeat(2, k(a))).wait(10, 20).key(b)"
     context : Context, or None for use in Frontend
-    return_errors : bool
-        If True, returns errors as a string or None if parsing worked.
-        If False, returns the parsed macro.
+    mapping
+        the mapping for the macro, or None for use in Frontend
+    verbose
+        log the parsing True by default
     """
+    # TODO pass mapping in frontend and do the target check for keys?
+    logger.debug("parsing macro %s", macro.replace("\n", ""))
     macro = clean(macro)
+    macro = handle_plus_syntax(macro)
 
-    try:
-        macro = handle_plus_syntax(macro)
-    except Exception as error:
-        logger.error('Failed to parse macro "%s": %s', macro, error.__repr__())
-        # print the traceback in case this is a bug of input-remapper
-        logger.debug("".join(traceback.format_tb(error.__traceback__)).strip())
-        return f"{error.__class__.__name__}: {str(error)}" if return_errors else None
+    macro_obj = _parse_recurse(macro, context, mapping, verbose)
+    if not isinstance(macro_obj, Macro):
+        raise MacroParsingError(macro, "The provided code was not a macro")
 
-    if return_errors:
-        logger.debug("checking the syntax of %s", macro)
-    else:
-        logger.debug("preparing macro %s for later execution", macro)
-
-    try:
-        macro_object = _parse_recurse(macro, context)
-
-        if not isinstance(macro_object, Macro):
-            # someone put a single parameter like a string into this function, and
-            # it was most likely returned without modification. Not a macro
-            raise ValueError("The provided code was not a macro")
-
-        return macro_object if not return_errors else None
-    except Exception as error:
-        logger.error('Failed to parse macro "%s": %s', macro, error.__repr__())
-        # print the traceback in case this is a bug of input-remapper
-        logger.debug("".join(traceback.format_tb(error.__traceback__)).strip())
-        return f"{error.__class__.__name__}: {str(error)}" if return_errors else None
+    return macro_obj

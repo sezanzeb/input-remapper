@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -19,7 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import quick_cleanup, fixtures
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.fixtures import fixtures, keyboard_keys
 
 import os
 import unittest
@@ -33,12 +34,7 @@ from inputremapper.groups import (
     _FindGroups,
     groups,
     classify,
-    GAMEPAD,
-    MOUSE,
-    UNKNOWN,
-    GRAPHICS_TABLET,
-    TOUCHPAD,
-    KEYBOARD,
+    DeviceType,
     _Group,
 )
 
@@ -58,7 +54,7 @@ class TestGroups(unittest.TestCase):
         group = _Group(
             paths=["/dev/a", "/dev/b", "/dev/c"],
             names=["name_bar", "name_a", "name_foo"],
-            types=[MOUSE, KEYBOARD, UNKNOWN],
+            types=[DeviceType.MOUSE, DeviceType.KEYBOARD, DeviceType.UNKNOWN],
             key="key",
         )
         self.assertEqual(group.name, "name_a")
@@ -85,7 +81,7 @@ class TestGroups(unittest.TestCase):
                                 "/dev/input/event1",
                             ],
                             "names": ["Foo Device"],
-                            "types": [KEYBOARD],
+                            "types": [DeviceType.KEYBOARD],
                             "key": "Foo Device",
                         }
                     ),
@@ -95,9 +91,19 @@ class TestGroups(unittest.TestCase):
                                 "/dev/input/event11",
                                 "/dev/input/event10",
                                 "/dev/input/event13",
+                                "/dev/input/event15",
                             ],
-                            "names": ["Foo Device foo", "Foo Device", "Foo Device"],
-                            "types": [KEYBOARD, MOUSE],
+                            "names": [
+                                "Foo Device foo",
+                                "Foo Device",
+                                "Foo Device",
+                                "Foo Device bar",
+                            ],
+                            "types": [
+                                DeviceType.GAMEPAD,
+                                DeviceType.KEYBOARD,
+                                DeviceType.MOUSE,
+                            ],
                             "key": "Foo Device 2",
                         }
                     ),
@@ -105,7 +111,7 @@ class TestGroups(unittest.TestCase):
                         {
                             "paths": ["/dev/input/event20"],
                             "names": ["Bar Device"],
-                            "types": [KEYBOARD],
+                            "types": [DeviceType.KEYBOARD],
                             "key": "Bar Device",
                         }
                     ),
@@ -113,7 +119,7 @@ class TestGroups(unittest.TestCase):
                         {
                             "paths": ["/dev/input/event30"],
                             "names": ["gamepad"],
-                            "types": [GAMEPAD],
+                            "types": [DeviceType.GAMEPAD],
                             "key": "gamepad",
                         }
                     ),
@@ -121,7 +127,7 @@ class TestGroups(unittest.TestCase):
                         {
                             "paths": ["/dev/input/event40"],
                             "names": ["input-remapper Bar Device"],
-                            "types": [KEYBOARD],
+                            "types": [DeviceType.KEYBOARD],
                             "key": "input-remapper Bar Device",
                         }
                     ),
@@ -129,7 +135,7 @@ class TestGroups(unittest.TestCase):
                         {
                             "paths": ["/dev/input/event52"],
                             "names": ["Qux/Device?"],
-                            "types": [KEYBOARD],
+                            "types": [DeviceType.KEYBOARD],
                             "key": "Qux/Device?",
                         }
                     ),
@@ -189,12 +195,17 @@ class TestGroups(unittest.TestCase):
         self.assertIsNone(groups.find(name="qux"))
 
         # verify this test even works at all
-        fixtures["/foo/bar"]["capabilities"][EV_KEY] = [KEY_A]
+        fixtures["/foo/bar"].capabilities[EV_KEY] = [KEY_A]
         groups.refresh()
         self.assertIsNotNone(groups.find(name="qux"))
 
     def test_duplicate_device(self):
-        fixtures["/dev/input/event20"]["name"] = "Foo Device"
+        fixtures["/dev/input/event100"] = {
+            "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
+            "phys": "usb-0000:03:00.0-3/input1",
+            "info": evdev.device.DeviceInfo(2, 1, 2, 1),
+            "name": "Foo Device",
+        }
         groups.refresh()
 
         group1 = groups.find(key="Foo Device")
@@ -203,7 +214,7 @@ class TestGroups(unittest.TestCase):
 
         self.assertIn("/dev/input/event1", group1.paths)
         self.assertIn("/dev/input/event10", group2.paths)
-        self.assertIn("/dev/input/event20", group3.paths)
+        self.assertIn("/dev/input/event100", group3.paths)
 
         self.assertEqual(group1.key, "Foo Device")
         self.assertEqual(group2.key, "Foo Device 2")
@@ -227,7 +238,7 @@ class TestGroups(unittest.TestCase):
                 assert not absinfo
                 return self.c
 
-        """gamepads"""
+        """Gamepads"""
 
         self.assertEqual(
             classify(
@@ -238,10 +249,10 @@ class TestGroups(unittest.TestCase):
                     }
                 )
             ),
-            GAMEPAD,
+            DeviceType.GAMEPAD,
         )
 
-        """mice"""
+        """Mice"""
 
         self.assertEqual(
             classify(
@@ -256,14 +267,16 @@ class TestGroups(unittest.TestCase):
                     }
                 )
             ),
-            MOUSE,
+            DeviceType.MOUSE,
         )
 
-        """keyboard"""
+        """Keyboard"""
 
-        self.assertEqual(classify(FakeDevice({EV_KEY: [evdev.ecodes.KEY_A]})), KEYBOARD)
+        self.assertEqual(
+            classify(FakeDevice({EV_KEY: [evdev.ecodes.KEY_A]})), DeviceType.KEYBOARD
+        )
 
-        """touchpads"""
+        """Touchpads"""
 
         self.assertEqual(
             classify(
@@ -274,10 +287,10 @@ class TestGroups(unittest.TestCase):
                     }
                 )
             ),
-            TOUCHPAD,
+            DeviceType.TOUCHPAD,
         )
 
-        """graphics tablets"""
+        """Graphics tablets"""
 
         self.assertEqual(
             classify(
@@ -288,10 +301,10 @@ class TestGroups(unittest.TestCase):
                     }
                 )
             ),
-            GRAPHICS_TABLET,
+            DeviceType.GRAPHICS_TABLET,
         )
 
-        """weird combos"""
+        """Weird combos"""
 
         self.assertEqual(
             classify(
@@ -302,19 +315,23 @@ class TestGroups(unittest.TestCase):
                     }
                 )
             ),
-            UNKNOWN,
+            DeviceType.UNKNOWN,
         )
 
         self.assertEqual(
             classify(
                 FakeDevice({EV_ABS: [evdev.ecodes.ABS_X], EV_KEY: [evdev.ecodes.BTN_A]})
             ),
-            UNKNOWN,
+            DeviceType.UNKNOWN,
         )
 
-        self.assertEqual(classify(FakeDevice({EV_KEY: [evdev.ecodes.BTN_A]})), UNKNOWN)
+        self.assertEqual(
+            classify(FakeDevice({EV_KEY: [evdev.ecodes.BTN_A]})), DeviceType.UNKNOWN
+        )
 
-        self.assertEqual(classify(FakeDevice({EV_ABS: [evdev.ecodes.ABS_X]})), UNKNOWN)
+        self.assertEqual(
+            classify(FakeDevice({EV_ABS: [evdev.ecodes.ABS_X]})), DeviceType.UNKNOWN
+        )
 
 
 if __name__ == "__main__":

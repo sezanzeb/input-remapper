@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -26,6 +26,9 @@ import multiprocessing
 import unittest
 import time
 
+import gi
+
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from inputremapper.daemon import Daemon, BUS_NAME

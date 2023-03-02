@@ -7,6 +7,8 @@ Syntax errors are shown in the UI on save. Each `key` function adds a short dela
 between key-down, key-up and at the end. See [usage.md](usage.md#configuration-files)
 for more info.
 
+Macros are written into the same text field, that would usually contain the output symbol.
+
 Bear in mind that anti-cheat software might detect macros in games.
 
 ### key
@@ -186,6 +188,20 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```c#
 > set(foo, 1)
 > set(foo, "qux")
+> ```
+
+### add
+
+> Adds a number fo a variable.
+>
+> ```c#
+> add(variable: str, value: int)
+> ```
+>
+> Examples:
+>
+> ```c#
+> set(a, 1).add(a, 2).if_eq($a, 3, key(x), key(y))
 > ```
 
 ### if_eq

@@ -9,7 +9,7 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       matrix:
-        python-version: ["3.7", "3.10"] # min and max supported versions?
+        python-version: ["3.7", "3.11"] # min and max supported versions?
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -27,8 +27,15 @@ from inputremapper.configs.data import get_data_path
 
 
 class TestData(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.original_location = pkg_resources.require("input-remapper")[0].location
+
+    def tearDown(self):
+        pkg_resources.require("input-remapper")[0].location = self.original_location
+
     def test_data_editable(self):
-        path = os.getcwd()
+        path = os.getcwd().replace("/tests/integration", "")
         pkg_resources.require("input-remapper")[0].location = path
         self.assertEqual(get_data_path(), path + "/data/")
         self.assertEqual(get_data_path("a"), path + "/data/a")

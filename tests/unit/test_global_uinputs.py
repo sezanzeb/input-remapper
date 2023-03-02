@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -17,9 +17,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-
-from tests.test import cleanup
+from inputremapper.input_event import InputEvent
+from tests.lib.cleanup import cleanup
 
 import sys
 import unittest
@@ -67,23 +66,23 @@ class TestGlobalUinputs(unittest.TestCase):
             self.assertIsInstance(uinput, evdev.UInput)
 
     def test_write(self):
-        """test write and write failure
+        """Test write and write failure
 
         implicitly tests get_uinput and UInput.can_emit
         """
-        ev_1 = (EV_KEY, KEY_A, 1)
-        ev_2 = (EV_ABS, ABS_X, 10)
+        ev_1 = InputEvent.key(KEY_A, 1)
+        ev_2 = InputEvent.abs(ABS_X, 10)
 
         keyboard = global_uinputs.get_uinput("keyboard")
 
-        global_uinputs.write(ev_1, "keyboard")
+        global_uinputs.write(ev_1.event_tuple, "keyboard")
         self.assertEqual(keyboard.write_count, 1)
 
         with self.assertRaises(EventNotHandled):
-            global_uinputs.write(ev_2, "keyboard")
+            global_uinputs.write(ev_2.event_tuple, "keyboard")
 
         with self.assertRaises(UinputNotAvailable):
-            global_uinputs.write(ev_1, "foo")
+            global_uinputs.write(ev_1.event_tuple, "foo")
 
     def test_creates_frontend_uinputs(self):
         frontend_uinputs = GlobalUInputs()
