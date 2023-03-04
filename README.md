@@ -25,6 +25,8 @@
 
 ```bash
 yay -S input-remapper-git
+sudo systemctl restart input-remapper
+sudo systemctl enable input-remapper
 ```
 
 ##### Ubuntu/Debian
