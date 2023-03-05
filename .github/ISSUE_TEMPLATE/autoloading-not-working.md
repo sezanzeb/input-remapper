@@ -15,7 +15,7 @@ Please install the newest version from source to see if the problem has already 
 2. which linux distro (ubuntu 20.04, manjaro, etc.)
 3. which desktop environment (gnome, plasma, xfce4, etc.)
 4. `sudo ls -l /proc/1/exe` to check if you are using systemd
-5. `cat ~/.config/input-remapper/config.json` to see if the "autoload" config is written correctly
+5. `cat ~/.config/input-remapper-2/config.json` to see if the "autoload" config is written correctly
 6. `systemctl status input-remapper -n 50` the service has to be running
 
 **Testing the setup**
