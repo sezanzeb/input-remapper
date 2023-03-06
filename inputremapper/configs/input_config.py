@@ -20,10 +20,10 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, TypeAlias
+from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, TypeAlias, \
+    NewType
 
 from evdev import ecodes
-from evdev._ecodes import EV_ABS, EV_KEY, EV_REL
 
 from inputremapper.input_event import InputEvent
 from pydantic import BaseModel, root_validator, validator
@@ -44,7 +44,7 @@ DIFFICULT_COMBINATIONS = [
     ecodes.KEY_RIGHTALT,
 ]
 
-DeviceHash: TypeAlias = str
+DeviceHash = NewType('DeviceHash', str)
 
 EMPTY_TYPE = 99
 
