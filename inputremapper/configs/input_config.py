@@ -20,8 +20,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, TypeAlias, \
-    NewType
+from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, NewType
 
 from evdev import ecodes
 
@@ -44,7 +43,7 @@ DIFFICULT_COMBINATIONS = [
     ecodes.KEY_RIGHTALT,
 ]
 
-DeviceHash = NewType('DeviceHash', str)
+DeviceHash = NewType("DeviceHash", str)
 
 EMPTY_TYPE = 99
 
