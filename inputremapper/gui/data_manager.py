@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -224,7 +224,7 @@ class DataManager:
             self._config.set_autoload_preset(
                 self.active_group.key, self.active_preset.name
             )
-        elif self.get_autoload:
+        elif self.get_autoload():
             self._config.set_autoload_preset(self.active_group.key, None)
 
         self.publish_preset()
@@ -529,7 +529,7 @@ class DataManager:
     def stop_combination_recording(self):
         """Stop recording user input.
 
-        Will send RecordingFinished message if a recording is running.
+        Will send a recording_finished signal if a recording is running.
         """
         self._reader_client.stop_recorder()
 

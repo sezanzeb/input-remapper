@@ -8,107 +8,107 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-03-27 13:08+0200\n"
-"PO-Revision-Date: 2022-04-09 16:04+0800\n"
+"PO-Revision-Date: 2023-02-03 09:09+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
-"Language: zh_CN\n"
+"Language: fr_FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.0.1\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.2.2\n"
 
 #: inputremapper/gui/editor/editor.py:608
 #, python-format
 msgid "\"%s\" already mapped to \"%s\""
-msgstr "“%s”已映射到“%s”"
+msgstr "\\\"%s\\\" déjà mappé sur \\\"%s\\\""
 
 #: inputremapper/gui/user_interface.py:609
 msgid ", CTRL + DEL to stop"
-msgstr ", CTRL + DEL 停止"
+msgstr ", CTRL + SUPPR pour arrêter"
 
 #: data/input-remapper.glade:1070
 msgid "About"
-msgstr "关于"
+msgstr "À propos"
 
 #: inputremapper/gui/user_interface.py:606
 #, python-format
 msgid "Applied preset %s"
-msgstr "无法应用预设%s"
+msgstr "Préréglage %s appliqué"
 
 #: inputremapper/gui/user_interface.py:427
 msgid "Applied the system default"
-msgstr "系统默认设置已应用"
+msgstr "Réglage système restauré"
 
 #: data/input-remapper.glade:307
 msgid "Apply"
-msgstr "应用"
+msgstr "Appliquer"
 
 #: inputremapper/gui/user_interface.py:251
 #, python-format
 msgid "Are you sure to delete preset %s?"
-msgstr "确定要删除预设%s吗？"
+msgstr "Êtes-vous sûr de vouloir supprimer le préréglage %s ?"
 
 #: inputremapper/gui/editor/editor.py:545
 msgid "Are you sure to delete this mapping?"
-msgstr "确定要删除此映射吗？"
+msgstr "Êtes-vous sûr de vouloir supprimer ce mapping ?"
 
 #: data/input-remapper.glade:504
 msgid "Autoload"
-msgstr "自动加载"
+msgstr "Charger automatiquement"
 
 #: data/input-remapper.glade:583 data/input-remapper.glade:627
 msgid "Buttons"
-msgstr "按键"
+msgstr "Boutons"
 
 #: data/input-remapper.glade:65
 msgid "Cancel"
-msgstr "取消"
+msgstr "Annuler"
 
 #: inputremapper/gui/user_interface.py:524
 msgid "Cannot apply empty preset file"
-msgstr "无法应用空的预设文件"
+msgstr "Impossible d'appliquer un fichier de préréglage vide"
 
 #: data/input-remapper.glade:860 inputremapper/gui/editor/editor.py:253
 msgid "Change Key"
-msgstr "修改键位"
+msgstr "Changer la touche"
 
 #: data/input-remapper.glade:326
 msgid "Copy"
-msgstr "复制"
+msgstr "Copier"
 
 #: data/input-remapper.glade:350
 msgid "Create a new preset"
-msgstr "创建新预设"
+msgstr "Créer un nouveau préréglage"
 
 #: data/input-remapper.glade:365 data/input-remapper.glade:889
 msgid "Delete"
-msgstr "删除"
+msgstr "Supprimer"
 
 #: data/input-remapper.glade:894
 msgid "Delete this entry"
-msgstr "删除此条目"
+msgstr "Supprimer ce mapping"
 
 #: data/input-remapper.glade:370
 msgid "Delete this preset"
-msgstr "删除此预设"
+msgstr "Supprimer ce préréglage"
 
 #: data/input-remapper.glade:193
 msgid "Device"
-msgstr "设备"
+msgstr "Périphérique"
 
 #: data/input-remapper.glade:331
 msgid "Duplicate this preset"
-msgstr "复制此预设"
+msgstr "Dupliquer ce préréglage"
 
 #: inputremapper/gui/user_interface.py:618
 #, python-format
 msgid "Failed to apply preset %s"
-msgstr "应用预设%s失败"
+msgstr "Échec de l'application du préréglage %s"
 
 #: data/input-remapper.glade:239
 msgid "Help"
-msgstr "帮助"
+msgstr "Aide"
 
 #: data/input-remapper.glade:149
 msgid "Input Remapper"
@@ -116,52 +116,52 @@ msgstr "Input Remapper"
 
 #: data/input-remapper.glade:584 data/input-remapper.glade:628
 msgid "Joystick"
-msgstr "摇杆"
+msgstr "Joystick"
 
 #: data/input-remapper.glade:566
 msgid "Left joystick"
-msgstr "左摇杆"
+msgstr "Joystick gauche"
 
 #: data/input-remapper.glade:581 data/input-remapper.glade:625
 msgid "Mouse"
-msgstr "鼠标"
+msgstr "Souris"
 
 #: data/input-remapper.glade:654
 msgid "Mouse speed"
-msgstr "鼠标速度"
+msgstr "Vitesse de la souris"
 
 #: data/input-remapper.glade:345
 msgid "New"
-msgstr "新建"
+msgstr "Nouveau"
 
 #: inputremapper/gui/user_interface.py:689
 #: inputremapper/gui/user_interface.py:761
 msgid "Permission denied!"
-msgstr "权限不足！"
+msgstr "Autorisation refusée !"
 
 #: data/input-remapper.glade:399
 msgid "Preset"
-msgstr "预设"
+msgstr "Préréglage"
 
 #: inputremapper/gui/editor/editor.py:249
 msgid "Press Key"
-msgstr "按按键"
+msgstr "Appuyer sur une touche"
 
 #: data/input-remapper.glade:864
 msgid "Record a button of your device that should be remapped"
-msgstr "记录你设备上应重新映射的按钮"
+msgstr "Enregistrer un bouton de votre périphérique qui devrait être remappé"
 
 #: data/input-remapper.glade:438
 msgid "Rename"
-msgstr "重命名"
+msgstr "Renommer"
 
 #: data/input-remapper.glade:610
 msgid "Right joystick"
-msgstr "右摇杆"
+msgstr "Joystick droite"
 
 #: data/input-remapper.glade:469
 msgid "Save the entered name"
-msgstr "以输入的名字保存"
+msgstr "Enregistrer le nom saisi"
 
 #: data/input-remapper.glade:1098
 msgid ""
@@ -175,93 +175,100 @@ msgid ""
 "\n"
 "Macros allow multiple characters to be written with a single key-press. "
 "Information about programming them is available online on github. See <a "
-"href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/macros.md"
-"\">macros.md</a> and <a href=\"https://github.com/sezanzeb/input-remapper/"
+"href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/macros."
+"md\">macros.md</a> and <a href=\"https://github.com/sezanzeb/input-remapper/"
 "blob/HEAD/readme/examples.md\">examples.md</a>"
 msgstr ""
-"更全面的信息，参见 github 在线文档 <a href=\"https://github.com/sezanzeb/"
-"input-remapper/blob/HEAD/readme/usage.md\">usage.md</a>。\n"
-"\n"
-"“键 + 键 + …… + 键”语言可用于触发组合键。例如“Control_L + a” 。\n"
-"\n"
-"输入“disable”作为映射值来禁用此按键。\n"
-"\n"
-"“宏”可以做到按一次键写入多个字符。有关编程的信息可以在 github 上在线获得。 查"
-"阅  <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/"
-"macros.md\">macros.md</a> 和 <a href=\"https://github.com/sezanzeb/input-"
-"remapper/blob/HEAD/readme/examples.md\">examples.md</a>"
+"Voir <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/"
+"usage.md\">usage.md</a> en ligne sur github pour des informations "
+"complètes.\n"
+"La syntaxe \"touche + touche + ... + touche\" peut être utilisée pour "
+"déclencher des combinaisons de touches.\n"
+"Par exemple \"Control_L + a\".\n"
+"Écrire \"disable\" comme mapping désactive une touche.\n"
+"Les macros permettent d'écrire plusieurs caractères avec un seul appui de "
+"touche. Des informations sur leur programmation sont disponibles en ligne "
+"sur github. See <a href=\"https://github.com/sezanzeb/input-remapper/blob/"
+"HEAD/readme/macros.md\">macros.md</a> et <a href=\"https://github.com/"
+"sezanzeb/input-remapper/blob/HEAD/readme/examples.md\">examples.md</a>"
 
 #: inputremapper/gui/editor/editor.py:108
 msgid "Set the key first"
-msgstr "先设置按键"
+msgstr "Set the key first"
 
 #: data/input-remapper.glade:221
 msgid ""
 "Shortcut: ctrl + del\n"
 "Gives your keys back their original function"
 msgstr ""
-"快捷键: ctrl + del\n"
-"一键恢复到按键的原有功能"
+"Raccourci : ctrl + del\n"
+"Réinitialise vos touches à leur fonctionnalité d'origine"
 
 #: data/input-remapper.glade:1239
 msgid "Shortcuts"
-msgstr "快捷键"
+msgstr "Raccourcis"
 
 #: data/input-remapper.glade:1141
 msgid ""
 "Shortcuts only work while keys are not being recorded and the gui is in "
 "focus."
-msgstr "快捷键仅在按键未被录制且应用界面处于焦点时有效。"
+msgstr ""
+"Les raccourcis fonctionnent uniquement lorsque l'enregistrement des touches "
+"n'est pas en cours et l'interface graphique a le focus."
 
 #: data/input-remapper.glade:312
 msgid "Start injecting. Don't hold down any keys while the injection starts"
-msgstr "启动注入。注入启动时不要按任何键"
+msgstr ""
+"Démarrer l'injection. Ne maintenir aucune touche pendant que l'injection "
+"démarre"
 
 #: inputremapper/gui/user_interface.py:567
 msgid "Starting injection..."
-msgstr "注入启动中……"
+msgstr "Injection en cours..."
 
 #: data/input-remapper.glade:217
-msgid "Stop"
-msgstr "停止注入"
+msgid "Stop Injection"
+msgstr "Arrêter l'injection"
 
 #: inputremapper/gui/user_interface.py:481
 #, python-format
 msgid "Syntax error at %s, hover for info"
-msgstr "%s有语法错误，请悬停以获取信息"
+msgstr "Erreur de syntaxe à %s, survoller pour plus d'informations"
 
 #: inputremapper/gui/user_interface.py:226
 msgid "The helper did not start"
-msgstr "辅助程序未启动"
+msgstr "Le helper n'a pas démarré"
 
 #: data/input-remapper.glade:879
 msgid "The type of device this mapping is emulating."
-msgstr "该映射正在模拟的设备类型。"
+msgstr "Le type de périphérique émulé par ce mapping."
 
 #: data/input-remapper.glade:499
 msgid "To automatically apply the preset after your login or when it connects."
-msgstr "用于在登录后或连接时自动应用该预设。"
+msgstr ""
+"Pour appliquer automatiquement le préréglage après votre login ou à la "
+"connexion."
 
 #: inputremapper/gui/user_interface.py:779
 #, python-format
 msgid "Unknown mapping %s"
-msgstr "未知映射 %s"
+msgstr "Mapping inconnu %s"
 
 #: data/input-remapper.glade:1122
 msgid "Usage"
-msgstr "用法"
+msgstr "Utilisation"
 
 #: inputremapper/gui/editor/editor.py:519
-msgid "Use \"Stop\" to stop before editing"
-msgstr "使用“停止注入”停止后再编辑"
+msgid "Use \"Stop Injection\" to stop before editing"
+msgstr "Utiliser \"Arrêter l'injection\" pour arrêter avant l'édition"
 
 #: data/input-remapper.glade:1015
 msgid "Version unknown"
-msgstr "版本未知"
+msgstr "Version inconnue"
 
 #: data/input-remapper.glade:582 data/input-remapper.glade:626
 msgid "Wheel"
-msgstr "滚轮"
+msgstr "Roulette"
 
 #: data/input-remapper.glade:1032
 msgid ""
@@ -269,25 +276,25 @@ msgid ""
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
 "sezanzeb/input-remapper</a>"
 msgstr ""
-"你可以在此找到更多信息并报告 bug\n"
+"Vous pouvez trouver plus d'informations ou signaler un bug sur\n"
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
 "sezanzeb/input-remapper</a>"
 
 #: inputremapper/gui/user_interface.py:526
 msgid "You need to add keys and save first"
-msgstr "你需要先添加键并保存"
+msgstr "Vous devez d'abord ajouter des touches et sauvegarder"
 
 #: inputremapper/gui/editor/editor.py:620
 msgid "Your system might reinterpret combinations "
-msgstr "在这些组合键位被注入后 "
+msgstr "Votre système peut réinterpréter les combinaisons "
 
 #: inputremapper/gui/editor/editor.py:622
 msgid "break them."
-msgstr "从而破坏这些组合键。"
+msgstr "les casser."
 
 #: data/input-remapper.glade:1173
 msgid "closes the application"
-msgstr "关闭应用"
+msgstr "ferme l'application"
 
 #: data/input-remapper.glade:1161
 msgid "ctrl + del"
@@ -303,32 +310,32 @@ msgstr "ctrl + r"
 
 #: inputremapper/gui/editor/editor.py:619
 msgid "ctrl, alt and shift may not combine properly"
-msgstr "ctrl、alt 和 shift 键可能无法正确组合"
+msgstr "ctrl, alt et shift peuvent ne pas se combiner correctement"
 
 #: inputremapper/gui/editor/editor.py:78 inputremapper/gui/editor/editor.py:394
 msgid "new entry"
-msgstr "新条目"
+msgstr "nouveau mapping"
 
 #: data/input-remapper.glade:1209
 msgid "refreshes the device list"
-msgstr "刷新设备列表"
+msgstr "rafraîchit la liste des périphériques"
 
 #: data/input-remapper.glade:1221
 msgid "stops the injection"
-msgstr "停止此注入"
+msgstr "arrête l'injection"
 
 #: inputremapper/gui/editor/editor.py:621
 msgid "with those after they are injected, and by doing so "
-msgstr "系统可能会重新解释此组合 "
+msgstr "avec celles-ci après leur injection, et ce faisant "
 
 #: data/input-remapper.glade:1052
 msgid ""
-"© 2023 Sezanzeb proxima@sezanzeb.de\n"
+"© 2021 Sezanzeb proxima@sezanzeb.de\n"
 "This program comes with absolutely no warranty.\n"
 "See the <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
 "Public License, version 3 or later</a> for details."
 msgstr ""
-"© 2023 Sezanzeb proxima@sezanzeb.de\n"
-"此程序毫无担保。\n"
-"详情参见 <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
-"Public License, version 3 or later</a>。"
+"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"Ce programme est fourni sans aucune garantie.\n"
+"Voir la <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">Licence GNU "
+"General Public, version 3 ou ultérieure</a> pour plus de détails."

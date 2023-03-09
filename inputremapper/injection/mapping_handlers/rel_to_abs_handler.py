@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -88,6 +88,7 @@ class RelToAbsHandler(MappingHandler):
         self._output_axis = (mapping.output_type, mapping.output_code)
 
         target_uinput = global_uinputs.get_uinput(mapping.target_uinput)
+        assert target_uinput is not None
         abs_capabilities = target_uinput.capabilities(absinfo=True)[EV_ABS]
         self._target_absinfo = dict(abs_capabilities)[mapping.output_code]
 
@@ -161,7 +162,6 @@ class RelToAbsHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
         self._observe_rate(event)

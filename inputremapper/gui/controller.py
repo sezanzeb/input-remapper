@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -38,9 +38,18 @@ from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.configs.mapping import (
+    MappingData,
+    UIMapping,
+    MacroButTypeOrCodeSetError,
+    SymbolAndCodeMismatchError,
+    MissingOutputAxisError,
+    MissingMacroOrKeyError,
+    OutputSymbolVariantError,
+)
 from inputremapper.configs.paths import sanitize_path_component
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.validation_errors import pydantify
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
@@ -138,12 +147,14 @@ class Controller:
             self.message_broker.publish(MappingData(**MAPPING_DEFAULTS))
 
     def _on_combination_recorded(self, data: CombinationRecorded):
-        self.update_combination(data.combination)
+        combination = self._auto_use_as_analog(data.combination)
+        self.update_combination(combination)
 
     def _publish_mapping_errors_as_status_msg(self, *__):
         """Send mapping ValidationErrors to the MessageBroker."""
         if not self.data_manager.active_preset:
             return
+
         if self.data_manager.active_preset.is_valid():
             self.message_broker.publish(StatusData(CTX_MAPPING))
             return
@@ -153,18 +164,36 @@ class Controller:
                 continue
 
             position = mapping.format_name()
-            msg = _("Mapping error at %s, hover for info") % position
-            self.show_status(CTX_MAPPING, msg, self._get_ui_error_string(mapping))
+            error_strings = self._get_ui_error_strings(mapping)
+            tooltip = ""
+            if len(error_strings) == 0:
+                # shouldn't be possible to get to this point
+                logger.error("Expected an error")
+                return
+            elif len(error_strings) > 1:
+                msg = _('%d Mapping errors at "%s", hover for info') % (
+                    len(error_strings),
+                    position,
+                )
+                tooltip = "– " + "\n– ".join(error_strings)
+            else:
+                msg = f'"{position}": {error_strings[0]}'
+                tooltip = error_strings[0]
+
+            self.show_status(
+                CTX_MAPPING,
+                msg.replace("\n", " "),
+                tooltip,
+            )
 
     @staticmethod
-    def _get_ui_error_string(mapping: UIMapping) -> str:
-        """Get a human readable error message from a mapping error."""
-        error_string = str(mapping.get_error())
-
-        # check all the different error messages which are not useful for the user
+    def format_error_message(mapping, error_type, error_message: str) -> str:
+        """Check all the different error messages which are not useful for the user."""
+        # There is no more elegant way of comparing error_type with the base class.
+        # https://github.com/pydantic/pydantic/discussions/5112
         if (
-            "output_symbol is a macro:" in error_string
-            or "output_symbol and output_code mismatch:" in error_string
+            pydantify(MacroButTypeOrCodeSetError) in error_type
+            or pydantify(SymbolAndCodeMismatchError) in error_type
         ) and mapping.input_combination.defines_analog_input:
             return _(
                 "Remove the macro or key from the macro input field "
@@ -172,15 +201,15 @@ class Controller:
             )
 
         if (
-            "output_symbol is a macro:" in error_string
-            or "output_symbol and output_code mismatch:" in error_string
+            pydantify(MacroButTypeOrCodeSetError) in error_type
+            or pydantify(SymbolAndCodeMismatchError) in error_type
         ) and not mapping.input_combination.defines_analog_input:
             return _(
                 "Remove the Analog Output Axis when specifying a macro or key output"
             )
 
-        if "missing output axis:" in error_string:
-            message = _(
+        if pydantify(MissingOutputAxisError) in error_type:
+            error_message = _(
                 "The input specifies an analog axis, but no output axis is selected."
             )
             if mapping.output_symbol is not None:
@@ -189,27 +218,64 @@ class Controller:
                     for event in mapping.input_combination
                     if event.defines_analog_input
                 ][0]
-                message += _(
+                error_message += _(
                     "\nIf you mean to create a key or macro mapping "
                     "go to the advanced input configuration"
                     ' and set a "Trigger Threshold" for '
                     f'"{event.description()}"'
                 )
-            return message
+            return error_message
 
-        if "missing macro or key:" in error_string and mapping.output_symbol is None:
-            message = _(
+        if (
+            pydantify(MissingMacroOrKeyError) in error_type
+            and mapping.output_symbol is None
+        ):
+            error_message = _(
                 "The input specifies a key or macro input, but no macro or key is "
                 "programmed."
             )
             if mapping.output_type in (EV_ABS, EV_REL):
-                message += _(
+                error_message += _(
                     "\nIf you mean to create an analog axis mapping go to the "
                     'advanced input configuration and set an input to "Use as Analog".'
                 )
-            return message
+            return error_message
 
-        return error_string
+        return error_message
+
+    @staticmethod
+    def _get_ui_error_strings(mapping: UIMapping) -> List[str]:
+        """Get a human readable error message from a mapping error."""
+        validation_error = mapping.get_error()
+
+        if validation_error is None:
+            return []
+
+        formatted_errors = []
+
+        for error in validation_error.errors():
+            if pydantify(OutputSymbolVariantError) in error["type"]:
+                # this is rather internal, when this error appears in the gui, there is
+                # also always another more readable error at the same time that explains
+                # this problem.
+                continue
+
+            error_string = f'"{mapping.format_name()}": '
+            error_message = error["msg"]
+            error_location = error["loc"][0]
+            if error_location != "__root__":
+                error_string += f"{error_location}: "
+
+            # check all the different error messages which are not useful for the user
+            formatted_errors.append(
+                Controller.format_error_message(
+                    mapping,
+                    error["type"],
+                    error_message,
+                )
+            )
+
+        return formatted_errors
 
     def get_a_preset(self) -> str:
         """Attempts to get the newest preset in the current group
@@ -244,8 +310,36 @@ class Controller:
         )
         self.message_broker.publish(DoStackSwitch(1))
 
+    def _auto_use_as_analog(self, combination: InputCombination) -> InputCombination:
+        """If output is analog, set the first fitting input to analog."""
+        if self.data_manager.active_mapping is None:
+            return combination
+
+        if not self.data_manager.active_mapping.is_analog_output():
+            return combination
+
+        if combination.find_analog_input_config():
+            # something is already set to do that
+            return combination
+
+        for i, input_config in enumerate(combination):
+            # find the first analog input and set it to "use as analog"
+            if input_config.type in (EV_ABS, EV_REL):
+                logger.info("Using %s as analog input", input_config)
+
+                # combinations and input_configs are immutable, a new combination
+                # is created to fit the needs instead
+                combination_list = list(combination)
+                combination_list[i] = input_config.modify(analog_threshold=0)
+                new_combination = InputCombination(combination_list)
+                return new_combination
+
+        return combination
+
     def update_combination(self, combination: InputCombination):
         """Update the input_combination of the active mapping."""
+        combination = self._auto_use_as_analog(combination)
+
         try:
             self.data_manager.update_mapping(input_combination=combination)
             self.save()
@@ -435,16 +529,16 @@ class Controller:
         self.data_manager.load_mapping(input_combination)
         self.load_input_config(input_combination[0])
 
-    def update_mapping(self, **kwargs):
+    def update_mapping(self, **changes):
         """Update the active_mapping with the given keywords and values."""
-        if "mapping_type" in kwargs.keys():
-            if not (kwargs := self._change_mapping_type(kwargs)):
+        if "mapping_type" in changes.keys():
+            if not (changes := self._change_mapping_type(changes)):
                 # we need to synchronize the gui
                 self.data_manager.publish_mapping()
                 self.data_manager.publish_event()
                 return
 
-        self.data_manager.update_mapping(**kwargs)
+        self.data_manager.update_mapping(**changes)
         self.save()
 
     def create_mapping(self):
@@ -582,9 +676,9 @@ class Controller:
                 self.show_status,
                 CTX_ERROR,
                 "The device was not grabbed",
-                "Either another application is already grabbing it or "
+                "Either another application is already grabbing it, "
                 "your preset doesn't contain anything that is sent by the "
-                "device.",
+                "device or your preset contains errors",
             ),
             InjectorState.UPGRADE_EVDEV: partial(
                 self.show_status,
@@ -653,17 +747,17 @@ class Controller:
         """Focus the given component."""
         self.gui.window.set_focus(component)
 
-    def _change_mapping_type(self, kwargs: Dict[str, Any]):
+    def _change_mapping_type(self, changes: Dict[str, Any]):
         """Query the user to update the mapping in order to change the mapping type."""
         mapping = self.data_manager.active_mapping
 
         if mapping is None:
-            return kwargs
+            return changes
 
-        if kwargs["mapping_type"] == mapping.mapping_type:
-            return kwargs
+        if changes["mapping_type"] == mapping.mapping_type:
+            return changes
 
-        if kwargs["mapping_type"] == "analog":
+        if changes["mapping_type"] == "analog":
             msg = _("You are about to change the mapping to analog.")
             if mapping.output_symbol:
                 msg += _('\nThis will remove "{}" ' "from the text input!").format(
@@ -677,20 +771,20 @@ class Controller:
             ]:
                 # there is no analog input configured, let's try to autoconfigure it
                 inputs: List[InputConfig] = list(mapping.input_combination)
-                for i, e in enumerate(inputs):
-                    if e.type in [EV_ABS, EV_REL]:
-                        inputs[i] = e.modify(analog_threshold=0)
-                        kwargs["input_combination"] = InputCombination(inputs)
+                for i, input_config in enumerate(inputs):
+                    if input_config.type in [EV_ABS, EV_REL]:
+                        inputs[i] = input_config.modify(analog_threshold=0)
+                        changes["input_combination"] = InputCombination(inputs)
                         msg += _(
                             '\nThe input "{}" will be used as analog input.'
-                        ).format(e.description())
+                        ).format(input_config.description())
                         break
                 else:
                     # not possible to autoconfigure inform the user
                     msg += _("\nYou need to record an analog input.")
 
             elif not mapping.output_symbol:
-                return kwargs
+                return changes
 
             answer = None
 
@@ -700,21 +794,20 @@ class Controller:
 
             self.message_broker.publish(UserConfirmRequest(msg, get_answer))
             if answer:
-                kwargs["output_symbol"] = None
-                return kwargs
+                changes["output_symbol"] = None
+                return changes
             else:
                 return None
 
-        if kwargs["mapping_type"] == "key_macro":
+        if changes["mapping_type"] == "key_macro":
             try:
                 analog_input = tuple(
                     filter(lambda i: i.defines_analog_input, mapping.input_combination)
-                )
-                analog_input = analog_input[0]
+                )[0]
             except IndexError:
-                kwargs["output_type"] = None
-                kwargs["output_code"] = None
-                return kwargs
+                changes["output_type"] = None
+                changes["output_code"] = None
+                return changes
 
             answer = None
 
@@ -731,10 +824,10 @@ class Controller:
                 )
             )
             if answer:
-                kwargs["output_type"] = None
-                kwargs["output_code"] = None
-                return kwargs
+                changes["output_type"] = None
+                changes["output_code"] = None
+                return changes
             else:
                 return None
 
-        return kwargs
+        return changes

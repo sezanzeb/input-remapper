@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -426,7 +426,7 @@ class TestPreset(unittest.TestCase):
         mapping.output_symbol = "BTN_Left"
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
-        mapping.target_uinput = "keyboard"
+        mapping.target_uinput = "keyboard + mouse"
         mapping.output_symbol = "3"
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
 

@@ -1,6 +1,6 @@
 <p align="center"><img src="data/input-remapper.svg" width=100/></p>
 
-<h1 align="center">Input Remapper (Beta)</h1>
+<h1 align="center">Input Remapper</h1>
 
 <p align="center">
   An easy to use tool to change the behaviour of your input devices.<br/>
@@ -14,9 +14,9 @@
 
 
 <p align="center">
-  <img src="readme/screenshot.png" width="49%"/>
-
-  <img src="readme/screenshot_2.png" width="49%"/>
+  <img src="readme/screenshot.png" width="48%"/>
+  &#160;
+  <img src="readme/screenshot_2.png" width="48%"/>
 </p>
 
 ## Installation
@@ -25,6 +25,8 @@
 
 ```bash
 yay -S input-remapper-git
+sudo systemctl restart input-remapper
+sudo systemctl enable input-remapper
 ```
 
 ##### Ubuntu/Debian
@@ -36,7 +38,7 @@ or install the latest changes via:
 sudo apt install git python3-setuptools gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper && ./scripts/build.sh
-sudo apt install ./dist/input-remapper-1.6.0-beta.deb
+sudo apt install -f ./dist/input-remapper-2.0.0-rc.deb
 ```
 
 input-remapper is available in [Debian](https://tracker.debian.org/pkg/input-remapper)
@@ -50,6 +52,8 @@ Python packages need to be installed globally for the service to be able to impo
 
 Conda can cause problems due to changed python paths and versions.
 
+If it doesn't seem to install, you can also try `sudo python3 setup.py install`
+
 ```bash
 sudo pip install evdev -U  # If newest version not in distros repo
 sudo pip uninstall key-mapper  # In case the old package is still installed
@@ -58,11 +62,14 @@ sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
 ```
 
-If it doesn't seem to install, you can also try `sudo python3 setup.py install`
+## Migrating beta configs to version 2
 
-##### Beta
+By default, Input Remapper will not migrate configurations from the beta.
+If you want to use those you will need to copy them manually.
 
-The `beta` branch contains features that still require work, but that are ready for testing. It uses a different
-config path, so your presets won't break. `input-remapper-beta-git` can be installed from the AUR. If you are
-facing problems, please open up an [issue](https://github.com/sezanzeb/input-remapper/issues).
+```bash
+rm ~/.config/input-remapper-2 -r
+cp ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2 -r
+```
 
+Then start input-remapper

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -20,10 +20,9 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, TypeAlias
+from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, NewType
 
 from evdev import ecodes
-from evdev._ecodes import EV_ABS, EV_KEY, EV_REL
 
 from inputremapper.input_event import InputEvent
 from pydantic import BaseModel, root_validator, validator
@@ -44,7 +43,7 @@ DIFFICULT_COMBINATIONS = [
     ecodes.KEY_RIGHTALT,
 ]
 
-DeviceHash: TypeAlias = str
+DeviceHash = NewType("DeviceHash", str)
 
 EMPTY_TYPE = 99
 
@@ -61,6 +60,8 @@ class InputConfig(BaseModel):
     # This solves a number of bugs when multiple devices have overlapping capabilities.
     # see utils.get_device_hash for the exact hashing function
     origin_hash: Optional[DeviceHash] = None
+
+    # At which point is an analog input treated as "pressed"
     analog_threshold: Optional[int] = None
 
     def __str__(self):
@@ -91,7 +92,7 @@ class InputConfig(BaseModel):
 
     @property
     def defines_analog_input(self) -> bool:
-        """Whether this defines an analog input"""
+        """Whether this defines an analog input."""
         return not self.analog_threshold and self.type != ecodes.EV_KEY
 
     @property
@@ -399,7 +400,7 @@ class InputCombination(Tuple[InputConfig, ...]):
     def find_analog_input_config(
         self, type_: Optional[int] = None
     ) -> Optional[InputConfig]:
-        """Return the first event that defines an analog input"""
+        """Return the first event that defines an analog input."""
         for input_config in self:
             if input_config.defines_analog_input and (
                 type_ is None or input_config.type == type_

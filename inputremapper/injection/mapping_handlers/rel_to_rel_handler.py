@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -95,6 +95,8 @@ class RelToRelHandler(MappingHandler):
     ) -> None:
         super().__init__(combination, mapping)
 
+        assert self.mapping.output_code is not None
+
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
         input_config = combination.find_analog_input_config(type_=EV_REL)
@@ -133,7 +135,6 @@ class RelToRelHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
         if not self._should_map(event):

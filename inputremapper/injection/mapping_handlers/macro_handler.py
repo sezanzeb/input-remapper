@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -50,6 +50,7 @@ class MacroHandler(MappingHandler):
     ):
         super().__init__(combination, mapping)
         self._active = False
+        assert self.mapping.output_symbol is not None
         self._macro = parse(self.mapping.output_symbol, context, mapping)
 
     def __str__(self):

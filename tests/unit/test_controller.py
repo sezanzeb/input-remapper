@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -17,15 +17,18 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import os.path
 import unittest
 from typing import List
 from unittest.mock import patch, MagicMock, call
 
 import gi
+from evdev.ecodes import EV_ABS, ABS_X, ABS_Y, ABS_RX
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.injector import InjectorState
+from tests.lib.logger import logger
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -49,7 +52,7 @@ from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from inputremapper.configs.mapping import UIMapping, MappingData
+from inputremapper.configs.mapping import UIMapping, MappingData, MappingType, Mapping
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.stuff import spy
 from tests.lib.patches import FakeDaemonProxy
@@ -588,6 +591,53 @@ class TestController(unittest.TestCase):
             InputCombination([InputConfig(type=1, code=4)])
         )
         self.assertEqual(len(calls), 0)
+
+    def test_sets_input_to_analog(self):
+        prepare_presets()
+
+        input_config = InputConfig(type=EV_ABS, code=ABS_RX)
+
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.active_preset.add(
+            Mapping(
+                input_combination=InputCombination([input_config]),
+                output_type=EV_ABS,
+                output_code=ABS_X,
+                target_uinput="gamepad",
+            )
+        )
+        self.data_manager.load_mapping(InputCombination([input_config]))
+
+        self.controller.start_key_recording()
+        self.message_broker.publish(
+            CombinationRecorded(
+                InputCombination(
+                    [
+                        InputConfig(
+                            type=EV_ABS,
+                            code=ABS_Y,
+                            analog_threshold=50,
+                        ),
+                        InputConfig(
+                            type=EV_ABS,
+                            code=ABS_RX,
+                            analog_threshold=60,
+                        ),
+                    ]
+                )
+            )
+        )
+
+        # the analog_threshold is removed automatically, otherwise the mapping doesn't
+        # make sense because only analog inputs can map to analog outputs.
+        # This is indicated by is_analog_output being true.
+        self.assertTrue(self.controller.data_manager.active_mapping.is_analog_output())
+
+        # only the first input is modified
+        active_mapping = self.controller.data_manager.active_mapping
+        self.assertEqual(active_mapping.input_combination[0].analog_threshold, None)
+        self.assertEqual(active_mapping.input_combination[1].analog_threshold, 60)
 
     def test_key_recording_disables_gui_shortcuts(self):
         self.message_broker.signal(MessageType.init)

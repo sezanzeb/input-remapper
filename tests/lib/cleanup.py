@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -21,13 +21,11 @@
 from __future__ import annotations
 
 import os
-import sys
 import shutil
 import time
 import asyncio
 import psutil
 from pickle import UnpicklingError
-from unittest.mock import patch
 
 # don't import anything from input_remapper gloablly here, because some files execute
 # code when imported, which can screw up patches. I wish we had a dependency injection

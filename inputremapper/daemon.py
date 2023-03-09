@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -433,7 +433,7 @@ class Daemon:
         for group_key, _ in autoload_presets:
             self._autoload(group_key)
 
-    def start_injecting(self, group_key: str, preset: str) -> bool:
+    def start_injecting(self, group_key: str, preset_name: str) -> bool:
         """Start injecting the preset for the device.
 
         Returns True on success. If an injection is already ongoing for
@@ -443,7 +443,7 @@ class Daemon:
         ----------
         group_key
             The unique key of the group
-        preset
+        preset_name
             The name of the preset
         """
         logger.info('Request to start injecting for "%s"', group_key)
@@ -467,7 +467,7 @@ class Daemon:
             self.config_dir,
             "presets",
             sanitize_path_component(group.name),
-            f"{preset}.json",
+            f"{preset_name}.json",
         )
 
         # Path to a dump of the xkb mappings, to provide more human

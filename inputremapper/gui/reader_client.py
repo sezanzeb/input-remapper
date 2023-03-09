@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -79,10 +79,8 @@ class ReaderClient:
         self.group: Optional[_Group] = None
 
         self._recording_generator: Optional[RecordingGenerator] = None
-        self._results_pipe = None
-        self._commands_pipe = None
+        self._results_pipe, self._commands_pipe = self.connect()
 
-        self.connect()
         self.attach_to_events()
 
         self._read_timeout = GLib.timeout_add(30, self._read)
@@ -124,8 +122,9 @@ class ReaderClient:
 
     def connect(self):
         """Connect to the reader-service."""
-        self._results_pipe = Pipe(get_pipe_paths()[0])
-        self._commands_pipe = Pipe(get_pipe_paths()[1])
+        results_pipe = Pipe(get_pipe_paths()[0])
+        commands_pipe = Pipe(get_pipe_paths()[1])
+        return results_pipe, commands_pipe
 
     def attach_to_events(self):
         """Connect listeners to event_reader."""
@@ -181,7 +180,7 @@ class ReaderClient:
     def stop_recorder(self) -> None:
         """Stop recording the input.
 
-        Will send RecordingFinished message.
+        Will send recording_finished signals.
         """
         logger.debug("Stopping recorder.")
         self._send_command(CMD_STOP_READING)
@@ -252,7 +251,7 @@ class ReaderClient:
                     )
                 )
 
-    def set_group(self, group: _Group):
+    def set_group(self, group: Optional[_Group]):
         """Set the group for which input events should be read later."""
         # TODO load the active_group from the controller instead?
         self.group = group

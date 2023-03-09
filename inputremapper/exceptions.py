@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -19,8 +19,6 @@
 
 
 """Exceptions specific to inputremapper."""
-
-from typing import Optional
 
 
 class Error(Exception):
@@ -42,14 +40,6 @@ class EventNotHandled(Error):
 
     def __init__(self, event):
         super().__init__(f"Event {event} can not be handled by the configured target")
-
-
-class MacroParsingError(Error):
-    """Macro syntax errors."""
-
-    def __init__(self, symbol: Optional[str] = None, msg="Error while parsing a macro"):
-        self.symbol = symbol
-        super().__init__(msg)
 
 
 class MappingParsingError(Error):

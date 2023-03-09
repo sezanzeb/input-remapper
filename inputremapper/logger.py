@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -244,7 +244,7 @@ logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 # using pkg_resources to figure out the version fails in many cases,
 # so we hardcode it instead
-VERSION = "1.6.0-beta"
+VERSION = "2.0.0-rc"
 EVDEV_VERSION = None
 try:
     EVDEV_VERSION = pkg_resources.require("evdev")[0].version

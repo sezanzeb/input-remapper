@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -296,34 +296,17 @@ class Preset(Generic[MappingModel]):
                 logger.error("unable to decode json file: %s", self.path)
                 return mappings
 
-        if isinstance(preset_list, dict):
-            # todo: remove this before merge into main
-            #  adds compatibility with older beta versions
-            def str_to_cfg(string):
-                config = []
-                for event_str in string.split("+"):
-                    type_, code, analog_threshold = event_str.split(",")
-                    config.append(
-                        {
-                            "type": type_,
-                            "code": code,
-                            "analog_threshold": analog_threshold,
-                        }
-                    )
-                return config
-
-            for combination_string, mapping_dict in preset_list.items():
-                mapping_dict["input_combination"] = str_to_cfg(combination_string)
-            preset_list = list(preset_list.values())
-
         for mapping_dict in preset_list:
+            if not isinstance(mapping_dict, dict):
+                logger.error("Expected mapping to be a dict: %s", mapping_dict)
+                continue
+
             try:
                 mapping = self._mapping_factory(**mapping_dict)
-            except ValidationError as error:
-                print(mapping_dict)
+            except Exception as error:
                 logger.error(
                     "failed to Validate mapping for %s: %s",
-                    mapping_dict["input_combination"],
+                    mapping_dict.get("input_combination"),
                     error,
                 )
                 continue

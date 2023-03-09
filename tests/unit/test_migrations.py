@@ -35,14 +35,21 @@ from evdev.ecodes import (
     REL_Y,
     REL_WHEEL_HI_RES,
     REL_HWHEEL_HI_RES,
+    KEY_A,
 )
 
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.migrations import migrate, config_version
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config
-from inputremapper.configs.paths import touch, CONFIG_PATH, mkdir, get_preset_path
-from inputremapper.logger import IS_BETA
+from inputremapper.configs.paths import (
+    touch,
+    CONFIG_PATH,
+    mkdir,
+    get_preset_path,
+    get_config_path,
+    remove,
+)
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.user import HOME
 
@@ -50,6 +57,20 @@ from inputremapper.logger import VERSION
 
 
 class TestMigrations(unittest.TestCase):
+    def setUp(self):
+        # some extra care to ensure those tests are not destroying actual presets
+        self.assertTrue(HOME.startswith("/tmp"))
+        self.assertTrue(CONFIG_PATH.startswith("/tmp"))
+        self.assertTrue(get_preset_path().startswith("/tmp"))
+        self.assertTrue(get_preset_path("foo", "bar").startswith("/tmp"))
+        self.assertTrue(get_config_path().startswith("/tmp"))
+        self.assertTrue(get_config_path("foo").startswith("/tmp"))
+
+        self.v1_dir = os.path.join(HOME, ".config", "input-remapper")
+        self.beta_dir = os.path.join(
+            HOME, ".config", "input-remapper", "beta_1.6.0-beta"
+        )
+
     def tearDown(self):
         quick_cleanup()
         self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
@@ -73,10 +94,7 @@ class TestMigrations(unittest.TestCase):
 
     def test_rename_config(self):
         old = os.path.join(HOME, ".config", "key-mapper")
-        if IS_BETA:
-            new = os.path.join(*os.path.split(CONFIG_PATH)[:-1])
-        else:
-            new = CONFIG_PATH
+        new = CONFIG_PATH
 
         # we are not destroying our actual config files with this test
         self.assertTrue(new.startswith(tmp), f'Expected "{new}" to start with "{tmp}"')
@@ -552,6 +570,136 @@ class TestMigrations(unittest.TestCase):
                 gain=20,
             ),
         )
+
+    def _create_v1_setup(self):
+        """Create all files needed to mimic an outdated v1 configuration."""
+        device_name = "device_name"
+
+        mkdir(os.path.join(self.v1_dir, "presets", device_name))
+        v1_config = {"autoload": {device_name: "foo"}, "version": "1.0"}
+        with open(os.path.join(self.v1_dir, "config.json"), "w") as file:
+            json.dump(v1_config, file)
+        # insert something outdated that will be migrated, to ensure the files are
+        # first copied and then migrated.
+        with open(
+            os.path.join(self.v1_dir, "presets", device_name, "foo.json"), "w"
+        ) as file:
+            json.dump({"mapping": {f"{EV_KEY},1": "a"}}, file)
+
+    def _create_beta_setup(self):
+        """Create all files needed to mimic a beta configuration."""
+        device_name = "device_name"
+
+        # same here, but a different contents to tell the difference
+        mkdir(os.path.join(self.beta_dir, "presets", device_name))
+        beta_config = {"autoload": {device_name: "bar"}, "version": "1.6"}
+        with open(os.path.join(self.beta_dir, "config.json"), "w") as file:
+            json.dump(beta_config, file)
+        with open(
+            os.path.join(self.beta_dir, "presets", device_name, "bar.json"), "w"
+        ) as file:
+            json.dump(
+                [
+                    {
+                        "input_combination": [
+                            {"type": EV_KEY, "code": 1},
+                        ],
+                        "target_uinput": "keyboard",
+                        "output_symbol": "b",
+                        "mapping_type": "key_macro",
+                    }
+                ],
+                file,
+            )
+
+    def test_prioritize_v1_over_beta_configs(self):
+        # if both v1 and beta presets and config exist, migrate v1
+        remove(get_config_path())
+
+        device_name = "device_name"
+        self._create_v1_setup()
+        self._create_beta_setup()
+
+        self.assertFalse(os.path.exists(get_preset_path(device_name, "foo")))
+        self.assertFalse(os.path.exists(get_config_path("config.json")))
+
+        migrate()
+
+        self.assertTrue(os.path.exists(get_preset_path(device_name, "foo")))
+        self.assertTrue(os.path.exists(get_config_path("config.json")))
+        self.assertFalse(os.path.exists(get_preset_path(device_name, "bar")))
+
+        # expect all original files to still exist
+        self.assertTrue(os.path.join(self.v1_dir, "config.json"))
+        self.assertTrue(os.path.join(self.v1_dir, "presets", "foo.json"))
+        self.assertTrue(os.path.join(self.beta_dir, "config.json"))
+        self.assertTrue(os.path.join(self.beta_dir, "presets", "bar.json"))
+
+        # v1 configs should be in the v2 dir now, and migrated
+        with open(get_config_path("config.json"), "r") as f:
+            config_json = json.load(f)
+            self.assertDictEqual(
+                config_json, {"autoload": {device_name: "foo"}, "version": VERSION}
+            )
+        with open(get_preset_path(device_name, "foo.json"), "r") as f:
+            os.system(f'cat { get_preset_path(device_name, "foo.json") }')
+            preset_foo_json = json.load(f)
+            self.assertEqual(
+                preset_foo_json,
+                [
+                    {
+                        "input_combination": [
+                            {"type": EV_KEY, "code": 1},
+                        ],
+                        "target_uinput": "keyboard",
+                        "output_symbol": "a",
+                        "mapping_type": "key_macro",
+                    }
+                ],
+            )
+
+    def test_copy_over_beta_configs(self):
+        # same as test_prioritize_v1_over_beta_configs, but only create the beta
+        # directory without any v1 presets.
+        remove(get_config_path())
+
+        device_name = "device_name"
+        self._create_beta_setup()
+
+        self.assertFalse(os.path.exists(get_preset_path(device_name, "bar")))
+        self.assertFalse(os.path.exists(get_config_path("config.json")))
+
+        migrate()
+
+        self.assertTrue(os.path.exists(get_preset_path(device_name, "bar")))
+        self.assertTrue(os.path.exists(get_config_path("config.json")))
+
+        # expect all original files to still exist
+        self.assertTrue(os.path.join(self.beta_dir, "config.json"))
+        self.assertTrue(os.path.join(self.beta_dir, "presets", "bar.json"))
+
+        # beta configs should be in the v2 dir now
+        with open(get_config_path("config.json"), "r") as f:
+            config_json = json.load(f)
+            self.assertDictEqual(
+                config_json, {"autoload": {device_name: "bar"}, "version": VERSION}
+            )
+        with open(get_preset_path(device_name, "bar.json"), "r") as f:
+            os.system(f'cat { get_preset_path(device_name, "bar.json") }')
+            preset_foo_json = json.load(f)
+            self.assertEqual(
+                preset_foo_json,
+                [
+                    {
+                        "input_combination": [
+                            {"type": EV_KEY, "code": 1},
+                        ],
+                        "target_uinput": "keyboard",
+                        "output_symbol": "b",
+                        "mapping_type": "key_macro",
+                    }
+                ],
+            )
 
 
 if __name__ == "__main__":

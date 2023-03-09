@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -224,7 +224,7 @@ class InputEvent:
         type_: Optional[int] = None,
         code: Optional[int] = None,
         value: Optional[int] = None,
-        actions: Tuple[EventActions, ...] = None,
+        actions: Optional[Tuple[EventActions, ...]] = None,
         origin_hash: Optional[str] = None,
     ) -> InputEvent:
         """Return a new modified event."""

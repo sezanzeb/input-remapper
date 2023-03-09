@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -102,7 +102,7 @@ for po_file in glob.glob(PO_FILES):
 
 setup(
     name="input-remapper",
-    version="1.6.0-beta",
+    version="2.0.0-rc",
     description="A tool to change the mapping of your input device buttons",
     author="Sezanzeb",
     author_email="proxima@sezanzeb.de",
@@ -115,6 +115,10 @@ setup(
         *lang_data,
         ("/usr/share/input-remapper/", glob.glob("data/*")),
         ("/usr/share/applications/", ["data/input-remapper-gtk.desktop"]),
+        (
+            "/usr/share/metainfo/",
+            ["data/io.github.sezanzeb.input_remapper.metainfo.xml"],
+        ),
         ("/usr/share/polkit-1/actions/", ["data/input-remapper.policy"]),
         ("/usr/lib/systemd/system", ["data/input-remapper.service"]),
         ("/etc/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),
@@ -124,10 +128,6 @@ setup(
         ("/usr/bin/", ["bin/input-remapper-service"]),
         ("/usr/bin/", ["bin/input-remapper-control"]),
         ("/usr/bin/", ["bin/input-remapper-reader-service"]),
-        # those will be deleted at some point:
-        ("/usr/bin/", ["bin/key-mapper-gtk"]),
-        ("/usr/bin/", ["bin/key-mapper-service"]),
-        ("/usr/bin/", ["bin/key-mapper-control"]),
     ],
     install_requires=["setuptools", "evdev", "pydbus", "pygobject", "pydantic"],
     cmdclass={

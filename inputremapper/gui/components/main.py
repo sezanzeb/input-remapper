@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of input-remapper.
 #
@@ -24,9 +24,7 @@
 from __future__ import annotations
 
 import gi
-
-
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango
 
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
@@ -79,17 +77,16 @@ class StatusBar:
         self._error_icon = error_icon
         self._warning_icon = warning_icon
 
+        label = self._gui.get_message_area().get_children()[0]
+        label.set_ellipsize(Pango.EllipsizeMode.END)
+        label.set_selectable(True)
+
         self._message_broker.subscribe(MessageType.status_msg, self._on_status_update)
-        self._message_broker.subscribe(MessageType.init, self._on_init)
 
         # keep track if there is an error or warning in the stack of statusbar
         # unfortunately this is not exposed over the api
         self._error = False
         self._warning = False
-
-    def _on_init(self, _):
-        self._error_icon.hide()
-        self._warning_icon.hide()
 
     def _on_status_update(self, data: StatusData):
         """Show a status message and set its tooltip.
@@ -118,24 +115,21 @@ class StatusBar:
                     self._error_icon.show()
 
             status_bar.set_tooltip_text("")
-        else:
-            if tooltip is None:
-                tooltip = message
+            return
 
-            self._error_icon.hide()
-            self._warning_icon.hide()
+        if tooltip is None:
+            tooltip = message
 
-            if context_id in (CTX_ERROR, CTX_MAPPING):
-                self._error_icon.show()
-                self._error = True
+        self._error_icon.hide()
+        self._warning_icon.hide()
 
-            if context_id == CTX_WARNING:
-                self._warning_icon.show()
-                self._warning = True
+        if context_id in (CTX_ERROR, CTX_MAPPING):
+            self._error_icon.show()
+            self._error = True
 
-            max_length = 135
-            if len(message) > max_length:
-                message = message[: max_length - 3] + "..."
+        if context_id == CTX_WARNING:
+            self._warning_icon.show()
+            self._warning = True
 
-            status_bar.push(context_id, message)
-            status_bar.set_tooltip_text(tooltip)
+        status_bar.push(context_id, message)
+        status_bar.set_tooltip_text(tooltip)

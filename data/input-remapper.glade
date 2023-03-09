@@ -419,6 +419,7 @@ Shortcut: ctrl + del</property>
                       <object class="GtkSwitch" id="preset_autoload_switch">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Activate this to load the preset next time the device connects, or when the user logs in</property>
                         <property name="halign">start</property>
                         <property name="valign">center</property>
                       </object>
@@ -850,13 +851,13 @@ Shortcut: ctrl + del</property>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Available output axes are affected by the Target setting.</property>
                                     <property name="spacing">12</property>
                                     <child>
                                       <object class="GtkLabel">
                                         <property name="width-request">100</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="tooltip-text" translatable="yes">Available output axes are affected by the Target setting.</property>
                                         <property name="opacity">0.5</property>
                                         <property name="label" translatable="yes">Output axis</property>
                                         <property name="xalign">1</property>
@@ -1399,7 +1400,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                 <property name="margin-right">6</property>
                 <property name="margin-start">6</property>
                 <property name="margin-end">6</property>
-                <property name="label" translatable="yes">© 2021 Sezanzeb proxima@sezanzeb.de
+                <property name="label" translatable="yes">© 2023 Sezanzeb proxima@sezanzeb.de
 This program comes with absolutely no warranty.
 See the &lt;a href="https://www.gnu.org/licenses/gpl-3.0.html"&gt;GNU General Public License, version 3 or later&lt;/a&gt; for details.</property>
                 <property name="use-markup">True</property>
