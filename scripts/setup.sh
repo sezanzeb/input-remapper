@@ -98,9 +98,9 @@ remove_system_files() {
     sudo rm -f /usr/lib/systemd/system/input-remapper.service
 
     echo "manual removal: cleaning up /etc, config, and startup files"
-    sudo rm -f /etc/dbus-1/system.d/inputremapper.Control.conf 
-    sudo rm -f /etc/xdg/autostart/input-remapper-autoload.desktop 
-    sudo rm -f /usr/lib/udev/rules.d/99-input-remapper.rules     
+    sudo rm -f /etc/dbus-1/system.d/inputremapper.Control.conf
+    sudo rm -f /etc/xdg/autostart/input-remapper-autoload.desktop
+    sudo rm -f /usr/lib/udev/rules.d/99-input-remapper.rules
 }
 
 # find what is installed and print it (returns 1 if anything is found)
@@ -152,6 +152,8 @@ commands:
     purge            find and remove everything that was installed
     inject [path]    inject a 'sys.path' into the files in '$bin'
     uninject         undo the path injection
+    start            start the service
+    stop             stop the service
 
 EOF
 }
@@ -160,6 +162,8 @@ while test $# -gt 0; do case "$1" in
     inst*)           stop_service; system_install && start_service || exit 1 ;;
     local-inst*)     stop_service; local_install  && start_service || exit 1 ;;
     uninst*)         stop_service; uninstall && check_system_files || exit 1 ;;
+    start)           start_service ;;
+    stop)            stop_service ;;
     show)            check_system_files ;;
     clean)           remove_build_files ;;
     inject)          if test -e "$2"                      # check if next arg is a 'path'
