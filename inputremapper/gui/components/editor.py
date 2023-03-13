@@ -438,7 +438,7 @@ class CodeEditor:
         self._connect_message_listener()
 
     def _clear_placeholder(self, *_):
-        if not self._shows_placeholder:
+        if not self._shows_placeholder():
             return
 
         buffer = self.gui.get_buffer()
