@@ -402,6 +402,8 @@ class GdkEventRecorder:
 class CodeEditor:
     """The editor used to edit the output_symbol of the active_mapping."""
 
+    placeholder: str = _("Enter your output here")
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -430,14 +432,28 @@ class CodeEditor:
 
         # todo: setup autocompletion here
 
+        self.code = self.placeholder
+
         self.gui.get_buffer().connect("changed", self._on_gtk_changed)
+        self.gui.connect("focus-in-event", self._on_gtk_focus_in)
         self._connect_message_listener()
+
+    def _on_gtk_focus_in(self, *_):
+        buffer = self.gui.get_buffer()
+        code = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
+        if code == self.placeholder:
+            self.code = ""
 
     @property
     def code(self) -> str:
         """Get the user-defined macro code string."""
         buffer = self.gui.get_buffer()
-        return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
+        code = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
+
+        if code == self.placeholder:
+            return ""
+
+        return code
 
     @code.setter
     def code(self, code: str) -> None:
