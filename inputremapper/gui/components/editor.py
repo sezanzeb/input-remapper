@@ -31,7 +31,6 @@ from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
     EV_REL,
-    bytype,
     BTN_LEFT,
     BTN_MIDDLE,
     BTN_RIGHT,
@@ -435,25 +434,30 @@ class CodeEditor:
         self.code = self.placeholder
 
         self.gui.get_buffer().connect("changed", self._on_gtk_changed)
-        self.gui.connect("focus-in-event", self._on_gtk_focus_in)
+        self.gui.connect("focus-in-event", self._clear_placeholder)
         self._connect_message_listener()
 
-    def _on_gtk_focus_in(self, *_):
+    def _clear_placeholder(self, *_):
+        if not self._shows_placeholder:
+            return
+
+        buffer = self.gui.get_buffer()
+        with HandlerDisabled(buffer, self._on_gtk_changed):
+            buffer.set_text("")
+
+    def _shows_placeholder(self):
         buffer = self.gui.get_buffer()
         code = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
-        if code == self.placeholder:
-            self.code = ""
+        return code == self.placeholder
 
     @property
     def code(self) -> str:
         """Get the user-defined macro code string."""
-        buffer = self.gui.get_buffer()
-        code = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
-
-        if code == self.placeholder:
+        if self._shows_placeholder():
             return ""
 
-        return code
+        buffer = self.gui.get_buffer()
+        return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
     @code.setter
     def code(self, code: str) -> None:
@@ -487,6 +491,9 @@ class CodeEditor:
             self.gui.get_style_context().remove_class("multiline")
 
     def _on_gtk_changed(self, *_):
+        if self._shows_placeholder():
+            return
+
         self._controller.update_mapping(output_symbol=self.code)
 
     def _on_mapping_loaded(self, mapping: MappingData):

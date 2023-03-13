@@ -874,6 +874,7 @@ class TestCodeEditor(ComponentBaseTest):
     def test_updates_mapping(self):
         self.message_broker.publish(MappingData())
         buffer = self.gui.get_buffer()
+        self.controller_mock.update_mapping.assert_not_called()
         buffer.set_text("foo")
         self.controller_mock.update_mapping.assert_called_once_with(output_symbol="foo")
 
