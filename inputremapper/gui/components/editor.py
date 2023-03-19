@@ -442,6 +442,7 @@ class CodeEditor:
 
         if self.code.strip().lower() == "":
             self.code = self.placeholder
+            self.gui.get_style_context().add_class("opaque-text")
 
     def _clear_placeholder(self, *_):
         if not self._shows_placeholder():
@@ -450,6 +451,8 @@ class CodeEditor:
         buffer = self.gui.get_buffer()
         with HandlerDisabled(buffer, self._on_gtk_changed):
             buffer.set_text("")
+
+        self.gui.get_style_context().remove_class("opaque-text")
 
     def _shows_placeholder(self):
         buffer = self.gui.get_buffer()

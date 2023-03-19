@@ -910,18 +910,22 @@ class TestCodeEditor(ComponentBaseTest):
         # clears the input when we enter the editor widget
         focus()
         self.assertEqual(self.get_text(), "")
+        self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
 
         # adds the placeholder back when we leave it
         unfocus()
         self.assertEqual(self.get_text(), self.editor.placeholder)
+        self.assertIn("opaque-text", self.gui.get_style_context().list_classes())
 
         # if we enter text and then leave, it won't show the placeholder
         focus()
         self.assertEqual(self.get_text(), "")
         buffer = self.gui.get_buffer()
         buffer.set_text("foo")
+        self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
         unfocus()
         self.assertEqual(self.get_text(), "foo")
+        self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
 
 
 class TestRecordingToggle(ComponentBaseTest):

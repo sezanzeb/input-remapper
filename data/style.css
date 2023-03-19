@@ -37,6 +37,12 @@
     background: @theme_bg_color;
 }
 
+.opaque-text text {
+    /* found by roaming through /usr/share/themes,
+    and some experimentation in the gnome inspector */
+    color: alpha(currentColor, 0.5);
+}
+
 /*
 @theme_bg_color
 @theme_selected_bg_color
