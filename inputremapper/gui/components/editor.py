@@ -429,13 +429,19 @@ class CodeEditor:
         # TODO there are some similarities with python, but overall it's quite useless.
         #  commented out until there is proper highlighting for input-remappers syntax.
 
-        # todo: setup autocompletion here
-
-        self.code = self.placeholder
+        self._show_placeholder()
 
         self.gui.get_buffer().connect("changed", self._on_gtk_changed)
         self.gui.connect("focus-in-event", self._clear_placeholder)
+        self.gui.connect("focus-out-event", self._show_placeholder)
         self._connect_message_listener()
+
+    def _show_placeholder(self, *_):
+        if self._shows_placeholder():
+            return
+
+        if self.code.strip().lower() == "":
+            self.code = self.placeholder
 
     def _clear_placeholder(self, *_):
         if not self._shows_placeholder():
@@ -461,9 +467,11 @@ class CodeEditor:
 
     @code.setter
     def code(self, code: str) -> None:
+        """Set the text without triggering any events."""
         buffer = self.gui.get_buffer()
         with HandlerDisabled(buffer, self._on_gtk_changed):
             buffer.set_text(code)
+            self._show_placeholder()
             self.gui.do_move_cursor(self.gui, Gtk.MovementStep.BUFFER_ENDS, -1, False)
 
     def _connect_message_listener(self):
