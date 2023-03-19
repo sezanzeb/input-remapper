@@ -892,6 +892,37 @@ class TestCodeEditor(ComponentBaseTest):
         self.message_broker.signal(MessageType.recording_finished)
         self.controller_mock.set_focus.assert_called_once_with(self.gui)
 
+    def test_placeholder(self):
+        self.assertEqual(self.get_text(), self.editor.placeholder)
+
+        window = Gtk.Window()
+        window.add(self.gui)
+        window.show_all()
+
+        def focus():
+            self.gui.grab_focus()
+            gtk_iteration(5)
+
+        def unfocus():
+            window.set_focus(None)
+            gtk_iteration(5)
+
+        # clears the input when we enter the editor widget
+        focus()
+        self.assertEqual(self.get_text(), "")
+
+        # adds the placeholder back when we leave it
+        unfocus()
+        self.assertEqual(self.get_text(), self.editor.placeholder)
+
+        # if we enter text and then leave, it won't show the placeholder
+        focus()
+        self.assertEqual(self.get_text(), "")
+        buffer = self.gui.get_buffer()
+        buffer.set_text("foo")
+        unfocus()
+        self.assertEqual(self.get_text(), "foo")
+
 
 class TestRecordingToggle(ComponentBaseTest):
     def setUp(self) -> None:
