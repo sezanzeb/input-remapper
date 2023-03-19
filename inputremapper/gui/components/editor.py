@@ -429,30 +429,30 @@ class CodeEditor:
         # TODO there are some similarities with python, but overall it's quite useless.
         #  commented out until there is proper highlighting for input-remappers syntax.
 
-        self._show_placeholder()
+        self._update_placeholder()
 
         self.gui.get_buffer().connect("changed", self._on_gtk_changed)
-        self.gui.connect("focus-in-event", self._clear_placeholder)
-        self.gui.connect("focus-out-event", self._show_placeholder)
+        self.gui.connect("focus-in-event", self._update_placeholder)
+        self.gui.connect("focus-out-event", self._update_placeholder)
         self._connect_message_listener()
 
-    def _show_placeholder(self, *_):
-        if self._shows_placeholder():
-            return
-
-        if self.code.strip().lower() == "":
-            self.code = self.placeholder
-            self.gui.get_style_context().add_class("opaque-text")
-
-    def _clear_placeholder(self, *_):
-        if not self._shows_placeholder():
-            return
-
+    def _update_placeholder(self, *_):
         buffer = self.gui.get_buffer()
-        with HandlerDisabled(buffer, self._on_gtk_changed):
-            buffer.set_text("")
+        code = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
-        self.gui.get_style_context().remove_class("opaque-text")
+        # test for incorrect states and fix them, without causing side effects
+        with HandlerDisabled(buffer, self._on_gtk_changed):
+            if self.gui.has_focus() and code == self.placeholder:
+                # hide the placeholder
+                buffer.set_text("")
+                self.gui.get_style_context().remove_class("opaque-text")
+            elif code == "":
+                # show the placeholder instead
+                buffer.set_text(self.placeholder)
+                self.gui.get_style_context().add_class("opaque-text")
+            elif code != "":
+                # something is written, ensure the opacity is correct
+                self.gui.get_style_context().remove_class("opaque-text")
 
     def _shows_placeholder(self):
         buffer = self.gui.get_buffer()
@@ -474,7 +474,7 @@ class CodeEditor:
         buffer = self.gui.get_buffer()
         with HandlerDisabled(buffer, self._on_gtk_changed):
             buffer.set_text(code)
-            self._show_placeholder()
+            self._update_placeholder()
             self.gui.do_move_cursor(self.gui, Gtk.MovementStep.BUFFER_ENDS, -1, False)
 
     def _connect_message_listener(self):
