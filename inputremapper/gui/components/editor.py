@@ -31,7 +31,6 @@ from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
     EV_REL,
-    bytype,
     BTN_LEFT,
     BTN_MIDDLE,
     BTN_RIGHT,
@@ -402,6 +401,8 @@ class GdkEventRecorder:
 class CodeEditor:
     """The editor used to edit the output_symbol of the active_mapping."""
 
+    placeholder: str = _("Enter your output here")
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -428,22 +429,52 @@ class CodeEditor:
         # TODO there are some similarities with python, but overall it's quite useless.
         #  commented out until there is proper highlighting for input-remappers syntax.
 
-        # todo: setup autocompletion here
+        self._update_placeholder()
 
         self.gui.get_buffer().connect("changed", self._on_gtk_changed)
+        self.gui.connect("focus-in-event", self._update_placeholder)
+        self.gui.connect("focus-out-event", self._update_placeholder)
         self._connect_message_listener()
+
+    def _update_placeholder(self, *_):
+        buffer = self.gui.get_buffer()
+        code = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
+
+        # test for incorrect states and fix them, without causing side effects
+        with HandlerDisabled(buffer, self._on_gtk_changed):
+            if self.gui.has_focus() and code == self.placeholder:
+                # hide the placeholder
+                buffer.set_text("")
+                self.gui.get_style_context().remove_class("opaque-text")
+            elif code == "":
+                # show the placeholder instead
+                buffer.set_text(self.placeholder)
+                self.gui.get_style_context().add_class("opaque-text")
+            elif code != "":
+                # something is written, ensure the opacity is correct
+                self.gui.get_style_context().remove_class("opaque-text")
+
+    def _shows_placeholder(self):
+        buffer = self.gui.get_buffer()
+        code = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
+        return code == self.placeholder
 
     @property
     def code(self) -> str:
         """Get the user-defined macro code string."""
+        if self._shows_placeholder():
+            return ""
+
         buffer = self.gui.get_buffer()
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
     @code.setter
     def code(self, code: str) -> None:
+        """Set the text without triggering any events."""
         buffer = self.gui.get_buffer()
         with HandlerDisabled(buffer, self._on_gtk_changed):
             buffer.set_text(code)
+            self._update_placeholder()
             self.gui.do_move_cursor(self.gui, Gtk.MovementStep.BUFFER_ENDS, -1, False)
 
     def _connect_message_listener(self):
@@ -471,6 +502,9 @@ class CodeEditor:
             self.gui.get_style_context().remove_class("multiline")
 
     def _on_gtk_changed(self, *_):
+        if self._shows_placeholder():
+            return
+
         self._controller.update_mapping(output_symbol=self.code)
 
     def _on_mapping_loaded(self, mapping: MappingData):
