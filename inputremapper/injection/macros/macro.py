@@ -684,9 +684,11 @@ class Macro:
             self.context.listeners.remove(listener)
 
             if not listener_done.is_set() and self._trigger_release_event.is_set():
-                await then.run(handler)  # was trigger release
+                if then:
+                    await then.run(handler)  # was trigger release
             else:
-                await else_.run(handler)
+                if else_:
+                    await else_.run(handler)
 
         self.tasks.append(task)
 
