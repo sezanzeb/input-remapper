@@ -21,8 +21,8 @@
 
 ## Installation
 
-Below are instructions for certain distributions.  For a missing
-distributions, contributions are welcomed!
+Below are instructions for certain distributions.  Contributions are
+welcomed for missing distributions.
 
 Distributions may lag with the latest bug fixes.  For some users, it may
 be desirable to install the latest version using the `Manual` method below.
@@ -35,13 +35,17 @@ sudo systemctl restart input-remapper
 sudo systemctl enable input-remapper
 ```
 
-Please note that the above versions may lay from the latest version.
-You may wish to see below how to `manually` install the latest version.
+Please note that the above version may lag from the latest version.  See
+the `manual` method below to install the latest version.
 
 ##### Ubuntu/Debian
 
-Get a `.deb` file from the [release page](https://github.com/sezanzeb/input-remapper/releases)
-or install the latest changes via:
+Get a `.deb` file from the [release
+page](https://github.com/sezanzeb/input-remapper/releases) and manually
+install it.
+
+The above version may not have the latest bug fixes.  Use the following
+method to get the latest version:
 
 ```bash
 sudo apt install git python3-setuptools gettext
@@ -50,12 +54,12 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install -f ./dist/input-remapper-2.0.0.deb
 ```
 
-input-remapper is available on [Debian](https://tracker.debian.org/pkg/input-remapper)
+input-remapper is also available on [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
 distributions.  Please note that these versions may lag from the latest
 version.
 
-##### Manual
+##### Manual installation
 
 The following dependencies are required:
 
