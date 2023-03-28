@@ -104,4 +104,4 @@ rm -fr ~/.config/input-remapper-2
 cp -r ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2
 ```
 
-Once done, start input-remapper.
+Once completed, start input-remapper.
