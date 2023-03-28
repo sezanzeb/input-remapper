@@ -3,11 +3,11 @@
 Below are installation instructions for certain distributions as well as
 <a href="#manual-installation">Manual installation</a> instructions.
 
-We welcome contributors for missing distributions.
+We welcome contributors to maintain missing distributions.
 
-Please note that distributions may lag with the latest bug fixes.  For
-some users, it may be desirable to install the latest version using the
-<a href="#manual-installation">Manual installation</a> method.
+Please note that distributions may lag with the latest bug fixes.  To
+get the latest bug fixes, use the <a href="#manual-installation">Manual
+installation</a> method.
 
 ## Manjaro/Arch
 
@@ -18,7 +18,8 @@ sudo systemctl enable input-remapper
 ```
 
 Please note that the above version may lag from the latest version.  See
-the <a href="#manual-installation">Manual installation</a> method below to install the latest version.
+the <a href="#manual-installation">Manual installation</a> method to
+install the latest version.
 
 ## Ubuntu/Debian
 
@@ -31,17 +32,20 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install -f ./dist/input-remapper-2.0.0.deb
 ```
 
-Use this method if you prefer to use a `.deb` file:
+The next two methods may result in the installed version not having the
+latest bug fixes.
 
-- Download it from the
-[release page](https://github.com/sezanzeb/input-remapper/releases) and
-- manually install it.
+### Install using a .deb file
 
-Please be aware that this version may not have the latest bug fixes.
+1. Download the `.deb` file from the
+[release page](https://github.com/sezanzeb/input-remapper/releases)
+2. Manually install it
 
-Finally, input-remapper is also available on [Debian](https://tracker.debian.org/pkg/input-remapper)
+### Distribution repository
+
+input-remapper is available on [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
-distributions.  These versions may lag from the latest version.
+distributions.  Use your package manager to install the software.
 
 ## Manual installation
 
@@ -54,7 +58,7 @@ Ensure that the following dependencies are met:
 - `python3-pydbus`
 
 Python packages need to be installed globally for the service to be able
-to import them.  Don't use `--user`.
+to import them.  Do not use `--user`.
 
 `Conda` can cause problems due to changed python paths and versions.
 
@@ -85,7 +89,8 @@ sudo python3 setup.py install
 
 # Migrating beta configs to version 2
 
-__**Warning:**  the following will remove any existing **new** configurations.__
+<i><b>Warning:</b>  the following will remove any existing <b>new</b>
+configurations.</i>
 
 By default, input-remapper will not migrate configurations from the beta
 release.
