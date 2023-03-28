@@ -31,10 +31,13 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install -f ./dist/input-remapper-2.0.0.deb
 ```
 
-Use this method if you rather use a `.deb` file.  Download it from the
+Use this method if you prefer to use a `.deb` file:
+
+- Download it from the
 [release page](https://github.com/sezanzeb/input-remapper/releases) and
-manually install it.  Please be aware that this version may not have the
-latest bug fixes.
+- manually install it.
+
+Please be aware that this version may not have the latest bug fixes.
 
 Finally, input-remapper is also available on [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
@@ -42,7 +45,7 @@ distributions.  These versions may lag from the latest version.
 
 ## Manual installation
 
-The following dependencies are required:
+Ensure that the following dependencies are met:
 
 - `python3-evdev` ≥1.3.0
 - `gtksourceview4`
@@ -82,7 +85,7 @@ sudo python3 setup.py install
 
 # Migrating beta configs to version 2
 
-**Warning:**  the following will remove any existing **new** configurations.
+__**Warning:**  the following will remove any existing **new** configurations.__
 
 By default, input-remapper will not migrate configurations from the beta
 release.
