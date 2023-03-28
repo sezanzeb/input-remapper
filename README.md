@@ -59,18 +59,14 @@ version.
 
 The following dependencies are required:
 
-<ul>
-  <li> `python3-evdev` ≥1.3.0
-  <li> `gtksourceview4`
-  <li> `python3-devel`
-  <li> `python3-pydantic`
-  <li> `python3-pydbus`
-</ul>
+- `python3-evdev` ≥1.3.0
+- `gtksourceview4`
+- `python3-devel`
+- `python3-pydantic`
+- `python3-pydbus`
 
-<blockquote>
-Python packages need to be installed globally for the service to be able
-to import them.  Don't use `--user`.
-</blockquote>
+> Python packages need to be installed globally for the service to be able
+> to import them.  Don't use `--user`.
 
 `Conda` can cause problems due to changed python paths and versions.
 
@@ -115,6 +111,4 @@ cp -r ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2
 
 Once done, start input-remapper.
 
-<blockquote>
-<b>Warning:</b>  the above will remove any existing <b>new</b> configurations.
-</blockquote>
+> **Warning:**  the above will remove any existing **new** configurations.
