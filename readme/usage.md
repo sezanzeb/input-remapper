@@ -87,6 +87,8 @@ not result in the expected output. For example using `KEY_Y` would  result in "z
 if the layout of the environment is set to german. Using `y` on the other hand would
 correctly result in "y" to be written.
 
+It is also possible to map a key to `disable` to stop it from doing anything.
+
 ## Limitations
 
 **If your fingers can't type it on your keyboard, input-remapper can't inject it.**
