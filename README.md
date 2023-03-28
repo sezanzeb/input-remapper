@@ -75,8 +75,8 @@ The following dependencies are required:
 - `python3-pydantic`
 - `python3-pydbus`
 
-> Python packages need to be installed globally for the service to be able
-> to import them.  Don't use `--user`.
+Python packages need to be installed globally for the service to be able
+to import them.  Don't use `--user`.
 
 `Conda` can cause problems due to changed python paths and versions.
 
