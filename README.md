@@ -116,5 +116,5 @@ cp -r ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2
 Once done, start input-remapper.
 
 <blockquote>
-*Warning*:  the above will remove any existing *new* configurations.
+<b>Warning:</b>  the above will remove any existing <b>new</b> configurations.
 </blockquote>
