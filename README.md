@@ -24,8 +24,8 @@
 Below are instructions for certain distributions.  For a missing
 distributions, contributions are welcomed!
 
-Distributions may lag with the latest bug fixes.  For some, it may be
-desirable to install the latest version using the `Manual` method below.
+Distributions may lag with the latest bug fixes.  For some users, it may
+be desirable to install the latest version using the `Manual` method below.
 
 ##### Manjaro/Arch
 
@@ -34,6 +34,9 @@ yay -S input-remapper-git
 sudo systemctl restart input-remapper
 sudo systemctl enable input-remapper
 ```
+
+Please note that the above versions may lay from the latest version.
+You may wish to see below how to `manually` install the latest version.
 
 ##### Ubuntu/Debian
 
@@ -47,8 +50,10 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install -f ./dist/input-remapper-2.0.0.deb
 ```
 
-input-remapper is available in [Debian](https://tracker.debian.org/pkg/input-remapper)
+input-remapper is available on [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
+distributions.  Please note that these versions may lag from the latest
+version.
 
 ##### Manual
 
@@ -60,7 +65,7 @@ The following dependencies are required:
   <li> `python3-devel`
   <li> `python3-pydantic`
   <li> `python3-pydbus`
-<ul>
+</ul>
 
 <blockquote>
 Python packages need to be installed globally for the service to be able
