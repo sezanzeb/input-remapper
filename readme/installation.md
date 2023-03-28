@@ -31,15 +31,14 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install -f ./dist/input-remapper-2.0.0.deb
 ```
 
-If you prefer to use a `.deb` file instead, download it from the
+Use this method if you rather use a `.deb` file.  Download it from the
 [release page](https://github.com/sezanzeb/input-remapper/releases) and
 manually install it.  Please be aware that this version may not have the
 latest bug fixes.
 
 Finally, input-remapper is also available on [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
-distributions.  As previously mentioned, these versions may lag from the
-latest version.
+distributions.  These versions may lag from the latest version.
 
 ## Manual installation
 
