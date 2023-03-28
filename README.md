@@ -4,8 +4,8 @@
 
 <p align="center">
   An easy to use tool to change the behaviour of your input devices.<br/>
-  Supports X11, Wayland, combinations, programmable macros, joysticks, wheels,<br/>
-  triggers, keys, mouse-movements and more. Maps any input to any other input.
+  Supports X11, Wayland, key combinations, programmable macros, joysticks, wheels,<br/>
+  triggers, keys, mouse-movements and much more. Maps any input to any other input.
 </p>
 
 <p align="center"><a href="readme/usage.md">Usage</a> - <a href="readme/macros.md">Macros</a> - <a href="#installation">Installation</a> - <a href="readme/development.md">Development</a> - <a href="readme/examples.md">Examples</a></p>
@@ -21,6 +21,12 @@
 
 ## Installation
 
+Below are instructions for certain distributions.  For a missing
+distributions, contributions are welcomed!
+
+Distributions may lag with the latest bug fixes.  For some, it may be
+desirable to install the latest version using the `Manual` method below.
+
 ##### Manjaro/Arch
 
 ```bash
@@ -31,7 +37,7 @@ sudo systemctl enable input-remapper
 
 ##### Ubuntu/Debian
 
-Get a .deb file from the [release page](https://github.com/sezanzeb/input-remapper/releases)
+Get a `.deb` file from the [release page](https://github.com/sezanzeb/input-remapper/releases)
 or install the latest changes via:
 
 ```bash
@@ -46,13 +52,24 @@ and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
 
 ##### Manual
 
-Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`
+The following dependencies are required:
 
-Python packages need to be installed globally for the service to be able to import them. Don't use `--user`
+<ul>
+  <li> `python3-evdev` ≥1.3.0
+  <li> `gtksourceview4`
+  <li> `python3-devel`
+  <li> `python3-pydantic`
+  <li> `python3-pydbus`
+<ul>
 
-Conda can cause problems due to changed python paths and versions.
+<blockquote>
+Python packages need to be installed globally for the service to be able
+to import them.  Don't use `--user`.
+</blockquote>
 
-If it doesn't seem to install, you can also try `sudo python3 setup.py install`
+`Conda` can cause problems due to changed python paths and versions.
+
+###### Install method #1
 
 ```bash
 sudo pip install evdev -U  # If newest version not in distros repo
@@ -62,14 +79,37 @@ sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
 ```
 
-## Migrating beta configs to version 2
+###### Install method #2
 
-By default, Input Remapper will not migrate configurations from the beta.
-If you want to use those you will need to copy them manually.
+Use this installation method if the above method is problematic:
 
 ```bash
-rm ~/.config/input-remapper-2 -r
-cp ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2 -r
+# Obtain the software:
+mkdir -p ~/src
+cd ~/src
+git clone https://github.com/sezanzeb/input-remapper.git
+
+# Install
+cd ~/src/input-remapper
+sudo python3 setup.py install
 ```
 
-Then start input-remapper
+## Migrating beta configs to version 2
+
+By default, input-remapper will not migrate configurations from the beta
+release.
+
+To manually migrate beta configurations, *before* starting
+input-remapper, perform the following:
+
+```bash
+# Ignore whether the subdirectory exists ...
+rm -fr ~/.config/input-remapper-2
+cp -r ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2
+```
+
+Once done, start input-remapper.
+
+<blockquote>
+*Warning*:  the above will remove any existing *new* configurations.
+</blockquote>
