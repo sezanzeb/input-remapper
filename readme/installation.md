@@ -1,13 +1,13 @@
 # Installation
 
 Below are installation instructions for certain distributions as well as
-`Manual installation` instructions.
+<a href="#Manual installation">Manual installation</a> instructions.
 
 We welcome contributors for missing distributions.
 
 Please note that distributions may lag with the latest bug fixes.  For
 some users, it may be desirable to install the latest version using the
-`Manual installation` method.
+<a href="#Manual installation">Manual installation</a> method.
 
 ## Manjaro/Arch
 
@@ -18,7 +18,7 @@ sudo systemctl enable input-remapper
 ```
 
 Please note that the above version may lag from the latest version.  See
-the `Manual installation` method below to install the latest version.
+the <a href="#Manual installation">Manual installation</a> method below to install the latest version.
 
 ## Ubuntu/Debian
 
