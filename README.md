@@ -31,7 +31,7 @@ some users, it may be desirable to install the latest version using the
 `Manual installation` method.
 
 ##### Manjaro/Arch
-<hr style="height:2px">
+<hr style="height:1px">
 
 ```bash
 yay -S input-remapper-git
@@ -43,7 +43,7 @@ Please note that the above version may lag from the latest version.  See
 the `Manual installation` method below to install the latest version.
 
 ##### Ubuntu/Debian
-<hr style="height:2px">
+<hr style="height:1px">
 
 To get the latest version, use the following method:
 
@@ -65,7 +65,7 @@ distributions.  As previously mentioned, these versions may lag from the
 latest version.
 
 ##### Manual installation
-<hr style="height:2px">
+<hr style="height:1px">
 
 The following dependencies are required:
 
