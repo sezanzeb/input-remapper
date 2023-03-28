@@ -22,13 +22,13 @@
 ## Installation
 
 Below are instructions for certain distributions.  If your distribution
-is not included, we provide `Manual installation` instructions.
+is not included, below we provide `Manual installation` instructions.
 
 We welcome contributors for missing distributions.
 
 Please note that distributions may lag with the latest bug fixes.  For
 some users, it may be desirable to install the latest version using the
-`Manual installation` method below.
+`Manual installation`.
 
 ##### Manjaro/Arch
 
@@ -43,12 +43,7 @@ the `Manual installation` method below to install the latest version.
 
 ##### Ubuntu/Debian
 
-Get a `.deb` file from the [release
-page](https://github.com/sezanzeb/input-remapper/releases) and manually
-install it.
-
-Please note that the above version may not have the latest bug fixes.
-Use the following method to get the latest version:
+To get the latest version, use the following method:
 
 ```bash
 sudo apt install git python3-setuptools gettext
@@ -57,7 +52,12 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install -f ./dist/input-remapper-2.0.0.deb
 ```
 
-input-remapper is also available on [Debian](https://tracker.debian.org/pkg/input-remapper)
+If you prefer to use a `.deb` file instead, download it from the
+[release page](https://github.com/sezanzeb/input-remapper/releases) and
+manually install it.  Please be aware that this version may not have the
+latest bug fixes.
+
+Finally, input-remapper is also available on [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
 distributions.  As previously mentioned, these versions may lag from the
 latest version.
