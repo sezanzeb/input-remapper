@@ -9,7 +9,7 @@ any input to any other input.  This tool may also be helpful for those
 with repetitive strain issues.
 
 <p align="center">
-<a href="readme/installation.md" style="font-size:110%">Installation</a></br> 
+<a href="readme/installation.md">Installation</a></br> 
 <a href="readme/usage.md">Usage</a> - 
 <a href="readme/macros.md">Macros</a> - 
 <a href="readme/development.md">Development</a> -
