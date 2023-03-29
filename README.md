@@ -8,11 +8,13 @@ joysticks, wheels, triggers, keys, mouse-movements and much more. Maps
 any input to any other input.  This tool may also be helpful for those
 with repetitive strain issues.
 
-<p align="center"><a href="readme/installation.md">Installation</a> - <a
-href="readme/usage.md">Usage</a> - <a
-href="readme/macros.md">Macros</a> - <a
-href="readme/development.md">Development</a> - <a
-href="readme/examples.md">Examples</a></p>
+<p align="center">
+<a href="readme/installation.md"><font size="+1">Installation</font></a></br> 
+<a href="readme/usage.md">Usage</a> - 
+<a href="readme/macros.md">Macros</a> - 
+<a href="readme/development.md">Development</a> -
+<a href="readme/examples.md">Examples</a>
+</p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
