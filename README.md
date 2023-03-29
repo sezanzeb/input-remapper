@@ -5,9 +5,8 @@
 An easy to use tool to change the behaviour of your input devices.
 Supports `X11`, `Wayland`, key/button combinations, programmable macros,
 joysticks, wheels, triggers, keys, mouse-movements and much more. Maps
-any input to any other input.
-
-This tool may also be helpful for those with repetitive strain issues.
+any input to any other input.  This tool may also be helpful for those
+with repetitive strain issues.
 
 <p align="center"><a href="readme/installation.md">Installation</a> - <a
 href="readme/usage.md">Usage</a> - <a
