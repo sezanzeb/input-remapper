@@ -26,8 +26,6 @@ import time
 from datetime import datetime
 from typing import cast
 
-import pkg_resources
-
 try:
     from inputremapper.commit_hash import COMMIT_HASH
 except ImportError:
@@ -247,6 +245,9 @@ logging.getLogger("asyncio").setLevel(logging.WARNING)
 VERSION = "2.0.0"
 EVDEV_VERSION = None
 try:
+    # pkg_resources very commonly fails/breaks
+    import pkg_resources
+
     EVDEV_VERSION = pkg_resources.require("evdev")[0].version
 except Exception as error:
     # there have been pkg_resources.DistributionNotFound and
