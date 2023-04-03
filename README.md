@@ -6,7 +6,6 @@
 An easy to use, feature-rich tool to change the behaviour of your input
 devices:
 </p>
-<p align="center">
  <table align="center" style="border-collapse: collapse; border: none;">
   <td>
     <ul>
@@ -26,7 +25,6 @@ devices:
     </ul>
     </td>
 </table>
-</p>
 
 <p align="center">
 <a href="readme/installation.md">Installation</a></br> 
