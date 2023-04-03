@@ -2,7 +2,8 @@
 
 <h1 align="center">Input Remapper</h1>
 
-An easy to use tool to change the behaviour of your input devices.
+An easy to use, feature-rich tool to change the behaviour of your input
+devices.
 Supports `X11`, `Wayland`, key/button combinations, programmable macros,
 joysticks, wheels, triggers, keyboards, mouse-movements and much
 more. Maps any input to any other input.
