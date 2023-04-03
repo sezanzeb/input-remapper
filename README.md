@@ -3,8 +3,8 @@
 <h1 align="center">Input Remapper</h1>
 
 <p align="center">
-An easy to use tool to change the behaviour of your input devices.
-Featuring:
+An easy to use tool to change the behaviour of your input devices with
+the following features:
 </p>
  <table align="center" border="0">
   <td>
