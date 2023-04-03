@@ -13,12 +13,13 @@ devices:
 <li> Programmable macros
 </ul>
 </td>
+<td>
+<ul>
 <li> Supports `X11` and `Wayland`
 <li> Key/button combinations
 <li> Programmable macros
-<td>
-<ul>
 </ul>
+</td>
 </table>
 
 Supports `X11` and `Wayland`, key/button combinations, programmable macros,
