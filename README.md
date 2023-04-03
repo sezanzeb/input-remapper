@@ -4,6 +4,7 @@
 
 An easy to use, feature-rich tool to change the behaviour of your input
 devices.
+<p>
 Supports `X11`, `Wayland`, key/button combinations, programmable macros,
 joysticks, wheels, triggers, keyboards, mouse-movements and much
 more. Maps any input to any other input.
