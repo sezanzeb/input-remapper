@@ -8,7 +8,7 @@ devices:
 <table>
 <td>
 <ul>
-<li> Supports `X11` and `Wayland`
+<li> Supports <b>X11</b> and <b>Wayland</b>
 <li> Key/button combinations
 <li> Programmable macros
 </ul>
