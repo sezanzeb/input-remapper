@@ -1,7 +1,8 @@
 # Installation
 
-Below are installation instructions for certain distributions as well as
-<a href="#manual-installation">Manual installation</a> instructions.
+Below are installation instructions for certain distributions.  If your
+distribution is not included, use the <a
+href="#manual-installation">Manual installation</a> instructions.
 
 We welcome contributors to maintain missing distributions.
 
@@ -33,7 +34,7 @@ Or alternatively, use one of the following methods.
 
 1. Download the `.deb` file from the
 [release page](https://github.com/sezanzeb/input-remapper/releases)
-2. and install it manually:
+2. and install it manually replacing `XXX` with the current version:
 ```bash
 sudo apt install -f /path/to/input-remapper-XXX.deb
 ```
