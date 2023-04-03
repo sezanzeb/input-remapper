@@ -5,9 +5,9 @@ Below are installation instructions for certain distributions as well as
 
 We welcome contributors to maintain missing distributions.
 
-Please note that distributions may lag with the latest bug fixes.  To
-get the latest bug fixes, use the <a href="#manual-installation">Manual
-installation</a> method.
+Please note that the distribution package may lag with the latest bug
+fixes.  Use the <a href="#manual-installation">Manual installation</a>
+method to get the latest bug fixes.
 
 ## Manjaro/Arch
 
@@ -17,13 +17,8 @@ sudo systemctl restart input-remapper
 sudo systemctl enable input-remapper
 ```
 
-Please note that the above version may lag from the latest version.  See
-the <a href="#manual-installation">Manual installation</a> method to
-install the latest version.
-
 ## Ubuntu/Debian
-
-To get the latest version, use the following method:
+Get the latest version:
 
 ```bash
 sudo apt install git python3-setuptools gettext
@@ -32,20 +27,26 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install -f ./dist/input-remapper-2.0.0.deb
 ```
 
-The next two methods may result in the installed version not having the
-latest bug fixes.
+Or alternatively, use one of the following methods.
 
 ### Install using a .deb file
 
 1. Download the `.deb` file from the
 [release page](https://github.com/sezanzeb/input-remapper/releases)
-2. Manually install it
+2. and install it manually:
+```bash
+sudo apt install -f /path/to/input-remapper-XXX.deb
+```
 
 ### Distribution repository
 
 input-remapper is available on [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
-distributions.  Use your package manager to install the software.
+distributions.  Use your package manager to install the software:
+
+```bash
+sudo apt update && sudo apt install input-remapper
+```
 
 ## Manual installation
 
@@ -60,7 +61,8 @@ Ensure that the following dependencies are met:
 Python packages need to be installed globally for the service to be able
 to import them.  Do not use `--user`.
 
-`Conda` can cause problems due to changed python paths and versions.
+There are known issues (see #523) with `Conda`.  If you encounter
+`MonduleNotFoundError`, uninstall/disable `Conda`.
 
 ### Install method #1
 
@@ -77,14 +79,9 @@ sudo systemctl restart input-remapper
 Use this installation method if the above method is problematic:
 
 ```bash
-# Obtain the software:
-mkdir -p ~/src
-cd ~/src
 git clone https://github.com/sezanzeb/input-remapper.git
-
-# Install
-cd ~/src/input-remapper
-sudo python3 setup.py install
+cd input-remapper
+./scripts/setup.sh install
 ```
 
 # Migrating beta configs to version 2
