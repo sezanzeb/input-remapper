@@ -5,7 +5,7 @@
 An easy to use, feature-rich tool to change the behaviour of your input
 devices:
 
-<table cellspacing="0" cellpadding="0">
+<table style="border-collapse: collapse; border: none;">
 <td>
 <ul>
 <li> Supports <b>X11</b> and <b>Wayland</b>
