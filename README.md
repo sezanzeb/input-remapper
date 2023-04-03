@@ -6,25 +6,24 @@ An easy to use, feature-rich tool to change the behaviour of your input
 devices:
 
 <table style="border-collapse: collapse; border: none;">
-<td>
-<ul>
-<li> Supports <b>X11</b> and <b>Wayland</b>
-<li> Key/button combinations
-<li> Programmable macros
-<li> Wheels
-</ul>
-</td>
-<td>
-<ul>
-<li> Triggers
-<li> Keyboards
-<li> Mouse-movements
-<li> and much more ...
-</ul>
-</td>
+  <td>
+    <ul>
+      <li> Supports <b>X11</b> and <b>Wayland</b>
+      <li> Key/button combinations
+      <li> Programmable macros
+      <li> Wheels
+      <li> Triggers
+    </ul>
+  </td>
+  <td>
+    <ul>
+      <li> Keyboards
+      <li> Mouse-movements
+      <li> and much more ...
+      <li> Maps any input to any other input.
+    </ul>
+    </td>
 </table>
-
-Maps any input to any other input.
 
 <p align="center">
 <a href="readme/installation.md">Installation</a></br> 
