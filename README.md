@@ -9,19 +9,20 @@ devices:
  <table align="center" border="0">
   <td>
     <ul>
-      <li> Supports <b>X11</b> and <b>Wayland</b>
+      <li> Supports <b>X11</b>
+      <li> Supports <b>Wayland</b>
       <li> Key/button combinations
       <li> Programmable macros
       <li> Wheels
-      <li> Triggers
     </ul>
   </td>
   <td>
     <ul>
+      <li> Triggers
       <li> Keyboards
       <li> Mouse-movements
-      <li> and much more ...
       <li> Maps any input to any other input.
+      <li> and much more ...
     </ul>
     </td>
 </table>
