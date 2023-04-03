@@ -7,7 +7,7 @@ An easy to use, feature-rich tool to change the behaviour of your input
 devices:
 </p>
 <p align="center">
- <table style="border-collapse: collapse; border: none;">
+ <table align="center" style="border-collapse: collapse; border: none;">
   <td>
     <ul>
       <li> Supports <b>X11</b> and <b>Wayland</b>
