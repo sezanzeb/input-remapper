@@ -34,9 +34,9 @@ Or alternatively, use one of the following methods.
 
 1. Download the `.deb` file from the
 [release page](https://github.com/sezanzeb/input-remapper/releases)
-2. and install it manually replacing `XXX` with the current version:
+2. and install it manually:
 ```bash
-sudo apt install -f /path/to/input-remapper-XXX.deb
+sudo apt install -f /path/to/input-remapper-2.0.0.deb
 ```
 
 ### Distribution repository
