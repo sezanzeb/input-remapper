@@ -33,6 +33,7 @@ Examples for particular devices and/or use cases:
   held down long enough
 - `key_up(a).wait(1000).key_down(a)` keeps a pressed for one second
 - `hold_keys(Control_L, a)` holds down those two keys
+- `key(BTN_LEFT).wait(100).key(BTN_LEFT)` a double-click
 
 ## Double Tap
 
