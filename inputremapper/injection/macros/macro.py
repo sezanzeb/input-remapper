@@ -676,7 +676,10 @@ class Macro:
 
             resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
             await asyncio.wait(
-                [asyncio.Task(listener_done.wait()), asyncio.Task(self._trigger_release_event.wait())],
+                [
+                    asyncio.Task(listener_done.wait()),
+                    asyncio.Task(self._trigger_release_event.wait()),
+                ],
                 timeout=resolved_timeout / 1000 if resolved_timeout else None,
                 return_when=asyncio.FIRST_COMPLETED,
             )
