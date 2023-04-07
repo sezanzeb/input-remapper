@@ -676,7 +676,10 @@ class Macro:
 
             resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
             await asyncio.wait(
-                [listener_done.wait(), self._trigger_release_event.wait()],
+                [
+                    asyncio.Task(listener_done.wait()),
+                    asyncio.Task(self._trigger_release_event.wait()),
+                ],
                 timeout=resolved_timeout / 1000 if resolved_timeout else None,
                 return_when=asyncio.FIRST_COMPLETED,
             )
@@ -684,9 +687,11 @@ class Macro:
             self.context.listeners.remove(listener)
 
             if not listener_done.is_set() and self._trigger_release_event.is_set():
-                await then.run(handler)  # was trigger release
+                if then:
+                    await then.run(handler)  # was trigger release
             else:
-                await else_.run(handler)
+                if else_:
+                    await else_.run(handler)
 
         self.tasks.append(task)
 
