@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-03-27 13:08+0200\n"
+"POT-Creation-Date: 2023-05-16 08:30-0300\n"
 "PO-Revision-Date: 2023-02-03 09:09+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -18,152 +18,291 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Generator: Poedit 3.2.2\n"
 
-#: inputremapper/gui/editor/editor.py:608
-#, python-format
-msgid "\"%s\" already mapped to \"%s\""
-msgstr "\\\"%s\\\" déjà mappé sur \\\"%s\\\""
+#: inputremapper/gui/controller.py:222
+msgid ""
+"\n"
+"If you mean to create a key or macro mapping go to the advanced input "
+"configuration and set a \"Trigger Threshold\" for "
+msgstr ""
 
-#: inputremapper/gui/user_interface.py:609
+#: inputremapper/gui/controller.py:239
+msgid ""
+"\n"
+"If you mean to create an analog axis mapping go to the advanced input "
+"configuration and set an input to \"Use as Analog\"."
+msgstr ""
+
+#: inputremapper/gui/controller.py:779
+msgid ""
+"\n"
+"The input \"{}\" will be used as analog input."
+msgstr ""
+
+#: inputremapper/gui/controller.py:763
+msgid ""
+"\n"
+"This will remove \"{}\" from the text input!"
+msgstr ""
+
+#: inputremapper/gui/controller.py:784
+msgid ""
+"\n"
+"You need to record an analog input."
+msgstr ""
+
+#: data/input-remapper.glade:544
+msgid " (recording ...)"
+msgstr ""
+
+#: inputremapper/gui/controller.py:174
+#, fuzzy, python-format
+msgid "%d Mapping errors at \"%s\", hover for info"
+msgstr "Erreur de syntaxe à %s, survoller pour plus d'informations"
+
+#: inputremapper/gui/controller.py:661
 msgid ", CTRL + DEL to stop"
 msgstr ", CTRL + SUPPR pour arrêter"
 
-#: data/input-remapper.glade:1070
+#: data/input-remapper.glade:1421
 msgid "About"
 msgstr "À propos"
 
-#: inputremapper/gui/user_interface.py:606
+#: data/input-remapper.glade:422
+msgid ""
+"Activate this to load the preset next time the device connects, or when the "
+"user logs in"
+msgstr ""
+
+#: data/input-remapper.glade:575
+msgid "Add"
+msgstr ""
+
+#: inputremapper/gui/components/editor.py:554
+msgid "Add a mapping first"
+msgstr ""
+
+#: data/input-remapper.glade:606 data/input-remapper.glade:1618
+msgid "Advanced"
+msgstr ""
+
+#: data/input-remapper.glade:773 data/input-remapper.glade:1118
+msgid "Analog Axis"
+msgstr ""
+
+#: inputremapper/gui/controller.py:657
 #, python-format
 msgid "Applied preset %s"
 msgstr "Préréglage %s appliqué"
 
-#: inputremapper/gui/user_interface.py:427
-msgid "Applied the system default"
-msgstr "Réglage système restauré"
-
-#: data/input-remapper.glade:307
+#: data/input-remapper.glade:318
 msgid "Apply"
 msgstr "Appliquer"
 
-#: inputremapper/gui/user_interface.py:251
-#, python-format
-msgid "Are you sure to delete preset %s?"
+#: inputremapper/gui/controller.py:522
+#, fuzzy, python-format
+msgid "Are you sure you want to delete the preset \"%s\"?"
 msgstr "Êtes-vous sûr de vouloir supprimer le préréglage %s ?"
 
-#: inputremapper/gui/editor/editor.py:545
-msgid "Are you sure to delete this mapping?"
+#: inputremapper/gui/controller.py:567
+#, fuzzy
+msgid "Are you sure you want to delete this mapping?"
 msgstr "Êtes-vous sûr de vouloir supprimer ce mapping ?"
 
-#: data/input-remapper.glade:504
+#: data/input-remapper.glade:410
 msgid "Autoload"
 msgstr "Charger automatiquement"
 
-#: data/input-remapper.glade:583 data/input-remapper.glade:627
-msgid "Buttons"
-msgstr "Boutons"
+#: data/input-remapper.glade:854
+msgid "Available output axes are affected by the Target setting."
+msgstr ""
 
-#: data/input-remapper.glade:65
-msgid "Cancel"
-msgstr "Annuler"
-
-#: inputremapper/gui/user_interface.py:524
+#: inputremapper/gui/controller.py:621
 msgid "Cannot apply empty preset file"
 msgstr "Impossible d'appliquer un fichier de préréglage vide"
 
-#: data/input-remapper.glade:860 inputremapper/gui/editor/editor.py:253
-msgid "Change Key"
-msgstr "Changer la touche"
+#: inputremapper/gui/components/editor.py:238
+msgid "Change Mapping Name"
+msgstr ""
 
-#: data/input-remapper.glade:326
+#: data/input-remapper.glade:352
 msgid "Copy"
 msgstr "Copier"
 
-#: data/input-remapper.glade:350
+#: data/input-remapper.glade:189
 msgid "Create a new preset"
 msgstr "Créer un nouveau préréglage"
 
-#: data/input-remapper.glade:365 data/input-remapper.glade:889
+#: data/input-remapper.glade:925
+msgid "Deadzone"
+msgstr ""
+
+#: data/input-remapper.glade:368 data/input-remapper.glade:620
 msgid "Delete"
 msgstr "Supprimer"
 
-#: data/input-remapper.glade:894
+#: data/input-remapper.glade:624
 msgid "Delete this entry"
 msgstr "Supprimer ce mapping"
 
-#: data/input-remapper.glade:370
+#: data/input-remapper.glade:372
 msgid "Delete this preset"
 msgstr "Supprimer ce préréglage"
 
-#: data/input-remapper.glade:193
-msgid "Device"
+#: data/input-remapper.glade:162
+#, fuzzy
+msgid "Device Name"
 msgstr "Périphérique"
 
-#: data/input-remapper.glade:331
+#: data/input-remapper.glade:148
+#, fuzzy
+msgid "Devices"
+msgstr "Périphérique"
+
+#: data/input-remapper.glade:356
 msgid "Duplicate this preset"
 msgstr "Dupliquer ce préréglage"
 
-#: inputremapper/gui/user_interface.py:618
+#: data/input-remapper.glade:1208
+msgid "Editor"
+msgstr ""
+
+#: inputremapper/configs/mapping.py:77
+msgid "Empty Mapping"
+msgstr ""
+
+#: inputremapper/gui/components/editor.py:404
+msgid "Enter your output here"
+msgstr ""
+
+#: data/input-remapper.glade:1762
+msgid "Event Specific"
+msgstr ""
+
+#: data/input-remapper.glade:1009
+msgid "Expo"
+msgstr ""
+
+#: inputremapper/gui/controller.py:648 inputremapper/gui/controller.py:673
 #, python-format
 msgid "Failed to apply preset %s"
 msgstr "Échec de l'application du préréglage %s"
 
-#: data/input-remapper.glade:239
+#: data/input-remapper.glade:967
+msgid "Gain"
+msgstr ""
+
+#: data/input-remapper.glade:1736
+msgid "General"
+msgstr ""
+
+#: data/input-remapper.glade:1312
 msgid "Help"
 msgstr "Aide"
 
-#: data/input-remapper.glade:149
+#: data/input-remapper.glade:510
+msgid "Input"
+msgstr ""
+
+#: data/input-remapper.glade:1296
 msgid "Input Remapper"
 msgstr "Input Remapper"
 
-#: data/input-remapper.glade:584 data/input-remapper.glade:628
-msgid "Joystick"
-msgstr "Joystick"
+#: data/input-remapper.glade:1087
+msgid "Input cutoff"
+msgstr ""
 
-#: data/input-remapper.glade:566
-msgid "Left joystick"
-msgstr "Joystick gauche"
+#: data/input-remapper.glade:760 data/input-remapper.glade:1180
+msgid "Key or Macro"
+msgstr ""
 
-#: data/input-remapper.glade:581 data/input-remapper.glade:625
-msgid "Mouse"
-msgstr "Souris"
+#: data/input-remapper.glade:1801
+msgid "Map this input to an Analog Axis"
+msgstr ""
 
-#: data/input-remapper.glade:654
-msgid "Mouse speed"
-msgstr "Vitesse de la souris"
-
-#: data/input-remapper.glade:345
+#: data/input-remapper.glade:185
 msgid "New"
 msgstr "Nouveau"
 
-#: inputremapper/gui/user_interface.py:689
-#: inputremapper/gui/user_interface.py:761
+#: inputremapper/gui/components/editor.py:980
+msgid "No Axis"
+msgstr ""
+
+#: data/input-remapper.glade:721
+msgid "Output"
+msgstr ""
+
+#: data/input-remapper.glade:862
+msgid "Output axis"
+msgstr ""
+
+#: inputremapper/gui/controller.py:508 inputremapper/gui/controller.py:582
 msgid "Permission denied!"
 msgstr "Autorisation refusée !"
 
-#: data/input-remapper.glade:399
-msgid "Preset"
+#: data/input-remapper.glade:287
+#, fuzzy
+msgid "Preset Name"
 msgstr "Préréglage"
 
-#: inputremapper/gui/editor/editor.py:249
-msgid "Press Key"
-msgstr "Appuyer sur une touche"
+#: data/input-remapper.glade:272
+#, fuzzy
+msgid "Presets"
+msgstr "Préréglage"
 
-#: data/input-remapper.glade:864
+#: data/input-remapper.glade:590
+msgid "Record"
+msgstr ""
+
+#: data/input-remapper.glade:594
 msgid "Record a button of your device that should be remapped"
 msgstr "Enregistrer un bouton de votre périphérique qui devrait être remappé"
 
-#: data/input-remapper.glade:438
+#: inputremapper/gui/components/editor.py:563
+msgid "Record input first"
+msgstr ""
+
+#: inputremapper/gui/components/editor.py:65
+#, fuzzy
+msgid "Record the input first"
+msgstr "Set the key first"
+
+#: data/input-remapper.glade:1708
+msgid ""
+"Release all inputs which are part of the combination before the mapping is "
+"injected"
+msgstr ""
+
+#: data/input-remapper.glade:1711
+msgid "Release input"
+msgstr ""
+
+#: data/input-remapper.glade:1683
+msgid "Release timeout"
+msgstr ""
+
+#: inputremapper/gui/controller.py:208
+msgid "Remove the Analog Output Axis when specifying a macro or key output"
+msgstr ""
+
+#: inputremapper/gui/controller.py:199
+msgid ""
+"Remove the macro or key from the macro input field when specifying an analog "
+"output"
+msgstr ""
+
+#: data/input-remapper.glade:1776
+msgid "Remove this input"
+msgstr ""
+
+#: data/input-remapper.glade:394
 msgid "Rename"
 msgstr "Renommer"
 
-#: data/input-remapper.glade:610
-msgid "Right joystick"
-msgstr "Joystick droite"
-
-#: data/input-remapper.glade:469
+#: data/input-remapper.glade:452
 msgid "Save the entered name"
 msgstr "Enregistrer le nom saisi"
 
-#: data/input-remapper.glade:1098
+#: data/input-remapper.glade:1449
 msgid ""
 "See <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/"
 "usage.md\">usage.md</a> online on github for comprehensive information.\n"
@@ -192,23 +331,11 @@ msgstr ""
 "HEAD/readme/macros.md\">macros.md</a> et <a href=\"https://github.com/"
 "sezanzeb/input-remapper/blob/HEAD/readme/examples.md\">examples.md</a>"
 
-#: inputremapper/gui/editor/editor.py:108
-msgid "Set the key first"
-msgstr "Set the key first"
-
-#: data/input-remapper.glade:221
-msgid ""
-"Shortcut: ctrl + del\n"
-"Gives your keys back their original function"
-msgstr ""
-"Raccourci : ctrl + del\n"
-"Réinitialise vos touches à leur fonctionnalité d'origine"
-
-#: data/input-remapper.glade:1239
+#: data/input-remapper.glade:1590
 msgid "Shortcuts"
 msgstr "Raccourcis"
 
-#: data/input-remapper.glade:1141
+#: data/input-remapper.glade:1492
 msgid ""
 "Shortcuts only work while keys are not being recorded and the gui is in "
 "focus."
@@ -216,61 +343,94 @@ msgstr ""
 "Les raccourcis fonctionnent uniquement lorsque l'enregistrement des touches "
 "n'est pas en cours et l'interface graphique a le focus."
 
-#: data/input-remapper.glade:312
+#: data/input-remapper.glade:322
 msgid "Start injecting. Don't hold down any keys while the injection starts"
 msgstr ""
 "Démarrer l'injection. Ne maintenir aucune touche pendant que l'injection "
 "démarre"
 
-#: inputremapper/gui/user_interface.py:567
+#: inputremapper/gui/controller.py:643
 msgid "Starting injection..."
 msgstr "Injection en cours..."
 
-#: data/input-remapper.glade:217
-msgid "Stop Injection"
-msgstr "Arrêter l'injection"
+#: data/input-remapper.glade:201 data/input-remapper.glade:334
+msgid "Stop"
+msgstr ""
 
-#: inputremapper/gui/user_interface.py:481
-#, python-format
-msgid "Syntax error at %s, hover for info"
-msgstr "Erreur de syntaxe à %s, survoller pour plus d'informations"
+#: inputremapper/gui/controller.py:710
+#, fuzzy
+msgid "Stopped the injection"
+msgstr "arrête l'injection"
 
-#: inputremapper/gui/user_interface.py:226
-msgid "The helper did not start"
-msgstr "Le helper n'a pas démarré"
+#: data/input-remapper.glade:205 data/input-remapper.glade:338
+msgid ""
+"Stops the Injection for the selected device,\n"
+"gives your keys their original function back\n"
+"Shortcut: ctrl + del"
+msgstr ""
 
-#: data/input-remapper.glade:879
+#: data/input-remapper.glade:812
+msgid "Target"
+msgstr ""
+
+#: data/input-remapper.glade:1078
+msgid ""
+"The Speed at which the Input is considered at maximum.\n"
+"Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs "
+"(e.g. gamepad)"
+msgstr ""
+
+#: inputremapper/gui/controller.py:234
+msgid ""
+"The input specifies a key or macro input, but no macro or key is programmed."
+msgstr ""
+
+#: inputremapper/gui/controller.py:213
+msgid "The input specifies an analog axis, but no output axis is selected."
+msgstr ""
+
+#: data/input-remapper.glade:803
 msgid "The type of device this mapping is emulating."
 msgstr "Le type de périphérique émulé par ce mapping."
 
-#: data/input-remapper.glade:499
-msgid "To automatically apply the preset after your login or when it connects."
+#: data/input-remapper.glade:1831
+msgid "Trigger threshold"
 msgstr ""
-"Pour appliquer automatiquement le préréglage après votre login ou à la "
-"connexion."
 
-#: inputremapper/gui/user_interface.py:779
-#, python-format
-msgid "Unknown mapping %s"
-msgstr "Mapping inconnu %s"
+#: data/input-remapper.glade:743
+msgid "Type"
+msgstr ""
 
-#: data/input-remapper.glade:1122
+#: data/input-remapper.glade:1473
 msgid "Usage"
 msgstr "Utilisation"
 
-#: inputremapper/gui/editor/editor.py:519
-msgid "Use \"Stop Injection\" to stop before editing"
+#: inputremapper/gui/controller.py:593
+#, fuzzy
+msgid "Use \"Stop\" to stop before editing"
 msgstr "Utiliser \"Arrêter l'injection\" pour arrêter avant l'édition"
 
-#: data/input-remapper.glade:1015
+#: data/input-remapper.glade:1805
+msgid "Use as analog"
+msgstr ""
+
+#: data/input-remapper.glade:1366
 msgid "Version unknown"
 msgstr "Version inconnue"
 
-#: data/input-remapper.glade:582 data/input-remapper.glade:626
-msgid "Wheel"
-msgstr "Roulette"
+#: data/input-remapper.glade:1134
+msgid "What should be written. For example KEY_A"
+msgstr ""
 
-#: data/input-remapper.glade:1032
+#: inputremapper/gui/controller.py:761
+msgid "You are about to change the mapping to analog."
+msgstr ""
+
+#: data/input-remapper.glade:1161
+msgid "You can copy this text into the output"
+msgstr ""
+
+#: data/input-remapper.glade:1383
 msgid ""
 "You can find more information and report bugs at\n"
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
@@ -280,57 +440,59 @@ msgstr ""
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
 "sezanzeb/input-remapper</a>"
 
-#: inputremapper/gui/user_interface.py:526
-msgid "You need to add keys and save first"
+#: inputremapper/gui/controller.py:623
+#, fuzzy
+msgid "You need to add mappings first"
 msgstr "Vous devez d'abord ajouter des touches et sauvegarder"
 
-#: inputremapper/gui/editor/editor.py:620
-msgid "Your system might reinterpret combinations "
-msgstr "Votre système peut réinterpréter les combinaisons "
+#: inputremapper/gui/controller.py:358
+#, fuzzy
+msgid ""
+"Your system might reinterpret combinations with those after they are "
+"injected, and by doing so break them."
+msgstr "avec celles-ci après leur injection, et ce faisant "
 
-#: inputremapper/gui/editor/editor.py:622
-msgid "break them."
-msgstr "les casser."
-
-#: data/input-remapper.glade:1173
+#: data/input-remapper.glade:1524
 msgid "closes the application"
 msgstr "ferme l'application"
 
-#: data/input-remapper.glade:1161
+#: data/input-remapper.glade:1512
 msgid "ctrl + del"
 msgstr "ctrl + del"
 
-#: data/input-remapper.glade:1185
+#: data/input-remapper.glade:1536
 msgid "ctrl + q"
 msgstr "ctrl + q"
 
-#: data/input-remapper.glade:1197
+#: data/input-remapper.glade:1548
 msgid "ctrl + r"
 msgstr "ctrl + r"
 
-#: inputremapper/gui/editor/editor.py:619
+#: inputremapper/gui/controller.py:356
 msgid "ctrl, alt and shift may not combine properly"
 msgstr "ctrl, alt et shift peuvent ne pas se combiner correctement"
 
-#: inputremapper/gui/editor/editor.py:78 inputremapper/gui/editor/editor.py:394
-msgid "new entry"
-msgstr "nouveau mapping"
+#: inputremapper/gui/data_manager.py:56
+#, fuzzy
+msgid "new preset"
+msgstr "Créer un nouveau préréglage"
 
-#: data/input-remapper.glade:1209
+#: data/input-remapper.glade:531 inputremapper/gui/user_interface.py:385
+msgid "no input configured"
+msgstr ""
+
+#: data/input-remapper.glade:1560
 msgid "refreshes the device list"
 msgstr "rafraîchit la liste des périphériques"
 
-#: data/input-remapper.glade:1221
+#: data/input-remapper.glade:1572
 msgid "stops the injection"
 msgstr "arrête l'injection"
 
-#: inputremapper/gui/editor/editor.py:621
-msgid "with those after they are injected, and by doing so "
-msgstr "avec celles-ci après leur injection, et ce faisant "
-
-#: data/input-remapper.glade:1052
+#: data/input-remapper.glade:1403
+#, fuzzy
 msgid ""
-"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"© 2023 Sezanzeb proxima@sezanzeb.de\n"
 "This program comes with absolutely no warranty.\n"
 "See the <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
 "Public License, version 3 or later</a> for details."
@@ -339,3 +501,72 @@ msgstr ""
 "Ce programme est fourni sans aucune garantie.\n"
 "Voir la <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">Licence GNU "
 "General Public, version 3 ou ultérieure</a> pour plus de détails."
+
+#, python-format
+#~ msgid "\"%s\" already mapped to \"%s\""
+#~ msgstr "\\\"%s\\\" déjà mappé sur \\\"%s\\\""
+
+#~ msgid "Applied the system default"
+#~ msgstr "Réglage système restauré"
+
+#~ msgid "Buttons"
+#~ msgstr "Boutons"
+
+#~ msgid "Cancel"
+#~ msgstr "Annuler"
+
+#~ msgid "Change Key"
+#~ msgstr "Changer la touche"
+
+#~ msgid "Joystick"
+#~ msgstr "Joystick"
+
+#~ msgid "Left joystick"
+#~ msgstr "Joystick gauche"
+
+#~ msgid "Mouse"
+#~ msgstr "Souris"
+
+#~ msgid "Mouse speed"
+#~ msgstr "Vitesse de la souris"
+
+#~ msgid "Press Key"
+#~ msgstr "Appuyer sur une touche"
+
+#~ msgid "Right joystick"
+#~ msgstr "Joystick droite"
+
+#~ msgid ""
+#~ "Shortcut: ctrl + del\n"
+#~ "Gives your keys back their original function"
+#~ msgstr ""
+#~ "Raccourci : ctrl + del\n"
+#~ "Réinitialise vos touches à leur fonctionnalité d'origine"
+
+#~ msgid "Stop Injection"
+#~ msgstr "Arrêter l'injection"
+
+#~ msgid "The helper did not start"
+#~ msgstr "Le helper n'a pas démarré"
+
+#~ msgid ""
+#~ "To automatically apply the preset after your login or when it connects."
+#~ msgstr ""
+#~ "Pour appliquer automatiquement le préréglage après votre login ou à la "
+#~ "connexion."
+
+#, python-format
+#~ msgid "Unknown mapping %s"
+#~ msgstr "Mapping inconnu %s"
+
+#~ msgid "Wheel"
+#~ msgstr "Roulette"
+
+#~ msgid "Your system might reinterpret combinations "
+#~ msgstr "Votre système peut réinterpréter les combinaisons "
+
+#~ msgid "break them."
+#~ msgstr "les casser."
+
+#~ msgid "new entry"
+#~ msgstr "nouveau mapping"

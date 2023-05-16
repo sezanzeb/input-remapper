@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-07-03 22:39+0200\n"
+"POT-Creation-Date: 2023-05-16 08:30-0300\n"
 "PO-Revision-Date: 2021-07-18 19:23+0200\n"
 "Last-Translator: ALbano Battistella <albano_battistella@hotmail.com>\n"
 "Language-Team: ITALIAN <LL@li.org>\n"
@@ -16,188 +16,405 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: data/input-remapper.glade:1128
-msgid "."
-msgstr "."
-
-#: data/input-remapper.glade:1348
-msgid "1, 2"
-msgstr "1, 2"
-
-#: data/input-remapper.glade:926
+#: inputremapper/gui/controller.py:222
 msgid ""
-"A \"key + key + ... + key\" syntax can be used to trigger key combinations. "
-"For example \"control_l + a\".\n"
 "\n"
-"\"disable\" disables a key."
+"If you mean to create a key or macro mapping go to the advanced input "
+"configuration and set a \"Trigger Threshold\" for "
 msgstr ""
-"Sintassi\"tasti + tasti + ... + tasti\"puoi usare per entrare nella combinazioni di tasti. "
-"Ad esempio \"control_l + a\".\n"
-"\n"
-"\"disabilita\"disabilitato la mappatura dei tasti."
 
-#: data/input-remapper.glade:898
+#: inputremapper/gui/controller.py:239
+msgid ""
+"\n"
+"If you mean to create an analog axis mapping go to the advanced input "
+"configuration and set an input to \"Use as Analog\"."
+msgstr ""
+
+#: inputremapper/gui/controller.py:779
+msgid ""
+"\n"
+"The input \"{}\" will be used as analog input."
+msgstr ""
+
+#: inputremapper/gui/controller.py:763
+msgid ""
+"\n"
+"This will remove \"{}\" from the text input!"
+msgstr ""
+
+#: inputremapper/gui/controller.py:784
+msgid ""
+"\n"
+"You need to record an analog input."
+msgstr ""
+
+#: data/input-remapper.glade:544
+msgid " (recording ...)"
+msgstr ""
+
+#: inputremapper/gui/controller.py:174
+#, python-format
+msgid "%d Mapping errors at \"%s\", hover for info"
+msgstr ""
+
+#: inputremapper/gui/controller.py:661
+msgid ", CTRL + DEL to stop"
+msgstr ""
+
+#: data/input-remapper.glade:1421
 msgid "About"
 msgstr "Informazioni"
 
-#: data/input-remapper.glade:209
+#: data/input-remapper.glade:422
+msgid ""
+"Activate this to load the preset next time the device connects, or when the "
+"user logs in"
+msgstr ""
+
+#: data/input-remapper.glade:575
+msgid "Add"
+msgstr ""
+
+#: inputremapper/gui/components/editor.py:554
+msgid "Add a mapping first"
+msgstr ""
+
+#: data/input-remapper.glade:606 data/input-remapper.glade:1618
+msgid "Advanced"
+msgstr ""
+
+#: data/input-remapper.glade:773 data/input-remapper.glade:1118
+msgid "Analog Axis"
+msgstr ""
+
+#: inputremapper/gui/controller.py:657
+#, python-format
+msgid "Applied preset %s"
+msgstr ""
+
+#: data/input-remapper.glade:318
 msgid "Apply"
 msgstr "Applica"
 
-#: data/input-remapper.glade:403
+#: inputremapper/gui/controller.py:522
+#, python-format
+msgid "Are you sure you want to delete the preset \"%s\"?"
+msgstr ""
+
+#: inputremapper/gui/controller.py:567
+msgid "Are you sure you want to delete this mapping?"
+msgstr ""
+
+#: data/input-remapper.glade:410
 msgid "Autoload"
 msgstr "Caricamento automatico"
 
-#: data/input-remapper.glade:1420
-msgid ""
-"Between calls to k, key down and key up events, macros will sleep for 10ms "
-"by default, which can be configured in ~/.config/input-remapper/config"
+#: data/input-remapper.glade:854
+msgid "Available output axes are affected by the Target setting."
 msgstr ""
-"Tra chiamate a k, battitura ed eventi rilasciati,le macro dormiranno per 10 ms "
-"per impostazione predefinita, che può essere configurato in ~/.config/input-remapper/config"
 
-#: data/input-remapper.glade:482 data/input-remapper.glade:526
-msgid "Buttons"
-msgstr "Pulsanti"
-
-#: data/input-remapper.glade:1286
-msgid "CTRL + a, CTRL + x"
-msgstr "CTRL + a, CTRL + x"
-
-#: data/input-remapper.glade:706
-msgid ""
-"Click on a cell below and hit a key on your device. Click the \"Restore "
-"Defaults\" button beforehand."
+#: inputremapper/gui/controller.py:621
+msgid "Cannot apply empty preset file"
 msgstr ""
-"Fai clic su una cella in basso e premi un tasto sul dispositivo. Fai clic su \"Ripristina "
-"Pulsante \"Predefiniti\" in anticipo."
 
-#: data/input-remapper.glade:228
+#: inputremapper/gui/components/editor.py:238
+msgid "Change Mapping Name"
+msgstr ""
+
+#: data/input-remapper.glade:352
 msgid "Copy"
 msgstr "Copia"
 
-#: data/input-remapper.glade:265
+#: data/input-remapper.glade:189
+msgid "Create a new preset"
+msgstr ""
+
+#: data/input-remapper.glade:925
+msgid "Deadzone"
+msgstr ""
+
+#: data/input-remapper.glade:368 data/input-remapper.glade:620
 msgid "Delete"
 msgstr "Cancella"
 
-#: data/input-remapper.glade:96
-msgid "Device"
+#: data/input-remapper.glade:624
+msgid "Delete this entry"
+msgstr ""
+
+#: data/input-remapper.glade:372
+msgid "Delete this preset"
+msgstr ""
+
+#: data/input-remapper.glade:162
+#, fuzzy
+msgid "Device Name"
 msgstr "Dispositivo"
 
-#: bin/input-remapper-gtk:58
-msgid "Displays additional debug information"
-msgstr "Visualizza ulteriori informazioni di debug"
+#: data/input-remapper.glade:148
+#, fuzzy
+msgid "Devices"
+msgstr "Dispositivo"
 
-#: data/input-remapper.glade:214
-msgid "Don't hold down any keys while the injection starts."
-msgstr "Non tenere premuto alcun tasto durante l'avvio dell'iniezione."
+#: data/input-remapper.glade:356
+msgid "Duplicate this preset"
+msgstr ""
 
-#: data/input-remapper.glade:1213
-msgid "Examples"
-msgstr "Esempi"
+#: data/input-remapper.glade:1208
+msgid "Editor"
+msgstr ""
 
-#: data/input-remapper.glade:1604
-msgid "Go Back"
-msgstr "Indietro"
+#: inputremapper/configs/mapping.py:77
+#, fuzzy
+msgid "Empty Mapping"
+msgstr "Mappatura"
 
-#: data/input-remapper.glade:483 data/input-remapper.glade:527
-msgid "Joystick"
-msgstr "Joystick"
+#: inputremapper/gui/components/editor.py:404
+msgid "Enter your output here"
+msgstr ""
 
-#: data/input-remapper.glade:709
-msgid "Key"
-msgstr "Tasto"
+#: data/input-remapper.glade:1762
+msgid "Event Specific"
+msgstr ""
 
-#: data/input-remapper.glade:54 data/input-remapper.glade:1583
-#: data/input-remapper.glade:1695
+#: data/input-remapper.glade:1009
+msgid "Expo"
+msgstr ""
+
+#: inputremapper/gui/controller.py:648 inputremapper/gui/controller.py:673
+#, python-format
+msgid "Failed to apply preset %s"
+msgstr ""
+
+#: data/input-remapper.glade:967
+msgid "Gain"
+msgstr ""
+
+#: data/input-remapper.glade:1736
+msgid "General"
+msgstr ""
+
+#: data/input-remapper.glade:1312
+msgid "Help"
+msgstr ""
+
+#: data/input-remapper.glade:510
+msgid "Input"
+msgstr ""
+
+#: data/input-remapper.glade:1296
 msgid "Input Remapper"
 msgstr "Input Remapper"
 
-#: data/input-remapper.glade:465
-msgid "Left joystick"
-msgstr "Joystick sinistro"
+#: data/input-remapper.glade:1087
+msgid "Input cutoff"
+msgstr ""
 
-#: data/input-remapper.glade:948
-msgid "Macros"
-msgstr "Macro"
+#: data/input-remapper.glade:760 data/input-remapper.glade:1180
+msgid "Key or Macro"
+msgstr ""
 
-#: data/input-remapper.glade:964
-msgid "Macros allow multiple characters to be written with a single key-press."
-msgstr "Le macro consentono di scrivere più caratteri premendo un solo tasto."
+#: data/input-remapper.glade:1801
+msgid "Map this input to an Analog Axis"
+msgstr ""
 
-#: data/input-remapper.glade:723
-msgid "Mapping"
-msgstr "Mappatura"
-
-#: data/input-remapper.glade:480 data/input-remapper.glade:524
-msgid "Mouse"
-msgstr "Mouse"
-
-#: data/input-remapper.glade:553
-msgid "Mouse speed"
-msgstr "Velocità mouse"
-
-#: data/input-remapper.glade:246
+#: data/input-remapper.glade:185
 msgid "New"
 msgstr "Nuovo"
 
-#: data/input-remapper.glade:298
-msgid "Preset"
+#: inputremapper/gui/components/editor.py:980
+msgid "No Axis"
+msgstr ""
+
+#: data/input-remapper.glade:721
+msgid "Output"
+msgstr ""
+
+#: data/input-remapper.glade:862
+msgid "Output axis"
+msgstr ""
+
+#: inputremapper/gui/controller.py:508 inputremapper/gui/controller.py:582
+msgid "Permission denied!"
+msgstr ""
+
+#: data/input-remapper.glade:287
+#, fuzzy
+msgid "Preset Name"
 msgstr "Preimpostato"
 
-#: data/input-remapper.glade:337
+#: data/input-remapper.glade:272
+#, fuzzy
+msgid "Presets"
+msgstr "Preimpostato"
+
+#: data/input-remapper.glade:590
+msgid "Record"
+msgstr ""
+
+#: data/input-remapper.glade:594
+msgid "Record a button of your device that should be remapped"
+msgstr ""
+
+#: inputremapper/gui/components/editor.py:563
+msgid "Record input first"
+msgstr ""
+
+#: inputremapper/gui/components/editor.py:65
+msgid "Record the input first"
+msgstr ""
+
+#: data/input-remapper.glade:1708
+msgid ""
+"Release all inputs which are part of the combination before the mapping is "
+"injected"
+msgstr ""
+
+#: data/input-remapper.glade:1711
+msgid "Release input"
+msgstr ""
+
+#: data/input-remapper.glade:1683
+msgid "Release timeout"
+msgstr ""
+
+#: inputremapper/gui/controller.py:208
+msgid "Remove the Analog Output Axis when specifying a macro or key output"
+msgstr ""
+
+#: inputremapper/gui/controller.py:199
+msgid ""
+"Remove the macro or key from the macro input field when specifying an analog "
+"output"
+msgstr ""
+
+#: data/input-remapper.glade:1776
+msgid "Remove this input"
+msgstr ""
+
+#: data/input-remapper.glade:394
 msgid "Rename"
 msgstr "Rinomina"
 
-#: data/input-remapper.glade:120
-msgid "Stop"
-msgstr "Ripristina impostazioni predefinite"
-
-#: data/input-remapper.glade:509
-msgid "Right joystick"
-msgstr "Joystick destro"
-
-#: data/input-remapper.glade:368
+#: data/input-remapper.glade:452
 msgid "Save the entered name"
 msgstr "Salva il nome inserito"
 
-#: data/input-remapper.glade:124
+#: data/input-remapper.glade:1449
 msgid ""
-"Shortcut: ctrl + del\n"
-"To give your keys back their original mapping."
+"See <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/"
+"usage.md\">usage.md</a> online on github for comprehensive information.\n"
+"\n"
+"A \"key + key + ... + key\" syntax can be used to trigger key combinations. "
+"For example \"Control_L + a\".\n"
+"\n"
+"Writing \"disable\" as a mapping disables a key.\n"
+"\n"
+"Macros allow multiple characters to be written with a single key-press. "
+"Information about programming them is available online on github. See <a "
+"href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/macros."
+"md\">macros.md</a> and <a href=\"https://github.com/sezanzeb/input-remapper/"
+"blob/HEAD/readme/examples.md\">examples.md</a>"
 msgstr ""
-"Scorciatoia: ctrl + del\n"
-"Per restituire alle tue chiavi la loro mappatura originale."
 
-#: data/input-remapper.glade:1556
+#: data/input-remapper.glade:1590
 msgid "Shortcuts"
 msgstr "Scorciatoie"
 
-#: data/input-remapper.glade:1458
+#: data/input-remapper.glade:1492
 msgid ""
 "Shortcuts only work while keys are not being recorded and the gui is in "
 "focus."
 msgstr ""
-"Le scorciatoie funzionano solo mentre i tasti non vengono registrati e la GUI è in "
-"messa a fuoco."
+"Le scorciatoie funzionano solo mentre i tasti non vengono registrati e la "
+"GUI è in messa a fuoco."
 
-#: data/input-remapper.glade:402
-msgid "To automatically apply the preset after your login or when it connects."
-msgstr "Per applicare automaticamente il predefinito dopo il login o quando si connette."
+#: data/input-remapper.glade:322
+#, fuzzy
+msgid "Start injecting. Don't hold down any keys while the injection starts"
+msgstr "Non tenere premuto alcun tasto durante l'avvio dell'iniezione."
 
-#: data/input-remapper.glade:1439
+#: inputremapper/gui/controller.py:643
+#, fuzzy
+msgid "Starting injection..."
+msgstr "ferma l'iniezione"
+
+#: data/input-remapper.glade:201 data/input-remapper.glade:334
+msgid "Stop"
+msgstr "Ripristina impostazioni predefinite"
+
+#: inputremapper/gui/controller.py:710
+#, fuzzy
+msgid "Stopped the injection"
+msgstr "ferma l'iniezione"
+
+#: data/input-remapper.glade:205 data/input-remapper.glade:338
+msgid ""
+"Stops the Injection for the selected device,\n"
+"gives your keys their original function back\n"
+"Shortcut: ctrl + del"
+msgstr ""
+
+#: data/input-remapper.glade:812
+msgid "Target"
+msgstr ""
+
+#: data/input-remapper.glade:1078
+msgid ""
+"The Speed at which the Input is considered at maximum.\n"
+"Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs "
+"(e.g. gamepad)"
+msgstr ""
+
+#: inputremapper/gui/controller.py:234
+msgid ""
+"The input specifies a key or macro input, but no macro or key is programmed."
+msgstr ""
+
+#: inputremapper/gui/controller.py:213
+msgid "The input specifies an analog axis, but no output axis is selected."
+msgstr ""
+
+#: data/input-remapper.glade:803
+msgid "The type of device this mapping is emulating."
+msgstr ""
+
+#: data/input-remapper.glade:1831
+msgid "Trigger threshold"
+msgstr ""
+
+#: data/input-remapper.glade:743
+msgid "Type"
+msgstr ""
+
+#: data/input-remapper.glade:1473
 msgid "Usage"
 msgstr "Uso"
 
-#: data/input-remapper.glade:843
+#: inputremapper/gui/controller.py:593
+msgid "Use \"Stop\" to stop before editing"
+msgstr ""
+
+#: data/input-remapper.glade:1805
+msgid "Use as analog"
+msgstr ""
+
+#: data/input-remapper.glade:1366
 msgid "Version unknown"
 msgstr "Versione sconosciuta"
 
-#: data/input-remapper.glade:481 data/input-remapper.glade:525
-msgid "Wheel"
+#: data/input-remapper.glade:1134
+msgid "What should be written. For example KEY_A"
 msgstr ""
 
-#: data/input-remapper.glade:860
+#: inputremapper/gui/controller.py:761
+msgid "You are about to change the mapping to analog."
+msgstr ""
+
+#: data/input-remapper.glade:1161
+msgid "You can copy this text into the output"
+msgstr ""
+
+#: data/input-remapper.glade:1383
 msgid ""
 "You can find more information and report bugs at\n"
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
@@ -207,147 +424,54 @@ msgstr ""
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
 "sezanzeb/input-remapper</a>"
 
-#: data/input-remapper.glade:1248
-msgid "a, a, a with 500ms pause"
-msgstr "a, a, a con pausa di 500 ms"
+#: inputremapper/gui/controller.py:623
+msgid "You need to add mappings first"
+msgstr ""
 
-#: data/input-remapper.glade:1490
+#: inputremapper/gui/controller.py:358
+msgid ""
+"Your system might reinterpret combinations with those after they are "
+"injected, and by doing so break them."
+msgstr ""
+
+#: data/input-remapper.glade:1524
 msgid "closes the application"
 msgstr "chiude l'applicazione"
 
-#: data/input-remapper.glade:1478
+#: data/input-remapper.glade:1512
 msgid "ctrl + del"
 msgstr "ctrl + del"
 
-#: data/input-remapper.glade:1502
+#: data/input-remapper.glade:1536
 msgid "ctrl + q"
 msgstr "ctrl + q"
 
-#: data/input-remapper.glade:1514
+#: data/input-remapper.glade:1548
 msgid "ctrl + r"
 msgstr "ctrl + r"
 
-#: data/input-remapper.glade:1044
-msgid "e"
-msgstr "e"
+#: inputremapper/gui/controller.py:356
+msgid "ctrl, alt and shift may not combine properly"
+msgstr ""
 
-#: data/input-remapper.glade:1335
-msgid "e(EV_REL, REL_X, 10)"
-msgstr "e(EV_REL, REL_X, 10)"
+#: inputremapper/gui/data_manager.py:56
+#, fuzzy
+msgid "new preset"
+msgstr "Preimpostato"
 
-#: data/input-remapper.glade:1104
-msgid "executes the parameter as long as the key is pressed down"
-msgstr "esegue il parametro fintanto che si tiene premuto il tasto"
+#: data/input-remapper.glade:531 inputremapper/gui/user_interface.py:385
+msgid "no input configured"
+msgstr ""
 
-#: data/input-remapper.glade:1140
-msgid "executes two actions behind each other"
-msgstr "esegue due azioni una dietro l'altra"
-
-#: data/input-remapper.glade:1116
-msgid "h"
-msgstr "h"
-
-#: data/input-remapper.glade:1056
-msgid "holds a modifier while executing the second parameter"
-msgstr "contiene un modificatore durante l'esecuzione del secondo parametro"
-
-#: data/input-remapper.glade:1020
-msgid "k"
-msgstr "k"
-
-#: data/input-remapper.glade:1298
-msgid "k(1).h(k(2)).k(3)"
-msgstr "k(1).h(k(2)).k(3)"
-
-#: data/input-remapper.glade:1235
-msgid "k(1).k(2)"
-msgstr "k(1).k(2)"
-
-#: data/input-remapper.glade:1398
-msgid "keeps scrolling down while held"
-msgstr "continua a scorrere verso il basso mentre si tiene premuto"
-
-#: data/input-remapper.glade:1080
-msgid "m"
-msgstr "m"
-
-#: data/input-remapper.glade:1273
-msgid "m(Control_L, k(a).k(x))"
-msgstr "m(Control_L, k(a).k(x))"
-
-#: data/input-remapper.glade:1152
-msgid "mouse"
-msgstr "mouse"
-
-#: data/input-remapper.glade:1372
-msgid "mouse(right, 4)"
-msgstr "mouse(destra, 4)"
-
-#: data/input-remapper.glade:1311
-msgid "moves the mouse cursor 10px to the right"
-msgstr "sposta il cursore del mouse di 10 pixel a destra"
-
-#: data/input-remapper.glade:984
-msgid "r"
-msgstr "r"
-
-#: data/input-remapper.glade:1260
-msgid "r(3, k(a).w(500))"
-msgstr "r(3, k(a).w(500))"
-
-#: data/input-remapper.glade:1526
+#: data/input-remapper.glade:1560
 msgid "refreshes the device list"
 msgstr "aggiorna l'elenco dei dispositivi"
 
-#: data/input-remapper.glade:1092
-msgid "repeats the execution of the second parameter"
-msgstr "ripete l'esecuzione del secondo parametro"
-
-#: data/input-remapper.glade:1188
-msgid "same as mouse"
-msgstr "come al mouse"
-
-#: data/input-remapper.glade:1538
+#: data/input-remapper.glade:1572
 msgid "stops the injection"
 msgstr "ferma l'iniezione"
 
-#: data/input-remapper.glade:1176
-msgid "takes direction (up, left, ...) and speed as parameters"
-msgstr "prende la direzione (su, sinistra, ...) e la velocità come parametri"
-
-#: data/input-remapper.glade:1008
-msgid "w"
-msgstr "w"
-
-#: data/input-remapper.glade:996
-msgid "waits in milliseconds"
-msgstr "in attesa (in millisecondi)"
-
-#: data/input-remapper.glade:1164
-msgid "wheel"
-msgstr ""
-
-#: data/input-remapper.glade:1385
-msgid "wheel(down, 1)"
-msgstr ""
-
-#: data/input-remapper.glade:1360
-msgid "which keeps moving the mouse while pressed"
-msgstr "che continua a muovere il mouse mentre viene premuto"
-
-#: data/input-remapper.glade:1323
-msgid "writes 1 2 2 ... 2 2 3 while the key is pressed"
-msgstr "scrive 1 2 2 ... 2 2 3 mentre il tasto è premuto"
-
-#: data/input-remapper.glade:1032
-msgid "writes a single keystroke"
-msgstr "scrive una singola sequenza di tasti"
-
-#: data/input-remapper.glade:1068
-msgid "writes an event"
-msgstr "scrive un evento"
-
-#: data/input-remapper.glade:880
+#: data/input-remapper.glade:1403
 msgid ""
 "© 2023 Sezanzeb proxima@sezanzeb.de\n"
 "This program comes with absolutely no warranty.\n"
@@ -358,3 +482,172 @@ msgstr ""
 "Questo programma non ha assolutamente alcuna garanzia.\n"
 "Vedi il <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">Generale GNU "
 "Licenza pubblica, versione 3 o successiva</a> per i dettagli."
+
+#~ msgid "."
+#~ msgstr "."
+
+#~ msgid "1, 2"
+#~ msgstr "1, 2"
+
+#~ msgid ""
+#~ "A \"key + key + ... + key\" syntax can be used to trigger key "
+#~ "combinations. For example \"control_l + a\".\n"
+#~ "\n"
+#~ "\"disable\" disables a key."
+#~ msgstr ""
+#~ "Sintassi\"tasti + tasti + ... + tasti\"puoi usare per entrare nella "
+#~ "combinazioni di tasti. Ad esempio \"control_l + a\".\n"
+#~ "\n"
+#~ "\"disabilita\"disabilitato la mappatura dei tasti."
+
+#~ msgid ""
+#~ "Between calls to k, key down and key up events, macros will sleep for "
+#~ "10ms by default, which can be configured in ~/.config/input-remapper/"
+#~ "config"
+#~ msgstr ""
+#~ "Tra chiamate a k, battitura ed eventi rilasciati,le macro dormiranno per "
+#~ "10 ms per impostazione predefinita, che può essere configurato in ~/."
+#~ "config/input-remapper/config"
+
+#~ msgid "Buttons"
+#~ msgstr "Pulsanti"
+
+#~ msgid "CTRL + a, CTRL + x"
+#~ msgstr "CTRL + a, CTRL + x"
+
+#~ msgid ""
+#~ "Click on a cell below and hit a key on your device. Click the \"Restore "
+#~ "Defaults\" button beforehand."
+#~ msgstr ""
+#~ "Fai clic su una cella in basso e premi un tasto sul dispositivo. Fai clic "
+#~ "su \"Ripristina Pulsante \"Predefiniti\" in anticipo."
+
+#~ msgid "Displays additional debug information"
+#~ msgstr "Visualizza ulteriori informazioni di debug"
+
+#~ msgid "Examples"
+#~ msgstr "Esempi"
+
+#~ msgid "Go Back"
+#~ msgstr "Indietro"
+
+#~ msgid "Joystick"
+#~ msgstr "Joystick"
+
+#~ msgid "Key"
+#~ msgstr "Tasto"
+
+#~ msgid "Left joystick"
+#~ msgstr "Joystick sinistro"
+
+#~ msgid "Macros"
+#~ msgstr "Macro"
+
+#~ msgid ""
+#~ "Macros allow multiple characters to be written with a single key-press."
+#~ msgstr ""
+#~ "Le macro consentono di scrivere più caratteri premendo un solo tasto."
+
+#~ msgid "Mouse"
+#~ msgstr "Mouse"
+
+#~ msgid "Mouse speed"
+#~ msgstr "Velocità mouse"
+
+#~ msgid "Right joystick"
+#~ msgstr "Joystick destro"
+
+#~ msgid ""
+#~ "Shortcut: ctrl + del\n"
+#~ "To give your keys back their original mapping."
+#~ msgstr ""
+#~ "Scorciatoia: ctrl + del\n"
+#~ "Per restituire alle tue chiavi la loro mappatura originale."
+
+#~ msgid ""
+#~ "To automatically apply the preset after your login or when it connects."
+#~ msgstr ""
+#~ "Per applicare automaticamente il predefinito dopo il login o quando si "
+#~ "connette."
+
+#~ msgid "a, a, a with 500ms pause"
+#~ msgstr "a, a, a con pausa di 500 ms"
+
+#~ msgid "e"
+#~ msgstr "e"
+
+#~ msgid "e(EV_REL, REL_X, 10)"
+#~ msgstr "e(EV_REL, REL_X, 10)"
+
+#~ msgid "executes the parameter as long as the key is pressed down"
+#~ msgstr "esegue il parametro fintanto che si tiene premuto il tasto"
+
+#~ msgid "executes two actions behind each other"
+#~ msgstr "esegue due azioni una dietro l'altra"
+
+#~ msgid "h"
+#~ msgstr "h"
+
+#~ msgid "holds a modifier while executing the second parameter"
+#~ msgstr "contiene un modificatore durante l'esecuzione del secondo parametro"
+
+#~ msgid "k"
+#~ msgstr "k"
+
+#~ msgid "k(1).h(k(2)).k(3)"
+#~ msgstr "k(1).h(k(2)).k(3)"
+
+#~ msgid "k(1).k(2)"
+#~ msgstr "k(1).k(2)"
+
+#~ msgid "keeps scrolling down while held"
+#~ msgstr "continua a scorrere verso il basso mentre si tiene premuto"
+
+#~ msgid "m"
+#~ msgstr "m"
+
+#~ msgid "m(Control_L, k(a).k(x))"
+#~ msgstr "m(Control_L, k(a).k(x))"
+
+#~ msgid "mouse"
+#~ msgstr "mouse"
+
+#~ msgid "mouse(right, 4)"
+#~ msgstr "mouse(destra, 4)"
+
+#~ msgid "moves the mouse cursor 10px to the right"
+#~ msgstr "sposta il cursore del mouse di 10 pixel a destra"
+
+#~ msgid "r"
+#~ msgstr "r"
+
+#~ msgid "r(3, k(a).w(500))"
+#~ msgstr "r(3, k(a).w(500))"
+
+#~ msgid "repeats the execution of the second parameter"
+#~ msgstr "ripete l'esecuzione del secondo parametro"
+
+#~ msgid "same as mouse"
+#~ msgstr "come al mouse"
+
+#~ msgid "takes direction (up, left, ...) and speed as parameters"
+#~ msgstr ""
+#~ "prende la direzione (su, sinistra, ...) e la velocità come parametri"
+
+#~ msgid "w"
+#~ msgstr "w"
+
+#~ msgid "waits in milliseconds"
+#~ msgstr "in attesa (in millisecondi)"
+
+#~ msgid "which keeps moving the mouse while pressed"
+#~ msgstr "che continua a muovere il mouse mentre viene premuto"
+
+#~ msgid "writes 1 2 2 ... 2 2 3 while the key is pressed"
+#~ msgstr "scrive 1 2 2 ... 2 2 3 mentre il tasto è premuto"
+
+#~ msgid "writes a single keystroke"
+#~ msgstr "scrive una singola sequenza di tasti"
+
+#~ msgid "writes an event"
+#~ msgstr "scrive un evento"
