@@ -329,10 +329,13 @@ class DataManager:
 
         mapping = self._active_preset.get_mapping(combination)
         if not mapping:
-            raise KeyError(
+            msg = (
                 f"the mapping with {combination = } does not "
                 f"exist in the {self._active_preset.path}"
             )
+            logger.error(msg)
+            raise KeyError(msg)
+
         self._active_input_config = None
         self._active_mapping = mapping
         self.publish_mapping()
