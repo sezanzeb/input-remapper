@@ -655,9 +655,7 @@ class Controller:
 
         def running():
             msg = _("Applied preset %s") % self.data_manager.active_preset.name
-            if self.data_manager.active_preset.get_mapping(
-                InputCombination([InputConfig.btn_left()])
-            ):
+            if self.data_manager.active_preset.dangerously_mapped_btn_left():
                 msg += _(", CTRL + DEL to stop")
             self.show_status(CTX_APPLY, msg)
             logger.info(
