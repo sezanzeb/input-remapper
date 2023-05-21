@@ -232,21 +232,12 @@ class Preset(Generic[MappingModel]):
             existing = self._mappings.get(permutation)
             if existing is not None:
                 return existing
-
-        logger.error(
-            "Combination %s not found. Available: %s",
-            repr(combination),
-            list(
-                self._mappings.keys(),
-            ),
-        )
-
         return None
 
     def dangerously_mapped_btn_left(self) -> bool:
         """Return True if this mapping disables BTN_Left."""
-        if InputCombination([InputConfig.btn_left()]) not in [
-            m.input_combination for m in self
+        if (ecodes.EV_KEY, ecodes.BTN_LEFT) not in [
+            m.input_combination[0].type_and_code for m in self
         ]:
             return False
 
