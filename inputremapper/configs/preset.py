@@ -236,7 +236,7 @@ class Preset(Generic[MappingModel]):
 
     def dangerously_mapped_btn_left(self) -> bool:
         """Return True if this mapping disables BTN_Left."""
-        if InputConfig.btn_left().type_and_code not in [
+        if (ecodes.EV_KEY, ecodes.BTN_LEFT) not in [
             m.input_combination[0].type_and_code for m in self
         ]:
             return False
