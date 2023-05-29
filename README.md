@@ -44,6 +44,14 @@ sudo apt install -f ./dist/input-remapper-2.0.0.deb
 input-remapper is available in [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
 
+##### Fedora
+
+```bash
+sudo dnf install input-remapper
+sudo systemctl enable --now input-remapper
+sudo systemctl start input-remapper
+```
+
 ##### Manual
 
 Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`
