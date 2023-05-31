@@ -20,6 +20,7 @@
 """Contains and manages mappings."""
 
 from __future__ import annotations
+from evdev import ecodes
 
 import json
 import os
