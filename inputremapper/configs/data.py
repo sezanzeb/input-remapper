@@ -80,8 +80,13 @@ def _try_env_data_dir():
     """Check if input-remappers data can be found at DATA_DIR."""
     data_dir = os.environ.get("DATA_DIR", None)
 
-    if data_dir and os.path.exists(data_dir):
+    if data_dir is None:
+        return None
+
+    if os.path.exists(data_dir):
         return data_dir
+    else:
+        logger.error(f'"{ data_dir }" does not exist')
 
     return None
 
