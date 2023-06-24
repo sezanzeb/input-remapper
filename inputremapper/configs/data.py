@@ -79,6 +79,7 @@ def _try_python_package_location():
 def _try_env_data_dir():
     """Check if input-remappers data can be found at DATA_DIR."""
     data_dir = os.environ.get("DATA_DIR", None)
+    print('lakdjs', data_dir)
 
     if data_dir is None:
         return None
