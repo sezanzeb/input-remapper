@@ -13,11 +13,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-        cache-dependency-path: setup.py
+        # broken "Error: Cache folder path is retrieved for pip but doesn't exist on disk: /home/runner/.cache/pip"
+        # cache: 'pip'
+        # cache-dependency-path: setup.py
     - name: Install dependencies
       run: |
         # Install deps as root since we will run tests as root
