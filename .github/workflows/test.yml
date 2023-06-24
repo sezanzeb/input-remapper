@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
@@ -22,7 +22,7 @@ jobs:
       run: |
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
-        sudo pip install --no-binary :all: . -vvv
+        sudo pip install --no-binary :all: .
     - name: Run tests
       run: |
         # FIXME: Had some permissions issues, currently worked around by running tests as root
