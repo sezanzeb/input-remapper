@@ -29,4 +29,5 @@ jobs:
         mkdir test_tmp
         export DATA_DIR="/opt/hostedtoolcache/Python/3.11.3/x64/lib/python3.11/site-packages/usr/share/input-remapper"
         export TMPDIR="$(realpath test_tmp)"
+        find $DATA_DIR
         sudo python tests/test.py --start-dir unit
