@@ -32,7 +32,7 @@ from inputremapper.logger import logger
 logged = False
 
 
-def _try_xdg_data_dirs():
+def _try_standard_locations():
     # https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
     # ensure at least /usr/local/share/ and /usr/share/ are tried
     xdg_data_dirs = set(
@@ -99,7 +99,7 @@ def get_data_path(filename=""):
     # prefix path for data
     # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
 
-    data = _try_env_data_dir() or _try_python_package_location() or _try_xdg_data_dirs()
+    data = _try_env_data_dir() or _try_python_package_location() or _try_standard_locations()
 
     if data is None:
         logger.error("Could not find the application data")
