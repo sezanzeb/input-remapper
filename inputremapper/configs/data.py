@@ -32,21 +32,24 @@ from inputremapper.logger import logger
 logged = False
 
 
-def _try_standard_locations():
-    """Look for the data dir where it typically can be found."""
-    candidates = [
-        "/usr/share/input-remapper",
-        "/usr/local/share/input-remapper",
-        os.path.join(site.USER_BASE, "share/input-remapper"),
-    ]
+def _try_xdg_data_dirs():
+    # https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+    # ensure at least /usr/local/share/ and /usr/share/ are tried
+    xdg_data_dirs = set(
+        os.environ.get("XDG_DATA_DIRS", "").split(":")
+        + [
+            "/usr/local/share/",
+            "/usr/share/",
+            os.path.join(site.USER_BASE, "share/"),
+        ]
+    )
 
-    # try any of the options
-    for candidate in candidates:
+    for xdg_data_dir in xdg_data_dirs:
+        candidate = os.path.join(xdg_data_dir, "input-remapper")
         if os.path.exists(candidate):
-            data = candidate
-            break
+            return candidate
 
-    return data
+    return None
 
 
 def _try_python_package_location():
@@ -55,8 +58,8 @@ def _try_python_package_location():
     try:
         source = pkg_resources.require("input-remapper")[0].location
         # failed in some ubuntu installations
-    except pkg_resources.DistributionNotFound:
-        logger.debug("DistributionNotFound")
+    except Exception:
+        logger.debug("failed to figure out package location")
         pass
 
     data = None
@@ -73,6 +76,16 @@ def _try_python_package_location():
     return data
 
 
+def _try_env_data_dir():
+    """Check if input-remappers data can be found at DATA_DIR."""
+    data_dir = os.environ.get("DATA_DIR", None)
+
+    if data_dir and os.path.exists(data_dir):
+        return data_dir
+
+    return None
+
+
 def get_data_path(filename=""):
     """Depending on the installation prefix, return the data dir.
 
@@ -86,7 +99,7 @@ def get_data_path(filename=""):
     # prefix path for data
     # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
 
-    data = _try_python_package_location() or _try_standard_locations()
+    data = _try_env_data_dir() or _try_python_package_location() or _try_xdg_data_dirs()
 
     if data is None:
         logger.error("Could not find the application data")
