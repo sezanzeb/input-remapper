@@ -27,8 +27,8 @@ jobs:
       run: |
         # FIXME: Had some permissions issues, currently worked around by running tests as root
         mkdir test_tmp
-        export DATA_DIR="/opt/hostedtoolcache/Python/3.11.3/x64/lib/python3.11/site-packages/usr/share/input-remapper"
+        export DATA_DIR="/home/runner/work/input-remapper/data"
         export TMPDIR="$(realpath test_tmp)"
-        find / -type d -name "input-remapper"
+        find / -type f -name "input-remapper.glade"
         find $DATA_DIR
         sudo python tests/test.py --start-dir unit
