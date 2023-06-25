@@ -55,5 +55,4 @@ if __name__ == '__main__':
     atexit.register(on_exit)
     groups = _Groups()
     reader_service = ReaderService(groups)
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(reader_service.run())
+    asyncio.run(reader_service.run())
