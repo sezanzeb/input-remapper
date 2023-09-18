@@ -18,7 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from pydantic import ValidationError
+try:
+    from pydantic.v1 import ValidationError
+except ImportError:
+    from pydantic import ValidationError
 
 from inputremapper.input_event import InputEvent
 from tests.lib.global_uinputs import (

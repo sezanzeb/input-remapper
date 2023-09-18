@@ -30,7 +30,11 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
     KEY_1,
 )
-from pydantic import ValidationError
+
+try:
+    from pydantic.v1 import ValidationError
+except ImportError:
+    from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME

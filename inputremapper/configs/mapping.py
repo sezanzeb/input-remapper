@@ -33,18 +33,33 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
     REL_WHEEL_HI_RES,
 )
-from pydantic import (
-    BaseModel,
-    PositiveInt,
-    confloat,
-    conint,
-    root_validator,
-    validator,
-    ValidationError,
-    PositiveFloat,
-    VERSION,
-    BaseConfig,
-)
+
+try:
+    from pydantic.v1 import (
+        BaseModel,
+        PositiveInt,
+        confloat,
+        conint,
+        root_validator,
+        validator,
+        ValidationError,
+        PositiveFloat,
+        VERSION,
+        BaseConfig,
+    )
+except ImportError:
+    from pydantic import (
+        BaseModel,
+        PositiveInt,
+        confloat,
+        conint,
+        root_validator,
+        validator,
+        ValidationError,
+        PositiveFloat,
+        VERSION,
+        BaseConfig,
+    )
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME

@@ -25,7 +25,11 @@ from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, NewTy
 from evdev import ecodes
 
 from inputremapper.input_event import InputEvent
-from pydantic import BaseModel, root_validator, validator
+
+try:
+    from pydantic.v1 import BaseModel, root_validator, validator
+except ImportError:
+    from pydantic import BaseModel, root_validator, validator
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.messages.message_types import MessageType
