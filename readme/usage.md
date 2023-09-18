@@ -121,6 +121,13 @@ sensitivity, non-linearity and other parameters as you like.
 It is also possible to use an analog output with an input combination. 
 This will result in the analog axis to be only injected if the combination is pressed 
 
+## Wheels
+
+When mapping wheels, you need to be aware that there are both `WHEEL` and `WHEEL_HI_RES`
+events. This can cause your wheel to scroll, despite being mapped to something.
+By fiddling around with the advanced settings when editing one of your inputs, you can
+map the "Hi Res" inputs to `disable`.
+
 # External tools
 
 Repositories listed here are made by input-remappers users. Feel free to extend. Beware,

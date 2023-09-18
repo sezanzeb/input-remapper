@@ -2,8 +2,8 @@
 if [ -d "/run/systemd/system/" ]; then
   # old name, those lines should at some point be removed from postinst
   pkill -f key-mapper-service
-  systemctl disable key-mapper
-  systemctl stop key-mapper
+  systemctl disable key-mapper 2> /dev/null || true
+  systemctl stop key-mapper 2> /dev/null || true
 
   pkill -f input-remapper-service  # might have been started by the gui previously
   systemctl enable input-remapper

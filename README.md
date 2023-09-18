@@ -42,7 +42,9 @@ sudo apt install -f ./dist/input-remapper-2.0.0.deb
 ```
 
 input-remapper is available in [Debian](https://tracker.debian.org/pkg/input-remapper)
-and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
+and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper).
+
+input-remapper ≥ 2.0 requires at least Ubuntu 22.04.
 
 ##### Fedora
 
