@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-16 08:30-0300\n"
-"PO-Revision-Date: 2023-10-29 11:23+0200\n"
-"Last-Translator: ALbano Battistella <albanobattistella@gmail.com>\n"
+"PO-Revision-Date: 2023-11-02 20:00+0200\n"
+"Last-Translator: Albano Battistella <albanobattistella@gmail.com>\n"
 "Language-Team: ITALIAN <LL@li.org>\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
@@ -65,7 +65,7 @@ msgstr " (registrazione ...)"
 #: inputremapper/gui/controller.py:174
 #, python-format
 msgid "%d Mapping errors at \"%s\", hover for info"
-msgstr ""%d Errori di mappatura in \"%s\", passa il mouse per informazioni"
+msgstr "%d Errori di mappatura in \"%s\", passa il mouse per informazioni"
 
 #: inputremapper/gui/controller.py:661
 msgid ", CTRL + DEL to stop"
@@ -155,7 +155,7 @@ msgstr "Elimina questa voce"
 
 #: data/input-remapper.glade:372
 msgid "Delete this preset"
-msgstr ""Elimina questa preimpostazione"
+msgstr "Elimina questa preimpostazione"
 
 #: data/input-remapper.glade:162
 msgid "Device Name"
@@ -377,7 +377,6 @@ msgstr""
 "Interrompe l'iniezione per il dispositivo selezionato,\n"
 "ridona ai tuoi tasti la loro funzione originale\n"
 "Scorciatoia: ctrl + canc"
-
 
 #: data/input-remapper.glade:812
 msgid "Target"
