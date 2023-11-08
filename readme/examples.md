@@ -190,7 +190,7 @@ Pressing `A` sets `$foo=0`, pressing `B` sets `$foo=1`. `X` is `Y` if `$foo=1`, 
 
 
 
-We can implement a single layer toggle macro which can be used to switch back and forth betwixt layers.
+We can implement a single macro to toggle back and forth betwixt layers.
 
 - `A`:`if_eq(foo, 1, set(foo, 0), set(foo, 1))`
 - `X`:`if_eq(foo, 1, hold_keys(Y), hold_keys(X))`
