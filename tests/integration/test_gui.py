@@ -26,7 +26,10 @@ from tests.test import get_project_root
 from contextlib import contextmanager
 from typing import Tuple, List, Optional, Iterable
 
-from inputremapper.gui.autocompletion import get_incomplete_parameter, get_incomplete_function_name
+from inputremapper.gui.autocompletion import (
+    get_incomplete_parameter,
+    get_incomplete_function_name,
+)
 
 from tests.lib.global_uinputs import reset_global_uinputs_for_service
 from tests.lib.cleanup import cleanup
@@ -78,7 +81,11 @@ from inputremapper.gui.messages.message_broker import (
     MessageType,
 )
 from inputremapper.gui.messages.message_data import StatusData, CombinationRecorded
-from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST, CodeEditor
+from inputremapper.gui.components.editor import (
+    MappingSelectionLabel,
+    SET_KEY_FIRST,
+    CodeEditor,
+)
 from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.reader_service import ReaderService
@@ -2015,7 +2022,9 @@ class TestGui(GuiTestBase):
         )
         self.throttle(100)  # give time for the input to arrive
 
-        self.assertEqual(self.get_unfiltered_symbol_input_text(), CodeEditor.placeholder)
+        self.assertEqual(
+            self.get_unfiltered_symbol_input_text(), CodeEditor.placeholder
+        )
         self.assertTrue(self.output_box.get_sensitive())
 
         # disable it by deleting the mapping
