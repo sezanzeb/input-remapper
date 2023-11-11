@@ -221,8 +221,6 @@ def get_unique_key(device: InputDevice):
     # - device.phys is empty sometimes and varies across virtual
     #   subdevices
     # - device.version varies across subdevices
-    # - device.uniq is empty most of the time, I don't know what this is
-    #   supposed to be
     return (
         # device.info bustype, vendor and product are unique for
         # a product, but multiple similar device models would be grouped
@@ -230,6 +228,9 @@ def get_unique_key(device: InputDevice):
         f"{device.info.bustype}_"
         f"{device.info.vendor}_"
         f"{device.info.product}_"
+        # device.uniq is empty most of the time. It seems to be the only way to
+        # distinguish multiple connected bluetooth gamepads
+        f"{device.uniq}_"
         # deivce.phys if "/input..." is removed from it, because the first
         # chunk seems to be unique per hardware (if it's not completely empty)
         f'{device.phys.split("/")[0] or "-"}'

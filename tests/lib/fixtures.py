@@ -47,6 +47,9 @@ class Fixture:
     phys: str = "unset"
     group_key: Optional[str] = None
 
+    # uniq is typically empty
+    uniq: str = ""
+
     def __hash__(self):
         return hash(self.path)
 

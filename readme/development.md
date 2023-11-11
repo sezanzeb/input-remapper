@@ -27,7 +27,8 @@ Automated tests
 ---------------
 
 ```bash
-pip install coverage --user  # https://github.com/nedbat/coveragepy
+pip install coverage psutil --user  # https://github.com/nedbat/coveragepy, https://github.com/giampaolo/psutil
+export PATH="$PATH:$HOME/.local/bin"
 sudo pkill -f input-remapper
 sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m

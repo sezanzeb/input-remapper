@@ -75,6 +75,7 @@ def get_incomplete_function_name(iter_: Gtk.TextIter) -> str:
     #  bar(KEY_A,\nfoo
     #  foo
     match = re.match(rf"(?:{FUNCTION_CHAIN}|{PARAMETER}|^)(\w+)$", left_text)
+    logger.debug('get_incomplete_function_name text: "%s" match: %s', left_text, match)
 
     if match is None:
         return ""

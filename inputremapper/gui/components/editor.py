@@ -420,14 +420,15 @@ class CodeEditor:
         # actually looking at the snapshot preview! In glades editor this didn't have an
         # effect.
         self.gui.set_resize_mode(Gtk.ResizeMode.IMMEDIATE)
+
         # Syntax Highlighting
+        # TODO there are some similarities with python, but overall it's quite useless.
+        #  commented out until there is proper highlighting for input-remappers syntax.
         # Thanks to https://github.com/wolfthefallen/py-GtkSourceCompletion-example
         # language_manager = GtkSource.LanguageManager()
         # fun fact: without saving LanguageManager into its own variable it doesn't work
         #  python = language_manager.get_language("python")
         # source_view.get_buffer().set_language(python)
-        # TODO there are some similarities with python, but overall it's quite useless.
-        #  commented out until there is proper highlighting for input-remappers syntax.
 
         self._update_placeholder()
 
