@@ -51,7 +51,6 @@ input-remapper ≥ 2.0 requires at least Ubuntu 22.04.
 ```bash
 sudo dnf install input-remapper
 sudo systemctl enable --now input-remapper
-sudo systemctl start input-remapper
 ```
 
 ##### Manual
