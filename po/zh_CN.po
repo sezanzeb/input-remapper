@@ -92,7 +92,7 @@ msgstr ""
 #: inputremapper/gui/controller.py:657
 #, python-format
 msgid "Applied preset %s"
-msgstr "无法应用预设%s"
+msgstr "应用预设%s"
 
 #: data/input-remapper.glade:318
 msgid "Apply"
