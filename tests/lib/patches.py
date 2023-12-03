@@ -74,6 +74,7 @@ class InputDevice:
         self.phys = self._fixture.phys
         self.info = self._fixture.info
         self.name = self._fixture.name
+        self.uniq = self._fixture.uniq
 
         # this property exists only for test purposes and is not part of
         # the original evdev.InputDevice class

@@ -21,15 +21,18 @@
 import asyncio
 
 # the tests file needs to be imported first to make sure patches are loaded
+from tests.test import get_project_root
+
 from contextlib import contextmanager
 from typing import Tuple, List, Optional, Iterable
 
-from inputremapper.gui.autocompletion import get_incomplete_parameter, _get_left_text
+from inputremapper.gui.autocompletion import (
+    get_incomplete_parameter,
+    get_incomplete_function_name,
+)
 
-from inputremapper.injection.global_uinputs import global_uinputs
 from tests.lib.global_uinputs import reset_global_uinputs_for_service
-from tests.test import get_project_root
-from tests.lib.cleanup import cleanup, quick_cleanup
+from tests.lib.cleanup import cleanup
 from tests.lib.stuff import spy
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import prepare_presets
@@ -78,7 +81,11 @@ from inputremapper.gui.messages.message_broker import (
     MessageType,
 )
 from inputremapper.gui.messages.message_data import StatusData, CombinationRecorded
-from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
+from inputremapper.gui.components.editor import (
+    MappingSelectionLabel,
+    SET_KEY_FIRST,
+    CodeEditor,
+)
 from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.reader_service import ReaderService
@@ -162,6 +169,7 @@ def patch_launch():
 
 
 def clean_up_integration(test):
+    logger.info("clean_up_integration")
     test.controller.stop_injecting()
     gtk_iteration()
     test.user_interface.on_gtk_close()
@@ -399,6 +407,17 @@ class GuiTestBase(unittest.TestCase):
         self.user_interface.window.set_focus(widget)
 
         self.throttle(20)
+
+    def focus_source_view(self):
+        # despite the focus and gtk_iterations, gtk never runs the event handlers for
+        # the focus-in-event (_update_placeholder), which would clear the placeholder
+        # text. Remove it manually, it can't be helped. Fun fact: when the
+        # window gets destroyed, gtk runs the handler 10 times for good measure.
+        # Lost one hour of my life on GTK again. It's gone! Forever! Use qt next time.
+        source_view = self.code_editor
+        self.set_focus(source_view)
+        self.code_editor.get_buffer().set_text("")
+        return source_view
 
     def get_selection_labels(self) -> List[MappingSelectionLabel]:
         return self.selection_label_listbox.get_children()
@@ -2003,7 +2022,9 @@ class TestGui(GuiTestBase):
         )
         self.throttle(100)  # give time for the input to arrive
 
-        self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
+        self.assertEqual(
+            self.get_unfiltered_symbol_input_text(), CodeEditor.placeholder
+        )
         self.assertTrue(self.output_box.get_sensitive())
 
         # disable it by deleting the mapping
@@ -2041,11 +2062,28 @@ class TestAutocompletion(GuiTestBase):
         test("foo", "foo")
         test("bar + foo", "foo")
 
+    def test_get_incomplete_function_name(self):
+        def test(text, expected):
+            text_view = Gtk.TextView()
+            Gtk.TextView.do_insert_at_cursor(text_view, text)
+            text_iter = text_view.get_iter_at_location(0, 0)[1]
+            text_iter.set_offset(len(text))
+            self.assertEqual(get_incomplete_function_name(text_iter), expected)
+
+        test("bar().foo", "foo")
+        test("bar()\n.foo", "foo")
+        test("bar().\nfoo", "foo")
+        test("bar(\nfoo", "foo")
+        test("bar(\nqux=foo", "foo")
+        test("bar(KEY_A,\nfoo", "foo")
+        test("foo", "foo")
+
     def test_autocomplete_names(self):
         autocompletion = self.user_interface.autocompletion
 
         def setup(text):
             self.set_focus(self.code_editor)
+            self.code_editor.get_buffer().set_text("")
             Gtk.TextView.do_insert_at_cursor(self.code_editor, text)
             self.throttle(200)
             text_iter = self.code_editor.get_iter_at_location(0, 0)[1]
@@ -2064,6 +2102,7 @@ class TestAutocompletion(GuiTestBase):
         gtk_iteration()
 
         self.set_focus(self.code_editor)
+        self.code_editor.get_buffer().set_text("")
 
         complete_key_name = "Test_Foo_Bar"
 
@@ -2111,8 +2150,7 @@ class TestAutocompletion(GuiTestBase):
         self.controller.update_mapping(output_symbol="")
         gtk_iteration()
 
-        source_view = self.code_editor
-        self.set_focus(source_view)
+        source_view = self.focus_source_view()
 
         incomplete = "key(KEY_A).\nepea"
         Gtk.TextView.do_insert_at_cursor(source_view, incomplete)
@@ -2134,8 +2172,7 @@ class TestAutocompletion(GuiTestBase):
         self.controller.update_mapping(output_symbol="")
         gtk_iteration()
 
-        source_view = self.code_editor
-        self.set_focus(source_view)
+        source_view = self.focus_source_view()
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
 
@@ -2156,8 +2193,7 @@ class TestAutocompletion(GuiTestBase):
     def test_writing_still_works(self):
         self.controller.update_mapping(output_symbol="")
         gtk_iteration()
-        source_view = self.code_editor
-        self.set_focus(source_view)
+        source_view = self.focus_source_view()
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
 
@@ -2186,8 +2222,7 @@ class TestAutocompletion(GuiTestBase):
     def test_cycling(self):
         self.controller.update_mapping(output_symbol="")
         gtk_iteration()
-        source_view = self.code_editor
-        self.set_focus(source_view)
+        source_view = self.focus_source_view()
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
 
