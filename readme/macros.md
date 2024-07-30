@@ -124,9 +124,11 @@ Bear in mind that anti-cheat software might detect macros in games.
 ### mouse
 
 > Moves the mouse cursor
+> 
+> If `accel` is provided then the cursor will accelerate from zero to a maximum speed of `speed`. 
 >
 > ```c#
-> mouse(direction: str, speed: int)
+> mouse(direction: str, speed: int, accel: float | None)
 > ```
 >
 > Examples:
@@ -134,6 +136,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```c#
 > mouse(up, 1)
 > mouse(left, 2)
+> mouse(down, 10, 0.3)
 > ```
 
 ### wheel
