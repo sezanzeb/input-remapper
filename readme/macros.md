@@ -125,10 +125,10 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Moves the mouse cursor
 > 
-> If `accel` is provided then the cursor will accelerate from zero to a maximum speed of `speed`. 
+> If `acceleration` is provided then the cursor will accelerate from zero to a maximum speed of `speed`. 
 >
 > ```c#
-> mouse(direction: str, speed: int, accel: float | None)
+> mouse(direction: str, speed: int, acceleration: float | None)
 > ```
 >
 > Examples:

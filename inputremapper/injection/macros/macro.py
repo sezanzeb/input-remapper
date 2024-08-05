@@ -469,11 +469,11 @@ class Macro:
         self.tasks.append(lambda handler: handler(type_, code, value))
         self.tasks.append(self._keycode_pause)
 
-    def add_mouse(self, direction: str, speed: int, accel: Optional[float] = None):
+    def add_mouse(self, direction: str, speed: int, acceleration: Optional[float] = None):
         """Move the mouse cursor."""
         _type_check(direction, [str], "mouse", 1)
         speed = _type_check(speed, [int], "mouse", 2)
-        accel = _type_check(accel, [float, None], "mouse", 3)
+        acceleration = _type_check(acceleration, [float, None], "mouse", 3)
 
         code, value = {
             "up": (REL_Y, -1),
@@ -484,18 +484,24 @@ class Macro:
 
         async def task(handler: Callable):
             resolved_speed = _resolve(speed, [int])
-            resolved_accel = _resolve(accel, [float, None])
+            resolved_accel = _resolve(acceleration, [float, None])
 
             if resolved_accel:
                 current_speed = 0.0
+                displacement_accumulator = 0.0
+                displacement = 0
             else:
-                current_speed = resolved_speed
+                displacement = resolved_speed
 
             while self.is_holding():
                 if resolved_accel and current_speed < resolved_speed:
                     current_speed += resolved_accel
+                    current_speed = min(current_speed, resolved_speed)
+                    displacement_accumulator += current_speed
+                    displacement = int(displacement_accumulator)
+                    displacement_accumulator -= displacement
 
-                handler(EV_REL, code, value * int(current_speed))
+                handler(EV_REL, code, value * displacement)
                 await asyncio.sleep(1 / self.mapping.rel_rate)
 
         self.tasks.append(task)
