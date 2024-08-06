@@ -1,4 +1,5 @@
 """Tests that require a linux desktop environment to be running."""
+
 import tests.test
 import gi
 

@@ -73,8 +73,7 @@ from inputremapper.logger import logger
 
 
 class EventListener(Protocol):
-    async def __call__(self, event: evdev.InputEvent) -> None:
-        ...
+    async def __call__(self, event: evdev.InputEvent) -> None: ...
 
 
 class ContextProtocol(Protocol):
@@ -97,8 +96,7 @@ class NotifyCallback(Protocol):
         event: InputEvent,
         source: evdev.InputDevice,
         suppress: bool = False,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
 
 class InputEventHandler(Protocol):
@@ -109,8 +107,7 @@ class InputEventHandler(Protocol):
         event: InputEvent,
         source: evdev.InputDevice,
         suppress: bool = False,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     def reset(self) -> None:
         """Reset the state of the handler e.g. release any buttons."""

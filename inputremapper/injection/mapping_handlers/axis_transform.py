@@ -130,9 +130,7 @@ class Transformation:
             d = 1 + k
             a = 1 - d
             b = d
-            c = (math.sqrt(27 * x**2 + (4 * b**3) / a) + 3 ** (3 / 2) * x) ** (
-                1 / 3
-            )
+            c = (math.sqrt(27 * x**2 + (4 * b**3) / a) + 3 ** (3 / 2) * x) ** (1 / 3)
             y = c / (2 ** (1 / 3) * math.sqrt(3) * a ** (1 / 3)) - (
                 2 ** (1 / 3) * b
             ) / (math.sqrt(3) * a ** (2 / 3) * c)

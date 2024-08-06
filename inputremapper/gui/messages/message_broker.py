@@ -43,8 +43,7 @@ class Message(Protocol):
     """The protocol any message must follow to be sent with the MessageBroker."""
 
     @property
-    def message_type(self) -> MessageType:
-        ...
+    def message_type(self) -> MessageType: ...
 
 
 # useful type aliases
