@@ -373,9 +373,9 @@ class Controller:
             or len(self.data_manager.active_mapping.input_combination) == 1
         ):
             return
-        combination: Sequence[
-            InputConfig
-        ] = self.data_manager.active_mapping.input_combination
+        combination: Sequence[InputConfig] = (
+            self.data_manager.active_mapping.input_combination
+        )
 
         i = combination.index(input_config)
         if (

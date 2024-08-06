@@ -238,9 +238,11 @@ class InputConfig(BaseModel):
             type=type_ if type_ is not None else self.type,
             code=code if code is not None else self.code,
             origin_hash=origin_hash if origin_hash is not None else self.origin_hash,
-            analog_threshold=analog_threshold
-            if analog_threshold is not None
-            else self.analog_threshold,
+            analog_threshold=(
+                analog_threshold
+                if analog_threshold is not None
+                else self.analog_threshold
+            ),
         )
 
     def __hash__(self):
