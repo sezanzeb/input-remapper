@@ -54,16 +54,14 @@ class Preset(Generic[MappingModel]):
 
     # workaround for typing: https://github.com/python/mypy/issues/4236
     @overload
-    def __init__(self: Preset[Mapping], path: Optional[os.PathLike] = None):
-        ...
+    def __init__(self: Preset[Mapping], path: Optional[os.PathLike] = None): ...
 
     @overload
     def __init__(
         self,
         path: Optional[os.PathLike] = None,
         mapping_factory: Type[MappingModel] = ...,
-    ):
-        ...
+    ): ...
 
     def __init__(
         self,

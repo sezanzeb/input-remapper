@@ -1914,7 +1914,7 @@ class TestGui(GuiTestBase):
         unknown_key = "key-1234"
         self.device_selection.insert(
             DeviceGroupEntry(self.message_broker, self.controller, None, unknown_key),
-            0
+            0,
             # 0, [unknown_key, None, "foo"]
         )
 
