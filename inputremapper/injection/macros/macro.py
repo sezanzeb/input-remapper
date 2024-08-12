@@ -469,7 +469,12 @@ class Macro:
         self.tasks.append(lambda handler: handler(type_, code, value))
         self.tasks.append(self._keycode_pause)
 
-    def add_mouse(self, direction: str, speed: int, acceleration: Optional[float] = None):
+    def add_mouse(
+        self,
+        direction: str,
+        speed: int,
+        acceleration: Optional[float] = None,
+    ):
         """Move the mouse cursor."""
         _type_check(direction, [str], "mouse", 1)
         speed = _type_check(speed, [int], "mouse", 2)
@@ -494,6 +499,10 @@ class Macro:
                 displacement = resolved_speed
 
             while self.is_holding():
+                # Cursors can only move by integers. To get smooth acceleration for
+                # small acceleration values, the cursor needs to move by a pixel every
+                # few iterations. This can be achieved by remembering the decimal
+                # places that were cast away, and using them for the next iteration.
                 if resolved_accel and current_speed < resolved_speed:
                     current_speed += resolved_accel
                     current_speed = min(current_speed, resolved_speed)

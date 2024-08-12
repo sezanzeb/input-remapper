@@ -1021,7 +1021,10 @@ class TestMacros(MacroTestBase):
         await asyncio.sleep(sleep)
         self.assertTrue(macro_1.is_holding())
         macro_1.release_trigger()
-        self.assertEqual([(2, 1, 0), (2, 1, -2), (2, 1, -3), (2, 1, -4), (2, 1, -4), (2, 1, -5)], self.result)
+        self.assertEqual(
+            [(2, 1, 0), (2, 1, -2), (2, 1, -3), (2, 1, -4), (2, 1, -4), (2, 1, -5)],
+            self.result,
+        )
 
     async def test_event_1(self):
         macro = parse("e(EV_KEY, KEY_A, 1)", self.context, DummyMapping)
