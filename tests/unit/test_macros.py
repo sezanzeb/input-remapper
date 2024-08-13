@@ -1012,6 +1012,20 @@ class TestMacros(MacroTestBase):
             actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 1.1
         )
 
+    async def test_mouse_accel(self):
+        macro_1 = parse("mouse(up, 10, 0.9)", self.context, DummyMapping)
+        macro_1.press_trigger()
+        asyncio.ensure_future(macro_1.run(self.handler))
+
+        sleep = 0.1
+        await asyncio.sleep(sleep)
+        self.assertTrue(macro_1.is_holding())
+        macro_1.release_trigger()
+        self.assertEqual(
+            [(2, 1, 0), (2, 1, -2), (2, 1, -3), (2, 1, -4), (2, 1, -4), (2, 1, -5)],
+            self.result,
+        )
+
     async def test_event_1(self):
         macro = parse("e(EV_KEY, KEY_A, 1)", self.context, DummyMapping)
         a_code = system_mapping.get("a")
