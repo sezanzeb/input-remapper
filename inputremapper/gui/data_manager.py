@@ -188,7 +188,7 @@ class DataManager:
         device_folder = get_preset_path(self.active_group.name)
         mkdir(device_folder)
 
-        paths = glob.glob(os.path.join(device_folder, "*.json"))
+        paths = glob.glob(os.path.join(glob.escape(device_folder), "*.json"))
         presets = [
             os.path.splitext(os.path.basename(path))[0]
             for path in sorted(paths, key=os.path.getmtime)
@@ -232,7 +232,7 @@ class DataManager:
     def get_newest_group_key(self) -> GroupKey:
         """group_key of the group with the most recently modified preset."""
         paths = []
-        for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
+        for path in glob.glob(os.path.join(glob.escape(get_preset_path()), "*/*.json")):
             if self._reader_client.groups.find(key=split_all(path)[-2]):
                 paths.append((path, os.path.getmtime(path)))
 
@@ -250,7 +250,7 @@ class DataManager:
         paths = [
             (path, os.path.getmtime(path))
             for path in glob.glob(
-                os.path.join(get_preset_path(self.active_group.name), "*.json")
+                os.path.join(glob.escape(get_preset_path(self.active_group.name)), "*.json")
             )
         ]
         if not paths:
