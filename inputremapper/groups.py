@@ -388,12 +388,11 @@ class _FindGroups(threading.Thread):
             key_capa = capabilities.get(EV_KEY)
             abs_capa = capabilities.get(EV_ABS)
             rel_capa = capabilities.get(EV_REL)
-            
+
             if (
                 key_capa is None
                 and abs_capa is None
                 and rel_capa is None
-                and device_type != DeviceType.GAMEPAD
             ):
                 # skip devices that don't provide buttons or axes that can be mapped
                 logger.debug('"%s" has no useful capabilities', device.name)
