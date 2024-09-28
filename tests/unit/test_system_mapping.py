@@ -26,11 +26,13 @@ from unittest.mock import patch
 
 from evdev.ecodes import BTN_LEFT, KEY_A
 
-from inputremapper.configs.paths import CONFIG_PATH
+from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
 from tests.lib.cleanup import quick_cleanup
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestSystemMapping(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
@@ -44,7 +46,7 @@ class TestSystemMapping(unittest.TestCase):
 
     def test_xmodmap_file(self):
         system_mapping = SystemMapping()
-        path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+        path = os.path.join(PathUtils.config_path(), XMODMAP_FILENAME)
         os.remove(path)
 
         system_mapping.populate()
@@ -70,7 +72,7 @@ class TestSystemMapping(unittest.TestCase):
 
         with patch.object(subprocess, "check_output", check_output):
             system_mapping = SystemMapping()
-            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+            path = os.path.join(PathUtils.config_path(), XMODMAP_FILENAME)
             os.remove(path)
 
             system_mapping.populate()
@@ -83,7 +85,7 @@ class TestSystemMapping(unittest.TestCase):
 
         with patch.object(subprocess, "check_output", check_output):
             system_mapping = SystemMapping()
-            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+            path = os.path.join(PathUtils.config_path(), XMODMAP_FILENAME)
             os.remove(path)
 
             system_mapping.populate()

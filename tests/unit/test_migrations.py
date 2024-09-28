@@ -12,16 +12,15 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.tmp import tmp
 
-import os
-import unittest
-import shutil
 import json
-import pkg_resources
+import os
+import shutil
+import unittest
 
+import pkg_resources
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -35,40 +34,33 @@ from evdev.ecodes import (
     REL_Y,
     REL_WHEEL_HI_RES,
     REL_HWHEEL_HI_RES,
-    KEY_A,
 )
 
-from inputremapper.configs.mapping import UIMapping
-from inputremapper.configs.migrations import migrate, config_version
-from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config
-from inputremapper.configs.paths import (
-    touch,
-    CONFIG_PATH,
-    mkdir,
-    get_preset_path,
-    get_config_path,
-    remove,
-)
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.user import HOME
+from inputremapper.configs.mapping import UIMapping
+from inputremapper.configs.migrations import Migrations
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.preset import Preset
+from inputremapper.logger.logger import VERSION
+from inputremapper.user import UserUtils
+from tests.new_test import setup_tests
 
-from inputremapper.logger import VERSION
 
-
+@setup_tests
 class TestMigrations(unittest.TestCase):
     def setUp(self):
         # some extra care to ensure those tests are not destroying actual presets
-        self.assertTrue(HOME.startswith("/tmp"))
-        self.assertTrue(CONFIG_PATH.startswith("/tmp"))
-        self.assertTrue(get_preset_path().startswith("/tmp"))
-        self.assertTrue(get_preset_path("foo", "bar").startswith("/tmp"))
-        self.assertTrue(get_config_path().startswith("/tmp"))
-        self.assertTrue(get_config_path("foo").startswith("/tmp"))
+        self.assertTrue(UserUtils.home.startswith("/tmp"))
+        self.assertTrue(PathUtils.config_path().startswith("/tmp"))
+        self.assertTrue(PathUtils.get_preset_path().startswith("/tmp"))
+        self.assertTrue(PathUtils.get_preset_path("foo", "bar").startswith("/tmp"))
+        self.assertTrue(PathUtils.get_config_path().startswith("/tmp"))
+        self.assertTrue(PathUtils.get_config_path("foo").startswith("/tmp"))
 
-        self.v1_dir = os.path.join(HOME, ".config", "input-remapper")
+        self.v1_dir = os.path.join(UserUtils.home, ".config", "input-remapper")
         self.beta_dir = os.path.join(
-            HOME, ".config", "input-remapper", "beta_1.6.0-beta"
+            UserUtils.home, ".config", "input-remapper", "beta_1.6.0-beta"
         )
 
     def tearDown(self):
@@ -76,25 +68,25 @@ class TestMigrations(unittest.TestCase):
         self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
 
     def test_migrate_suffix(self):
-        old = os.path.join(CONFIG_PATH, "config")
-        new = os.path.join(CONFIG_PATH, "config.json")
+        old = os.path.join(PathUtils.config_path(), "config")
+        new = os.path.join(PathUtils.config_path(), "config.json")
 
         try:
             os.remove(new)
         except FileNotFoundError:
             pass
 
-        touch(old)
+        PathUtils.touch(old)
         with open(old, "w") as f:
             f.write("{}")
 
-        migrate()
+        Migrations.migrate()
         self.assertTrue(os.path.exists(new))
         self.assertFalse(os.path.exists(old))
 
     def test_rename_config(self):
-        old = os.path.join(HOME, ".config", "key-mapper")
-        new = CONFIG_PATH
+        old = os.path.join(UserUtils.home, ".config", "key-mapper")
+        new = PathUtils.config_path()
 
         # we are not destroying our actual config files with this test
         self.assertTrue(new.startswith(tmp), f'Expected "{new}" to start with "{tmp}"')
@@ -105,11 +97,11 @@ class TestMigrations(unittest.TestCase):
             pass
 
         old_config_json = os.path.join(old, "config.json")
-        touch(old_config_json)
+        PathUtils.touch(old_config_json)
         with open(old_config_json, "w") as f:
             f.write('{"foo":"bar"}')
 
-        migrate()
+        Migrations.migrate()
 
         self.assertTrue(os.path.exists(new))
         self.assertFalse(os.path.exists(old))
@@ -120,29 +112,29 @@ class TestMigrations(unittest.TestCase):
             self.assertEqual(moved_config["foo"], "bar")
 
     def test_wont_migrate_suffix(self):
-        old = os.path.join(CONFIG_PATH, "config")
-        new = os.path.join(CONFIG_PATH, "config.json")
+        old = os.path.join(PathUtils.config_path(), "config")
+        new = os.path.join(PathUtils.config_path(), "config.json")
 
-        touch(new)
+        PathUtils.touch(new)
         with open(new, "w") as f:
             f.write("{}")
 
-        touch(old)
+        PathUtils.touch(old)
         with open(old, "w") as f:
             f.write("{}")
 
-        migrate()
+        Migrations.migrate()
         self.assertTrue(os.path.exists(new))
         self.assertTrue(os.path.exists(old))
 
     def test_migrate_preset(self):
-        if os.path.exists(CONFIG_PATH):
-            shutil.rmtree(CONFIG_PATH)
+        if os.path.exists(PathUtils.config_path()):
+            shutil.rmtree(PathUtils.config_path())
 
-        p1 = os.path.join(CONFIG_PATH, "foo1", "bar1.json")
-        p2 = os.path.join(CONFIG_PATH, "foo2", "bar2.json")
-        touch(p1)
-        touch(p2)
+        p1 = os.path.join(PathUtils.config_path(), "foo1", "bar1.json")
+        p2 = os.path.join(PathUtils.config_path(), "foo2", "bar2.json")
+        PathUtils.touch(p1)
+        PathUtils.touch(p2)
 
         with open(p1, "w") as f:
             f.write("{}")
@@ -150,26 +142,34 @@ class TestMigrations(unittest.TestCase):
         with open(p2, "w") as f:
             f.write("{}")
 
-        migrate()
+        Migrations.migrate()
 
-        self.assertFalse(os.path.exists(os.path.join(CONFIG_PATH, "foo1", "bar1.json")))
-        self.assertFalse(os.path.exists(os.path.join(CONFIG_PATH, "foo2", "bar2.json")))
+        self.assertFalse(
+            os.path.exists(os.path.join(PathUtils.config_path(), "foo1", "bar1.json"))
+        )
+        self.assertFalse(
+            os.path.exists(os.path.join(PathUtils.config_path(), "foo2", "bar2.json"))
+        )
 
         self.assertTrue(
-            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo1", "bar1.json")),
+            os.path.exists(
+                os.path.join(PathUtils.config_path(), "presets", "foo1", "bar1.json")
+            ),
         )
         self.assertTrue(
-            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo2", "bar2.json")),
+            os.path.exists(
+                os.path.join(PathUtils.config_path(), "presets", "foo2", "bar2.json")
+            ),
         )
 
     def test_wont_migrate_preset(self):
-        if os.path.exists(CONFIG_PATH):
-            shutil.rmtree(CONFIG_PATH)
+        if os.path.exists(PathUtils.config_path()):
+            shutil.rmtree(PathUtils.config_path())
 
-        p1 = os.path.join(CONFIG_PATH, "foo1", "bar1.json")
-        p2 = os.path.join(CONFIG_PATH, "foo2", "bar2.json")
-        touch(p1)
-        touch(p2)
+        p1 = os.path.join(PathUtils.config_path(), "foo1", "bar1.json")
+        p2 = os.path.join(PathUtils.config_path(), "foo2", "bar2.json")
+        PathUtils.touch(p1)
+        PathUtils.touch(p2)
 
         with open(p1, "w") as f:
             f.write("{}")
@@ -178,18 +178,26 @@ class TestMigrations(unittest.TestCase):
             f.write("{}")
 
         # already migrated
-        mkdir(os.path.join(CONFIG_PATH, "presets"))
+        PathUtils.mkdir(os.path.join(PathUtils.config_path(), "presets"))
 
-        migrate()
+        Migrations.migrate()
 
-        self.assertTrue(os.path.exists(os.path.join(CONFIG_PATH, "foo1", "bar1.json")))
-        self.assertTrue(os.path.exists(os.path.join(CONFIG_PATH, "foo2", "bar2.json")))
+        self.assertTrue(
+            os.path.exists(os.path.join(PathUtils.config_path(), "foo1", "bar1.json"))
+        )
+        self.assertTrue(
+            os.path.exists(os.path.join(PathUtils.config_path(), "foo2", "bar2.json"))
+        )
 
         self.assertFalse(
-            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo1", "bar1.json")),
+            os.path.exists(
+                os.path.join(PathUtils.config_path(), "presets", "foo1", "bar1.json")
+            ),
         )
         self.assertFalse(
-            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo2", "bar2.json")),
+            os.path.exists(
+                os.path.join(PathUtils.config_path(), "presets", "foo2", "bar2.json")
+            ),
         )
 
     def test_migrate_mappings(self):
@@ -199,7 +207,9 @@ class TestMigrations(unittest.TestCase):
         {(type, code): symbol} or {(type, code, value): symbol} should migrate
         to {InputCombination: {target: target, symbol: symbol, ...}}
         """
-        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
+        path = os.path.join(
+            PathUtils.config_path(), "presets", "Foo Device", "test.json"
+        )
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump(
@@ -222,9 +232,9 @@ class TestMigrations(unittest.TestCase):
                 },
                 file,
             )
-        migrate()
+        Migrations.migrate()
         # use UIMapping to also load invalid mappings
-        preset = Preset(get_preset_path("Foo Device", "test"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
         preset.load()
 
         self.assertEqual(
@@ -311,7 +321,9 @@ class TestMigrations(unittest.TestCase):
         self.assertEqual(8, len(preset))
 
     def test_migrate_otherwise(self):
-        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
+        path = os.path.join(
+            PathUtils.config_path(), "presets", "Foo Device", "test.json"
+        )
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump(
@@ -327,9 +339,9 @@ class TestMigrations(unittest.TestCase):
                 file,
             )
 
-        migrate()
+        Migrations.migrate()
 
-        preset = Preset(get_preset_path("Foo Device", "test"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
         preset.load()
 
         self.assertEqual(
@@ -374,39 +386,45 @@ class TestMigrations(unittest.TestCase):
         )
 
     def test_add_version(self):
-        path = os.path.join(CONFIG_PATH, "config.json")
+        path = os.path.join(PathUtils.config_path(), "config.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             file.write("{}")
 
-        migrate()
-        self.assertEqual(pkg_resources.parse_version(VERSION), config_version())
+        Migrations.migrate()
+        self.assertEqual(
+            pkg_resources.parse_version(VERSION), Migrations.config_version()
+        )
 
     def test_update_version(self):
-        path = os.path.join(CONFIG_PATH, "config.json")
+        path = os.path.join(PathUtils.config_path(), "config.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump({"version": "0.1.0"}, file)
 
-        migrate()
-        self.assertEqual(pkg_resources.parse_version(VERSION), config_version())
+        Migrations.migrate()
+        self.assertEqual(
+            pkg_resources.parse_version(VERSION), Migrations.config_version()
+        )
 
     def test_config_version(self):
-        path = os.path.join(CONFIG_PATH, "config.json")
+        path = os.path.join(PathUtils.config_path(), "config.json")
         with open(path, "w") as file:
             file.write("{}")
 
-        self.assertEqual("0.0.0", config_version().public)
+        self.assertEqual("0.0.0", Migrations.config_version().public)
 
         try:
             os.remove(path)
         except FileNotFoundError:
             pass
 
-        self.assertEqual("0.0.0", config_version().public)
+        self.assertEqual("0.0.0", Migrations.config_version().public)
 
     def test_migrate_left_and_right_purpose(self):
-        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
+        path = os.path.join(
+            PathUtils.config_path(), "presets", "Foo Device", "test.json"
+        )
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump(
@@ -423,9 +441,9 @@ class TestMigrations(unittest.TestCase):
                 },
                 file,
             )
-        migrate()
+        Migrations.migrate()
 
-        preset = Preset(get_preset_path("Foo Device", "test"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
         preset.load()
         # 2 mappings for mouse
         # 2 mappings for wheel
@@ -490,7 +508,9 @@ class TestMigrations(unittest.TestCase):
     def test_migrate_left_and_right_purpose2(self):
         # same as above, but left and right is swapped
 
-        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
+        path = os.path.join(
+            PathUtils.config_path(), "presets", "Foo Device", "test.json"
+        )
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump(
@@ -507,9 +527,9 @@ class TestMigrations(unittest.TestCase):
                 },
                 file,
             )
-        migrate()
+        Migrations.migrate()
 
-        preset = Preset(get_preset_path("Foo Device", "test"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
         preset.load()
         # 2 mappings for mouse
         # 2 mappings for wheel
@@ -575,7 +595,7 @@ class TestMigrations(unittest.TestCase):
         """Create all files needed to mimic an outdated v1 configuration."""
         device_name = "device_name"
 
-        mkdir(os.path.join(self.v1_dir, "presets", device_name))
+        PathUtils.mkdir(os.path.join(self.v1_dir, "presets", device_name))
         v1_config = {"autoload": {device_name: "foo"}, "version": "1.0"}
         with open(os.path.join(self.v1_dir, "config.json"), "w") as file:
             json.dump(v1_config, file)
@@ -591,7 +611,7 @@ class TestMigrations(unittest.TestCase):
         device_name = "device_name"
 
         # same here, but a different contents to tell the difference
-        mkdir(os.path.join(self.beta_dir, "presets", device_name))
+        PathUtils.mkdir(os.path.join(self.beta_dir, "presets", device_name))
         beta_config = {"autoload": {device_name: "bar"}, "version": "1.6"}
         with open(os.path.join(self.beta_dir, "config.json"), "w") as file:
             json.dump(beta_config, file)
@@ -614,20 +634,20 @@ class TestMigrations(unittest.TestCase):
 
     def test_prioritize_v1_over_beta_configs(self):
         # if both v1 and beta presets and config exist, migrate v1
-        remove(get_config_path())
+        PathUtils.remove(PathUtils.get_config_path())
 
         device_name = "device_name"
         self._create_v1_setup()
         self._create_beta_setup()
 
-        self.assertFalse(os.path.exists(get_preset_path(device_name, "foo")))
-        self.assertFalse(os.path.exists(get_config_path("config.json")))
+        self.assertFalse(os.path.exists(PathUtils.get_preset_path(device_name, "foo")))
+        self.assertFalse(os.path.exists(PathUtils.get_config_path("config.json")))
 
-        migrate()
+        Migrations.migrate()
 
-        self.assertTrue(os.path.exists(get_preset_path(device_name, "foo")))
-        self.assertTrue(os.path.exists(get_config_path("config.json")))
-        self.assertFalse(os.path.exists(get_preset_path(device_name, "bar")))
+        self.assertTrue(os.path.exists(PathUtils.get_preset_path(device_name, "foo")))
+        self.assertTrue(os.path.exists(PathUtils.get_config_path("config.json")))
+        self.assertFalse(os.path.exists(PathUtils.get_preset_path(device_name, "bar")))
 
         # expect all original files to still exist
         self.assertTrue(os.path.join(self.v1_dir, "config.json"))
@@ -636,13 +656,13 @@ class TestMigrations(unittest.TestCase):
         self.assertTrue(os.path.join(self.beta_dir, "presets", "bar.json"))
 
         # v1 configs should be in the v2 dir now, and migrated
-        with open(get_config_path("config.json"), "r") as f:
+        with open(PathUtils.get_config_path("config.json"), "r") as f:
             config_json = json.load(f)
             self.assertDictEqual(
                 config_json, {"autoload": {device_name: "foo"}, "version": VERSION}
             )
-        with open(get_preset_path(device_name, "foo.json"), "r") as f:
-            os.system(f'cat { get_preset_path(device_name, "foo.json") }')
+        with open(PathUtils.get_preset_path(device_name, "foo.json"), "r") as f:
+            os.system(f'cat { PathUtils.get_preset_path(device_name, "foo.json") }')
             preset_foo_json = json.load(f)
             self.assertEqual(
                 preset_foo_json,
@@ -661,31 +681,31 @@ class TestMigrations(unittest.TestCase):
     def test_copy_over_beta_configs(self):
         # same as test_prioritize_v1_over_beta_configs, but only create the beta
         # directory without any v1 presets.
-        remove(get_config_path())
+        PathUtils.remove(PathUtils.get_config_path())
 
         device_name = "device_name"
         self._create_beta_setup()
 
-        self.assertFalse(os.path.exists(get_preset_path(device_name, "bar")))
-        self.assertFalse(os.path.exists(get_config_path("config.json")))
+        self.assertFalse(os.path.exists(PathUtils.get_preset_path(device_name, "bar")))
+        self.assertFalse(os.path.exists(PathUtils.get_config_path("config.json")))
 
-        migrate()
+        Migrations.migrate()
 
-        self.assertTrue(os.path.exists(get_preset_path(device_name, "bar")))
-        self.assertTrue(os.path.exists(get_config_path("config.json")))
+        self.assertTrue(os.path.exists(PathUtils.get_preset_path(device_name, "bar")))
+        self.assertTrue(os.path.exists(PathUtils.get_config_path("config.json")))
 
         # expect all original files to still exist
         self.assertTrue(os.path.join(self.beta_dir, "config.json"))
         self.assertTrue(os.path.join(self.beta_dir, "presets", "bar.json"))
 
         # beta configs should be in the v2 dir now
-        with open(get_config_path("config.json"), "r") as f:
+        with open(PathUtils.get_config_path("config.json"), "r") as f:
             config_json = json.load(f)
             self.assertDictEqual(
                 config_json, {"autoload": {device_name: "bar"}, "version": VERSION}
             )
-        with open(get_preset_path(device_name, "bar.json"), "r") as f:
-            os.system(f'cat { get_preset_path(device_name, "bar.json") }')
+        with open(PathUtils.get_preset_path(device_name, "bar.json"), "r") as f:
+            os.system(f'cat { PathUtils.get_preset_path(device_name, "bar.json") }')
             preset_foo_json = json.load(f)
             self.assertEqual(
                 preset_foo_json,

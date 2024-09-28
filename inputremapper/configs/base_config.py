@@ -22,7 +22,7 @@ from __future__ import annotations
 import copy
 from typing import Union, List, Optional, Callable, Any
 
-from inputremapper.logger import logger, VERSION
+from inputremapper.logger.logger import logger, VERSION
 
 NONE = "none"
 

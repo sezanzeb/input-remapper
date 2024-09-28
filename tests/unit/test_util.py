@@ -24,8 +24,10 @@ import unittest
 from evdev._ecodes import EV_ABS, ABS_X, BTN_WEST, BTN_Y, EV_KEY, KEY_A
 
 from inputremapper.utils import get_evdev_constant_name
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestUtil(unittest.TestCase):
     def test_get_evdev_constant_name(self):
         # BTN_WEST and BTN_Y both are code 308. I don't care which one is chosen

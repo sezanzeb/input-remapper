@@ -52,7 +52,7 @@ from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from inputremapper.configs.mapping import UIMapping, MappingData, MappingType, Mapping
+from inputremapper.configs.mapping import UIMapping, MappingData, Mapping
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.stuff import spy
 from tests.lib.patches import FakeDaemonProxy
@@ -60,10 +60,12 @@ from tests.lib.fixtures import fixtures, prepare_presets
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
-from inputremapper.configs.paths import get_preset_path, CONFIG_PATH
+from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestController(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -231,7 +233,7 @@ class TestController(unittest.TestCase):
 
     def test_on_load_preset_should_provide_default_mapping(self):
         """If there is none."""
-        Preset(get_preset_path("Foo Device", "bar")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "bar")).save()
         self.data_manager.load_group("Foo Device 2")
         calls: List[MappingData] = []
 
@@ -253,7 +255,9 @@ class TestController(unittest.TestCase):
 
     def test_deletes_preset_when_confirmed(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
@@ -261,32 +265,46 @@ class TestController(unittest.TestCase):
             MessageType.user_confirm_request, lambda msg: msg.respond(True)
         )
         self.controller.delete_preset()
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertFalse(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
     def test_does_not_delete_preset_when_not_confirmed(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
         self.user_interface.confirm_delete.configure_mock(
             return_value=Gtk.ResponseType.CANCEL
         )
         self.controller.delete_preset()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
     def test_copy_preset(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
         self.controller.copy_preset()
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy"))
+        )
 
     def test_copy_preset_should_add_number(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
@@ -294,13 +312,21 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.controller.copy_preset()  # creates "preset2 copy 2"
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 2")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy 2"))
+        )
 
     def test_copy_preset_should_increment_existing_number(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
@@ -310,27 +336,45 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.controller.copy_preset()  # creates "preset2 copy 3"
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 3")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy 2"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy 3"))
+        )
 
     def test_copy_preset_should_not_append_copy_twice(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
         self.controller.copy_preset()  # creates "preset2 copy"
         self.controller.copy_preset()  # creates "preset2 copy 2" not "preset2 copy copy"
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 2")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy 2"))
+        )
 
     def test_copy_preset_should_not_append_copy_to_copy_with_number(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
@@ -339,28 +383,42 @@ class TestController(unittest.TestCase):
         self.controller.copy_preset()  # creates "preset2 copy 2"
         self.controller.copy_preset()  # creates "preset2 copy 3" not "preset2 copy 2 copy"
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 3")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy 2"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 copy 3"))
+        )
 
     def test_rename_preset(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "foo")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertFalse(os.path.exists(PathUtils.get_preset_path("Foo Device", "foo")))
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
         self.controller.rename_preset(new_name="foo")
 
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "foo")))
+        self.assertFalse(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertTrue(os.path.exists(PathUtils.get_preset_path("Foo Device", "foo")))
 
     def test_rename_preset_sanitized(self):
-        Preset(get_preset_path("Qux/Device?", "bla")).save()
+        Preset(PathUtils.get_preset_path("Qux/Device?", "bla")).save()
 
-        self.assertTrue(os.path.isfile(get_preset_path("Qux/Device?", "bla")))
-        self.assertFalse(os.path.exists(get_preset_path("Qux/Device?", "blubb")))
+        self.assertTrue(os.path.isfile(PathUtils.get_preset_path("Qux/Device?", "bla")))
+        self.assertFalse(
+            os.path.exists(PathUtils.get_preset_path("Qux/Device?", "blubb"))
+        )
 
         self.data_manager.load_group("Qux/Device?")
         self.data_manager.load_preset("bla")
@@ -368,70 +426,102 @@ class TestController(unittest.TestCase):
 
         # all functions expect the true name, which is also shown to the user, but on
         # the file system it always uses sanitized names.
-        self.assertTrue(os.path.exists(get_preset_path("Qux/Device?", "foo__bar")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Qux/Device?", "foo__bar"))
+        )
 
         # since the name is never stored in an un-sanitized way, this can't work
-        self.assertFalse(os.path.exists(get_preset_path("Qux/Device?", "foo:/bar")))
+        self.assertFalse(
+            os.path.exists(PathUtils.get_preset_path("Qux/Device?", "foo:/bar"))
+        )
 
-        path = os.path.join(CONFIG_PATH, "presets", "Qux_Device_", "foo__bar.json")
+        path = os.path.join(
+            PathUtils.config_path(), "presets", "Qux_Device_", "foo__bar.json"
+        )
         self.assertTrue(os.path.exists(path))
 
         # using the sanitized name in function calls works as well
-        self.assertTrue(os.path.isfile(get_preset_path("Qux_Device_", "foo__bar")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Qux_Device_", "foo__bar"))
+        )
 
     def test_rename_preset_should_pick_available_name(self):
         prepare_presets()
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset3 2")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3"))
+        )
+        self.assertFalse(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3 2"))
+        )
 
         self.data_manager.load_group("Foo Device")
         self.data_manager.load_preset("preset2")
         self.controller.rename_preset(new_name="preset3")
 
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3 2")))
+        self.assertFalse(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3"))
+        )
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3 2"))
+        )
 
     def test_rename_preset_should_not_rename_to_empty_name(self):
         prepare_presets()
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
         self.data_manager.load_group("Foo Device")
         self.data_manager.load_preset("preset2")
         self.controller.rename_preset(new_name="")
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
     def test_rename_preset_should_not_update_same_name(self):
         """When the new name is the same as the current name."""
         prepare_presets()
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
         self.controller.rename_preset(new_name="preset2")
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2 2")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
+        self.assertFalse(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset2 2"))
+        )
 
     def test_on_add_preset_uses_default_name(self):
         self.assertFalse(
-            os.path.exists(get_preset_path("Foo Device", DEFAULT_PRESET_NAME))
+            os.path.exists(PathUtils.get_preset_path("Foo Device", DEFAULT_PRESET_NAME))
         )
 
         self.data_manager.load_group("Foo Device 2")
 
         self.controller.add_preset()
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "new preset")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "new preset"))
+        )
 
     def test_on_add_preset_uses_provided_name(self):
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "foo")))
+        self.assertFalse(os.path.exists(PathUtils.get_preset_path("Foo Device", "foo")))
 
         self.data_manager.load_group("Foo Device 2")
 
         self.controller.add_preset(name="foo")
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "foo")))
+        self.assertTrue(os.path.exists(PathUtils.get_preset_path("Foo Device", "foo")))
 
     def test_on_add_preset_shows_permission_error_status(self):
         self.data_manager.load_group("Foo Device 2")
@@ -513,7 +603,9 @@ class TestController(unittest.TestCase):
 
     def test_deletes_mapping_when_confirmed(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
@@ -524,7 +616,7 @@ class TestController(unittest.TestCase):
         self.controller.delete_mapping()
         self.controller.save()
 
-        preset = Preset(get_preset_path("Foo Device", "preset2"))
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"))
         preset.load()
         self.assertIsNone(
             preset.get_mapping(InputCombination([InputConfig(type=1, code=3)]))
@@ -532,7 +624,9 @@ class TestController(unittest.TestCase):
 
     def test_does_not_delete_mapping_when_not_confirmed(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Foo Device", "preset2"))
+        )
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
@@ -544,7 +638,7 @@ class TestController(unittest.TestCase):
         self.controller.delete_mapping()
         self.controller.save()
 
-        preset = Preset(get_preset_path("Foo Device", "preset2"))
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"))
         preset.load()
         self.assertIsNotNone(
             preset.get_mapping(InputCombination([InputConfig(type=1, code=3)]))

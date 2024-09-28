@@ -20,7 +20,6 @@
 from evdev._ecodes import EV_ABS
 
 from inputremapper.input_event import InputEvent
-from tests.test import is_service_running
 from tests.lib.logger import logger
 from tests.lib.cleanup import cleanup
 from tests.lib.fixtures import Fixture
@@ -42,26 +41,27 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
-from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
+from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import InjectorState
 from inputremapper.daemon import Daemon
 from inputremapper.injection.global_uinputs import global_uinputs
-
+from tests.new_test import setup_tests, is_service_running
 
 check_output = subprocess.check_output
 os_system = os.system
 dbus_get = type(SystemBus()).get
 
 
+@setup_tests
 class TestDaemon(unittest.TestCase):
     new_fixture_path = "/dev/input/event9876"
 
     def setUp(self):
         self.grab = evdev.InputDevice.grab
         self.daemon = None
-        mkdir(get_config_path())
+        PathUtils.mkdir(PathUtils.get_config_path())
         global_config._save_config()
 
         # the daemon should be able to create them on demand:
@@ -112,8 +112,8 @@ class TestDaemon(unittest.TestCase):
 
     def test_daemon(self):
         # remove the existing system mapping to force our own into it
-        if os.path.exists(get_config_path("xmodmap.json")):
-            os.remove(get_config_path("xmodmap.json"))
+        if os.path.exists(PathUtils.get_config_path("xmodmap.json")):
+            os.remove(PathUtils.get_config_path("xmodmap.json"))
 
         preset_name = "foo"
 
@@ -217,12 +217,12 @@ class TestDaemon(unittest.TestCase):
         # This is important so that if the service is started via sudo or pkexec
         # it knows where to look for configuration files.
         self.daemon = Daemon()
-        self.assertEqual(self.daemon.config_dir, get_config_path())
+        self.assertEqual(self.daemon.config_dir, PathUtils.get_config_path())
         self.assertIsNone(global_config.get("foo"))
 
     def test_refresh_on_start(self):
-        if os.path.exists(get_config_path("xmodmap.json")):
-            os.remove(get_config_path("xmodmap.json"))
+        if os.path.exists(PathUtils.get_config_path("xmodmap.json")):
+            os.remove(PathUtils.get_config_path("xmodmap.json"))
 
         preset_name = "foo"
         key_code = 9
@@ -238,7 +238,7 @@ class TestDaemon(unittest.TestCase):
         system_mapping.clear()
         system_mapping._set("a", KEY_A)
 
-        preset = Preset(get_preset_path(group_name, preset_name))
+        preset = Preset(PathUtils.get_preset_path(group_name, preset_name))
         preset.add(
             Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=key_code)]),
@@ -248,7 +248,7 @@ class TestDaemon(unittest.TestCase):
         )
 
         # make the daemon load the file instead
-        with open(get_config_path("xmodmap.json"), "w") as file:
+        with open(PathUtils.get_config_path("xmodmap.json"), "w") as file:
             json.dump(system_mapping._mapping, file, indent=4)
         system_mapping.clear()
 

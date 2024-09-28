@@ -64,10 +64,10 @@ from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbs
 from inputremapper.input_event import InputEvent, EventActions
 
 from tests.lib.cleanup import cleanup
-from tests.lib.logger import logger
 from tests.lib.patches import InputDevice
 from tests.lib.constants import MAX_ABS
 from tests.lib.fixtures import fixtures
+from tests.new_test import setup_tests
 
 
 class BaseTests:
@@ -90,6 +90,7 @@ class BaseTests:
         mock.reset.assert_called()
 
 
+@setup_tests
 class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
@@ -110,6 +111,7 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         )
 
 
+@setup_tests
 class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
@@ -125,6 +127,7 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         )
 
 
+@setup_tests
 class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination([InputConfig(type=EV_ABS, code=ABS_X)])
@@ -151,6 +154,7 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         )
 
 
+@setup_tests
 class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination([InputConfig(type=EV_REL, code=REL_X)])
@@ -214,6 +218,7 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.handler._observed_rate, DEFAULT_REL_RATE)
 
 
+@setup_tests
 class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination([InputConfig(type=EV_ABS, code=ABS_X)])
@@ -242,6 +247,7 @@ class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(count, global_uinputs.get_uinput("mouse").write_count)
 
 
+@setup_tests
 class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     handler: CombinationHandler
 
@@ -382,6 +388,7 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.assertListEqual(uinputs[self.keyboard_hash].write_history, [])
 
 
+@setup_tests
 class TestHierarchyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.mock1 = MagicMock()
@@ -399,6 +406,7 @@ class TestHierarchyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.mock3.reset.assert_called()
 
 
+@setup_tests
 class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
@@ -431,6 +439,7 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(history), 2)
 
 
+@setup_tests
 class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
@@ -470,6 +479,7 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(history), 4)
 
 
+@setup_tests
 class TestRelToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
@@ -485,6 +495,7 @@ class TestRelToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         )
 
 
+@setup_tests
 class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
     handler: RelToRelHandler
 

@@ -43,8 +43,8 @@ except ImportError:
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.configs.paths import touch
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logger.logger import logger
 
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
 
@@ -175,7 +175,7 @@ class Preset(Generic[MappingModel]):
             logger.debug("unable to save preset without a path set Preset.path first")
             return
 
-        touch(self.path)
+        PathUtils.touch(self.path)
         if not self.has_unsaved_changes():
             logger.debug("Not saving unchanged preset")
             return

@@ -47,7 +47,7 @@ from inputremapper.configs.mapping import (
     MissingMacroOrKeyError,
     OutputSymbolVariantError,
 )
-from inputremapper.configs.paths import sanitize_path_component
+from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.validation_errors import pydantify
 from inputremapper.exceptions import DataManagementError
@@ -69,7 +69,7 @@ from inputremapper.injection.injector import (
     InjectorState,
     InjectorStateMessage,
 )
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 
 if TYPE_CHECKING:
     # avoids gtk import error in tests
@@ -494,7 +494,7 @@ class Controller:
         ):
             return
 
-        new_name = sanitize_path_component(new_name)
+        new_name = PathUtils.sanitize_path_component(new_name)
         new_name = self.data_manager.get_available_preset_name(new_name)
         self.data_manager.rename_preset(new_name)
 

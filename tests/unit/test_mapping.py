@@ -40,8 +40,10 @@ from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.gui.messages.message_broker import MessageType
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """Test init and that defaults are set."""
@@ -410,6 +412,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         )
 
 
+@setup_tests
 class TestUIMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """Should be able to initialize without throwing errors."""

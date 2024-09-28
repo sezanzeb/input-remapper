@@ -24,8 +24,10 @@ import os
 import pkg_resources
 
 from inputremapper.configs.data import get_data_path
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestData(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

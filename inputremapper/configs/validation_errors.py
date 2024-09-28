@@ -32,7 +32,7 @@ from typing import Optional
 from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.injection.global_uinputs import find_fitting_default_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 
 
 class OutputSymbolVariantError(ValueError):
@@ -64,7 +64,7 @@ class SymbolNotAvailableInTargetError(ValueError):
     def __init__(self, symbol, target):
         code = system_mapping.get(symbol)
 
-        fitting_targets = find_fitting_default_uinputs(EV_KEY, code)
+        fitting_targets = GlobalUInputs.find_fitting_default_uinputs(EV_KEY, code)
         fitting_targets_string = '", "'.join(fitting_targets)
 
         super().__init__(

@@ -27,7 +27,7 @@ import gi
 
 from gi.repository import Gtk, GLib, Gdk
 
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 
 
 # status ctx ids

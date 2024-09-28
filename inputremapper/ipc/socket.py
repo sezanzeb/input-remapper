@@ -57,8 +57,8 @@ import socket
 import time
 from typing import Union
 
-from inputremapper.configs.paths import mkdir, chown
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logger.logger import logger
 
 # something funny that most likely won't appear in messages.
 # also add some ones so that 01 in the payload won't offset
@@ -82,7 +82,7 @@ class Base:
         self._path = path
         self._unread = []
         self.unsent = []
-        mkdir(os.path.dirname(path))
+        PathUtils.mkdir(os.path.dirname(path))
         self.connection = None
         self.socket = None
         self._created_at = 0
@@ -261,7 +261,7 @@ class _Server(Base):
             _socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             _socket.bind(self._path)
             _socket.listen(1)
-            chown(self._path)
+            PathUtils.chown(self._path)
             logger.debug('Created socket: "%s"', self._path)
             self.socket = _socket
             self.socket.setblocking(False)

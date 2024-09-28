@@ -31,7 +31,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     ContextProtocol,
 )
 from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 from inputremapper.utils import get_device_hash
 
 

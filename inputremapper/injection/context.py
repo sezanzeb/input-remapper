@@ -38,7 +38,7 @@ from inputremapper.injection.mapping_handlers.mapping_parser import (
     parse_mappings,
     EventPipelines,
 )
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 
 
 class Context:

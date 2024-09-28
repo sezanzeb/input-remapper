@@ -25,23 +25,25 @@ import os
 import unittest
 from unittest import mock
 
-from inputremapper.user import get_user, get_home
+from inputremapper.user import UserUtils
+from tests.new_test import setup_tests
 
 
 def _raise(error):
     raise error
 
 
+@setup_tests
 class TestUser(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
 
     def test_get_user(self):
         with mock.patch("os.getlogin", lambda: "foo"):
-            self.assertEqual(get_user(), "foo")
+            self.assertEqual(UserUtils.get_user(), "foo")
 
         with mock.patch("os.getlogin", lambda: "root"):
-            self.assertEqual(get_user(), "root")
+            self.assertEqual(UserUtils.get_user(), "root")
 
         property_mock = mock.Mock()
         property_mock.configure_mock(pw_name="quix")
@@ -50,15 +52,15 @@ class TestUser(unittest.TestCase):
         ):
             os.environ["USER"] = "root"
             os.environ["SUDO_USER"] = "qux"
-            self.assertEqual(get_user(), "qux")
+            self.assertEqual(UserUtils.get_user(), "qux")
 
             os.environ["USER"] = "root"
             del os.environ["SUDO_USER"]
             os.environ["PKEXEC_UID"] = "1000"
-            self.assertNotEqual(get_user(), "root")
+            self.assertNotEqual(UserUtils.get_user(), "root")
 
     def test_get_home(self):
         property_mock = mock.Mock()
         property_mock.configure_mock(pw_dir="/custom/home/foo")
         with mock.patch("pwd.getpwnam", return_value=property_mock):
-            self.assertEqual(get_home("foo"), "/custom/home/foo")
+            self.assertEqual(UserUtils.get_home("foo"), "/custom/home/foo")

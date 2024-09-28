@@ -52,6 +52,14 @@ def setup_pipe(fixture: Fixture):
         pending_events[fixture] = multiprocessing.Pipe()
 
 
+def close_pipe(fixture: Fixture):
+    if fixture in pending_events:
+        pipe1, pipe2 = pending_events[fixture]
+        pipe1.close()
+        pipe2.close()
+        del pending_events[fixture]
+
+
 def get_events():
     """Get all events written by the injector."""
     return uinput_write_history

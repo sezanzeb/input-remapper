@@ -19,16 +19,18 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.tmp import tmp
-
 import os
 import unittest
 
 from inputremapper.configs.global_config import global_config
-from inputremapper.configs.paths import touch
+from inputremapper.configs.paths import PathUtils
+
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.tmp import tmp
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestConfig(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
@@ -122,7 +124,7 @@ class TestConfig(unittest.TestCase):
         )
 
         config_2 = os.path.join(tmp, "config_2.json")
-        touch(config_2)
+        PathUtils.touch(config_2)
         with open(config_2, "w") as f:
             f.write('{"a":"b"}')
 

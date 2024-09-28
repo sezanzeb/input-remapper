@@ -72,7 +72,7 @@ from gi.repository import Gtk, GLib, Gdk, GtkSource
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config_path
+from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
@@ -94,6 +94,7 @@ from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.daemon import Daemon, DaemonProxy
+from tests.new_test import setup_tests
 
 
 # iterate a few times when Gtk.main() is called, but don't block
@@ -191,6 +192,7 @@ class GtkKeyEvent:
         return True, self.keyval
 
 
+@setup_tests
 class TestGroupsFromReaderService(unittest.TestCase):
     def setUp(self):
         # don't try to connect, return an object instance of it instead
@@ -468,6 +470,7 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
 
 
+@setup_tests
 class TestColors(GuiTestBase):
     # requires a running ui, otherwise fails with segmentation faults
     def test_get_color_falls_back(self):
@@ -517,6 +520,7 @@ class TestColors(GuiTestBase):
         self._test_color_wont_fallback(Colors.get_font_color, Colors.fallback_font)
 
 
+@setup_tests
 class TestGui(GuiTestBase):
     """For tests that use the window.
 
@@ -657,7 +661,7 @@ class TestGui(GuiTestBase):
         # it creates the file for that right away. It may have been possible
         # to write it such that it doesn't (its empty anyway), but it does,
         # so use that to test it in more detail.
-        path = get_preset_path("Bar Device", "new preset")
+        path = PathUtils.get_preset_path("Bar Device", "new preset")
         self.assertTrue(os.path.exists(path))
         with open(path, "r") as file:
             self.assertEqual(file.read(), "")
@@ -1443,7 +1447,7 @@ class TestGui(GuiTestBase):
         self.rename_btn.clicked()
         gtk_iteration()
 
-        preset_path = f"{CONFIG_PATH}/presets/Foo Device/foo.json"
+        preset_path = f"{PathUtils.config_path()}/presets/Foo Device/foo.json"
         self.assertTrue(os.path.exists(preset_path))
         error_icon = self.user_interface.get("error_status_icon")
         self.assertFalse(error_icon.get_visible())
@@ -1484,7 +1488,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(warning_icon.get_visible())
 
         # it will still save it though
-        with open(get_preset_path("Foo Device", "preset1")) as f:
+        with open(PathUtils.get_preset_path("Foo Device", "preset1")) as f:
             content = f.read()
             self.assertIn("qux", content)
             self.assertIn("foo", content)
@@ -1780,7 +1784,7 @@ class TestGui(GuiTestBase):
                 # correctly uses group.key, not group.name
                 spy2.assert_called_once_with("Foo Device 2", "preset3")
 
-            spy1.assert_called_once_with(get_config_path())
+            spy1.assert_called_once_with(PathUtils.get_config_path())
 
         for _ in range(10):
             time.sleep(0.1)
@@ -1883,19 +1887,25 @@ class TestGui(GuiTestBase):
 
     def test_delete_preset(self):
         # as per test_initial_state we already have preset3 loaded
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3"))
+        )
 
         with PatchedConfirmDelete(self.user_interface, Gtk.ResponseType.CANCEL):
             self.delete_preset_btn.clicked()
             gtk_iteration()
-            self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
+            self.assertTrue(
+                os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3"))
+            )
             self.assertEqual(self.data_manager.active_preset.name, "preset3")
             self.assertEqual(self.data_manager.active_group.name, "Foo Device")
 
         with PatchedConfirmDelete(self.user_interface):
             self.delete_preset_btn.clicked()
             gtk_iteration()
-            self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset3")))
+            self.assertFalse(
+                os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3"))
+            )
             self.assertEqual(self.data_manager.active_preset.name, "preset2")
             self.assertEqual(self.data_manager.active_group.name, "Foo Device")
 
@@ -1984,14 +1994,14 @@ class TestGui(GuiTestBase):
             self.delete_preset_btn.clicked()
             # the ui should be clean
             self.assert_gui_clean()
-            device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
+            device_path = f"{PathUtils.config_path()}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
             self.delete_preset_btn.clicked()
             gtk_iteration()
             # deleting an empty preset als doesn't do weird stuff
             self.assert_gui_clean()
-            device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
+            device_path = f"{PathUtils.config_path()}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
     def test_enable_disable_output(self):
@@ -2036,6 +2046,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.output_box.get_sensitive())
 
 
+@setup_tests
 class TestAutocompletion(GuiTestBase):
     def press_key(self, keyval):
         event = Gdk.EventKey()
@@ -2249,6 +2260,7 @@ class TestAutocompletion(GuiTestBase):
         )
 
 
+@setup_tests
 class TestDebounce(unittest.TestCase):
     def test_debounce(self):
         calls = 0

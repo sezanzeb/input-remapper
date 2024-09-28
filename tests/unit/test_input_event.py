@@ -23,8 +23,10 @@ import unittest
 import evdev
 from dataclasses import FrozenInstanceError
 from inputremapper.input_event import InputEvent
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestInputEvent(unittest.TestCase):
     def test_from_event(self):
         e1 = InputEvent.from_event(evdev.InputEvent(1, 2, 3, 4, 5))

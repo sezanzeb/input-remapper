@@ -24,9 +24,14 @@ import argparse
 import os
 import sys
 import tracemalloc
+import traceback
 
+traceback.print_stack()
+
+# TODO don't, the decorator should handle it:
 tracemalloc.start()
 
+# TODO this won't be required anymore:
 # ensure nothing has loaded
 if module := sys.modules.get("inputremapper"):
     imported = [m for m in module.__dict__ if not m.startswith("__")]
@@ -61,6 +66,8 @@ def get_project_root():
     raise Exception("Could not find project root")
 
 
+# TODO no, it should be installed locally so that it can be imported properly if really
+#  needed, instead of doing hacky sys.path stuff
 # make sure the "tests" module visible
 sys.path.append(get_project_root())
 if __name__ == "__main__":
@@ -74,19 +81,12 @@ if __name__ == "__main__":
 import unittest
 import subprocess
 
+# TODO don't, the decorator should handle it:
 os.environ["UNITTEST"] = "1"
 
 from tests.lib.fixtures import fixtures
-from tests.lib.pipes import setup_pipe
-from tests.lib.patches import (
-    patch_paths,
-    patch_events,
-    patch_os_system,
-    patch_check_output,
-    patch_regrab_timeout,
-    patch_is_running,
-    patch_evdev,
-)
+from tests.lib.pipes import setup_pipe, close_pipe
+from tests.lib.patches import apply_all_patches
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import update_inputremapper_verbosity
 
@@ -100,15 +100,26 @@ def is_service_running():
         return False
 
 
+# TODO don't, the decorator should handle it:
 if is_service_running():
     # let tests control daemon existance
     raise Exception("Expected the service not to be running already.")
 
 
-# make sure those pipes exist before any process (the reader-service) gets forked,
-# so that events can be pushed after the fork.
-for _fixture in fixtures:
-    setup_pipe(_fixture)
+def create_fixture_pipes():
+    # make sure those pipes exist before any process (the reader-service) gets forked,
+    # so that events can be pushed after the fork.
+    for _fixture in fixtures:
+        setup_pipe(_fixture)
+
+
+def remove_fixture_pipes():
+    for _fixture in fixtures:
+        close_pipe(_fixture)
+
+
+# TODO don't, the decorator should handle it:
+create_fixture_pipes()
 
 
 # applying patches before importing input-remappers modules is important, otherwise
@@ -116,19 +127,23 @@ for _fixture in fixtures:
 # just-in-time in the test-setup functions instead of globally helps. This way,
 # it is ensured that the patches on evdev and such are already applied, without having
 # to take care about ordering the files in a special way.
-patch_paths()
-patch_evdev()
-patch_events()
-patch_os_system()
-patch_check_output()
-patch_regrab_timeout()
-patch_is_running()
-# patch_warnings()
+# TODO
+#  1. The above is why we should wrap everything in classes (including libraries like
+#  evdev that don't follow that pattern) and then use dependency-injection. Some work
+#  on this has been done already, but more is needed.
+#  2. Apply the patches in beforeEach (or a pytest autouse fixture)
+#  - By doing those two things, we might get a test-setup that works automatically
+#  correctly in IDEs. This is horrible. And it has been even more horrible in the past.
+#
+# TODO don't, the decorator should handle it:
+apply_all_patches()
 
-
+# TODO don't, the decorator should handle it:
 update_inputremapper_verbosity()
 
 
+# TODO this shouldn't be needed really. Either use pytest or unittest cli to run
+#  tests, or IDE tools.
 def main():
     cleanup()
     # https://docs.python.org/3/library/argparse.html

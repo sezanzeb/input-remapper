@@ -47,7 +47,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 
 
 class RelToAbsHandler(MappingHandler):

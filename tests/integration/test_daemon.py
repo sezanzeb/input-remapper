@@ -17,9 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-
-from tests.test import is_service_running
+from tests.test import is_service_running, setup_tests
 
 import os
 import multiprocessing
@@ -32,6 +30,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from inputremapper.daemon import Daemon, BUS_NAME
+from tests.new_test import setup_tests
 
 
 def gtk_iteration():
@@ -40,6 +39,8 @@ def gtk_iteration():
         Gtk.main_iteration()
 
 
+@setup_tests
+@setup_tests
 class TestDBusDaemon(unittest.TestCase):
     def setUp(self):
         self.process = multiprocessing.Process(

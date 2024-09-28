@@ -25,8 +25,8 @@ from typing import Optional, List, Iterable, Tuple
 
 import evdev
 
-from inputremapper.configs.paths import get_config_path, touch
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logger.logger import logger
 from inputremapper.utils import is_service
 
 DISABLE_NAME = "disable"
@@ -108,8 +108,8 @@ class SystemMapping:
 
         # Write this stuff into the input-remapper config directory, because
         # the systemd service won't know the user sessions xmodmap.
-        path = get_config_path(XMODMAP_FILENAME)
-        touch(path)
+        path = PathUtils.get_config_path(XMODMAP_FILENAME)
+        PathUtils.touch(path)
         with open(path, "w") as file:
             logger.debug('Writing "%s"', path)
             json.dump(xmodmap_dict, file, indent=4)

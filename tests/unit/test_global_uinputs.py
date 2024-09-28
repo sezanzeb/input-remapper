@@ -38,8 +38,10 @@ from inputremapper.injection.global_uinputs import (
     GlobalUInputs,
 )
 from inputremapper.exceptions import EventNotHandled, UinputNotAvailable
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestFrontendUinput(unittest.TestCase):
     def setUp(self) -> None:
         cleanup()
@@ -57,6 +59,7 @@ class TestFrontendUinput(unittest.TestCase):
         self.assertEqual(uinput_custom.capabilities(), capabilities)
 
 
+@setup_tests
 class TestGlobalUinputs(unittest.TestCase):
     def setUp(self) -> None:
         cleanup()

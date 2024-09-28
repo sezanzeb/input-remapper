@@ -63,7 +63,7 @@ from inputremapper.gui.utils import (
     gtk_iteration,
 )
 from inputremapper.injection.injector import InjectorStateMessage
-from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
+from inputremapper.logger.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
 from inputremapper.gui.gettext import _
 
 # https://cjenkins.wordpress.com/2012/05/08/use-gtksourceview-widget-in-glade/

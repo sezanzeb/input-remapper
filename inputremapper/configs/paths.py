@@ -26,122 +26,130 @@ import os
 import shutil
 from typing import List, Union, Optional
 
-from inputremapper.logger import logger, VERSION
-from inputremapper.user import USER, HOME
-
-rel_path = ".config/input-remapper-2"
-
-CONFIG_PATH = os.path.join(HOME, rel_path)
+from inputremapper.logger.logger import logger
+from inputremapper.user import UserUtils
 
 
-def chown(path):
-    """Set the owner of a path to the user."""
-    try:
-        shutil.chown(path, user=USER, group=USER)
-    except LookupError:
-        # the users group was unknown in one case for whatever reason
-        shutil.chown(path, user=USER)
+# TODO maybe this could become, idk, ConfigService and PresetService
+class PathUtils:
+    rel_path = ".config/input-remapper-2"
 
+    @staticmethod
+    def config_path() -> str:
+        # TODO when proper DI is being done, construct PathUtils and configure it in
+        #  the constructor. Then there is no need to recompute the config_path
+        #  each time. Tests might have overwritten UserUtils.home.
+        return os.path.join(UserUtils.home, PathUtils.rel_path)
 
-def touch(path: Union[str, os.PathLike], log=True):
-    """Create an empty file and all its parent dirs, give it to the user."""
-    if str(path).endswith("/"):
-        raise ValueError(f"Expected path to not end with a slash: {path}")
+    @staticmethod
+    def chown(path):
+        """Set the owner of a path to the user."""
+        try:
+            shutil.chown(path, user=UserUtils.user, group=UserUtils.user)
+        except LookupError:
+            # the users group was unknown in one case for whatever reason
+            shutil.chown(path, user=UserUtils.user)
 
-    if os.path.exists(path):
-        return
+    @staticmethod
+    def touch(path: Union[str, os.PathLike], log=True):
+        """Create an empty file and all its parent dirs, give it to the user."""
+        if str(path).endswith("/"):
+            raise ValueError(f"Expected path to not end with a slash: {path}")
 
-    if log:
-        logger.info('Creating file "%s"', path)
+        if os.path.exists(path):
+            return
 
-    mkdir(os.path.dirname(path), log=False)
+        if log:
+            logger.info('Creating file "%s"', path)
 
-    os.mknod(path)
-    chown(path)
+        PathUtils.mkdir(os.path.dirname(path), log=False)
 
+        os.mknod(path)
+        PathUtils.chown(path)
 
-def mkdir(path, log=True):
-    """Create a folder, give it to the user."""
-    if path == "" or path is None:
-        return
+    @staticmethod
+    def mkdir(path, log=True):
+        """Create a folder, give it to the user."""
+        if path == "" or path is None:
+            return
 
-    if os.path.exists(path):
-        return
+        if os.path.exists(path):
+            return
 
-    if log:
-        logger.info('Creating dir "%s"', path)
+        if log:
+            logger.info('Creating dir "%s"', path)
 
-    # give all newly created folders to the user.
-    # e.g. if .config/input-remapper/mouse/ is created the latter two
-    base = os.path.split(path)[0]
-    mkdir(base, log=False)
+        # give all newly created folders to the user.
+        # e.g. if .config/input-remapper/mouse/ is created the latter two
+        base = os.path.split(path)[0]
+        PathUtils.mkdir(base, log=False)
 
-    os.makedirs(path)
-    chown(path)
+        os.makedirs(path)
+        PathUtils.chown(path)
 
+    @staticmethod
+    def split_all(path: Union[os.PathLike, str]) -> List[str]:
+        """Split the path into its segments."""
+        parts = []
+        while True:
+            path, tail = os.path.split(path)
+            parts.append(tail)
+            if path == os.path.sep:
+                # we arrived at the root '/'
+                parts.append(path)
+                break
+            if not path:
+                # arrived at start of relative path
+                break
 
-def split_all(path: Union[os.PathLike, str]) -> List[str]:
-    """Split the path into its segments."""
-    parts = []
-    while True:
-        path, tail = os.path.split(path)
-        parts.append(tail)
-        if path == os.path.sep:
-            # we arrived at the root '/'
-            parts.append(path)
-            break
-        if not path:
-            # arrived at start of relative path
-            break
+        parts.reverse()
+        return parts
 
-    parts.reverse()
-    return parts
+    @staticmethod
+    def remove(path):
+        """Remove whatever is at the path."""
+        if not os.path.exists(path):
+            return
 
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        else:
+            os.remove(path)
 
-def remove(path):
-    """Remove whatever is at the path."""
-    if not os.path.exists(path):
-        return
+    @staticmethod
+    def sanitize_path_component(group_name: str) -> str:
+        """Replace characters listed in
+        https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+        with an underscore.
+        """
+        for character in '/\\?%*:|"<>':
+            if character in group_name:
+                group_name = group_name.replace(character, "_")
+        return group_name
 
-    if os.path.isdir(path):
-        shutil.rmtree(path)
-    else:
-        os.remove(path)
+    @staticmethod
+    def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = None):
+        """Get a path to the stored preset, or to store a preset to."""
+        presets_base = os.path.join(PathUtils.config_path(), "presets")
 
+        if group_name is None:
+            return presets_base
 
-def sanitize_path_component(group_name: str) -> str:
-    """Replace characters listed in
-    https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-    with an underscore.
-    """
-    for character in '/\\?%*:|"<>':
-        if character in group_name:
-            group_name = group_name.replace(character, "_")
-    return group_name
+        group_name = PathUtils.sanitize_path_component(group_name)
 
+        if preset is not None:
+            # the extension of the preset should not be shown in the ui.
+            # if a .json extension arrives this place, it has not been
+            # stripped away properly prior to this.
+            if not preset.endswith(".json"):
+                preset = f"{preset}.json"
 
-def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = None):
-    """Get a path to the stored preset, or to store a preset to."""
-    presets_base = os.path.join(CONFIG_PATH, "presets")
+        if preset is None:
+            return os.path.join(presets_base, group_name)
 
-    if group_name is None:
-        return presets_base
+        return os.path.join(presets_base, group_name, preset)
 
-    group_name = sanitize_path_component(group_name)
-
-    if preset is not None:
-        # the extension of the preset should not be shown in the ui.
-        # if a .json extension arrives this place, it has not been
-        # stripped away properly prior to this.
-        if not preset.endswith(".json"):
-            preset = f"{preset}.json"
-
-    if preset is None:
-        return os.path.join(presets_base, group_name)
-
-    return os.path.join(presets_base, group_name, preset)
-
-
-def get_config_path(*paths) -> str:
-    """Get a path in ~/.config/input-remapper/."""
-    return os.path.join(CONFIG_PATH, *paths)
+    @staticmethod
+    def get_config_path(*paths) -> str:
+        """Get a path in ~/.config/input-remapper/."""
+        return os.path.join(PathUtils.config_path(), *paths)

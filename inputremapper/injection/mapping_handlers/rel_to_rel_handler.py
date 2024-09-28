@@ -45,7 +45,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     InputEventHandler,
 )
 from inputremapper.input_event import InputEvent
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 
 
 def is_wheel(event) -> bool:

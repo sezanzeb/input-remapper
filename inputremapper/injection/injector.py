@@ -44,7 +44,7 @@ from inputremapper.gui.messages.message_broker import MessageType
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 from inputremapper.utils import get_device_hash
 
 CapabilitiesDict = Dict[int, List[int]]

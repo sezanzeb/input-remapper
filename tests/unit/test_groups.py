@@ -29,7 +29,7 @@ import json
 import evdev
 from evdev.ecodes import EV_KEY, KEY_A
 
-from inputremapper.configs.paths import CONFIG_PATH
+from inputremapper.configs.paths import PathUtils
 from inputremapper.groups import (
     _FindGroups,
     groups,
@@ -37,6 +37,7 @@ from inputremapper.groups import (
     DeviceType,
     _Group,
 )
+from tests.new_test import setup_tests
 
 
 class FakePipe:
@@ -46,6 +47,7 @@ class FakePipe:
         self.groups = groups
 
 
+@setup_tests
 class TestGroups(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
@@ -61,7 +63,12 @@ class TestGroups(unittest.TestCase):
         self.assertEqual(group.key, "key")
         self.assertEqual(
             group.get_preset_path("preset1234"),
-            os.path.join(CONFIG_PATH, "presets", group.name, "preset1234.json"),
+            os.path.join(
+                PathUtils.config_path(),
+                "presets",
+                group.name,
+                "preset1234.json",
+            ),
         )
 
     def test_find_groups(self):

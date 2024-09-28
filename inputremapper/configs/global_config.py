@@ -24,8 +24,9 @@ import os
 from typing import Optional
 
 from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
-from inputremapper.configs.paths import CONFIG_PATH, USER, touch
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.user import UserUtils
+from inputremapper.logger.logger import logger
 
 MOUSE = "mouse"
 WHEEL = "wheel"
@@ -42,7 +43,7 @@ class GlobalConfig(ConfigBase):
     """
 
     def __init__(self):
-        self.path = os.path.join(CONFIG_PATH, "config.json")
+        self.path = os.path.join(PathUtils.config_path(), "config.json")
         super().__init__()
 
     def get_dir(self) -> str:
@@ -118,11 +119,11 @@ class GlobalConfig(ConfigBase):
 
     def _save_config(self):
         """Save the config to the file system."""
-        if USER == "root":
+        if UserUtils.user == "root":
             logger.debug("Skipping config file creation for the root user")
             return
 
-        touch(self.path)
+        PathUtils.touch(self.path)
 
         with open(self.path, "w") as file:
             json.dump(self._config, file, indent=4)

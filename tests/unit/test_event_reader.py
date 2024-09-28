@@ -47,8 +47,10 @@ from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 from tests.lib.fixtures import fixtures
 from tests.lib.cleanup import quick_cleanup
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestEventReader(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.gamepad_source = evdev.InputDevice(fixtures.gamepad.path)

@@ -71,6 +71,7 @@ from inputremapper.injection.macros.parse import (
 from inputremapper.input_event import InputEvent
 from tests.lib.logger import logger
 from tests.lib.cleanup import quick_cleanup
+from tests.new_test import setup_tests
 
 
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):
@@ -123,6 +124,7 @@ class DummyMapping:
     target_uinput = "keyboard + mouse"
 
 
+@setup_tests
 class TestMacros(MacroTestBase):
     async def test_named_parameter(self):
         result = []
@@ -1152,6 +1154,7 @@ class TestMacros(MacroTestBase):
         )
 
 
+@setup_tests
 class TestIfEq(MacroTestBase):
     async def test_ifeq_runs(self):
         # deprecated ifeq function, but kept for compatibility reasons
@@ -1304,6 +1307,7 @@ class TestIfEq(MacroTestBase):
         )
 
 
+@setup_tests
 class TestIfSingle(MacroTestBase):
     async def test_if_single(self):
         macro = parse("if_single(key(x), key(y))", self.context, DummyMapping)
@@ -1451,6 +1455,7 @@ class TestIfSingle(MacroTestBase):
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
 
 
+@setup_tests
 class TestIfTap(MacroTestBase):
     async def test_if_tap(self):
         macro = parse("if_tap(key(x), key(y), 100)", self.context, DummyMapping)

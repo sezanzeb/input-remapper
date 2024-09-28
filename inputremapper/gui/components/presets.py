@@ -37,7 +37,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     DoStackSwitch,
 )
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 
 
 class PresetEntry(FlowBoxEntry):

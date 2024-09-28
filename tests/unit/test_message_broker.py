@@ -22,6 +22,7 @@ import unittest
 from dataclasses import dataclass
 
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType, Signal
+from tests.new_test import setup_tests
 
 
 class Listener:
@@ -38,6 +39,7 @@ class Message:
     msg: str
 
 
+@setup_tests
 class TestMessageBroker(unittest.TestCase):
     def test_calls_listeners(self):
         """The correct Listeners get called"""
@@ -99,6 +101,7 @@ class TestMessageBroker(unittest.TestCase):
         self.assertEqual([4, 4, 4], calls[3:])
 
 
+@setup_tests
 class TestSignal(unittest.TestCase):
     def test_eq(self):
         self.assertEqual(Signal(MessageType.uinputs), Signal(MessageType.uinputs))

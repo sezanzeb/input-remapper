@@ -25,18 +25,24 @@
 import sys
 from argparse import ArgumentParser
 
-from inputremapper.logger import update_verbosity, log_info
+from inputremapper.logger.logger import update_verbosity, log_info
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        '-d', '--debug', action='store_true', dest='debug',
-        help='Displays additional debug information', default=False
+        "-d",
+        "--debug",
+        action="store_true",
+        dest="debug",
+        help="Displays additional debug information",
+        default=False,
     )
     parser.add_argument(
-        '--hide-info', action='store_true', dest='hide_info',
-        help='Don\'t display version information', default=False
+        "--hide-info",
+        action="store_true",
+        dest="hide_info",
+        help="Don't display version information",
+        default=False,
     )
 
     options = parser.parse_args(sys.argv[1:])
@@ -47,7 +53,7 @@ if __name__ == '__main__':
     from inputremapper.daemon import Daemon
 
     if not options.hide_info:
-        log_info('input-remapper-service')
+        log_info("input-remapper-service")
 
     daemon = Daemon()
     daemon.publish()

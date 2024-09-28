@@ -27,7 +27,7 @@ import sys
 
 import pkg_resources
 
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 
 logged = False
 

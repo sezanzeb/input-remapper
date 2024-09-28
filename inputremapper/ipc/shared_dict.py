@@ -26,7 +26,7 @@ import multiprocessing
 import select
 from typing import Optional, Any
 
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 
 
 class SharedDict:

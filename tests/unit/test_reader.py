@@ -64,6 +64,7 @@ from tests.lib.constants import (
 from tests.lib.pipes import push_event, push_events
 from tests.lib.fixtures import fixtures
 from tests.lib.stuff import spy
+from tests.new_test import setup_tests
 
 CODE_1 = 100
 CODE_2 = 101
@@ -89,6 +90,7 @@ def wait(func, timeout=1.0):
             break
 
 
+@setup_tests
 class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.reader_service = None
@@ -157,6 +159,7 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([call[0] for call in write_spy.call_args_list], events)
 
 
+@setup_tests
 class TestReaderMultiprocessing(unittest.TestCase):
     def setUp(self):
         self.reader_service_process = None

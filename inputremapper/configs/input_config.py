@@ -33,7 +33,7 @@ except ImportError:
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.messages.message_types import MessageType
-from inputremapper.logger import logger
+from inputremapper.logger.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
 # having shift in combinations modifies the configured output,

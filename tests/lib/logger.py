@@ -37,9 +37,9 @@ logger.setLevel(logging.INFO)
 
 
 def update_inputremapper_verbosity():
-    from inputremapper.logger import update_verbosity
+    from inputremapper.logger.logger import logger
 
-    update_verbosity(True)
+    logger.update_verbosity(True)
 
 
 def warn_with_traceback(message, category, filename, lineno, file=None, line=None):

@@ -44,8 +44,10 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from tests.new_test import setup_tests
 
 
+@setup_tests
 class TestInputConfig(unittest.TestCase):
     def test_input_config(self):
         test_cases = [
@@ -320,6 +322,7 @@ class TestInputConfig(unittest.TestCase):
             input_config.origin_hash = "foo"
 
 
+@setup_tests
 class TestInputCombination(unittest.TestCase):
     def test_eq(self):
         a = InputCombination(

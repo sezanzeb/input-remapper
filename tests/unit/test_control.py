@@ -20,7 +20,7 @@
 
 
 """Testing the input-remapper-control command"""
-
+from unittest.mock import patch
 
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.tmp import tmp
@@ -28,7 +28,6 @@ from tests.lib.tmp import tmp
 import os
 import time
 import unittest
-from unittest import mock
 import collections
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
@@ -36,8 +35,9 @@ from importlib.machinery import SourceFileLoader
 from inputremapper.configs.global_config import global_config
 from inputremapper.daemon import Daemon
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.paths import get_preset_path
+from inputremapper.configs.paths import PathUtils
 from inputremapper.groups import groups
+from tests.new_test import setup_tests
 
 
 def import_control():
@@ -53,10 +53,10 @@ def import_control():
     module = module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    return module.communicate, module.utils, module.internals
+    return module.InputRemapperControl, module.Options
 
 
-communicate, utils, internals = import_control()
+InputRemapperControl, Options = import_control()
 
 
 options = collections.namedtuple(
@@ -65,7 +65,11 @@ options = collections.namedtuple(
 )
 
 
+@setup_tests
 class TestControl(unittest.TestCase):
+    def setUp(self):
+        self.input_remapper_control = InputRemapperControl()
+
     def tearDown(self):
         quick_cleanup()
 
@@ -74,9 +78,9 @@ class TestControl(unittest.TestCase):
         groups_ = [groups.find(key=key) for key in device_keys]
         presets = ["bar0", "bar", "bar2"]
         paths = [
-            get_preset_path(groups_[0].name, presets[0]),
-            get_preset_path(groups_[1].name, presets[1]),
-            get_preset_path(groups_[1].name, presets[2]),
+            PathUtils.get_preset_path(groups_[0].name, presets[0]),
+            PathUtils.get_preset_path(groups_[1].name, presets[1]),
+            PathUtils.get_preset_path(groups_[1].name, presets[2]),
         ]
 
         Preset(paths[0]).save()
@@ -84,6 +88,8 @@ class TestControl(unittest.TestCase):
         Preset(paths[2]).save()
 
         daemon = Daemon()
+
+        self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
         stop_counter = 0
@@ -99,12 +105,17 @@ class TestControl(unittest.TestCase):
             start_history.append((device, preset))
             daemon.injectors[device] = Injector()
 
-        daemon.start_injecting = start_injecting
+        patch.object(daemon, "start_injecting", start_injecting).start()
 
         global_config.set_autoload_preset(groups_[0].key, presets[0])
         global_config.set_autoload_preset(groups_[1].key, presets[1])
 
-        communicate(options("autoload", None, None, None, False, False, False), daemon)
+        self.input_remapper_control.communicate(
+            command="autoload",
+            config_dir=None,
+            preset=None,
+            device=None,
+        )
         self.assertEqual(len(start_history), 2)
         self.assertEqual(start_history[0], (groups_[0].key, presets[0]))
         self.assertEqual(start_history[1], (groups_[1].key, presets[1]))
@@ -118,7 +129,12 @@ class TestControl(unittest.TestCase):
         )
 
         # calling autoload again doesn't load redundantly
-        communicate(options("autoload", None, None, None, False, False, False), daemon)
+        self.input_remapper_control.communicate(
+            command="autoload",
+            config_dir=None,
+            preset=None,
+            device=None,
+        )
         self.assertEqual(len(start_history), 2)
         self.assertEqual(stop_counter, 0)
         self.assertFalse(
@@ -129,9 +145,11 @@ class TestControl(unittest.TestCase):
         )
 
         # unless the injection in question ist stopped
-        communicate(
-            options("stop", None, None, groups_[0].key, False, False, False),
-            daemon,
+        self.input_remapper_control.communicate(
+            command="stop",
+            config_dir=None,
+            preset=None,
+            device=groups_[0].key,
         )
         self.assertEqual(stop_counter, 1)
         self.assertTrue(
@@ -140,7 +158,12 @@ class TestControl(unittest.TestCase):
         self.assertFalse(
             daemon.autoload_history.may_autoload(groups_[1].key, presets[1])
         )
-        communicate(options("autoload", None, None, None, False, False, False), daemon)
+        self.input_remapper_control.communicate(
+            command="autoload",
+            config_dir=None,
+            preset=None,
+            device=None,
+        )
         self.assertEqual(len(start_history), 3)
         self.assertEqual(start_history[2], (groups_[0].key, presets[0]))
         self.assertFalse(
@@ -151,7 +174,12 @@ class TestControl(unittest.TestCase):
         )
 
         # if a device name is passed, will only start injecting for that one
-        communicate(options("stop-all", None, None, None, False, False, False), daemon)
+        self.input_remapper_control.communicate(
+            command="stop-all",
+            config_dir=None,
+            preset=None,
+            device=None,
+        )
         self.assertTrue(
             daemon.autoload_history.may_autoload(groups_[0].key, presets[0])
         )
@@ -160,9 +188,11 @@ class TestControl(unittest.TestCase):
         )
         self.assertEqual(stop_counter, 3)
         global_config.set_autoload_preset(groups_[1].key, presets[2])
-        communicate(
-            options("autoload", None, None, groups_[1].key, False, False, False),
-            daemon,
+        self.input_remapper_control.communicate(
+            command="autoload",
+            config_dir=None,
+            preset=None,
+            device=groups_[1].key,
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(start_history[3], (groups_[1].key, presets[2]))
@@ -175,9 +205,11 @@ class TestControl(unittest.TestCase):
 
         # autoloading for the same device again redundantly will not autoload
         # again
-        communicate(
-            options("autoload", None, None, groups_[1].key, False, False, False),
-            daemon,
+        self.input_remapper_control.communicate(
+            command="autoload",
+            config_dir=None,
+            preset=None,
+            device=groups_[1].key,
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(stop_counter, 3)
@@ -211,6 +243,7 @@ class TestControl(unittest.TestCase):
         Preset(paths[1]).save()
 
         daemon = Daemon()
+        self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
         daemon.start_injecting = lambda *args: start_history.append(args)
@@ -220,9 +253,11 @@ class TestControl(unittest.TestCase):
         global_config.set_autoload_preset(device_names[0], presets[0])
         global_config.set_autoload_preset(device_names[1], presets[1])
 
-        communicate(
-            options("autoload", config_dir, None, None, False, False, False),
-            daemon,
+        self.input_remapper_control.communicate(
+            command="autoload",
+            config_dir=config_dir,
+            preset=None,
+            device=None,
         )
 
         self.assertEqual(len(start_history), 2)
@@ -234,6 +269,7 @@ class TestControl(unittest.TestCase):
         preset = "preset9"
 
         daemon = Daemon()
+        self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
         stop_history = []
@@ -242,23 +278,32 @@ class TestControl(unittest.TestCase):
         daemon.stop_injecting = lambda *args: stop_history.append(args)
         daemon.stop_all = lambda *args: stop_all_history.append(args)
 
-        communicate(
-            options("start", None, preset, group.paths[0], False, False, False),
-            daemon,
+        self.input_remapper_control.communicate(
+            command="start",
+            config_dir=None,
+            preset=preset,
+            device=group.paths[0],
         )
         self.assertEqual(len(start_history), 1)
         self.assertEqual(start_history[0], (group.key, preset))
 
-        communicate(
-            options("stop", None, None, group.paths[1], False, False, False),
-            daemon,
+        self.input_remapper_control.communicate(
+            command="stop",
+            config_dir=None,
+            preset=None,
+            device=group.paths[1],
         )
         self.assertEqual(len(stop_history), 1)
         # provided any of the groups paths as --device argument, figures out
         # the correct group.key to use here
         self.assertEqual(stop_history[0], (group.key,))
 
-        communicate(options("stop-all", None, None, None, False, False, False), daemon)
+        self.input_remapper_control.communicate(
+            command="stop-all",
+            config_dir=None,
+            preset=None,
+            device=None,
+        )
         self.assertEqual(len(stop_all_history), 1)
         self.assertEqual(stop_all_history[0], ())
 
@@ -268,17 +313,32 @@ class TestControl(unittest.TestCase):
         config_dir = "/foo/bar"
 
         daemon = Daemon()
+        self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
         stop_history = []
         daemon.start_injecting = lambda *args: start_history.append(args)
         daemon.stop_injecting = lambda *args: stop_history.append(args)
 
-        options_1 = options("start", config_dir, path, key, False, False, False)
-        self.assertRaises(SystemExit, lambda: communicate(options_1, daemon))
+        self.assertRaises(
+            SystemExit,
+            lambda: self.input_remapper_control.communicate(
+                command="start",
+                config_dir=config_dir,
+                preset=path,
+                device=key,
+            ),
+        )
 
-        options_2 = options("stop", config_dir, None, key, False, False, False)
-        self.assertRaises(SystemExit, lambda: communicate(options_2, daemon))
+        self.assertRaises(
+            SystemExit,
+            lambda: self.input_remapper_control.communicate(
+                command="stop",
+                config_dir=config_dir,
+                preset=None,
+                device=key,
+            ),
+        )
 
     def test_autoload_config_dir(self):
         daemon = Daemon()
@@ -302,19 +362,18 @@ class TestControl(unittest.TestCase):
         daemon.set_config_dir(os.path.join(tmp, "qux"))
         self.assertEqual(global_config.get("foo"), "bar")
 
-    def test_internals(self):
-        with mock.patch("os.system") as os_system_patch:
-            internals(
-                options("start-reader-service", None, None, None, False, False, False)
-            )
+    def test_internals_reader(self):
+        with patch.object(os, "system") as os_system_patch:
+            self.input_remapper_control.internals("start-reader-service", False)
             os_system_patch.assert_called_once()
             self.assertIn(
                 "input-remapper-reader-service", os_system_patch.call_args.args[0]
             )
             self.assertNotIn("-d", os_system_patch.call_args.args[0])
 
-        with mock.patch("os.system") as os_system_patch:
-            internals(options("start-daemon", None, None, None, False, False, True))
+    def test_internals_daemon(self):
+        with patch.object(os, "system") as os_system_patch:
+            self.input_remapper_control.internals("start-daemon", True)
             os_system_patch.assert_called_once()
             self.assertIn("input-remapper-service", os_system_patch.call_args.args[0])
             self.assertIn("-d", os_system_patch.call_args.args[0])

@@ -71,6 +71,7 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.groups import groups, classify, DeviceType
+from tests.new_test import setup_tests
 
 
 def wait_for_uinput_write():
@@ -80,6 +81,7 @@ def wait_for_uinput_write():
     return float(time.time() - start)
 
 
+@setup_tests
 class TestInjector(unittest.IsolatedAsyncioTestCase):
     new_gamepad_path = "/dev/input/event100"
 
@@ -548,6 +550,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(is_in_capabilities(key, capabilities))
 
 
+@setup_tests
 class TestModifyCapabilities(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

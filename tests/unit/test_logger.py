@@ -18,31 +18,37 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import evdev
+from tests.lib.tmp import tmp
+
+import logging
 import os
 import shutil
 import unittest
-import logging
 
-from tests.lib.tmp import tmp
+import evdev
 
-from inputremapper.logger import logger, update_verbosity, log_info, ColorfulFormatter
-from inputremapper.configs.paths import remove
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logger.logger import (
+    logger,
+    ColorfulFormatter,
+)
+from tests.new_test import setup_tests
 
 
-def add_filehandler(log_path):
+def add_filehandler(log_path: str, debug: bool) -> None:
     """Start logging to a file."""
     log_path = os.path.expanduser(log_path)
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     file_handler = logging.FileHandler(log_path)
-    file_handler.setFormatter(ColorfulFormatter())
+    file_handler.setFormatter(ColorfulFormatter(debug))
     logger.addHandler(file_handler)
     logger.info('Starting logging to "%s"', log_path)
 
 
+@setup_tests
 class TestLogger(unittest.TestCase):
     def tearDown(self):
-        update_verbosity(debug=True)
+        logger.update_verbosity(debug=True)
 
         # remove the file handler
         logger.handlers = [
@@ -51,12 +57,12 @@ class TestLogger(unittest.TestCase):
             if not isinstance(logger.handlers, logging.FileHandler)
         ]
         path = os.path.join(tmp, "logger-test")
-        remove(path)
+        PathUtils.remove(path)
 
     def test_write(self):
         uinput = evdev.UInput(name="foo")
         path = os.path.join(tmp, "logger-test")
-        add_filehandler(path)
+        add_filehandler(path, False)
         logger.write((evdev.ecodes.EV_KEY, evdev.ecodes.KEY_A, 1), uinput)
         with open(path, "r") as f:
             content = f.read()
@@ -66,10 +72,10 @@ class TestLogger(unittest.TestCase):
             )
 
     def test_log_info(self):
-        update_verbosity(debug=False)
+        logger.update_verbosity(debug=False)
         path = os.path.join(tmp, "logger-test")
-        add_filehandler(path)
-        log_info()
+        add_filehandler(path, False)
+        logger.log_info()
         with open(path, "r") as f:
             content = f.read().lower()
             self.assertIn("input-remapper", content)
@@ -80,12 +86,13 @@ class TestLogger(unittest.TestCase):
             shutil.rmtree(path)
 
         new_path = os.path.join(tmp, "logger-test", "a", "b", "c")
-        add_filehandler(new_path)
+        add_filehandler(new_path, False)
         self.assertTrue(os.path.exists(new_path))
 
     def test_debug(self):
         path = os.path.join(tmp, "logger-test")
-        add_filehandler(path)
+        logger.update_verbosity(True)
+        add_filehandler(path, True)
         logger.error("abc")
         logger.warning("foo")
         logger.info("123")
@@ -112,8 +119,8 @@ class TestLogger(unittest.TestCase):
 
     def test_default(self):
         path = os.path.join(tmp, "logger-test")
-        update_verbosity(debug=False)
-        add_filehandler(path)
+        logger.update_verbosity(debug=False)
+        add_filehandler(path, False)
         logger.error("abc")
         logger.warning("foo")
         logger.info("123")
