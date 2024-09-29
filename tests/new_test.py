@@ -124,7 +124,3 @@ def setup_tests(cls):
     cls.tearDownClass = tearDownClass
 
     return cls
-
-
-# TODO maybe make a PR for just the test-setup, without PathUtils and UserUtils.
-#  Then prepare another PR for DI.
