@@ -75,7 +75,7 @@ class Logger(logging.Logger):
 
         previous_write_debug_log = msg
 
-        self._log(logging.DEBUG, msg, args=None)
+        self._log(logging.DEBUG, msg, args=None, stacklevel=2)
 
     def _parse_mapping_handler(self, mapping_handler):
         indent = 0
