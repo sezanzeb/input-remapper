@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+from unittest.mock import patch, MagicMock
+
 from evdev._ecodes import EV_ABS
 
 from inputremapper.input_event import InputEvent
@@ -31,7 +33,6 @@ from tests.lib.fixtures import fixtures
 import os
 import unittest
 import time
-import subprocess
 import json
 
 import evdev
@@ -50,17 +51,12 @@ from inputremapper.daemon import Daemon
 from inputremapper.injection.global_uinputs import global_uinputs
 from tests.lib.test_setup import test_setup, is_service_running
 
-check_output = subprocess.check_output
-os_system = os.system
-dbus_get = type(SystemBus()).get
-
 
 @test_setup
 class TestDaemon(unittest.TestCase):
     new_fixture_path = "/dev/input/event9876"
 
     def setUp(self):
-        self.grab = evdev.InputDevice.grab
         self.daemon = None
         PathUtils.mkdir(PathUtils.get_config_path())
         global_config._save_config()
@@ -74,24 +70,17 @@ class TestDaemon(unittest.TestCase):
         if self.daemon is not None:
             self.daemon.stop_all()
             self.daemon = None
-        evdev.InputDevice.grab = self.grab
-
-        subprocess.check_output = check_output
-        os.system = os_system
-        type(SystemBus()).get = dbus_get
 
         cleanup()
 
-    def test_connect(self):
-        os_system_history = []
-        os.system = os_system_history.append
-
+    @patch.object(os, "system")
+    def test_connect(self, os_system_mock: MagicMock):
         self.assertFalse(is_service_running())
 
         # no daemon runs, should try to run it via pkexec instead.
         # It fails due to the patch on os.system and therefore exits the process
         self.assertRaises(SystemExit, Daemon.connect)
-        self.assertEqual(len(os_system_history), 1)
+        os_system_mock.assert_called_once()
         self.assertIsNone(Daemon.connect(False))
 
         # make the connect command work this time by acting like a connection is
@@ -100,16 +89,18 @@ class TestDaemon(unittest.TestCase):
         set_config_dir_callcount = 0
 
         class FakeConnection:
-            def set_config_dir(self, *args, **kwargs):
+            def set_config_dir(self, *_, **__):
                 nonlocal set_config_dir_callcount
                 set_config_dir_callcount += 1
 
-        type(SystemBus()).get = lambda *args, **kwargs: FakeConnection()
-        self.assertIsInstance(Daemon.connect(), FakeConnection)
-        self.assertEqual(set_config_dir_callcount, 1)
+        system_bus = SystemBus()
+        with patch.object(type(system_bus), "get") as get_mock:
+            get_mock.return_value = FakeConnection()
+            self.assertIsInstance(Daemon.connect(), FakeConnection)
+            self.assertEqual(set_config_dir_callcount, 1)
 
-        self.assertIsInstance(Daemon.connect(False), FakeConnection)
-        self.assertEqual(set_config_dir_callcount, 2)
+            self.assertIsInstance(Daemon.connect(False), FakeConnection)
+            self.assertEqual(set_config_dir_callcount, 2)
 
     def test_daemon(self):
         # remove the existing system mapping to force our own into it
@@ -474,7 +465,8 @@ class TestDaemon(unittest.TestCase):
         self.daemon._autoload(group_key)
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(
-            daemon.autoload_history._autoload_history[group_key][1], preset_name
+            daemon.autoload_history._autoload_history[group_key][1],
+            preset_name,
         )
         self.assertFalse(daemon.autoload_history.may_autoload(group_key, preset_name))
         injector = daemon.injectors[group_key]
@@ -483,7 +475,8 @@ class TestDaemon(unittest.TestCase):
         # calling duplicate get_autoload does nothing
         self.daemon._autoload(group_key)
         self.assertEqual(
-            daemon.autoload_history._autoload_history[group_key][1], preset_name
+            daemon.autoload_history._autoload_history[group_key][1],
+            preset_name,
         )
         self.assertEqual(injector, daemon.injectors[group_key])
         self.assertFalse(daemon.autoload_history.may_autoload(group_key, preset_name))
