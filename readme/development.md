@@ -37,21 +37,14 @@ coverage combine && coverage report -m
 This assumes you are using your system's `pip`. If you are in a virtual env,
 a `sudo pip install` is not recommened. See [Scripts](#scripts) for alternatives.
 
-Single tests can be executed via `tests/test.py` using the full code path as argment.
 ```
-python3 tests/test.py tests.unit.test_ipc.TestSocket.test_select
-```
-
-Also `python -m unittest` can be used, which provides more control over which tests to
-run and how to fail on errors. See `python -m unittest -h` for more.
-```
+python -m unittest tests/unit/test_daemon.py
 python -m unittest tests.unit.test_ipc.TestPipe -k "test_pipe" -f
+# See `python -m unittest -h` for more.
 ```
 
 Don't use your computer during integration tests to avoid interacting with the gui,
 which might make tests fail.
-
-There is also a "run configuration" for PyCharm called "All Tests" included.
 
 To read events for manual testing, `evtest` is very helpful.
 Add `-d` to `input-remapper-gtk` to get debug output.
