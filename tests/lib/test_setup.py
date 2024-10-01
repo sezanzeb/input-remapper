@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,52 +21,16 @@
 from __future__ import annotations
 
 import os
-import subprocess
 import tracemalloc
 
 from tests.lib.cleanup import cleanup, quick_cleanup
-from tests.lib.fixtures import fixtures
+from tests.lib.fixture_pipes import create_fixture_pipes, remove_fixture_pipes
+from tests.lib.is_service_running import is_service_running
 from tests.lib.logger import update_inputremapper_verbosity
 from tests.lib.patches import create_patches
-from tests.lib.pipes import setup_pipe, close_pipe
 
 
-def get_project_root():
-    """Find the projects root, i.e. the uppermost directory of the repo."""
-    # when tests are started in pycharm via the green arrow, the working directory
-    # is not the project root. Go up until it is found.
-    root = os.getcwd()
-    for _ in range(10):
-        if "setup.py" in os.listdir(root):
-            return root
-
-        root = os.path.dirname(root)
-
-    raise Exception("Could not find project root")
-
-
-def is_service_running():
-    """Check if the daemon is running."""
-    try:
-        subprocess.check_output(["pgrep", "-f", "input-remapper-service"])
-        return True
-    except subprocess.CalledProcessError:
-        return False
-
-
-def create_fixture_pipes():
-    # make sure those pipes exist before any process (the reader-service) gets forked,
-    # so that events can be pushed after the fork.
-    for _fixture in fixtures:
-        setup_pipe(_fixture)
-
-
-def remove_fixture_pipes():
-    for _fixture in fixtures:
-        close_pipe(_fixture)
-
-
-def setup_tests(cls):
+def test_setup(cls):
     """A class decorator to
     - apply the patches to all tests
     - check if the deamon is already running

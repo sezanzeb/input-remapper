@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -29,10 +29,10 @@ from evdev.ecodes import BTN_LEFT, KEY_A
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
 from tests.lib.cleanup import quick_cleanup
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
-@setup_tests
+@test_setup
 class TestSystemMapping(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -47,14 +47,14 @@ from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import InjectorState
 from inputremapper.daemon import Daemon
 from inputremapper.injection.global_uinputs import global_uinputs
-from tests.test import setup_tests, is_service_running
+from tests.lib.test_setup import test_setup, is_service_running
 
 check_output = subprocess.check_output
 os_system = os.system
 dbus_get = type(SystemBus()).get
 
 
-@setup_tests
+@test_setup
 class TestDaemon(unittest.TestCase):
     new_fixture_path = "/dev/input/event9876"
 

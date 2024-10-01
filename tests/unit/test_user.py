@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -26,14 +26,14 @@ import unittest
 from unittest import mock
 
 from inputremapper.user import UserUtils
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
 def _raise(error):
     raise error
 
 
-@setup_tests
+@test_setup
 class TestUser(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()

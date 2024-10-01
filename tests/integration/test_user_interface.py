@@ -16,10 +16,10 @@ from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
-@setup_tests
+@test_setup
 class TestUserInterface(unittest.TestCase):
     def setUp(self) -> None:
         self.message_broker = MessageBroker()

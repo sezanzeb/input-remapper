@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -31,10 +31,10 @@ import os
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.ipc.socket import Server, Client, Base
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
-@setup_tests
+@test_setup
 class TestSharedDict(unittest.TestCase):
     def setUp(self):
         self.shared_dict = SharedDict()
@@ -54,7 +54,7 @@ class TestSharedDict(unittest.TestCase):
         self.assertEqual(self.shared_dict["a"], 3)
 
 
-@setup_tests
+@test_setup
 class TestSocket(unittest.TestCase):
     def test_socket(self):
         def test(s1, s2):
@@ -130,7 +130,7 @@ class TestSocket(unittest.TestCase):
         self.assertRaises(NotImplementedError, lambda: Base.fileno(None))
 
 
-@setup_tests
+@test_setup
 class TestPipe(unittest.IsolatedAsyncioTestCase):
     def test_pipe_single(self):
         p1 = Pipe(os.path.join(tmp, "pipe"))

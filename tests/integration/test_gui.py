@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -55,9 +55,8 @@ from tests.lib.fixtures import prepare_presets
 from tests.lib.global_uinputs import reset_global_uinputs_for_service
 from tests.lib.logger import logger
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
-from tests.lib.stuff import spy
-
-from tests.test import get_project_root
+from tests.lib.project_root import get_project_root
+from tests.lib.spy import spy
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
@@ -89,7 +88,7 @@ from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.daemon import Daemon, DaemonProxy
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
 # iterate a few times when Gtk.main() is called, but don't block
@@ -187,7 +186,7 @@ class GtkKeyEvent:
         return True, self.keyval
 
 
-@setup_tests
+@test_setup
 class TestGroupsFromReaderService(unittest.TestCase):
     def setUp(self):
         # don't try to connect, return an object instance of it instead
@@ -465,7 +464,7 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
 
 
-@setup_tests
+@test_setup
 class TestColors(GuiTestBase):
     # requires a running ui, otherwise fails with segmentation faults
     def test_get_color_falls_back(self):
@@ -515,7 +514,7 @@ class TestColors(GuiTestBase):
         self._test_color_wont_fallback(Colors.get_font_color, Colors.fallback_font)
 
 
-@setup_tests
+@test_setup
 class TestGui(GuiTestBase):
     """For tests that use the window.
 
@@ -2041,7 +2040,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.output_box.get_sensitive())
 
 
-@setup_tests
+@test_setup
 class TestAutocompletion(GuiTestBase):
     def press_key(self, keyval):
         event = Gdk.EventKey()
@@ -2255,7 +2254,7 @@ class TestAutocompletion(GuiTestBase):
         )
 
 
-@setup_tests
+@test_setup
 class TestDebounce(unittest.TestCase):
     def test_debounce(self):
         calls = 0

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import copy
 import os
 import shutil
 import time
@@ -42,8 +43,10 @@ from tests.lib.pipes import (
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.tmp import tmp
 from tests.lib.fixtures import fixtures
-from tests.lib.stuff import environ_copy
 from tests.lib.patches import uinputs
+
+
+environ_copy = copy.deepcopy(os.environ)
 
 
 def join_children():

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -30,10 +30,10 @@ from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from tests.lib.cleanup import quick_cleanup
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
-@setup_tests
+@test_setup
 class TestPreset(unittest.TestCase):
     def setUp(self):
         self.preset = Preset(PathUtils.get_preset_path("foo", "bar2"))

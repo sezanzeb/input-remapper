@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -34,7 +34,7 @@ gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GLib, GtkSource, Gdk
 
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.stuff import spy
+from tests.lib.spy import spy
 from tests.lib.logger import logger
 
 from inputremapper.gui.controller import Controller
@@ -85,7 +85,7 @@ from inputremapper.gui.components.device_groups import (
 )
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
 class ComponentBaseTest(unittest.TestCase):
@@ -169,7 +169,7 @@ class FlowBoxTestUtils:
         return icon_names
 
 
-@setup_tests
+@test_setup
 class TestDeviceGroupSelection(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -234,7 +234,7 @@ class TestDeviceGroupSelection(ComponentBaseTest):
         self.controller_mock.load_group.assert_not_called()
 
 
-@setup_tests
+@test_setup
 class TestTargetSelection(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -282,7 +282,7 @@ class TestTargetSelection(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_not_called()
 
 
-@setup_tests
+@test_setup
 class TestPresetSelection(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -352,7 +352,7 @@ class TestPresetSelection(ComponentBaseTest):
         self.controller_mock.load_preset.assert_called_once_with("preset2")
 
 
-@setup_tests
+@test_setup
 class TestMappingListbox(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -495,7 +495,7 @@ class TestMappingListbox(ComponentBaseTest):
         self.assertEqual(bottom_row.combination, InputCombination.empty_combination())
 
 
-@setup_tests
+@test_setup
 class TestMappingSelectionLabel(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -780,7 +780,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_called_once_with(name="")
 
 
-@setup_tests
+@test_setup
 class TestGdkEventRecorder(ComponentBaseTest):
     def _emit_key(self, window, code, type_):
         event = Gdk.Event()
@@ -831,7 +831,7 @@ class TestGdkEventRecorder(ComponentBaseTest):
         self.assertEqual(label.get_text(), "a")
 
 
-@setup_tests
+@test_setup
 class TestCodeEditor(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -935,7 +935,7 @@ class TestCodeEditor(ComponentBaseTest):
         self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
 
 
-@setup_tests
+@test_setup
 class TestRecordingToggle(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -982,7 +982,7 @@ class TestRecordingToggle(ComponentBaseTest):
         self.assert_not_recording()
 
 
-@setup_tests
+@test_setup
 class TestStatusBar(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1066,7 +1066,7 @@ class TestStatusBar(ComponentBaseTest):
         self.assertEqual(self.get_tooltip(), "msg")
 
 
-@setup_tests
+@test_setup
 class TestAutoloadSwitch(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1094,7 +1094,7 @@ class TestAutoloadSwitch(ComponentBaseTest):
         self.controller_mock.set_autoload.assert_not_called()
 
 
-@setup_tests
+@test_setup
 class TestReleaseCombinationSwitch(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1126,7 +1126,7 @@ class TestReleaseCombinationSwitch(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_not_called()
 
 
-@setup_tests
+@test_setup
 class TestEventEntry(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1147,7 +1147,7 @@ class TestEventEntry(ComponentBaseTest):
         )
 
 
-@setup_tests
+@test_setup
 class TestCombinationListbox(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1210,7 +1210,7 @@ class TestCombinationListbox(ComponentBaseTest):
         self.controller_mock.load_event.assert_not_called()
 
 
-@setup_tests
+@test_setup
 class TestAnalogInputSwitch(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1254,7 +1254,7 @@ class TestAnalogInputSwitch(ComponentBaseTest):
         self.assertTrue(self.gui.get_sensitive())
 
 
-@setup_tests
+@test_setup
 class TestTriggerThresholdInput(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1300,7 +1300,7 @@ class TestTriggerThresholdInput(ComponentBaseTest):
         self.assert_key_event_config()
 
 
-@setup_tests
+@test_setup
 class TestReleaseTimeoutInput(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1397,7 +1397,7 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
         self.assertLess(self.gui.get_opacity(), 0.6)
 
 
-@setup_tests
+@test_setup
 class TestOutputAxisSelector(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1466,7 +1466,7 @@ class TestOutputAxisSelector(ComponentBaseTest):
         self.assertEqual(len(self.gui.get_model()), 9)
 
 
-@setup_tests
+@test_setup
 class TestKeyAxisStackSwitcher(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1529,7 +1529,7 @@ class TestKeyAxisStackSwitcher(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_not_called()
 
 
-@setup_tests
+@test_setup
 class TestTransformationDrawArea(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1567,7 +1567,7 @@ class TestTransformationDrawArea(ComponentBaseTest):
         mock.assert_called()
 
 
-@setup_tests
+@test_setup
 class TestSliders(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1644,7 +1644,7 @@ class TestSliders(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_not_called()
 
 
-@setup_tests
+@test_setup
 class TestRelativeInputCutoffInput(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
@@ -1746,7 +1746,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.assert_active()
 
 
-@setup_tests
+@test_setup
 class TestRequireActiveMapping(ComponentBaseTest):
     def test_no_reqorded_input_required(self):
         self.box = Gtk.Box()
@@ -1810,7 +1810,7 @@ class TestRequireActiveMapping(ComponentBaseTest):
         self.assertEqual(widget.get_opacity(), 1)
 
 
-@setup_tests
+@test_setup
 class TestStack(ComponentBaseTest):
     def test_switches_pages(self):
         self.stack = Gtk.Stack()
@@ -1830,7 +1830,7 @@ class TestStack(ComponentBaseTest):
         self.assertEqual(self.stack.get_visible_child_name(), "Editor")
 
 
-@setup_tests
+@test_setup
 class TestBreadcrumbs(ComponentBaseTest):
     def test_breadcrumbs(self):
         self.label_1 = Gtk.Label()

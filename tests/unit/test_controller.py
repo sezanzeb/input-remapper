@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -28,7 +28,6 @@ from evdev.ecodes import EV_ABS, ABS_X, ABS_Y, ABS_RX
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.injector import InjectorState
-from tests.lib.logger import logger
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -54,7 +53,7 @@ from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.mapping import UIMapping, MappingData, Mapping
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.stuff import spy
+from tests.lib.spy import spy
 from tests.lib.patches import FakeDaemonProxy
 from tests.lib.fixtures import fixtures, prepare_presets
 from inputremapper.configs.global_config import GlobalConfig
@@ -62,10 +61,10 @@ from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
-@setup_tests
+@test_setup
 class TestController(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()

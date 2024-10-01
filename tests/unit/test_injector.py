@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -67,7 +67,7 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.groups import groups, classify, DeviceType
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
 def wait_for_uinput_write():
@@ -77,7 +77,7 @@ def wait_for_uinput_write():
     return float(time.time() - start)
 
 
-@setup_tests
+@test_setup
 class TestInjector(unittest.IsolatedAsyncioTestCase):
     new_gamepad_path = "/dev/input/event100"
 
@@ -546,7 +546,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(is_in_capabilities(key, capabilities))
 
 
-@setup_tests
+@test_setup
 class TestModifyCapabilities(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -26,8 +26,6 @@ import evdev
 
 from unittest.mock import patch
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
     KEY_A,
     ABS_X,
 )
@@ -38,10 +36,10 @@ from inputremapper.injection.global_uinputs import (
     GlobalUInputs,
 )
 from inputremapper.exceptions import EventNotHandled, UinputNotAvailable
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
-@setup_tests
+@test_setup
 class TestFrontendUinput(unittest.TestCase):
     def setUp(self) -> None:
         cleanup()
@@ -59,7 +57,7 @@ class TestFrontendUinput(unittest.TestCase):
         self.assertEqual(uinput_custom.capabilities(), capabilities)
 
 
-@setup_tests
+@test_setup
 class TestGlobalUinputs(unittest.TestCase):
     def setUp(self) -> None:
         cleanup()

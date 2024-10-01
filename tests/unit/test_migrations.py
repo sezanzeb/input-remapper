@@ -44,10 +44,10 @@ from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.logger.logger import VERSION
 from inputremapper.user import UserUtils
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
-@setup_tests
+@test_setup
 class TestMigrations(unittest.TestCase):
     def setUp(self):
         # some extra care to ensure those tests are not destroying actual presets

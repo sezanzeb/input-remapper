@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -32,7 +32,7 @@ from inputremapper.logger.logger import (
     logger,
     ColorfulFormatter,
 )
-from tests.test import setup_tests
+from tests.lib.test_setup import test_setup
 
 
 def add_filehandler(log_path: str, debug: bool) -> None:
@@ -45,7 +45,7 @@ def add_filehandler(log_path: str, debug: bool) -> None:
     logger.info('Starting logging to "%s"', log_path)
 
 
-@setup_tests
+@test_setup
 class TestLogger(unittest.TestCase):
     def tearDown(self):
         logger.update_verbosity(debug=True)
