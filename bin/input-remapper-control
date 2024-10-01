@@ -135,7 +135,8 @@ class InputRemapperControl:
 
     def ensure_migrated(self) -> None:
         # import stuff late to make sure the correct log level is applied
-        # before anything is logged TODO fix this
+        # before anything is logged
+        # TODO since imports shouldn't run any code, this is fixed by moving towards DI
         from inputremapper.user import UserUtils
 
         if UserUtils.user != "root":
@@ -164,7 +165,8 @@ class InputRemapperControl:
 
     def _require_group(self, device: str):
         # import stuff late to make sure the correct log level is applied
-        # before anything is logged TODO fix this
+        # before anything is logged
+        # TODO since imports shouldn't run any code, this is fixed by moving towards DI
         from inputremapper.groups import groups
 
         if device is None:

@@ -371,31 +371,14 @@ class FakeDaemonProxy:
 
 def create_patches():
     return [
-        # TODO I have to wrap evdev for patches to work, because the order of imports
-        #  still matters until then.
+        # Sketchy, they only work because the whole modules are imported, instead of
+        # importing `check_output` and `system` from the module.
         *patch_evdev(),
+        patch_os_system(),
+        patch_check_output(),
         # Those are comfortably wrapped in a class, and are therefore easy to patch
         patch_paths(),
         patch_regrab_timeout(),
         patch_is_running(),
         patch_events(),
-        # Sketchy, they only work because the whole modules are imported, instead of
-        # importing `check_output` and `system` from the module.
-        patch_os_system(),
-        patch_check_output(),
     ]
-
-
-def apply_all_patches():
-    # TODO in the meantime, until evdev is wrapped, this creates and applies patches in
-    #  the right order
-    for patch in patch_evdev():
-        patch.start()
-    patch_paths().start()
-    patch_regrab_timeout().start()
-    patch_is_running().start()
-    patch_events().start()
-    patch_os_system().start()
-    patch_check_output().start()
-
-    # patch_warnings().start()

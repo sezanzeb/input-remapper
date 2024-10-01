@@ -51,8 +51,8 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping, SystemMapping
-from inputremapper.injection.global_uinputs import global_uinputs, GlobalUInputs
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.logger.logger import logger, VERSION
 from inputremapper.user import UserUtils
