@@ -492,10 +492,10 @@ class TestColors(GuiTestBase):
         )
 
         self.assertIsInstance(color, Gdk.RGBA)
-        self.assertNotAlmostEquals(color.red, fallback.red, delta=0.01)
-        self.assertNotAlmostEquals(color.green, fallback.blue, delta=0.01)
-        self.assertNotAlmostEquals(color.blue, fallback.green, delta=0.01)
-        self.assertNotAlmostEquals(color.alpha, fallback.alpha, delta=0.01)
+        self.assertNotAlmostEqual(color.red, fallback.red, delta=0.01)
+        self.assertNotAlmostEqual(color.green, fallback.blue, delta=0.01)
+        self.assertNotAlmostEqual(color.blue, fallback.green, delta=0.01)
+        self.assertNotAlmostEqual(color.alpha, fallback.alpha, delta=0.01)
 
     def _test_color_wont_fallback(self, get_color, fallback):
         color = get_color()

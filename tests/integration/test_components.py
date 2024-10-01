@@ -270,7 +270,7 @@ class TestTargetSelection(ComponentBaseTest):
 
     def test_updates_mapping(self):
         self.gui.set_active_id("baz")
-        self.controller_mock.update_mapping.called_once_with(target_uinput="baz")
+        self.controller_mock.update_mapping.assert_called_once_with(target_uinput="baz")
 
     def test_selects_correct_target(self):
         self.message_broker.publish(MappingData(target_uinput="baz"))
