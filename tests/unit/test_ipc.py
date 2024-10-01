@@ -31,7 +31,7 @@ import os
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.ipc.socket import Server, Client, Base
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

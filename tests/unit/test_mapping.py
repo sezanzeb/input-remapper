@@ -40,7 +40,7 @@ from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.gui.messages.message_broker import MessageType
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

@@ -27,7 +27,7 @@ from inputremapper.configs.paths import PathUtils
 
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.tmp import tmp
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

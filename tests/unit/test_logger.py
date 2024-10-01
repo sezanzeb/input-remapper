@@ -32,7 +32,7 @@ from inputremapper.logger.logger import (
     logger,
     ColorfulFormatter,
 )
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 def add_filehandler(log_path: str, debug: bool) -> None:

@@ -131,4 +131,5 @@ class GlobalConfig(ConfigBase):
             file.write("\n")
 
 
+# TODO DI
 global_config = GlobalConfig()

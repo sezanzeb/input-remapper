@@ -30,7 +30,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from inputremapper.daemon import Daemon, BUS_NAME
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 def gtk_iteration():

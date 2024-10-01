@@ -47,7 +47,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import InjectorState
 from inputremapper.daemon import Daemon
 from inputremapper.injection.global_uinputs import global_uinputs
-from tests.new_test import setup_tests, is_service_running
+from tests.test import setup_tests, is_service_running
 
 check_output = subprocess.check_output
 os_system = os.system

@@ -38,7 +38,7 @@ from inputremapper.injection.global_uinputs import (
     GlobalUInputs,
 )
 from inputremapper.exceptions import EventNotHandled, UinputNotAvailable
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

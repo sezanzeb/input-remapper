@@ -37,7 +37,7 @@ from inputremapper.groups import (
     DeviceType,
     _Group,
 )
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 class FakePipe:

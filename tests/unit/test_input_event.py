@@ -23,7 +23,7 @@ import unittest
 import evdev
 from dataclasses import FrozenInstanceError
 from inputremapper.input_event import InputEvent
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

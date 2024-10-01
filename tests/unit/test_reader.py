@@ -64,7 +64,7 @@ from tests.lib.constants import (
 from tests.lib.pipes import push_event, push_events
 from tests.lib.fixtures import fixtures
 from tests.lib.stuff import spy
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 CODE_1 = 100
 CODE_2 = 101

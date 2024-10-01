@@ -47,7 +47,7 @@ from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 from tests.lib.fixtures import fixtures
 from tests.lib.cleanup import quick_cleanup
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

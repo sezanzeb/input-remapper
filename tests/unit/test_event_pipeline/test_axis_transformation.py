@@ -24,7 +24,7 @@ import itertools
 from typing import Iterable, List
 
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

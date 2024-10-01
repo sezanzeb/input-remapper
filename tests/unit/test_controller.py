@@ -62,7 +62,7 @@ from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

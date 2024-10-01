@@ -44,7 +44,7 @@ from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.logger.logger import VERSION
 from inputremapper.user import UserUtils
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

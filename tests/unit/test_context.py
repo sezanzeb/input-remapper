@@ -33,7 +33,7 @@ from inputremapper.injection.context import Context
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.input_config import InputCombination
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

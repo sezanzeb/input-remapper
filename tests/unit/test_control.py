@@ -37,7 +37,7 @@ from inputremapper.daemon import Daemon
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import PathUtils
 from inputremapper.groups import groups
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 def import_control():

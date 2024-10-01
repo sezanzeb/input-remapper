@@ -86,7 +86,7 @@ from inputremapper.gui.components.device_groups import (
 )
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 class ComponentBaseTest(unittest.TestCase):

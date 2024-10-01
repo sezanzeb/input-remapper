@@ -71,7 +71,7 @@ from inputremapper.injection.macros.parse import (
 from inputremapper.input_event import InputEvent
 from tests.lib.logger import logger
 from tests.lib.cleanup import quick_cleanup
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):

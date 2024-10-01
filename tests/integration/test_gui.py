@@ -20,7 +20,9 @@
 
 import asyncio
 
+# TODO no:
 # the tests file needs to be imported first to make sure patches are loaded
+# TODO "optimize imports" of all files
 from tests.test import get_project_root
 
 from contextlib import contextmanager
@@ -94,7 +96,7 @@ from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.daemon import Daemon, DaemonProxy
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 # iterate a few times when Gtk.main() is called, but don't block

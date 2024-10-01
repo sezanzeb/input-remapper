@@ -47,7 +47,7 @@ from tests.lib.fixtures import prepare_presets
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 class Listener:

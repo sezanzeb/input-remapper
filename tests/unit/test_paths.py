@@ -27,7 +27,7 @@ import unittest
 import tempfile
 
 from inputremapper.configs.paths import PathUtils
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 def _raise(error):

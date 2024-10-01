@@ -22,7 +22,7 @@ import unittest
 from dataclasses import dataclass
 
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType, Signal
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 class Listener:

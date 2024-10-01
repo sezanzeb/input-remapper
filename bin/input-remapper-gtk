@@ -70,6 +70,8 @@ if __name__ == "__main__":
     logger.log_info("input-remapper-gtk")
     logger.debug("Using locale directory: {}".format(LOCALE_DIR))
 
+    # TODO no. Importing files shouldn't run any code, so it shouldn't matter when the
+    #  log-level is set.
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
     from inputremapper.configs.system_mapping import system_mapping
@@ -81,9 +83,9 @@ if __name__ == "__main__":
     from inputremapper.gui.reader_client import ReaderClient
     from inputremapper.daemon import Daemon
     from inputremapper.configs.global_config import GlobalConfig
-    from inputremapper.configs.migrations import migrate
+    from inputremapper.configs.migrations import Migrations
 
-    migrate()
+    Migrations.migrate()
 
     message_broker = MessageBroker()
 

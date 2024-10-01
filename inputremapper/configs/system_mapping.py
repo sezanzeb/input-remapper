@@ -214,5 +214,6 @@ class SystemMapping:
         return xmodmap_dict
 
 
+# TODO DI
 # this mapping represents the xmodmap output, which stays constant
 system_mapping = SystemMapping()

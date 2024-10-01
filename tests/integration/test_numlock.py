@@ -24,7 +24,7 @@ from tests.lib.cleanup import quick_cleanup
 import unittest
 
 from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

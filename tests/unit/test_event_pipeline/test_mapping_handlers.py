@@ -67,7 +67,7 @@ from tests.lib.cleanup import cleanup
 from tests.lib.patches import InputDevice
 from tests.lib.constants import MAX_ABS
 from tests.lib.fixtures import fixtures
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 class BaseTests:

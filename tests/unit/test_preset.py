@@ -30,7 +30,7 @@ from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from tests.lib.cleanup import quick_cleanup
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests

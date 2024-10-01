@@ -26,7 +26,7 @@ import unittest
 from unittest import mock
 
 from inputremapper.user import UserUtils
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 def _raise(error):

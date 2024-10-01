@@ -29,7 +29,7 @@ from evdev.ecodes import BTN_LEFT, KEY_A
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
 from tests.lib.cleanup import quick_cleanup
-from tests.new_test import setup_tests
+from tests.test import setup_tests
 
 
 @setup_tests
