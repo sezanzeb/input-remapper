@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import traceback
 import tracemalloc
 
 from tests.lib.cleanup import cleanup, quick_cleanup
@@ -93,7 +92,9 @@ def setup_tests(cls):
         create_fixture_pipes()
 
         # I don't know. Somehow tearDownClass is called before the test, so lets
-        # make sure the patches are started already when the class is set up.
+        # make sure the patches are started already when the class is set up, so that
+        # an unpatched `prepare_all` doesn't take ages to finish, and doesn't do funky
+        # stuff with the real evdev.
         for patch in patches:
             patch.start()
 
