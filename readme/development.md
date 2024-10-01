@@ -90,6 +90,13 @@ completely. Use `get_children()` and iterate over it with regular python `for` l
 Use `gtk_iteration()` in tests when interacting with GTK methods to trigger events to
 be emitted.
 
+Do not do `from evdev import list_devices; list_devices()`, and instead do
+`import evdev; evdev.list_devices()`. The first variant cannot be easily patched in
+tests (there are ways, but as far as I can tell it has to be configured individually
+for each source-file/module). The second option allows for patches to be defiend in
+one central places. Importing `KEY_*`, `BTN_*`, etc. constants via `from evdev` is
+fine.
+
 Releasing
 ---------
 
