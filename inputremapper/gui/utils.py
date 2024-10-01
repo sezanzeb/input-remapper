@@ -23,12 +23,9 @@ import time
 from dataclasses import dataclass
 from typing import List, Callable, Dict, Optional
 
-import gi
-
 from gi.repository import Gtk, GLib, Gdk
 
 from inputremapper.logger.logger import logger
-
 
 # status ctx ids
 

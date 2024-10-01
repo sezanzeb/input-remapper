@@ -21,14 +21,14 @@
 """User Interface."""
 from typing import Dict, Callable
 
-import gi
-
 from gi.repository import Gtk, GtkSource, Gdk, GObject
 
 from inputremapper.configs.data import get_data_path
-from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.mapping import MappingData
 from inputremapper.gui.autocompletion import Autocompletion
+from inputremapper.gui.components.common import Breadcrumbs
+from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.components.editor import (
     MappingListBox,
     TargetSelection,
@@ -49,11 +49,10 @@ from inputremapper.gui.components.editor import (
     RequireActiveMapping,
     GdkEventRecorder,
 )
-from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.main import Stack, StatusBar
-from inputremapper.gui.components.common import Breadcrumbs
-from inputremapper.gui.components.device_groups import DeviceGroupSelection
+from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.controller import Controller
+from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
@@ -64,7 +63,6 @@ from inputremapper.gui.utils import (
 )
 from inputremapper.injection.injector import InjectorStateMessage
 from inputremapper.logger.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
-from inputremapper.gui.gettext import _
 
 # https://cjenkins.wordpress.com/2012/05/08/use-gtksourceview-widget-in-glade/
 GObject.type_register(GtkSource.View)

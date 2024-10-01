@@ -19,8 +19,8 @@
 
 from typing import Tuple, Dict
 
-from inputremapper.configs.input_config import InputCombination
 from inputremapper import exceptions
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.global_uinputs import global_uinputs

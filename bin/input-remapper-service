@@ -25,7 +25,7 @@
 import sys
 from argparse import ArgumentParser
 
-from inputremapper.logger.logger import update_verbosity, log_info
+from inputremapper.logger.logger import logger
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -47,13 +47,13 @@ if __name__ == "__main__":
 
     options = parser.parse_args(sys.argv[1:])
 
-    update_verbosity(options.debug)
+    logger.update_verbosity(options.debug)
 
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.daemon import Daemon
 
     if not options.hide_info:
-        log_info("input-remapper-service")
+        logger.log_info("input-remapper-service")
 
     daemon = Daemon()
     daemon.publish()

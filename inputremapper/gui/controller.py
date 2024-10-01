@@ -33,11 +33,10 @@ from typing import (
     Any,
 )
 
-import gi
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
-
 from gi.repository import Gtk
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     MappingData,
     UIMapping,
@@ -48,7 +47,6 @@ from inputremapper.configs.mapping import (
     OutputSymbolVariantError,
 )
 from inputremapper.configs.paths import PathUtils
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.validation_errors import pydantify
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME

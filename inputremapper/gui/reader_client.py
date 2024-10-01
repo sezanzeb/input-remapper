@@ -24,15 +24,21 @@ see gui.reader_service.ReaderService
 """
 
 import time
-from typing import Optional, List, Generator, Dict, Tuple, Set
+from typing import Optional, List, Generator, Dict, Set
 
 import evdev
-import gi
-
 from gi.repository import GLib
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.groups import _Groups, _Group
+from inputremapper.gui.gettext import _
+from inputremapper.gui.messages.message_broker import MessageBroker
+from inputremapper.gui.messages.message_data import (
+    GroupsData,
+    CombinationRecorded,
+    StatusData,
+)
+from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_service import (
     MSG_EVENT,
     MSG_GROUPS,
@@ -42,15 +48,7 @@ from inputremapper.gui.reader_service import (
     get_pipe_paths,
     ReaderService,
 )
-from inputremapper.gui.messages.message_types import MessageType
-from inputremapper.gui.messages.message_broker import MessageBroker
-from inputremapper.gui.messages.message_data import (
-    GroupsData,
-    CombinationRecorded,
-    StatusData,
-)
 from inputremapper.gui.utils import CTX_ERROR
-from inputremapper.gui.gettext import _
 from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logger.logger import logger

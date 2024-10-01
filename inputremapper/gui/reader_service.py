@@ -50,7 +50,6 @@ from typing import Set, List
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
-from inputremapper.utils import get_device_hash
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
@@ -67,6 +66,7 @@ from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logger.logger import logger
 from inputremapper.user import UserUtils
+from inputremapper.utils import get_device_hash
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"

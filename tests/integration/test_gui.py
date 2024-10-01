@@ -19,37 +19,20 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-
-# TODO no:
-# the tests file needs to be imported first to make sure patches are loaded
-# TODO "optimize imports" of all files
-from tests.test import get_project_root
-
-from contextlib import contextmanager
-from typing import Tuple, List, Optional, Iterable
-
-from inputremapper.gui.autocompletion import (
-    get_incomplete_parameter,
-    get_incomplete_function_name,
-)
-
-from tests.lib.global_uinputs import reset_global_uinputs_for_service
-from tests.lib.cleanup import cleanup
-from tests.lib.stuff import spy
-from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import prepare_presets
-from tests.lib.logger import logger
-from tests.lib.fixtures import fixtures
-from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
-from tests.integration.test_components import FlowBoxTestUtils
-
+import atexit
+import multiprocessing
+import os
 import sys
 import time
-import atexit
-import os
 import unittest
-import multiprocessing
+from contextlib import contextmanager
+from importlib.machinery import SourceFileLoader
+from importlib.util import spec_from_loader, module_from_spec
+from typing import Tuple, List, Optional, Iterable
+from unittest.mock import patch, MagicMock, call
+
 import evdev
+import gi
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -58,13 +41,23 @@ from evdev.ecodes import (
     KEY_Q,
     EV_REL,
 )
-from unittest.mock import patch, MagicMock, call
-from importlib.util import spec_from_loader, module_from_spec
-from importlib.machinery import SourceFileLoader
 
+from inputremapper.gui.autocompletion import (
+    get_incomplete_parameter,
+    get_incomplete_function_name,
+)
 from inputremapper.input_event import InputEvent
+from tests.integration.test_components import FlowBoxTestUtils
+from tests.lib.cleanup import cleanup
+from tests.lib.constants import EVENT_READ_TIMEOUT
+from tests.lib.fixtures import fixtures
+from tests.lib.fixtures import prepare_presets
+from tests.lib.global_uinputs import reset_global_uinputs_for_service
+from tests.lib.logger import logger
+from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
+from tests.lib.stuff import spy
 
-import gi
+from tests.test import get_project_root
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")

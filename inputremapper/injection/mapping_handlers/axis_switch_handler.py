@@ -17,12 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Tuple, Hashable, TYPE_CHECKING
+from typing import Dict, Tuple, Hashable
 
 import evdev
-from inputremapper.configs.input_config import InputConfig
 
 from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,

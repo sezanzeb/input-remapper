@@ -23,19 +23,18 @@ import re
 import time
 from typing import Optional, List, Tuple, Set
 
-import gi
 from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.daemon import DaemonProxy
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
-from inputremapper.gui.gettext import _
 from inputremapper.groups import _Group
+from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
 )

@@ -29,8 +29,8 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper import exceptions
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     Mapping,
     REL_XY_SCALING,

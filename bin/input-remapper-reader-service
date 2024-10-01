@@ -28,7 +28,7 @@ import sys
 from argparse import ArgumentParser
 
 from inputremapper.groups import _Groups
-from inputremapper.logger.logger import update_verbosity
+from inputremapper.logger.logger import logger
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     options = parser.parse_args(sys.argv[1:])
 
-    update_verbosity(options.debug)
+    logger.update_verbosity(options.debug)
 
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.gui.reader_service import ReaderService

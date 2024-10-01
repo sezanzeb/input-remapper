@@ -18,15 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+import time
 import unittest
 from typing import Optional, Tuple, Union
 from unittest.mock import MagicMock, call
-import time
 
 import evdev
-from evdev.ecodes import KEY_A, KEY_B, KEY_C
-
 import gi
+from evdev.ecodes import KEY_A, KEY_B, KEY_C
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")

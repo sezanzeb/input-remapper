@@ -27,13 +27,13 @@ from typing import AsyncIterator, Protocol, Set, List
 
 import evdev
 
-from inputremapper.utils import get_device_hash, DeviceHash
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
     NotifyCallback,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logger.logger import logger
+from inputremapper.utils import get_device_hash, DeviceHash
 
 
 class Context(Protocol):

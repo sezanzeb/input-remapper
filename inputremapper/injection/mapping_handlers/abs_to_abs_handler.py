@@ -22,8 +22,8 @@ from typing import Tuple, Optional, Dict
 import evdev
 from evdev.ecodes import EV_ABS
 
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper import exceptions
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation

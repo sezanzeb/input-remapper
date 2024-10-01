@@ -18,6 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations  # needed for the TYPE_CHECKING import
+
 from typing import TYPE_CHECKING, Dict, Hashable
 
 import evdev
