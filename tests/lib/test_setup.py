@@ -23,6 +23,8 @@ from __future__ import annotations
 import os
 import tracemalloc
 
+from inputremapper.configs.global_config import global_config
+from inputremapper.configs.paths import PathUtils
 from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.fixture_pipes import create_fixture_pipes, remove_fixture_pipes
 from tests.lib.is_service_running import is_service_running
@@ -61,6 +63,14 @@ def test_setup(cls):
         # stuff with the real evdev.
         for patch in patches:
             patch.start()
+
+        # TODO if global_config is injected instead, it could work without doing this
+        #  load_config call here. Because right now the constructor uses variables
+        #  that are unpatched once global_config.py is imported.
+        global_config.path = os.path.join(
+            PathUtils.config_path(),
+            "config.json",
+        )
 
         original_setUpClass()
 
