@@ -93,8 +93,12 @@ def test_setup(cls):
     def tearDown(self):
         original_tearDown(self)
 
-        # TODO remove quick_cleanup calls from tearDown methods
         quick_cleanup()
+
+        # This assertion was important to me somehow in other tests after the cleanup,
+        # so I added it to the test setup. I don't remember if this is important to
+        # check.
+        assert len(global_config.iterate_autoload_presets()) == 0
 
         for patch in patches:
             patch.stop()

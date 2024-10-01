@@ -33,7 +33,6 @@ gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GLib, GtkSource, Gdk
 
-from tests.lib.cleanup import quick_cleanup
 from tests.lib.spy import spy
 from tests.lib.logger import logger
 
@@ -117,8 +116,6 @@ class ComponentBaseTest(unittest.TestCase):
         # So the gui will do whatever is queued up this ensures that the next tests
         # starts without pending events.
         Gtk.main()
-
-        quick_cleanup()
 
 
 class FlowBoxTestUtils:

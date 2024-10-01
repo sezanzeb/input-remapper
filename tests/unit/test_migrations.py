@@ -12,9 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.tmp import tmp
-
 import json
 import os
 import shutil
@@ -36,7 +33,6 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
-from inputremapper.configs.global_config import global_config
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.migrations import Migrations
@@ -45,6 +41,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.logger.logger import VERSION
 from inputremapper.user import UserUtils
 from tests.lib.test_setup import test_setup
+from tests.lib.tmp import tmp
 
 
 @test_setup
@@ -62,10 +59,6 @@ class TestMigrations(unittest.TestCase):
         self.beta_dir = os.path.join(
             UserUtils.home, ".config", "input-remapper", "beta_1.6.0-beta"
         )
-
-    def tearDown(self):
-        quick_cleanup()
-        self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
 
     def test_migrate_suffix(self):
         old = os.path.join(PathUtils.config_path(), "config")

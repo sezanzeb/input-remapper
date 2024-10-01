@@ -19,9 +19,9 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-import os
 import json
 import multiprocessing
+import os
 import time
 import unittest
 from typing import List, Optional
@@ -53,16 +53,15 @@ from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService, ContextDummy
 from inputremapper.input_event import InputEvent
-from tests.lib.fixtures import new_event
-from tests.lib.cleanup import quick_cleanup
 from tests.lib.constants import (
     EVENT_READ_TIMEOUT,
     START_READING_DELAY,
     MAX_ABS,
     MIN_ABS,
 )
-from tests.lib.pipes import push_event, push_events
 from tests.lib.fixtures import fixtures
+from tests.lib.fixtures import new_event
+from tests.lib.pipes import push_event, push_events
 from tests.lib.spy import spy
 from tests.lib.test_setup import test_setup
 
@@ -167,7 +166,6 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.reader_client = ReaderClient(self.message_broker, self.groups)
 
     def tearDown(self):
-        quick_cleanup()
         try:
             self.reader_client.terminate()
         except (BrokenPipeError, OSError):

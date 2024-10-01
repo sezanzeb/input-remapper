@@ -19,8 +19,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.lib.cleanup import quick_cleanup
-
 import unittest
 
 from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
@@ -29,13 +27,6 @@ from tests.lib.test_setup import test_setup
 
 @test_setup
 class TestNumlock(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        quick_cleanup()
-
-    def tearDown(self):
-        quick_cleanup()
-
     def test_numlock(self):
         before = is_numlock_on()
 

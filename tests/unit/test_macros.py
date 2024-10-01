@@ -69,7 +69,6 @@ from inputremapper.injection.macros.parse import (
 )
 from inputremapper.input_event import InputEvent
 from tests.lib.logger import logger
-from tests.lib.cleanup import quick_cleanup
 from tests.lib.test_setup import test_setup
 
 
@@ -89,7 +88,6 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
 
     def tearDown(self):
         self.result = []
-        quick_cleanup()
 
     def handler(self, type_: int, code: int, value: int):
         """Where macros should write codes to."""

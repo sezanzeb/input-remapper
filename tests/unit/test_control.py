@@ -20,24 +20,21 @@
 
 
 """Testing the input-remapper-control command"""
-from unittest.mock import patch
-
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.tmp import tmp
-
+import collections
 import os
 import time
 import unittest
-import collections
-from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
+from importlib.util import spec_from_loader, module_from_spec
+from unittest.mock import patch
 
 from inputremapper.configs.global_config import global_config
-from inputremapper.daemon import Daemon
-from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.preset import Preset
+from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
 from tests.lib.test_setup import test_setup
+from tests.lib.tmp import tmp
 
 
 def import_control():
@@ -69,9 +66,6 @@ options = collections.namedtuple(
 class TestControl(unittest.TestCase):
     def setUp(self):
         self.input_remapper_control = InputRemapperControl()
-
-    def tearDown(self):
-        quick_cleanup()
 
     def test_autoload(self):
         device_keys = ["Foo Device 2", "Bar Device"]

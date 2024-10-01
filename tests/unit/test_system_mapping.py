@@ -28,15 +28,11 @@ from evdev.ecodes import BTN_LEFT, KEY_A
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
-from tests.lib.cleanup import quick_cleanup
 from tests.lib.test_setup import test_setup
 
 
 @test_setup
 class TestSystemMapping(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
     def test_update(self):
         system_mapping = SystemMapping()
         system_mapping.update({"foo1": 101, "bar1": 102})

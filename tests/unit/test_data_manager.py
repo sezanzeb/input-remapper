@@ -25,11 +25,14 @@ from typing import List
 from unittest.mock import MagicMock, call
 
 from inputremapper.configs.global_config import global_config
-from inputremapper.configs.mapping import UIMapping, MappingData
-from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import UIMapping, MappingData
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
+from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
@@ -40,13 +43,8 @@ from inputremapper.gui.messages.message_data import (
 )
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.patches import FakeDaemonProxy
 from tests.lib.fixtures import prepare_presets
-
-from inputremapper.configs.paths import PathUtils
-from inputremapper.configs.preset import Preset
-from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
+from tests.lib.patches import FakeDaemonProxy
 from tests.lib.test_setup import test_setup
 
 
@@ -73,9 +71,6 @@ class TestDataManager(unittest.TestCase):
             self.uinputs,
             system_mapping,
         )
-
-    def tearDown(self) -> None:
-        quick_cleanup()
 
     def test_load_group_provides_presets(self):
         """we should get all preset of a group, when loading it"""

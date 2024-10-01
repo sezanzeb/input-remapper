@@ -24,12 +24,11 @@ from unittest.mock import patch
 
 from evdev.ecodes import EV_KEY, EV_ABS
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.input_config import InputCombination, InputConfig
-from tests.lib.cleanup import quick_cleanup
 from tests.lib.test_setup import test_setup
 
 
@@ -38,9 +37,6 @@ class TestPreset(unittest.TestCase):
     def setUp(self):
         self.preset = Preset(PathUtils.get_preset_path("foo", "bar2"))
         self.assertFalse(self.preset.has_unsaved_changes())
-
-    def tearDown(self):
-        quick_cleanup()
 
     def test_is_mapped_multiple_times(self):
         combination = InputCombination(

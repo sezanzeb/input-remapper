@@ -19,12 +19,9 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import fixtures, keyboard_keys
-
+import json
 import os
 import unittest
-import json
 
 import evdev
 from evdev.ecodes import EV_KEY, KEY_A
@@ -37,6 +34,7 @@ from inputremapper.groups import (
     DeviceType,
     _Group,
 )
+from tests.lib.fixtures import fixtures, keyboard_keys
 from tests.lib.test_setup import test_setup
 
 
@@ -49,9 +47,6 @@ class FakePipe:
 
 @test_setup
 class TestGroups(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
     def test_group(self):
         group = _Group(
             paths=["/dev/a", "/dev/b", "/dev/c"],

@@ -23,18 +23,9 @@ try:
 except ImportError:
     from pydantic import ValidationError
 
-from inputremapper.input_event import InputEvent
-from tests.lib.patches import uinputs
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import fixtures
-from tests.lib.pipes import uinput_write_history_pipe
-from tests.lib.pipes import read_write_history_pipe, push_events
-from tests.lib.fixtures import keyboard_keys
-
+import time
 import unittest
 from unittest import mock
-import time
 
 import evdev
 from evdev.ecodes import (
@@ -49,24 +40,31 @@ from evdev.ecodes import (
     ABS_VOLUME,
 )
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import (
+    system_mapping,
+    DISABLE_CODE,
+    DISABLE_NAME,
+)
+from inputremapper.groups import groups, classify, DeviceType
+from inputremapper.injection.context import Context
 from inputremapper.injection.injector import (
     Injector,
     is_in_capabilities,
     InjectorState,
     get_udev_name,
 )
-from inputremapper.injection.numlock import is_numlock_on
-from inputremapper.configs.system_mapping import (
-    system_mapping,
-    DISABLE_CODE,
-    DISABLE_NAME,
-)
-from inputremapper.configs.preset import Preset
-from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.macros.parse import parse
-from inputremapper.injection.context import Context
-from inputremapper.groups import groups, classify, DeviceType
+from inputremapper.injection.numlock import is_numlock_on
+from inputremapper.input_event import InputEvent
+from tests.lib.constants import EVENT_READ_TIMEOUT
+from tests.lib.fixtures import fixtures
+from tests.lib.fixtures import keyboard_keys
+from tests.lib.patches import uinputs
+from tests.lib.pipes import read_write_history_pipe, push_events
+from tests.lib.pipes import uinput_write_history_pipe
 from tests.lib.test_setup import test_setup
 
 
@@ -85,7 +83,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def setUpClass(cls):
         cls.injector = None
         cls.grab = evdev.InputDevice.grab
-        quick_cleanup()
 
     def setUp(self):
         self.failed = 0
@@ -108,8 +105,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
             self.injector = None
         evdev.InputDevice.grab = self.grab
-
-        quick_cleanup()
 
     def initialize_injector(self, group, preset: Preset):
         self.injector = Injector(group, preset)
@@ -548,10 +543,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
 @test_setup
 class TestModifyCapabilities(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        quick_cleanup()
-
     def setUp(self):
         class FakeDevice:
             def __init__(self):
@@ -646,9 +637,6 @@ class TestModifyCapabilities(unittest.TestCase):
         self.assertIn(self.two, keys)
         self.assertIn(self.shift_l, keys)
         self.assertNotIn(DISABLE_CODE, keys)
-
-    def tearDown(self):
-        quick_cleanup()
 
     def test_copy_capabilities(self):
         # I don't know what ABS_VOLUME is, for now I would like to just always

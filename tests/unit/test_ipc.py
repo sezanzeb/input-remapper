@@ -19,19 +19,16 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import multiprocessing
-
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.tmp import tmp
-
-import unittest
+import os
 import select
 import time
-import os
+import unittest
 
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.ipc.socket import Server, Client, Base
 from tests.lib.test_setup import test_setup
+from tests.lib.tmp import tmp
 
 
 @test_setup
@@ -40,9 +37,6 @@ class TestSharedDict(unittest.TestCase):
         self.shared_dict = SharedDict()
         self.shared_dict.start()
         time.sleep(0.02)
-
-    def tearDown(self):
-        quick_cleanup()
 
     def test_returns_none(self):
         self.assertIsNone(self.shared_dict.get("a"))

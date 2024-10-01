@@ -25,17 +25,12 @@ import unittest
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.paths import PathUtils
 
-from tests.lib.cleanup import quick_cleanup
 from tests.lib.tmp import tmp
 from tests.lib.test_setup import test_setup
 
 
 @test_setup
 class TestConfig(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-        self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
-
     def test_basic(self):
         self.assertEqual(global_config.get("a"), None)
 

@@ -19,8 +19,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.lib.cleanup import quick_cleanup
-
 import os
 import unittest
 from unittest import mock
@@ -35,9 +33,6 @@ def _raise(error):
 
 @test_setup
 class TestUser(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
     def test_get_user(self):
         with mock.patch("os.getlogin", lambda: "foo"):
             self.assertEqual(UserUtils.get_user(), "foo")

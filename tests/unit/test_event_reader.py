@@ -36,17 +36,16 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
 )
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 from tests.lib.fixtures import fixtures
-from tests.lib.cleanup import quick_cleanup
 from tests.lib.test_setup import test_setup
 
 
@@ -59,9 +58,6 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         global_uinputs.is_service = True
         global_uinputs.prepare_all()
-
-    def tearDown(self):
-        quick_cleanup()
 
     async def setup(self, source, mapping):
         """Set a EventReader up for the test and run it in the background."""

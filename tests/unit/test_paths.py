@@ -19,15 +19,13 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.tmp import tmp
-
 import os
-import unittest
 import tempfile
+import unittest
 
 from inputremapper.configs.paths import PathUtils
 from tests.lib.test_setup import test_setup
+from tests.lib.tmp import tmp
 
 
 def _raise(error):
@@ -36,9 +34,6 @@ def _raise(error):
 
 @test_setup
 class TestPaths(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
     def test_touch(self):
         with tempfile.TemporaryDirectory() as local_tmp:
             path_abcde = os.path.join(local_tmp, "a/b/c/d/e")

@@ -52,7 +52,6 @@ from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.mapping import UIMapping, MappingData, Mapping
-from tests.lib.cleanup import quick_cleanup
 from tests.lib.spy import spy
 from tests.lib.patches import FakeDaemonProxy
 from tests.lib.fixtures import fixtures, prepare_presets
@@ -82,9 +81,6 @@ class TestController(unittest.TestCase):
         self.user_interface = MagicMock()
         self.controller = Controller(self.message_broker, self.data_manager)
         self.controller.set_gui(self.user_interface)
-
-    def tearDown(self) -> None:
-        quick_cleanup()
 
     def test_should_get_newest_group(self):
         """get_a_group should the newest group."""

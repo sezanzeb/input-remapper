@@ -10,7 +10,6 @@ gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, Gdk, GLib
 
-from tests.lib.cleanup import quick_cleanup
 from inputremapper.gui.utils import gtk_iteration
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
@@ -32,7 +31,6 @@ class TestUserInterface(unittest.TestCase):
         GLib.timeout_add(0, self.user_interface.window.destroy)
         GLib.timeout_add(0, Gtk.main_quit)
         Gtk.main()
-        quick_cleanup()
 
     def test_shortcut(self):
         mock = MagicMock()
