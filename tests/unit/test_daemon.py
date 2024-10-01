@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from evdev._ecodes import EV_ABS
 
 from inputremapper.input_event import InputEvent
