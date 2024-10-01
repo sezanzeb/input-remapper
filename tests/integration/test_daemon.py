@@ -17,14 +17,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from tests.lib.test_setup import is_service_running
 
-import os
 import multiprocessing
-import unittest
+import os
 import time
+import unittest
 
 import gi
+
+from tests.lib.test_setup import is_service_running
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

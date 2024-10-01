@@ -17,10 +17,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import dataclasses
 import functools
-import unittest
 import itertools
+import unittest
 from typing import Iterable, List
 
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
