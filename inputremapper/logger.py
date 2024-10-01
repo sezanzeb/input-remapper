@@ -102,7 +102,7 @@ class Logger(logging.Logger):
 
         previous_write_debug_log = msg
 
-        self._log(logging.DEBUG, msg, args=None)
+        self._log(logging.DEBUG, msg, args=None, stacklevel=2)
 
 
 # https://github.com/python/typeshed/issues/1801
