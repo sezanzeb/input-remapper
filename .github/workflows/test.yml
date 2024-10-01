@@ -34,4 +34,4 @@ jobs:
         # try this if input-remappers data cannot be found, and set DATA_DIR to a matching directory
         # find / -type f -name "input-remapper.glade"
 
-        sudo -E python -m unittest tests/unit/test_daemon.py
+        sudo -E python -m unittest discover tests/unit

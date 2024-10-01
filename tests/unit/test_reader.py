@@ -99,7 +99,6 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
         self.reader_client = ReaderClient(self.message_broker, self.groups)
 
     def tearDown(self):
-        quick_cleanup()
         try:
             self.reader_client.terminate()
         except (BrokenPipeError, OSError):
