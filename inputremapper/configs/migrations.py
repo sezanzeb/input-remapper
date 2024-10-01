@@ -344,7 +344,7 @@ class Migrations:
         return InputCombination(configs)
 
     @staticmethod
-    def _convert_to_individual_mappings():
+    def _convert_to_individual_mappings() -> None:
         """Convert preset.json
         from {key: [symbol, target]}
         to [{input_combination: ..., output_symbol: symbol, ...}]

@@ -38,7 +38,7 @@ class ColorfulFormatter(logging.Formatter):
         super().__init__()
 
         self.debug_mode = debug_mode
-        self.file_color_mapping = {}
+        self.file_color_mapping: Dict[str, int] = {}
 
         # see https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
         self.allowed_colors = []
@@ -68,10 +68,10 @@ class ColorfulFormatter(logging.Formatter):
             logging.FATAL: 9,
         }
 
-    def _get_ansi_code(self, r: int, g: int, b: int):
+    def _get_ansi_code(self, r: int, g: int, b: int) -> int:
         return 16 + b + (6 * g) + (36 * r)
 
-    def _word_to_color(self, word: str):
+    def _word_to_color(self, word: str) -> int:
         """Convert a word to a 8bit ansi color code."""
         digit_sum = sum([ord(char) for char in word])
         index = digit_sum % len(self.allowed_colors)
