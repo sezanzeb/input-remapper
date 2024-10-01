@@ -202,7 +202,7 @@ class InputDevice:
 uinputs = {}
 
 
-class UInput:
+class UInputMock:
     def __init__(self, events=None, name="unnamed", *args, **kwargs):
         self.fd = 0
         self.write_count = 0
@@ -260,10 +260,10 @@ def patch_evdev():
     return [
         patch.object(evdev, "list_devices", list_devices),
         patch.object(evdev, "InputDevice", InputDevice),
-        patch.object(evdev.UInput, "capabilities", UInput.capabilities),
-        patch.object(evdev.UInput, "write", UInput.write),
-        patch.object(evdev.UInput, "syn", UInput.syn),
-        patch.object(evdev.UInput, "__init__", UInput.__init__),
+        patch.object(evdev.UInput, "capabilities", UInputMock.capabilities),
+        patch.object(evdev.UInput, "write", UInputMock.write),
+        patch.object(evdev.UInput, "syn", UInputMock.syn),
+        patch.object(evdev.UInput, "__init__", UInputMock.__init__),
         patch.object(evdev, "InputEvent", PatchedInputEvent),
     ]
 
