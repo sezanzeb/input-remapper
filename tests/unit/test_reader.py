@@ -126,8 +126,9 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
             context = original_create_event_pipeline(*args, **kwargs)
             return context
 
-        with mock.patch(
-            "inputremapper.gui.reader_service.ReaderService._create_event_pipeline",
+        with mock.patch.object(
+            ReaderService,
+            "_create_event_pipeline",
             remember_context,
         ):
             await self.create_reader_service()
