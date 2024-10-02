@@ -125,7 +125,14 @@ class EventReader:
 
         if notify_callbacks:
             for notify_callback in notify_callbacks:
-                handled = notify_callback(event, source=self._source) | handled
+                handled_ = notify_callback(event, source=self._source)
+                logger.debug(
+                    "%s handled %s: %s",
+                    hex(id(notify_callback.__self__)),
+                    repr(event),
+                    handled_,
+                )
+                handled = handled_ | handled
 
         return handled
 
