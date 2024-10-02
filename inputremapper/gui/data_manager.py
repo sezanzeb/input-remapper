@@ -50,7 +50,7 @@ from inputremapper.injection.injector import (
     InjectorState,
     InjectorStateMessage,
 )
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 DEFAULT_PRESET_NAME = _("new preset")
 

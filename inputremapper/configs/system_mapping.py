@@ -26,7 +26,7 @@ from typing import Optional, List, Iterable, Tuple
 import evdev
 
 from inputremapper.configs.paths import PathUtils
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 from inputremapper.utils import is_service
 
 DISABLE_NAME = "disable"

@@ -25,7 +25,7 @@ from typing import List, Callable, Dict, Optional
 
 from gi.repository import Gtk, GLib, Gdk
 
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 # status ctx ids
 

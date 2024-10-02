@@ -28,7 +28,7 @@ which is why these functions exist.
 import re
 import subprocess
 
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 
 def is_numlock_on():

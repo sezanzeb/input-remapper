@@ -64,7 +64,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.ipc.pipe import Pipe
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
 from inputremapper.utils import get_device_hash
 

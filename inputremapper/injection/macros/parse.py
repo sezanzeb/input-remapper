@@ -27,7 +27,7 @@ from typing import Optional, Any
 
 from inputremapper.configs.validation_errors import MacroParsingError
 from inputremapper.injection.macros.macro import Macro, Variable
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 
 def is_this_a_macro(output: Any):

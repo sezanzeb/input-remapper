@@ -28,7 +28,7 @@ import unittest
 import evdev
 
 from inputremapper.configs.paths import PathUtils
-from inputremapper.logger.logger import (
+from inputremapper.logging.logger import (
     logger,
     ColorfulFormatter,
 )

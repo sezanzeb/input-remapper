@@ -44,7 +44,7 @@ except ImportError:
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import PathUtils
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
 

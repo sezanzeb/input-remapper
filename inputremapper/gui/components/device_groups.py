@@ -36,7 +36,7 @@ from inputremapper.gui.messages.message_data import (
     GroupData,
     DoStackSwitch,
 )
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 
 class DeviceGroupEntry(FlowBoxEntry):

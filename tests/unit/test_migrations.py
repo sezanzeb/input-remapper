@@ -38,7 +38,7 @@ from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.migrations import Migrations
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.logger.logger import VERSION
+from inputremapper.logging.logger import VERSION
 from inputremapper.user import UserUtils
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp

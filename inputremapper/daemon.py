@@ -38,7 +38,7 @@ from pydbus import SystemBus
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config

@@ -61,7 +61,7 @@ from inputremapper.configs.validation_errors import (
 )
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.ipc.shared_dict import SharedDict
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 Handler = Callable[[Tuple[int, int, int]], None]
 MacroTask = Callable[[Handler], Awaitable]

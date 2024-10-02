@@ -26,7 +26,7 @@ from typing import Optional
 from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
 from inputremapper.configs.paths import PathUtils
 from inputremapper.user import UserUtils
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 MOUSE = "mouse"
 WHEEL = "wheel"

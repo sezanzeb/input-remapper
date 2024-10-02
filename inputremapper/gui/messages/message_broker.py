@@ -33,7 +33,7 @@ from typing import (
 )
 
 from inputremapper.gui.messages.message_types import MessageType
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
     pass

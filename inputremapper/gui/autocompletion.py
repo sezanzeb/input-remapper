@@ -39,7 +39,7 @@ from inputremapper.injection.macros.parse import (
     get_macro_argument_names,
     remove_comments,
 )
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 # no deprecated shorthand function-names
 FUNCTION_NAMES = [name for name in TASK_FACTORIES.keys() if len(name) > 1]

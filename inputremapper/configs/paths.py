@@ -26,7 +26,7 @@ import os
 import shutil
 from typing import List, Union, Optional
 
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
 
 

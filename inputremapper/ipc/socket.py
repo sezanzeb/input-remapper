@@ -58,7 +58,7 @@ import time
 from typing import Union
 
 from inputremapper.configs.paths import PathUtils
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 # something funny that most likely won't appear in messages.
 # also add some ones so that 01 in the payload won't offset

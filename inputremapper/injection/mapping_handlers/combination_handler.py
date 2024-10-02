@@ -32,7 +32,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
 )
 from inputremapper.input_event import InputEvent
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
     from inputremapper.injection.context import Context

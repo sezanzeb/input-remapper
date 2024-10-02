@@ -37,7 +37,7 @@ logger.setLevel(logging.INFO)
 
 
 def update_inputremapper_verbosity():
-    from inputremapper.logger.logger import logger
+    from inputremapper.logging.logger import logger
 
     logger.update_verbosity(True)
 

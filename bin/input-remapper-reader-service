@@ -28,7 +28,7 @@ import sys
 from argparse import ArgumentParser
 
 from inputremapper.groups import _Groups
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 if __name__ == "__main__":
     parser = ArgumentParser()

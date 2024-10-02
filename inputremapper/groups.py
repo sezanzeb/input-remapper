@@ -55,7 +55,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.paths import PathUtils
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 from inputremapper.utils import get_device_hash
 
 TABLET_KEYS = [

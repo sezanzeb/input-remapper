@@ -39,7 +39,7 @@ Gtk.init()
 from inputremapper.gui.gettext import _, LOCALE_DIR
 from inputremapper.gui.reader_service import ReaderService
 from inputremapper.daemon import DaemonProxy
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 
 def start_processes() -> DaemonProxy:

@@ -67,7 +67,7 @@ from inputremapper.injection.injector import (
     InjectorState,
     InjectorStateMessage,
 )
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
     # avoids gtk import error in tests

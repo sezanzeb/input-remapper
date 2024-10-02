@@ -31,7 +31,7 @@ from typing import Union, Optional
 
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.migrations import Migrations
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 
 # TODO this sounds like something DI would fix, making everything independent of

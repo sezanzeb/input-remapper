@@ -23,7 +23,7 @@ import logging
 import time
 from typing import cast
 
-from inputremapper.logger.formatter import ColorfulFormatter
+from inputremapper.logging.formatter import ColorfulFormatter
 
 try:
     from inputremapper.commit_hash import COMMIT_HASH

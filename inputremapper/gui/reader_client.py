@@ -51,7 +51,7 @@ from inputremapper.gui.reader_service import (
 from inputremapper.gui.utils import CTX_ERROR
 from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 BLACKLISTED_EVENTS = [(1, evdev.ecodes.BTN_TOOL_DOUBLETAP)]
 RecordingGenerator = Generator[None, InputEvent, None]

@@ -23,7 +23,7 @@ import evdev
 
 import inputremapper.exceptions
 import inputremapper.utils
-from inputremapper.logger.logger import logger
+from inputremapper.logging.logger import logger
 
 MIN_ABS = -(2**15)  # -32768
 MAX_ABS = 2**15  # 32768
