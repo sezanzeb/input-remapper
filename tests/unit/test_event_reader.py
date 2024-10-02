@@ -42,7 +42,8 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 from tests.lib.fixtures import fixtures
@@ -53,15 +54,17 @@ from tests.lib.test_setup import test_setup
 class TestEventReader(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.gamepad_source = evdev.InputDevice(fixtures.gamepad.path)
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.mapping_parser = MappingParser(self.global_uinputs)
         self.stop_event = asyncio.Event()
         self.preset = Preset()
 
-        global_uinputs.is_service = True
-        global_uinputs.prepare_all()
+        self.global_uinputs.is_service = True
+        self.global_uinputs.prepare_all()
 
     async def setup(self, source, mapping):
         """Set a EventReader up for the test and run it in the background."""
-        context = Context(mapping, {}, {})
+        context = Context(mapping, {}, {}, self.mapping_parser)
         context.uinput = evdev.UInput()
         event_reader = EventReader(context, source, self.stop_event)
         asyncio.ensure_future(event_reader.run())
@@ -174,7 +177,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0.1)
         self.stop_event.set()  # stop the reader
 
-        history = global_uinputs.get_uinput("keyboard").write_history
+        history = self.global_uinputs.get_uinput("keyboard").write_history
         self.assertIn((EV_KEY, code_a, 1), history)
         self.assertIn((EV_KEY, code_a, 0), history)
         self.assertNotIn((EV_KEY, code_shift, 1), history)
@@ -233,7 +236,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         )
         await asyncio.sleep(0.1)
         self.assertEqual(len(context.listeners), 0)
-        history = global_uinputs.get_uinput("keyboard").write_history
+        history = self.global_uinputs.get_uinput("keyboard").write_history
 
         # the key that triggered if_single should be injected after
         # if_single had a chance to inject keys (if the macro is fast enough),

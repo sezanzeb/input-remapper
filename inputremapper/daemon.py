@@ -35,6 +35,8 @@ from typing import Protocol, Dict, Optional
 import gi
 from pydbus import SystemBus
 
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
+
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
@@ -47,7 +49,7 @@ from inputremapper.groups import groups
 from inputremapper.configs.paths import PathUtils
 from inputremapper.user import UserUtils
 from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 
 
 BUS_NAME = "inputremapper.Control"
@@ -184,11 +186,18 @@ class Daemon:
         </node>
     """
 
-    def __init__(self, global_config: GlobalConfig):
+    def __init__(
+        self,
+        global_config: GlobalConfig,
+        global_uinputs: GlobalUInputs,
+        mapping_parser: MappingParser,
+    ):
         """Constructs the daemon."""
         logger.debug("Creating daemon")
 
         self.global_config = global_config
+        self.global_uinputs = global_uinputs
+        self.mapping_parser = mapping_parser
 
         self.injectors: Dict[str, Injector] = {}
 
@@ -503,13 +512,13 @@ class Daemon:
             # confusing the system. Seems to be especially important with
             # gamepads, because some apps treat the first gamepad they found
             # as the only gamepad they'll ever care about.
-            global_uinputs.prepare_single(mapping.target_uinput)
+            self.global_uinputs.prepare_single(mapping.target_uinput)
 
         if self.injectors.get(group_key) is not None:
             self.stop_injecting(group_key)
 
         try:
-            injector = Injector(group, preset)
+            injector = Injector(group, preset, self.mapping_parser)
             injector.start()
             self.injectors[group.key] = injector
         except OSError:

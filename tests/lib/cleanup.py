@@ -84,8 +84,7 @@ def quick_cleanup(log=True):
     from inputremapper.injection.macros.macro import macro_variables
     from inputremapper.configs.system_mapping import system_mapping
     from inputremapper.gui.utils import debounce_manager
-    from inputremapper.injection.global_uinputs import global_uinputs
-    from tests.lib.global_uinputs import reset_global_uinputs_for_service
+    from inputremapper.injection.global_uinputs import GlobalUInputs
 
     if log:
         logger.info("Quick cleanup...")
@@ -150,11 +149,6 @@ def quick_cleanup(log=True):
         assert not pipe.poll()
 
     assert macro_variables.is_alive(1)
-    for uinput in global_uinputs.devices.values():
-        uinput.write_count = 0
-        uinput.write_history = []
-
-    reset_global_uinputs_for_service()
 
     if log:
         logger.info("Quick cleanup done")

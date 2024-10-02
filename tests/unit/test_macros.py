@@ -46,6 +46,7 @@ from inputremapper.configs.validation_errors import (
     SymbolNotAvailableInTargetError,
 )
 from inputremapper.injection.context import Context
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.macros.macro import (
     Macro,
     _type_check,
@@ -67,6 +68,7 @@ from inputremapper.injection.macros.parse import (
     get_macro_argument_names,
     get_num_parameters,
 )
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.logger import logger
 from tests.lib.test_setup import test_setup
@@ -75,6 +77,8 @@ from tests.lib.test_setup import test_setup
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.result = []
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.mapping_parser = MappingParser(self.global_uinputs)
 
         try:
             self.loop = asyncio.get_event_loop()
@@ -84,7 +88,12 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
-        self.context = Context(Preset(), source_devices={}, forward_devices={})
+        self.context = Context(
+            Preset(),
+            source_devices={},
+            forward_devices={},
+            mapping_parser=self.mapping_parser,
+        )
 
     def tearDown(self):
         self.result = []

@@ -43,7 +43,7 @@ from inputremapper.gui.messages.message_data import (
     CombinationUpdate,
 )
 from inputremapper.gui.reader_client import ReaderClient
-from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from tests.lib.fixtures import prepare_presets
 from tests.lib.patches import FakeDaemonProxy
 from tests.lib.test_setup import test_setup
@@ -62,7 +62,7 @@ class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
         self.reader = ReaderClient(self.message_broker, _Groups())
-        self.uinputs = GlobalUInputs()
+        self.uinputs = GlobalUInputs(FrontendUInput)
         self.uinputs.prepare_all()
         self.global_config = GlobalConfig()
         self.data_manager = DataManager(

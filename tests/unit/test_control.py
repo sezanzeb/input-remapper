@@ -29,10 +29,13 @@ from importlib.util import spec_from_loader, module_from_spec
 from unittest.mock import patch
 
 from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.configs.migrations import Migrations
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
+from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp
 
@@ -67,7 +70,12 @@ options = collections.namedtuple(
 class TestControl(unittest.TestCase):
     def setUp(self):
         self.global_config = GlobalConfig()
-        self.input_remapper_control = InputRemapperControl(self.global_config)
+        self.global_uinputs = GlobalUInputs(FrontendUInput)
+        self.migrations = Migrations(self.global_uinputs)
+        self.mapping_parser = MappingParser(self.global_uinputs)
+        self.input_remapper_control = InputRemapperControl(
+            self.global_config, self.migrations
+        )
 
     def test_autoload(self):
         device_keys = ["Foo Device 2", "Bar Device"]
@@ -83,7 +91,7 @@ class TestControl(unittest.TestCase):
         Preset(paths[1]).save()
         Preset(paths[2]).save()
 
-        daemon = Daemon(self.global_config)
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
 
         self.input_remapper_control.set_daemon(daemon)
 
@@ -238,7 +246,7 @@ class TestControl(unittest.TestCase):
         Preset(paths[0]).save()
         Preset(paths[1]).save()
 
-        daemon = Daemon(self.global_config)
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
         self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
@@ -264,7 +272,7 @@ class TestControl(unittest.TestCase):
         group = groups.find(key="Foo Device 2")
         preset = "preset9"
 
-        daemon = Daemon(self.global_config)
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
         self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
@@ -308,7 +316,7 @@ class TestControl(unittest.TestCase):
         path = "~/a/preset.json"
         config_dir = "/foo/bar"
 
-        daemon = Daemon(self.global_config)
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
         self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
@@ -337,7 +345,7 @@ class TestControl(unittest.TestCase):
         )
 
     def test_autoload_config_dir(self):
-        daemon = Daemon(self.global_config)
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
 
         path = os.path.join(tmp, "foo")
         os.makedirs(path)

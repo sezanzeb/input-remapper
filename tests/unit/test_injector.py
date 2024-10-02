@@ -17,6 +17,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 
 try:
     from pydantic.v1 import ValidationError
@@ -87,6 +89,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.failed = 0
         self.make_it_fail = 2
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
+        self.mapping_parser = MappingParser(self.global_uinputs)
 
         def grab_fail_twice(_):
             if self.failed < self.make_it_fail:
@@ -107,7 +112,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         evdev.InputDevice.grab = self.grab
 
     def initialize_injector(self, group, preset: Preset):
-        self.injector = Injector(group, preset)
+        self.injector = Injector(group, preset, self.mapping_parser)
         self.injector._devices = self.injector.group.get_devices()
         self.injector._update_preset()
 
@@ -123,10 +128,14 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.injector = Injector(
+            groups.find(key="Foo Device 2"),
+            preset,
+            self.mapping_parser,
+        )
         # this test needs to pass around all other constraints of
         # _grab_device
-        self.injector.context = Context(preset, {}, {})
+        self.injector.context = Context(preset, {}, {}, self.mapping_parser)
         device = self.injector._grab_device(evdev.InputDevice(path))
         gamepad = classify(device) == DeviceType.GAMEPAD
         self.assertFalse(gamepad)
@@ -145,9 +154,13 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.injector = Injector(
+            groups.find(key="Foo Device 2"),
+            preset,
+            self.mapping_parser,
+        )
         path = "/dev/input/event10"
-        self.injector.context = Context(preset, {}, {})
+        self.injector.context = Context(preset, {}, {}, self.mapping_parser)
         device = self.injector._grab_device(evdev.InputDevice(path))
         self.assertIsNone(device)
         self.assertGreaterEqual(self.failed, 1)
@@ -182,7 +195,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             ),
         )
         self.initialize_injector(groups.find(name="gamepad"), preset)
-        self.injector.context = Context(preset, {}, {})
+        self.injector.context = Context(preset, {}, {}, self.mapping_parser)
         self.injector.group.paths = [
             "/dev/input/event10",
             "/dev/input/event30",
@@ -209,7 +222,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
 
         self.initialize_injector(groups.find(name="gamepad"), preset)
-        self.injector.context = Context(preset, {}, {})
+        self.injector.context = Context(preset, {}, {}, self.mapping_parser)
 
         path = "/dev/input/event30"
         devices = self.injector._grab_devices()
@@ -229,7 +242,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
         )
         self.initialize_injector(groups.find(key="Foo Device 2"), preset)
-        self.injector.context = Context(preset, {}, {})
+        self.injector.context = Context(preset, {}, {}, self.mapping_parser)
 
         # grabs only one device even though the group has 4 devices
         devices = self.injector._grab_devices()
@@ -248,7 +261,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         # skips a device because its capabilities are not used in the preset
         self.initialize_injector(groups.find(key="Foo Device 2"), preset)
-        self.injector.context = Context(preset, {}, {})
+        self.injector.context = Context(preset, {}, {}, self.mapping_parser)
         devices = self.injector._grab_devices()
 
         # skips the device alltogether, so no grab attempts fail
@@ -256,7 +269,11 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(devices, {})
 
     def test_get_udev_name(self):
-        self.injector = Injector(groups.find(key="Foo Device 2"), Preset())
+        self.injector = Injector(
+            groups.find(key="Foo Device 2"),
+            Preset(),
+            self.mapping_parser,
+        )
         suffix = "mapped"
         prefix = "input-remapper"
         expected = f'{prefix} {"a" * (80 - len(suffix) - len(prefix) - 2)} {suffix}'
@@ -301,7 +318,11 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
         preset.add(m1)
         preset.add(m2)
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.injector = Injector(
+            groups.find(key="Foo Device 2"),
+            preset,
+            self.mapping_parser,
+        )
         self.injector.stop_injecting()
         self.injector.run()
 
@@ -417,7 +438,11 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 )
             )
 
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.injector = Injector(
+            groups.find(key="Foo Device 2"),
+            preset,
+            self.mapping_parser,
+        )
         self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
         self.injector.start()
         self.assertEqual(self.injector.get_state(), InjectorState.STARTING)
@@ -544,6 +569,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 @test_setup
 class TestModifyCapabilities(unittest.TestCase):
     def setUp(self):
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
+        self.mapping_parser = MappingParser(self.global_uinputs)
+
         class FakeDevice:
             def __init__(self):
                 self._capabilities = {
@@ -641,7 +670,7 @@ class TestModifyCapabilities(unittest.TestCase):
     def test_copy_capabilities(self):
         # I don't know what ABS_VOLUME is, for now I would like to just always
         # remove it until somebody complains, since its presence broke stuff
-        self.injector = Injector(mock.Mock(), self.preset)
+        self.injector = Injector(mock.Mock(), self.preset, self.mapping_parser)
         self.fake_device._capabilities = {
             EV_ABS: [ABS_VOLUME, (ABS_X, evdev.AbsInfo(0, 0, 500, 0, 0, 0))],
             EV_KEY: [1, 2, 3],

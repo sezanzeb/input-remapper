@@ -78,14 +78,17 @@ if __name__ == "__main__":
     from inputremapper.gui.data_manager import DataManager
     from inputremapper.gui.user_interface import UserInterface
     from inputremapper.gui.controller import Controller
-    from inputremapper.injection.global_uinputs import GlobalUInputs
+    from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
     from inputremapper.groups import _Groups
     from inputremapper.gui.reader_client import ReaderClient
     from inputremapper.daemon import Daemon
     from inputremapper.configs.global_config import GlobalConfig
     from inputremapper.configs.migrations import Migrations
 
-    Migrations.migrate()
+    global_uinputs = GlobalUInputs(FrontendUInput)
+    migrations = Migrations(global_uinputs)
+
+    Migrations(global_uinputs).migrate()
 
     message_broker = MessageBroker()
 
@@ -101,7 +104,7 @@ if __name__ == "__main__":
         global_config,
         reader_client,
         daemon,
-        GlobalUInputs(),
+        global_uinputs,
         system_mapping,
     )
     controller = Controller(message_broker, data_manager)

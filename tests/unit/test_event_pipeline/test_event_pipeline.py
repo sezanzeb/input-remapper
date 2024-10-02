@@ -58,7 +58,8 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
@@ -71,8 +72,11 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
     """Test the event pipeline form event_reader to UInput."""
 
     def setUp(self):
-        global_uinputs.is_service = True
-        global_uinputs.prepare_all()
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
+        self.mapping_parser = MappingParser(self.global_uinputs)
+        self.global_uinputs.is_service = True
+        self.global_uinputs.prepare_all()
         self.forward_uinput = evdev.UInput()
         self.stop_event = asyncio.Event()
 
@@ -100,6 +104,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
             preset,
             source_devices={},
             forward_devices={source.get_device_hash(): self.forward_uinput},
+            mapping_parser=self.mapping_parser,
         )
         reader = EventReader(
             context,
@@ -213,7 +218,7 @@ class TestIdk(EventPipelineTestBase):
         # wait a bit for the rel_to_btn handler to send the key up
         await asyncio.sleep(0.1)
 
-        history = global_uinputs.get_uinput("keyboard").write_history
+        history = self.global_uinputs.get_uinput("keyboard").write_history
 
         self.assertEqual(history.count((EV_KEY, code_b, 1)), 1)
         self.assertEqual(history.count((EV_KEY, code_c, 1)), 1)
@@ -267,7 +272,7 @@ class TestIdk(EventPipelineTestBase):
         await asyncio.sleep(0.1)
 
         forwarded_history = self.forward_uinput.write_history
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
 
         self.assertEqual(len(forwarded_history), 0)
         # a down, b down, c down, d down
@@ -277,7 +282,7 @@ class TestIdk(EventPipelineTestBase):
         await asyncio.sleep(0.1)
 
         forwarded_history = self.forward_uinput.write_history
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
 
         self.assertEqual(len(forwarded_history), 0)
         # all a, b, c, d down+up
@@ -317,7 +322,7 @@ class TestIdk(EventPipelineTestBase):
         )
 
         history = self.forward_uinput.write_history
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
 
         self.assertEqual(history.count((EV_ABS, ABS_X, 10)), 1)
         self.assertEqual(history.count((EV_ABS, ABS_Y, 20)), 1)
@@ -356,7 +361,7 @@ class TestIdk(EventPipelineTestBase):
         await asyncio.sleep(0.1)
 
         history = self.forward_uinput.write_history
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
 
         self.assertEqual(history.count((EV_REL, REL_X, 10)), 1)
         self.assertEqual(history.count((EV_REL, REL_Y, 20)), 1)
@@ -439,7 +444,7 @@ class TestIdk(EventPipelineTestBase):
             event_reader,
         )
 
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
 
         forwarded_history = self.forward_uinput.write_history
 
@@ -461,7 +466,7 @@ class TestIdk(EventPipelineTestBase):
             event_reader,
         )
 
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
 
         self.assertNotIn((EV_KEY, a, 1), keyboard_history)
         self.assertNotIn((EV_KEY, a, 0), keyboard_history)
@@ -494,7 +499,7 @@ class TestIdk(EventPipelineTestBase):
             event_reader,
         )
 
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         self.assertEqual(len(keyboard_history), 2)
         self.assertEqual(len(forwarded_history), 0)
@@ -576,7 +581,7 @@ class TestIdk(EventPipelineTestBase):
             ],
             event_reader,
         )
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         self.assertIn((EV_KEY, a, 1), keyboard_history)
         self.assertIn((EV_KEY, a, 0), keyboard_history)
@@ -586,7 +591,7 @@ class TestIdk(EventPipelineTestBase):
         """A combination that ends in a disabled key"""
         # ev_5 should be forwarded and the combination triggered
         await self.send_events(combi_1, event_reader)
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         self.assertIn((EV_KEY, b, 1), keyboard_history)
         self.assertEqual(len(keyboard_history), 3)
@@ -596,7 +601,7 @@ class TestIdk(EventPipelineTestBase):
 
         # release what the combination maps to
         await self.send_events([ev_4, ev_6], event_reader)
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         self.assertIn((EV_KEY, b, 0), keyboard_history)
         self.assertEqual(len(keyboard_history), 4)
@@ -606,7 +611,7 @@ class TestIdk(EventPipelineTestBase):
         """A combination that starts with a disabled key"""
         # only the combination should get triggered
         await self.send_events(combi_2, event_reader)
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         self.assertIn((EV_KEY, c, 1), keyboard_history)
         self.assertEqual(len(keyboard_history), 5)
@@ -616,7 +621,7 @@ class TestIdk(EventPipelineTestBase):
 
         # release what the combination maps to
         await self.send_events([ev_4, ev_6], event_reader)
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         for event in keyboard_history:
             print(event.event_tuple)
@@ -655,7 +660,7 @@ class TestIdk(EventPipelineTestBase):
         # macro starts
         await self.send_events([InputEvent.from_tuple(down_1)], event_reader)
         await asyncio.sleep(0.05)
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         self.assertEqual(len(forwarded_history), 0)
         self.assertGreater(len(keyboard_history), 1)
@@ -666,29 +671,29 @@ class TestIdk(EventPipelineTestBase):
         # combination triggered
         await self.send_events([InputEvent.from_tuple(down_2)], event_reader)
         await asyncio.sleep(0)
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         self.assertIn((EV_KEY, b, 1), keyboard_history)
 
-        len_a = len(global_uinputs.get_uinput("keyboard").write_history)
+        len_a = len(self.global_uinputs.get_uinput("keyboard").write_history)
         await asyncio.sleep(0.05)
-        len_b = len(global_uinputs.get_uinput("keyboard").write_history)
+        len_b = len(self.global_uinputs.get_uinput("keyboard").write_history)
         # still running
         self.assertGreater(len_b, len_a)
 
         # release
         await self.send_events([InputEvent.from_tuple(up_1)], event_reader)
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         self.assertEqual(keyboard_history[-1], (EV_KEY, b, 0))
         await asyncio.sleep(0.05)
-        len_c = len(global_uinputs.get_uinput("keyboard").write_history)
+        len_c = len(self.global_uinputs.get_uinput("keyboard").write_history)
         await asyncio.sleep(0.05)
-        len_d = len(global_uinputs.get_uinput("keyboard").write_history)
+        len_d = len(self.global_uinputs.get_uinput("keyboard").write_history)
         # not running anymore
         self.assertEqual(len_c, len_d)
 
         await self.send_events([InputEvent.from_tuple(up_2)], event_reader)
         await asyncio.sleep(0.05)
-        len_e = len(global_uinputs.get_uinput("keyboard").write_history)
+        len_e = len(self.global_uinputs.get_uinput("keyboard").write_history)
         self.assertEqual(len_e, len_d)
 
     async def test_wheel_combination_release_failure(self):
@@ -735,18 +740,18 @@ class TestIdk(EventPipelineTestBase):
 
         await self.send_events([scroll], event_reader)
         # "maps to 30"
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         self.assertEqual(keyboard_history[0], (EV_KEY, a, 1))
 
         await self.send_events([scroll] * 5, event_reader)
 
         # nothing new since all of them were duplicate key downs
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         self.assertEqual(len(keyboard_history), 1)
 
         await self.send_events([btn_up], event_reader)
         # releasing the combination
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         self.assertEqual(keyboard_history[1], (EV_KEY, a, 0))
 
         # more scroll events
@@ -800,7 +805,7 @@ class TestIdk(EventPipelineTestBase):
             event_reader,
         )
 
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
 
         self.assertEqual(len(forwarded_history), 4)
@@ -821,7 +826,7 @@ class TestIdk(EventPipelineTestBase):
         rel_rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
         preset = Preset()
-        mouse = global_uinputs.get_uinput("mouse")
+        mouse = self.global_uinputs.get_uinput("mouse")
         forward_history = self.forward_uinput.write_history
         mouse_history = mouse.write_history
 
@@ -976,7 +981,7 @@ class TestAbsToAbs(EventPipelineTestBase):
 
         await asyncio.sleep(0.2)
 
-        history = global_uinputs.get_uinput("gamepad").write_history
+        history = self.global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
             [
@@ -1026,7 +1031,7 @@ class TestAbsToAbs(EventPipelineTestBase):
 
         await asyncio.sleep(0.2)
 
-        history = global_uinputs.get_uinput("gamepad").write_history
+        history = self.global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
             [
@@ -1083,7 +1088,7 @@ class TestRelToAbs(EventPipelineTestBase):
 
         await asyncio.sleep(0.1)
 
-        history = global_uinputs.get_uinput("gamepad").write_history
+        history = self.global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
             [
@@ -1102,7 +1107,7 @@ class TestRelToAbs(EventPipelineTestBase):
             event_reader,
         )
         await asyncio.sleep(0.7)
-        history = global_uinputs.get_uinput("gamepad").write_history
+        history = self.global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
             [
@@ -1163,7 +1168,7 @@ class TestRelToAbs(EventPipelineTestBase):
 
         await asyncio.sleep(0.2)
 
-        history = global_uinputs.get_uinput("gamepad").write_history
+        history = self.global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
             [
@@ -1229,7 +1234,7 @@ class TestAbsToRel(EventPipelineTestBase):
             event_reader,
         )
 
-        mouse_history = global_uinputs.get_uinput("mouse").write_history
+        mouse_history = self.global_uinputs.get_uinput("mouse").write_history
 
         if mouse_history[0].type == EV_ABS:
             raise AssertionError(
@@ -1303,7 +1308,7 @@ class TestAbsToRel(EventPipelineTestBase):
             ],
             event_reader,
         )
-        m_history = global_uinputs.get_uinput("mouse").write_history
+        m_history = self.global_uinputs.get_uinput("mouse").write_history
 
         rel_wheel = sum([event.value for event in m_history if event.code == REL_WHEEL])
         rel_wheel_hi_res = sum(
@@ -1370,7 +1375,7 @@ class TestRelToBtn(EventPipelineTestBase):
         # wait more than the release_timeout to make sure all handlers finish
         await asyncio.sleep(release_timeout * 1.2)
 
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         self.assertEqual(keyboard_history.count((EV_KEY, code_b, 1)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, code_c, 1)), 1)
@@ -1422,7 +1427,7 @@ class TestRelToBtn(EventPipelineTestBase):
             event_reader,
         )
         await asyncio.sleep(release_timeout * 1.5)  # release a
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
 
         self.assertEqual(keyboard_history, [(EV_KEY, a, 1), (EV_KEY, a, 0)])
         self.assertEqual(keyboard_history.count((EV_KEY, a, 1)), 1)
@@ -1437,14 +1442,14 @@ class TestRelToBtn(EventPipelineTestBase):
             ],
             event_reader,
         )
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         self.assertEqual(keyboard_history.count((EV_KEY, a, 1)), 2)
         self.assertEqual(keyboard_history.count((EV_KEY, b, 1)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, b, 0)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, a, 0)), 1)
 
         await asyncio.sleep(release_timeout * 1.5)  # release a
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         self.assertEqual(keyboard_history.count((EV_KEY, a, 0)), 2)
         self.assertEqual(
@@ -1494,7 +1499,7 @@ class TestAbsToBtn(EventPipelineTestBase):
             ],
             event_reader,
         )
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
 
         self.assertEqual(keyboard_history.count((EV_KEY, a, 1)), 1)
         self.assertNotIn((EV_KEY, a, 0), keyboard_history)
@@ -1508,7 +1513,7 @@ class TestAbsToBtn(EventPipelineTestBase):
             ],
             event_reader,
         )
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         self.assertEqual(keyboard_history.count((EV_KEY, a, 1)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, b, 1)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, b, 0)), 1)
@@ -1516,7 +1521,7 @@ class TestAbsToBtn(EventPipelineTestBase):
 
         # 0% release a
         await event_reader.handle(InputEvent.abs(ABS_X, 0))
-        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         forwarded_history = self.forward_uinput.write_history
         self.assertEqual(keyboard_history.count((EV_KEY, a, 0)), 1)
         self.assertEqual(len(forwarded_history), 0)
@@ -1545,7 +1550,7 @@ class TestRelToRel(EventPipelineTestBase):
             event_reader,
         )
 
-        history = global_uinputs.get_uinput("mouse").write_history
+        history = self.global_uinputs.get_uinput("mouse").write_history
 
         self.assertEqual(len(history), 1)
         self.assertEqual(
@@ -1602,7 +1607,7 @@ class TestRelToRel(EventPipelineTestBase):
             event_reader,
         )
 
-        history = global_uinputs.get_uinput("mouse").write_history
+        history = self.global_uinputs.get_uinput("mouse").write_history
         # injects both REL_WHEEL and REL_WHEEL_HI_RES events
         self.assertEqual(len(history), 2)
         self.assertEqual(
@@ -1629,7 +1634,7 @@ class TestRelToRel(EventPipelineTestBase):
 
     async def test_remainder(self):
         preset = Preset()
-        history = global_uinputs.get_uinput("mouse").write_history
+        history = self.global_uinputs.get_uinput("mouse").write_history
 
         # REL_WHEEL_HI_RES to REL_Y
         input_config = InputConfig(type=EV_REL, code=REL_WHEEL_HI_RES)

@@ -50,7 +50,7 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
-from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
 from inputremapper.configs.mapping import UIMapping, MappingData, Mapping
 from tests.lib.spy import spy
 from tests.lib.patches import FakeDaemonProxy
@@ -68,7 +68,7 @@ class TestController(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.message_broker = MessageBroker()
-        uinputs = GlobalUInputs()
+        uinputs = GlobalUInputs(FrontendUInput)
         uinputs.prepare_all()
         self.data_manager = DataManager(
             self.message_broker,

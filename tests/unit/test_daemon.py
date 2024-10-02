@@ -37,8 +37,9 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.injector import InjectorState
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.fixtures import Fixture
@@ -56,12 +57,14 @@ class TestDaemon(unittest.TestCase):
     def setUp(self):
         self.daemon = None
         self.global_config = GlobalConfig()
+        self.global_uinputs = GlobalUInputs(UInput)
         PathUtils.mkdir(PathUtils.get_config_path())
         self.global_config._save_config()
+        self.mapping_parser = MappingParser(self.global_uinputs)
 
         # the daemon should be able to create them on demand:
-        global_uinputs.devices = {}
-        global_uinputs.is_service = True
+        self.global_uinputs.devices = {}
+        self.global_uinputs.is_service = True
 
     def tearDown(self):
         # avoid race conditions with other tests, daemon may run processes
@@ -142,19 +145,23 @@ class TestDaemon(unittest.TestCase):
             [InputEvent.key(BTN_B, 1, fixtures.gamepad.get_device_hash())],
         )
 
-        self.daemon = Daemon(self.global_config)
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
 
         self.assertFalse(uinput_write_history_pipe[0].poll())
 
         # has been cleanedUp in setUp
-        self.assertNotIn("keyboard", global_uinputs.devices)
+        self.assertNotIn("keyboard", self.global_uinputs.devices)
 
         logger.info(f"start injector for {group.key}")
         self.daemon.start_injecting(group.key, preset_name)
 
         # created on demand
-        self.assertIn("keyboard", global_uinputs.devices)
-        self.assertNotIn("gamepad", global_uinputs.devices)
+        self.assertIn("keyboard", self.global_uinputs.devices)
+        self.assertNotIn("gamepad", self.global_uinputs.devices)
 
         self.assertEqual(self.daemon.get_state(group.key), InjectorState.STARTING)
         self.assertEqual(self.daemon.get_state(group2.key), InjectorState.UNKNOWN)
@@ -206,7 +213,11 @@ class TestDaemon(unittest.TestCase):
         # freshly loads the config and therefore removes the previosly added key.
         # This is important so that if the service is started via sudo or pkexec
         # it knows where to look for configuration files.
-        self.daemon = Daemon(self.global_config)
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
         self.assertEqual(self.daemon.config_dir, PathUtils.get_config_path())
         self.assertIsNone(self.global_config.get("foo"))
 
@@ -244,7 +255,11 @@ class TestDaemon(unittest.TestCase):
 
         preset.save()
         self.global_config.set_autoload_preset(group_key, preset_name)
-        self.daemon = Daemon(self.global_config)
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
 
         # make sure the devices are populated
         groups.refresh()
@@ -281,7 +296,11 @@ class TestDaemon(unittest.TestCase):
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(groups.find(name=device_9876))
 
-        self.daemon = Daemon(self.global_config)
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
 
         # make sure the devices are populated
         groups.refresh()
@@ -353,7 +372,11 @@ class TestDaemon(unittest.TestCase):
 
         # test setup complete
 
-        self.daemon = Daemon(self.global_config)
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
         self.daemon.set_config_dir(config_dir)
 
         self.daemon.start_injecting(group.key, preset_name)
@@ -371,7 +394,11 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(key=group_key)
         preset_name = "preset8"
 
-        daemon = Daemon(self.global_config)
+        daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
         self.daemon = daemon
 
         pereset = Preset(group.get_preset_path(preset_name))
@@ -439,7 +466,7 @@ class TestDaemon(unittest.TestCase):
         group_key = "Qux/Device?"
         group = groups.find(key=group_key)
 
-        daemon = Daemon(self.global_config)
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
         self.daemon = daemon
 
         preset = Preset(group.get_preset_path(preset_name))
@@ -496,7 +523,11 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(len_before, len_after)
 
     def test_autoload_2(self):
-        self.daemon = Daemon(self.global_config)
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
         history = self.daemon.autoload_history._autoload_history
 
         # existing device
@@ -537,7 +568,11 @@ class TestDaemon(unittest.TestCase):
 
         self.global_config.set_autoload_preset(group.key, preset_name)
 
-        self.daemon = Daemon(self.global_config)
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
         groups.set_groups([])  # caused the bug
         self.assertIsNone(groups.find(key="Foo Device 2"))
         self.daemon.autoload()

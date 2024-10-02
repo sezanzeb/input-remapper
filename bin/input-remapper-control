@@ -31,6 +31,7 @@ from typing import Union, Optional
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
 from inputremapper.logging.logger import logger
 
 
@@ -66,8 +67,13 @@ class Options:
 
 
 class InputRemapperControl:
-    def __init__(self, global_config: GlobalConfig):
+    def __init__(
+        self,
+        global_config: GlobalConfig,
+        migrations: Migrations,
+    ):
         self.global_config = global_config
+        self.migrations = migrations
 
     def run(self, cmd) -> None:
         """Run and log a command."""
@@ -149,7 +155,7 @@ class InputRemapperControl:
             # config_dir is either the cli arg or the default path in home
             config_dir = os.path.dirname(self.global_config.path)
             self.daemon.set_config_dir(config_dir)
-            Migrations.migrate()
+            self.migrations.migrate()
 
     def _stop(self, device: str) -> None:
         group = self._require_group(device)
@@ -270,7 +276,14 @@ class InputRemapperControl:
 
 
 def main(options: Options) -> None:
-    input_remapper_control = InputRemapperControl()
+    global_config = GlobalConfig()
+    global_uinputs = GlobalUInputs(FrontendUInput)
+    migrations = Migrations(global_uinputs)
+    input_remapper_control = InputRemapperControl(
+        global_config,
+        migrations,
+    )
+
     if options.debug:
         logger.update_verbosity(True)
 
