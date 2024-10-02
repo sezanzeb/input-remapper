@@ -25,7 +25,7 @@ from itertools import permutations
 from typing import List
 from unittest.mock import MagicMock, call
 
-from inputremapper.configs.global_config import global_config
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.paths import PathUtils
@@ -64,9 +64,10 @@ class TestDataManager(unittest.TestCase):
         self.reader = ReaderClient(self.message_broker, _Groups())
         self.uinputs = GlobalUInputs()
         self.uinputs.prepare_all()
+        self.global_config = GlobalConfig()
         self.data_manager = DataManager(
             self.message_broker,
-            global_config,
+            self.global_config,
             self.reader,
             FakeDaemonProxy(),
             self.uinputs,

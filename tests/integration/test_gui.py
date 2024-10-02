@@ -67,7 +67,7 @@ from gi.repository import Gtk, GLib, Gdk, GtkSource
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
-from inputremapper.configs.global_config import global_config
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
 from inputremapper.gui.messages.message_broker import (
@@ -102,7 +102,14 @@ Gtk.main_quit = lambda: None
 
 def launch(
     argv=None,
-) -> Tuple[UserInterface, Controller, DataManager, MessageBroker, DaemonProxy]:
+) -> Tuple[
+    UserInterface,
+    Controller,
+    DataManager,
+    MessageBroker,
+    DaemonProxy,
+    GlobalConfig,
+]:
     """Start input-remapper-gtk with the command line argument array argv."""
     bin_path = os.path.join(get_project_root(), "bin", "input-remapper-gtk")
 
@@ -127,6 +134,7 @@ def launch(
         module.data_manager,
         module.message_broker,
         module.daemon,
+        module.global_config,
     )
 
 
@@ -161,7 +169,7 @@ def patch_launch():
     ), patch.object(
         Daemon,
         "connect",
-        Daemon,
+        lambda: Daemon(GlobalConfig()),
     ):
         yield
 
@@ -218,7 +226,7 @@ class TestGroupsFromReaderService(unittest.TestCase):
         self.daemon_connect_patch = patch.object(
             Daemon,
             "connect",
-            Daemon,
+            lambda: Daemon(GlobalConfig()),
         )
         self.daemon_connect_patch.start()
 
@@ -233,6 +241,7 @@ class TestGroupsFromReaderService(unittest.TestCase):
             self.data_manager,
             self.message_broker,
             self.daemon,
+            self.global_config,
         ) = launch()
 
     def tearDown(self):
@@ -306,6 +315,7 @@ class GuiTestBase(unittest.TestCase):
                 self.data_manager,
                 self.message_broker,
                 self.daemon,
+                self.global_config,
             ) = launch()
 
         get = self.user_interface.get
@@ -340,7 +350,7 @@ class GuiTestBase(unittest.TestCase):
 
         evdev.InputDevice.grab = grab
 
-        global_config._save_config()
+        self.global_config._save_config()
 
         self.throttle(20)
 

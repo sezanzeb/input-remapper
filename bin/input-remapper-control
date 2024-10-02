@@ -29,7 +29,7 @@ import sys
 from enum import Enum
 from typing import Union, Optional
 
-from inputremapper.configs.global_config import global_config
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
 from inputremapper.logging.logger import logger
 
@@ -66,6 +66,9 @@ class Options:
 
 
 class InputRemapperControl:
+    def __init__(self, global_config: GlobalConfig):
+        self.global_config = global_config
+
     def run(self, cmd) -> None:
         """Run and log a command."""
         logger.info("Running `%s`...", cmd)
@@ -131,7 +134,7 @@ class InputRemapperControl:
             sys.exit(6)
 
         logger.info('Using config from "%s" instead', path)
-        global_config.load_config(path)
+        self.global_config.load_config(path)
 
     def ensure_migrated(self) -> None:
         # import stuff late to make sure the correct log level is applied
@@ -144,7 +147,7 @@ class InputRemapperControl:
             # This will also refresh the config of the daemon if the user changed
             # it in the meantime.
             # config_dir is either the cli arg or the default path in home
-            config_dir = os.path.dirname(global_config.path)
+            config_dir = os.path.dirname(self.global_config.path)
             self.daemon.set_config_dir(config_dir)
             Migrations.migrate()
 

@@ -41,7 +41,7 @@ from gi.repository import GLib
 from inputremapper.logging.logger import logger
 from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.global_config import global_config
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.groups import groups
 from inputremapper.configs.paths import PathUtils
@@ -184,9 +184,12 @@ class Daemon:
         </node>
     """
 
-    def __init__(self):
+    def __init__(self, global_config: GlobalConfig):
         """Constructs the daemon."""
         logger.debug("Creating daemon")
+
+        self.global_config = global_config
+
         self.injectors: Dict[str, Injector] = {}
 
         self.config_dir = None
@@ -333,7 +336,7 @@ class Daemon:
             return
 
         self.config_dir = config_dir
-        global_config.load_config(config_path)
+        self.global_config.load_config(config_path)
 
     def _autoload(self, group_key: str):
         """Check if autoloading is a good idea, and if so do it.
@@ -351,7 +354,7 @@ class Daemon:
             # either not relevant for input-remapper, or not connected yet
             return
 
-        preset = global_config.get(["autoload", group.key], log_unknown=False)
+        preset = self.global_config.get(["autoload", group.key], log_unknown=False)
 
         if preset is None:
             # no autoloading is configured for this device
@@ -415,7 +418,7 @@ class Daemon:
             )
             return
 
-        autoload_presets = list(global_config.iterate_autoload_presets())
+        autoload_presets = list(self.global_config.iterate_autoload_presets())
 
         logger.info("Autoloading for all devices")
 

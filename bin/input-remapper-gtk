@@ -89,6 +89,8 @@ if __name__ == "__main__":
 
     message_broker = MessageBroker()
 
+    global_config = GlobalConfig()
+
     # create the reader before we start the reader-service (start_processes) otherwise
     # it can come to race conditions with the creation of pipes
     reader_client = ReaderClient(message_broker, _Groups())
@@ -96,7 +98,7 @@ if __name__ == "__main__":
 
     data_manager = DataManager(
         message_broker,
-        GlobalConfig(),
+        global_config,
         reader_client,
         daemon,
         GlobalUInputs(),
