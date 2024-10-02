@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -19,21 +19,18 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.tmp import tmp
-
 import os
 import unittest
 
 from inputremapper.configs.global_config import global_config
-from inputremapper.configs.paths import touch
+from inputremapper.configs.paths import PathUtils
+
+from tests.lib.tmp import tmp
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestConfig(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-        self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
-
     def test_basic(self):
         self.assertEqual(global_config.get("a"), None)
 
@@ -122,7 +119,7 @@ class TestConfig(unittest.TestCase):
         )
 
         config_2 = os.path.join(tmp, "config_2.json")
-        touch(config_2)
+        PathUtils.touch(config_2)
         with open(config_2, "w") as f:
             f.write('{"a":"b"}')
 

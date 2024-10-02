@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -26,6 +26,7 @@ import os
 import subprocess
 import time
 from pickle import UnpicklingError
+from unittest.mock import patch
 
 import evdev
 
@@ -45,9 +46,9 @@ from tests.lib.logger import logger
 
 
 def patch_paths():
-    from inputremapper import user
+    from inputremapper.user import UserUtils
 
-    user.HOME = tmp
+    return patch.object(UserUtils, "home", tmp)
 
 
 class InputDevice:
@@ -201,7 +202,7 @@ class InputDevice:
 uinputs = {}
 
 
-class UInput:
+class UInputMock:
     def __init__(self, events=None, name="unnamed", *args, **kwargs):
         self.fd = 0
         self.write_count = 0
@@ -256,16 +257,23 @@ def patch_evdev():
                 self.value,
             )
 
-    evdev.list_devices = list_devices
-    evdev.InputDevice = InputDevice
-    evdev.UInput = UInput
-    evdev.InputEvent = PatchedInputEvent
+    return [
+        patch.object(evdev, "list_devices", list_devices),
+        patch.object(evdev, "InputDevice", InputDevice),
+        patch.object(evdev.UInput, "capabilities", UInputMock.capabilities),
+        patch.object(evdev.UInput, "write", UInputMock.write),
+        patch.object(evdev.UInput, "syn", UInputMock.syn),
+        patch.object(evdev.UInput, "__init__", UInputMock.__init__),
+        patch.object(evdev, "InputEvent", PatchedInputEvent),
+    ]
 
 
 def patch_events():
     # improve logging of stuff
-    evdev.InputEvent.__str__ = lambda self: (
-        f"InputEvent{(self.type, self.code, self.value)}"
+    return patch.object(
+        evdev.InputEvent,
+        "__str__",
+        lambda self: (f"InputEvent{(self.type, self.code, self.value)}"),
     )
 
 
@@ -281,7 +289,7 @@ def patch_os_system():
             raise Exception("Write patches to avoid running pkexec stuff")
         return original_system(command)
 
-    os.system = system
+    return patch.object(os, "system", system)
 
 
 def patch_check_output():
@@ -297,14 +305,14 @@ def patch_check_output():
             return xmodmap
         return original_check_output(command, *args, **kwargs)
 
-    subprocess.check_output = check_output
+    return patch.object(subprocess, "check_output", check_output)
 
 
 def patch_regrab_timeout():
     # no need for a high number in tests
     from inputremapper.injection.injector import Injector
 
-    Injector.regrab_timeout = 0.05
+    return patch.object(Injector, "regrab_timeout", 0.05)
 
 
 def is_running_patch():
@@ -315,7 +323,7 @@ def is_running_patch():
 def patch_is_running():
     from inputremapper.gui.reader_service import ReaderService
 
-    setattr(ReaderService, "is_running", is_running_patch)
+    return patch.object(ReaderService, "is_running", is_running_patch)
 
 
 class FakeDaemonProxy:
@@ -359,3 +367,18 @@ class FakeDaemonProxy:
     def hello(self, out: str) -> str:
         self.calls["hello"].append(out)
         return out
+
+
+def create_patches():
+    return [
+        # Sketchy, they only work because the whole modules are imported, instead of
+        # importing `check_output` and `system` from the module.
+        *patch_evdev(),
+        patch_os_system(),
+        patch_check_output(),
+        # Those are comfortably wrapped in a class, and are therefore easy to patch
+        patch_paths(),
+        patch_regrab_timeout(),
+        patch_is_running(),
+        patch_events(),
+    ]

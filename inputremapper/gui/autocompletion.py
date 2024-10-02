@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -27,10 +27,10 @@ from typing import Dict, Optional, List, Tuple
 from evdev.ecodes import EV_KEY
 from gi.repository import Gdk, Gtk, GLib, GObject
 
-from inputremapper.gui.controller import Controller
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.gui.components.editor import CodeEditor
+from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.messages.message_data import UInputsData
 from inputremapper.gui.utils import debounce
@@ -39,7 +39,7 @@ from inputremapper.injection.macros.parse import (
     get_macro_argument_names,
     remove_comments,
 )
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 # no deprecated shorthand function-names
 FUNCTION_NAMES = [name for name in TASK_FACTORIES.keys() if len(name) > 1]

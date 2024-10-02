@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import copy
 import os
 import shutil
 import time
@@ -27,6 +28,7 @@ import asyncio
 import psutil
 from pickle import UnpicklingError
 
+# TODO on it. You don't need a framework for this by the way:
 # don't import anything from input_remapper gloablly here, because some files execute
 # code when imported, which can screw up patches. I wish we had a dependency injection
 # framework that patches together the dependencies during runtime...
@@ -41,8 +43,10 @@ from tests.lib.pipes import (
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.tmp import tmp
 from tests.lib.fixtures import fixtures
-from tests.lib.stuff import environ_copy
 from tests.lib.patches import uinputs
+
+
+environ_copy = copy.deepcopy(os.environ)
 
 
 def join_children():
@@ -73,13 +77,14 @@ def clear_write_history():
 
 def quick_cleanup(log=True):
     """Reset the applications state."""
+    # TODO no:
     # Reminder: before patches are applied in test.py, no inputremapper module
     # may be imported. So tests.lib imports them just-in-time in functions instead.
     from inputremapper.injection.macros.macro import macro_variables
     from inputremapper.configs.global_config import global_config
     from inputremapper.configs.system_mapping import system_mapping
     from inputremapper.gui.utils import debounce_manager
-    from inputremapper.configs.paths import get_config_path
+    from inputremapper.configs.paths import PathUtils
     from inputremapper.injection.global_uinputs import global_uinputs
     from tests.lib.global_uinputs import reset_global_uinputs_for_service
 
@@ -125,7 +130,7 @@ def quick_cleanup(log=True):
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
 
-    global_config.path = os.path.join(get_config_path(), "config.json")
+    global_config.path = os.path.join(PathUtils.get_config_path(), "config.json")
     global_config.clear_config()
     global_config._save_config()
 

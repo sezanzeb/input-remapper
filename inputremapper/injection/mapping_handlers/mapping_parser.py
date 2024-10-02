@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -52,7 +52,7 @@ from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
 EventPipelines = Dict[InputConfig, Set[InputEventHandler]]

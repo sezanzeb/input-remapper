@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -50,6 +50,14 @@ def setup_pipe(fixture: Fixture):
     """
     if pending_events.get(fixture) is None:
         pending_events[fixture] = multiprocessing.Pipe()
+
+
+def close_pipe(fixture: Fixture):
+    if fixture in pending_events:
+        pipe1, pipe2 = pending_events[fixture]
+        pipe1.close()
+        pipe2.close()
+        del pending_events[fixture]
 
 
 def get_events():

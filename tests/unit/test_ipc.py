@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,30 +17,27 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
 import multiprocessing
-
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.tmp import tmp
-
-import unittest
+import os
 import select
 import time
-import os
+import unittest
 
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.ipc.socket import Server, Client, Base
+from tests.lib.test_setup import test_setup
+from tests.lib.tmp import tmp
 
 
+@test_setup
 class TestSharedDict(unittest.TestCase):
     def setUp(self):
         self.shared_dict = SharedDict()
         self.shared_dict.start()
         time.sleep(0.02)
-
-    def tearDown(self):
-        quick_cleanup()
 
     def test_returns_none(self):
         self.assertIsNone(self.shared_dict.get("a"))
@@ -52,6 +49,7 @@ class TestSharedDict(unittest.TestCase):
         self.assertEqual(self.shared_dict["a"], 3)
 
 
+@test_setup
 class TestSocket(unittest.TestCase):
     def test_socket(self):
         def test(s1, s2):
@@ -127,6 +125,7 @@ class TestSocket(unittest.TestCase):
         self.assertRaises(NotImplementedError, lambda: Base.fileno(None))
 
 
+@test_setup
 class TestPipe(unittest.IsolatedAsyncioTestCase):
     def test_pipe_single(self):
         p1 = Pipe(os.path.join(tmp, "pipe"))

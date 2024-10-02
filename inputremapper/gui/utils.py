@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -23,12 +23,9 @@ import time
 from dataclasses import dataclass
 from typing import List, Callable, Dict, Optional
 
-import gi
-
 from gi.repository import Gtk, GLib, Gdk
 
-from inputremapper.logger import logger
-
+from inputremapper.logging.logger import logger
 
 # status ctx ids
 

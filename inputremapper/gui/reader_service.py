@@ -50,7 +50,6 @@ from typing import Set, List
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
-from inputremapper.utils import get_device_hash
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
@@ -65,8 +64,9 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.ipc.pipe import Pipe
-from inputremapper.logger import logger
-from inputremapper.user import USER
+from inputremapper.logging.logger import logger
+from inputremapper.user import UserUtils
+from inputremapper.utils import get_device_hash
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"
@@ -82,8 +82,8 @@ MSG_STATUS = "status"
 def get_pipe_paths():
     """Get the path where the pipe can be found."""
     return (
-        f"/tmp/input-remapper-{USER}/reader-results",
-        f"/tmp/input-remapper-{USER}/reader-commands",
+        f"/tmp/input-remapper-{UserUtils.home}/reader-results",
+        f"/tmp/input-remapper-{UserUtils.home}/reader-commands",
     )
 
 

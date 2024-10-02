@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -19,35 +19,20 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-
-# the tests file needs to be imported first to make sure patches are loaded
-from tests.test import get_project_root
-
-from contextlib import contextmanager
-from typing import Tuple, List, Optional, Iterable
-
-from inputremapper.gui.autocompletion import (
-    get_incomplete_parameter,
-    get_incomplete_function_name,
-)
-
-from tests.lib.global_uinputs import reset_global_uinputs_for_service
-from tests.lib.cleanup import cleanup
-from tests.lib.stuff import spy
-from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import prepare_presets
-from tests.lib.logger import logger
-from tests.lib.fixtures import fixtures
-from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
-from tests.integration.test_components import FlowBoxTestUtils
-
+import atexit
+import multiprocessing
+import os
 import sys
 import time
-import atexit
-import os
 import unittest
-import multiprocessing
+from contextlib import contextmanager
+from importlib.machinery import SourceFileLoader
+from importlib.util import spec_from_loader, module_from_spec
+from typing import Tuple, List, Optional, Iterable
+from unittest.mock import patch, MagicMock, call
+
 import evdev
+import gi
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -56,13 +41,22 @@ from evdev.ecodes import (
     KEY_Q,
     EV_REL,
 )
-from unittest.mock import patch, MagicMock, call
-from importlib.util import spec_from_loader, module_from_spec
-from importlib.machinery import SourceFileLoader
 
+from inputremapper.gui.autocompletion import (
+    get_incomplete_parameter,
+    get_incomplete_function_name,
+)
 from inputremapper.input_event import InputEvent
-
-import gi
+from tests.integration.test_components import FlowBoxTestUtils
+from tests.lib.cleanup import cleanup
+from tests.lib.constants import EVENT_READ_TIMEOUT
+from tests.lib.fixtures import fixtures
+from tests.lib.fixtures import prepare_presets
+from tests.lib.global_uinputs import reset_global_uinputs_for_service
+from tests.lib.logger import logger
+from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
+from tests.lib.project_root import get_project_root
+from tests.lib.spy import spy
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
@@ -72,7 +66,7 @@ from gi.repository import Gtk, GLib, Gdk, GtkSource
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config_path
+from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
@@ -94,6 +88,7 @@ from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.daemon import Daemon, DaemonProxy
+from tests.lib.test_setup import test_setup
 
 
 # iterate a few times when Gtk.main() is called, but don't block
@@ -144,28 +139,31 @@ def start_reader_service():
     multiprocessing.Process(target=process).start()
 
 
+def os_system_patch(cmd, original_os_system=os.system):
+    # instead of running pkexec, fork instead. This will make
+    # the reader-service aware of all the test patches
+    if "pkexec input-remapper-control --command start-reader-service" in cmd:
+        logger.info("pkexec-patch starting ReaderService process")
+        start_reader_service()
+        return 0
+
+    return original_os_system(cmd)
+
+
 @contextmanager
 def patch_launch():
     """patch the launch function such that we don't connect to
     the dbus and don't use pkexec to start the reader-service"""
-    original_connect = Daemon.connect
-    original_os_system = os.system
-    Daemon.connect = Daemon
-
-    def os_system(cmd):
-        # instead of running pkexec, fork instead. This will make
-        # the reader-service aware of all the test patches
-        if "pkexec input-remapper-control --command start-reader-service" in cmd:
-            logger.info("pkexec-patch starting ReaderService process")
-            start_reader_service()
-            return 0
-
-        return original_os_system(cmd)
-
-    os.system = os_system
-    yield
-    os.system = original_os_system
-    Daemon.connect = original_connect
+    with patch.object(
+        os,
+        "system",
+        os_system_patch,
+    ), patch.object(
+        Daemon,
+        "connect",
+        Daemon,
+    ):
+        yield
 
 
 def clean_up_integration(test):
@@ -191,19 +189,10 @@ class GtkKeyEvent:
         return True, self.keyval
 
 
+@test_setup
 class TestGroupsFromReaderService(unittest.TestCase):
-    def setUp(self):
-        # don't try to connect, return an object instance of it instead
-        self.original_connect = Daemon.connect
-        Daemon.connect = Daemon
-
-        # this is already part of the test. we need a bit of patching and hacking
-        # because we want to discover the groups as early a possible, to reduce startup
-        # time for the application
-        self.original_os_system = os.system
-        self.reader_service_started = MagicMock()
-
-        def os_system(cmd):
+    def patch_os_system(self):
+        def os_system(cmd, original_os_system=os.system):
             # instead of running pkexec, fork instead. This will make
             # the reader-service aware of all the test patches
             if "pkexec input-remapper-control --command start-reader-service" in cmd:
@@ -211,9 +200,33 @@ class TestGroupsFromReaderService(unittest.TestCase):
                 self.reader_service_started()
                 return 0
 
-            return self.original_os_system(cmd)
+            return original_os_system(cmd)
 
-        os.system = os_system
+        self.os_system_patch = patch.object(
+            os,
+            "system",
+            os_system,
+        )
+
+        # this is already part of the test. we need a bit of patching and hacking
+        # because we want to discover the groups as early a possible, to reduce startup
+        # time for the application
+        self.os_system_patch.start()
+
+    def patch_daemon(self):
+        # don't try to connect, return an object instance of it instead
+        self.daemon_connect_patch = patch.object(
+            Daemon,
+            "connect",
+            Daemon,
+        )
+        self.daemon_connect_patch.start()
+
+    def setUp(self):
+        self.reader_service_started = MagicMock()
+        self.patch_os_system()
+        self.patch_daemon()
+
         (
             self.user_interface,
             self.controller,
@@ -224,8 +237,8 @@ class TestGroupsFromReaderService(unittest.TestCase):
 
     def tearDown(self):
         clean_up_integration(self)
-        os.system = self.original_os_system
-        Daemon.connect = self.original_connect
+        self.os_system_patch.stop()
+        self.daemon_connect_patch.stop()
 
     def test_knows_devices(self):
         # verify that it is working as expected. The gui doesn't have knowledge
@@ -250,37 +263,37 @@ class TestGroupsFromReaderService(unittest.TestCase):
         self.assertEqual(self.data_manager.active_group.name, "Foo Device")
 
 
-class PatchedConfirmDelete:
-    def __init__(self, user_interface: UserInterface, response=Gtk.ResponseType.ACCEPT):
-        self.response = response
-        self.user_interface = user_interface
-        self._original_create_dialog = user_interface._create_dialog
-        self.patch = None
+@contextmanager
+def patch_confirm_delete(
+    user_interface: UserInterface,
+    response=Gtk.ResponseType.ACCEPT,
+):
+    original_create_dialog = user_interface._create_dialog
 
-    def _create_dialog_patch(self, *args, **kwargs):
+    def _create_dialog_patch(*args, **kwargs):
         """A patch for the deletion confirmation that briefly shows the dialog."""
-        confirm_cancel_dialog = self._original_create_dialog(*args, **kwargs)
+        confirm_cancel_dialog = original_create_dialog(*args, **kwargs)
+
         # the emitted signal causes the dialog to close
         GLib.timeout_add(
             100,
-            lambda: confirm_cancel_dialog.emit("response", self.response),
+            lambda: confirm_cancel_dialog.emit("response", response),
         )
-        Gtk.MessageDialog.run(confirm_cancel_dialog)  # don't recursively call the patch
 
-        confirm_cancel_dialog.run = lambda: self.response
+        # don't recursively call the patch
+        Gtk.MessageDialog.run(confirm_cancel_dialog)
+
+        confirm_cancel_dialog.run = lambda: response
 
         return confirm_cancel_dialog
 
-    def __enter__(self):
-        self.patch = patch.object(
-            self.user_interface,
-            "_create_dialog",
-            self._create_dialog_patch,
-        )
-        self.patch.__enter__()
-
-    def __exit__(self, *args, **kwargs):
-        self.patch.__exit__(*args, **kwargs)
+    with patch.object(
+        user_interface,
+        "_create_dialog",
+        _create_dialog_patch,
+    ):
+        # Tests are run during `yield`
+        yield
 
 
 class GuiTestBase(unittest.TestCase):
@@ -468,6 +481,7 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
 
 
+@test_setup
 class TestColors(GuiTestBase):
     # requires a running ui, otherwise fails with segmentation faults
     def test_get_color_falls_back(self):
@@ -489,10 +503,10 @@ class TestColors(GuiTestBase):
         )
 
         self.assertIsInstance(color, Gdk.RGBA)
-        self.assertNotAlmostEquals(color.red, fallback.red, delta=0.01)
-        self.assertNotAlmostEquals(color.green, fallback.blue, delta=0.01)
-        self.assertNotAlmostEquals(color.blue, fallback.green, delta=0.01)
-        self.assertNotAlmostEquals(color.alpha, fallback.alpha, delta=0.01)
+        self.assertNotAlmostEqual(color.red, fallback.red, delta=0.01)
+        self.assertNotAlmostEqual(color.green, fallback.blue, delta=0.01)
+        self.assertNotAlmostEqual(color.blue, fallback.green, delta=0.01)
+        self.assertNotAlmostEqual(color.alpha, fallback.alpha, delta=0.01)
 
     def _test_color_wont_fallback(self, get_color, fallback):
         color = get_color()
@@ -517,6 +531,7 @@ class TestColors(GuiTestBase):
         self._test_color_wont_fallback(Colors.get_font_color, Colors.fallback_font)
 
 
+@test_setup
 class TestGui(GuiTestBase):
     """For tests that use the window.
 
@@ -657,7 +672,7 @@ class TestGui(GuiTestBase):
         # it creates the file for that right away. It may have been possible
         # to write it such that it doesn't (its empty anyway), but it does,
         # so use that to test it in more detail.
-        path = get_preset_path("Bar Device", "new preset")
+        path = PathUtils.get_preset_path("Bar Device", "new preset")
         self.assertTrue(os.path.exists(path))
         with open(path, "r") as file:
             self.assertEqual(file.read(), "")
@@ -1398,7 +1413,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(len(self.data_manager.active_preset), 2)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
 
-        with PatchedConfirmDelete(self.user_interface):
+        with patch_confirm_delete(self.user_interface):
             self.delete_mapping_btn.clicked()
             gtk_iteration()
 
@@ -1443,7 +1458,7 @@ class TestGui(GuiTestBase):
         self.rename_btn.clicked()
         gtk_iteration()
 
-        preset_path = f"{CONFIG_PATH}/presets/Foo Device/foo.json"
+        preset_path = f"{PathUtils.config_path()}/presets/Foo Device/foo.json"
         self.assertTrue(os.path.exists(preset_path))
         error_icon = self.user_interface.get("error_status_icon")
         self.assertFalse(error_icon.get_visible())
@@ -1457,7 +1472,7 @@ class TestGui(GuiTestBase):
         status = self.get_status_text()
         self.assertIn("Permission denied", status)
 
-        with PatchedConfirmDelete(self.user_interface):
+        with patch_confirm_delete(self.user_interface):
             self.delete_preset_btn.clicked()
             gtk_iteration()
         self.assertFalse(os.path.exists(preset_path))
@@ -1484,7 +1499,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(warning_icon.get_visible())
 
         # it will still save it though
-        with open(get_preset_path("Foo Device", "preset1")) as f:
+        with open(PathUtils.get_preset_path("Foo Device", "preset1")) as f:
             content = f.read()
             self.assertIn("qux", content)
             self.assertIn("foo", content)
@@ -1780,7 +1795,7 @@ class TestGui(GuiTestBase):
                 # correctly uses group.key, not group.name
                 spy2.assert_called_once_with("Foo Device 2", "preset3")
 
-            spy1.assert_called_once_with(get_config_path())
+            spy1.assert_called_once_with(PathUtils.get_config_path())
 
         for _ in range(10):
             time.sleep(0.1)
@@ -1883,19 +1898,25 @@ class TestGui(GuiTestBase):
 
     def test_delete_preset(self):
         # as per test_initial_state we already have preset3 loaded
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3"))
+        )
 
-        with PatchedConfirmDelete(self.user_interface, Gtk.ResponseType.CANCEL):
+        with patch_confirm_delete(self.user_interface, Gtk.ResponseType.CANCEL):
             self.delete_preset_btn.clicked()
             gtk_iteration()
-            self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
+            self.assertTrue(
+                os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3"))
+            )
             self.assertEqual(self.data_manager.active_preset.name, "preset3")
             self.assertEqual(self.data_manager.active_group.name, "Foo Device")
 
-        with PatchedConfirmDelete(self.user_interface):
+        with patch_confirm_delete(self.user_interface):
             self.delete_preset_btn.clicked()
             gtk_iteration()
-            self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset3")))
+            self.assertFalse(
+                os.path.exists(PathUtils.get_preset_path("Foo Device", "preset3"))
+            )
             self.assertEqual(self.data_manager.active_preset.name, "preset2")
             self.assertEqual(self.data_manager.active_group.name, "Foo Device")
 
@@ -1971,7 +1992,7 @@ class TestGui(GuiTestBase):
         self.assertNotEqual(presets1, presets3)
 
     def test_delete_last_preset(self):
-        with PatchedConfirmDelete(self.user_interface):
+        with patch_confirm_delete(self.user_interface):
             # as per test_initial_state we already have preset3 loaded
             self.assertEqual(self.data_manager.active_preset.name, "preset3")
 
@@ -1984,14 +2005,14 @@ class TestGui(GuiTestBase):
             self.delete_preset_btn.clicked()
             # the ui should be clean
             self.assert_gui_clean()
-            device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
+            device_path = f"{PathUtils.config_path()}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
             self.delete_preset_btn.clicked()
             gtk_iteration()
             # deleting an empty preset als doesn't do weird stuff
             self.assert_gui_clean()
-            device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
+            device_path = f"{PathUtils.config_path()}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
     def test_enable_disable_output(self):
@@ -2028,7 +2049,7 @@ class TestGui(GuiTestBase):
         self.assertTrue(self.output_box.get_sensitive())
 
         # disable it by deleting the mapping
-        with PatchedConfirmDelete(self.user_interface):
+        with patch_confirm_delete(self.user_interface):
             self.delete_mapping_btn.clicked()
             gtk_iteration()
 
@@ -2036,6 +2057,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.output_box.get_sensitive())
 
 
+@test_setup
 class TestAutocompletion(GuiTestBase):
     def press_key(self, keyval):
         event = Gdk.EventKey()
@@ -2249,6 +2271,7 @@ class TestAutocompletion(GuiTestBase):
         )
 
 
+@test_setup
 class TestDebounce(unittest.TestCase):
     def test_debounce(self):
         calls = 0

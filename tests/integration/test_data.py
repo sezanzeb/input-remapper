@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,32 +18,33 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
-import unittest
 import os
+import unittest
+from unittest.mock import patch
+
 import pkg_resources
 
 from inputremapper.configs.data import get_data_path
+from tests.lib.test_setup import test_setup
+
+egg_info_distribution = pkg_resources.require("input-remapper")[0]
+
+project_root = os.getcwd().replace("/tests/integration", "")
 
 
+@test_setup
 class TestData(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.original_location = pkg_resources.require("input-remapper")[0].location
-
-    def tearDown(self):
-        pkg_resources.require("input-remapper")[0].location = self.original_location
-
+    @patch.object(egg_info_distribution, "location", project_root)
     def test_data_editable(self):
-        path = os.getcwd().replace("/tests/integration", "")
-        pkg_resources.require("input-remapper")[0].location = path
-        self.assertEqual(get_data_path(), path + "/data/")
-        self.assertEqual(get_data_path("a"), path + "/data/a")
+        self.assertEqual(get_data_path(), project_root + "/data/")
+        self.assertEqual(get_data_path("a"), project_root + "/data/a")
 
+    @patch.object(
+        egg_info_distribution,
+        "location",
+        "/usr/some/where/python3.8/dist-packages/",
+    )
     def test_data_usr(self):
-        path = "/usr/some/where/python3.8/dist-packages/"
-        pkg_resources.require("input-remapper")[0].location = path
-
         self.assertTrue(get_data_path().startswith("/usr/"))
         self.assertTrue(get_data_path().endswith("input-remapper/"))
 

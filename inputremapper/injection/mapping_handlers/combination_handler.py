@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,6 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations  # needed for the TYPE_CHECKING import
+
 from typing import TYPE_CHECKING, Dict, Hashable
 
 import evdev
@@ -31,7 +32,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
 )
 from inputremapper.input_event import InputEvent
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
     from inputremapper.injection.context import Context

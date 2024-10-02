@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -24,21 +24,19 @@ from unittest.mock import patch
 
 from evdev.ecodes import EV_KEY, EV_ABS
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.mapping import UIMapping
-from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
+from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.input_config import InputCombination, InputConfig
-from tests.lib.cleanup import quick_cleanup
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestPreset(unittest.TestCase):
     def setUp(self):
-        self.preset = Preset(get_preset_path("foo", "bar2"))
+        self.preset = Preset(PathUtils.get_preset_path("foo", "bar2"))
         self.assertFalse(self.preset.has_unsaved_changes())
-
-    def tearDown(self):
-        quick_cleanup()
 
     def test_is_mapped_multiple_times(self):
         combination = InputCombination(
@@ -62,7 +60,7 @@ class TestPreset(unittest.TestCase):
         self.assertTrue(self.preset._is_mapped_multiple_times(permutations[2]))
 
     def test_has_unsaved_changes(self):
-        self.preset.path = get_preset_path("foo", "bar2")
+        self.preset.path = PathUtils.get_preset_path("foo", "bar2")
         self.preset.add(Mapping.from_combination())
         self.assertTrue(self.preset.has_unsaved_changes())
         self.preset.save()
@@ -82,12 +80,12 @@ class TestPreset(unittest.TestCase):
         self.assertFalse(self.preset.has_unsaved_changes())
 
         # change the path to a non exiting file
-        self.preset.path = get_preset_path("bar", "foo")
+        self.preset.path = PathUtils.get_preset_path("bar", "foo")
         # the preset has a mapping, the file has not
         self.assertTrue(self.preset.has_unsaved_changes())
 
         # change back to the original path
-        self.preset.path = get_preset_path("foo", "bar2")
+        self.preset.path = PathUtils.get_preset_path("foo", "bar2")
         # no difference between file and memory
         self.assertFalse(self.preset.has_unsaved_changes())
 
@@ -97,12 +95,12 @@ class TestPreset(unittest.TestCase):
         self.assertTrue(self.preset.has_unsaved_changes())
         self.preset.load()
 
-        self.preset.path = get_preset_path("bar", "foo")
+        self.preset.path = PathUtils.get_preset_path("bar", "foo")
         self.preset.remove(Mapping.from_combination().input_combination)
         # empty preset and empty file
         self.assertFalse(self.preset.has_unsaved_changes())
 
-        self.preset.path = get_preset_path("foo", "bar2")
+        self.preset.path = PathUtils.get_preset_path("foo", "bar2")
         # empty preset, but non-empty file
         self.assertTrue(self.preset.has_unsaved_changes())
         self.preset.load()
@@ -130,13 +128,15 @@ class TestPreset(unittest.TestCase):
         self.preset.add(
             Mapping.from_combination(InputCombination((two, three)), "keyboard", "3"),
         )
-        self.preset.path = get_preset_path("Foo Device", "test")
+        self.preset.path = PathUtils.get_preset_path("Foo Device", "test")
         self.preset.save()
 
-        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
+        path = os.path.join(
+            PathUtils.config_path(), "presets", "Foo Device", "test.json"
+        )
         self.assertTrue(os.path.exists(path))
 
-        loaded = Preset(get_preset_path("Foo Device", "test"))
+        loaded = Preset(PathUtils.get_preset_path("Foo Device", "test"))
         self.assertEqual(len(loaded), 0)
         loaded.load()
 
@@ -156,7 +156,7 @@ class TestPreset(unittest.TestCase):
         )
 
         # load missing file
-        preset = Preset(get_config_path("missing_file.json"))
+        preset = Preset(PathUtils.get_config_path("missing_file.json"))
         self.assertRaises(FileNotFoundError, preset.load)
 
     def test_modify_mapping(self):
@@ -219,11 +219,11 @@ class TestPreset(unittest.TestCase):
 
     def test_avoids_redundant_saves(self):
         with patch.object(self.preset, "has_unsaved_changes", lambda: False):
-            self.preset.path = get_preset_path("foo", "bar2")
+            self.preset.path = PathUtils.get_preset_path("foo", "bar2")
             self.preset.add(Mapping.from_combination())
             self.preset.save()
 
-        with open(get_preset_path("foo", "bar2"), "r") as f:
+        with open(PathUtils.get_preset_path("foo", "bar2"), "r") as f:
             content = f.read()
 
         self.assertFalse(content)
@@ -350,12 +350,12 @@ class TestPreset(unittest.TestCase):
             ),
         )
         self.assertEqual(len(self.preset), 3)
-        self.preset.path = get_config_path("test.json")
+        self.preset.path = PathUtils.get_config_path("test.json")
         self.preset.save()
         self.assertFalse(self.preset.has_unsaved_changes())
 
         self.preset.empty()
-        self.assertEqual(self.preset.path, get_config_path("test.json"))
+        self.assertEqual(self.preset.path, PathUtils.get_config_path("test.json"))
         self.assertTrue(self.preset.has_unsaved_changes())
         self.assertEqual(len(self.preset), 0)
 
@@ -382,7 +382,7 @@ class TestPreset(unittest.TestCase):
             ),
         )
         self.assertEqual(len(self.preset), 3)
-        self.preset.path = get_config_path("test.json")
+        self.preset.path = PathUtils.get_config_path("test.json")
         self.preset.save()
         self.assertFalse(self.preset.has_unsaved_changes())
 
@@ -435,7 +435,9 @@ class TestPreset(unittest.TestCase):
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
     def test_save_load_with_invalid_mappings(self):
-        ui_preset = Preset(get_config_path("test.json"), mapping_factory=UIMapping)
+        ui_preset = Preset(
+            PathUtils.get_config_path("test.json"), mapping_factory=UIMapping
+        )
 
         ui_preset.add(UIMapping())
         self.assertFalse(ui_preset.is_valid())
@@ -454,7 +456,7 @@ class TestPreset(unittest.TestCase):
         ui_preset.save()
 
         # only the valid preset is loaded
-        preset = Preset(get_config_path("test.json"))
+        preset = Preset(PathUtils.get_config_path("test.json"))
         preset.load()
         self.assertEqual(len(preset), 1)
 
@@ -467,7 +469,7 @@ class TestPreset(unittest.TestCase):
 
         # both presets load
         ui_preset.clear()
-        ui_preset.path = get_config_path("test.json")
+        ui_preset.path = PathUtils.get_config_path("test.json")
         ui_preset.load()
         self.assertEqual(len(ui_preset), 2)
 

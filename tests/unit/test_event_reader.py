@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -36,19 +36,20 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
 )
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 from tests.lib.fixtures import fixtures
-from tests.lib.cleanup import quick_cleanup
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestEventReader(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.gamepad_source = evdev.InputDevice(fixtures.gamepad.path)
@@ -57,9 +58,6 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         global_uinputs.is_service = True
         global_uinputs.prepare_all()
-
-    def tearDown(self):
-        quick_cleanup()
 
     async def setup(self, source, mapping):
         """Set a EventReader up for the test and run it in the background."""

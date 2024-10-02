@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -19,58 +19,55 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.tmp import tmp
-
 import os
-import unittest
 import tempfile
+import unittest
 
-from inputremapper.configs.paths import (
-    touch,
-    mkdir,
-    get_preset_path,
-    get_config_path,
-    split_all,
-)
+from inputremapper.configs.paths import PathUtils
+from tests.lib.test_setup import test_setup
+from tests.lib.tmp import tmp
 
 
 def _raise(error):
     raise error
 
 
+@test_setup
 class TestPaths(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
     def test_touch(self):
         with tempfile.TemporaryDirectory() as local_tmp:
             path_abcde = os.path.join(local_tmp, "a/b/c/d/e")
-            touch(path_abcde)
+            PathUtils.touch(path_abcde)
             self.assertTrue(os.path.exists(path_abcde))
             self.assertTrue(os.path.isfile(path_abcde))
             self.assertRaises(
                 ValueError,
-                lambda: touch(os.path.join(local_tmp, "a/b/c/d/f/")),
+                lambda: PathUtils.touch(os.path.join(local_tmp, "a/b/c/d/f/")),
             )
 
     def test_mkdir(self):
         with tempfile.TemporaryDirectory() as local_tmp:
             path_bcde = os.path.join(local_tmp, "b/c/d/e")
-            mkdir(path_bcde)
+            PathUtils.mkdir(path_bcde)
             self.assertTrue(os.path.exists(path_bcde))
             self.assertTrue(os.path.isdir(path_bcde))
 
     def test_get_preset_path(self):
-        self.assertTrue(get_preset_path().startswith(get_config_path()))
-        self.assertTrue(get_preset_path().endswith("presets"))
-        self.assertTrue(get_preset_path("a").endswith("presets/a"))
-        self.assertTrue(get_preset_path("a", "b").endswith("presets/a/b.json"))
+        self.assertTrue(
+            PathUtils.get_preset_path().startswith(PathUtils.get_config_path())
+        )
+        self.assertTrue(PathUtils.get_preset_path().endswith("presets"))
+        self.assertTrue(PathUtils.get_preset_path("a").endswith("presets/a"))
+        self.assertTrue(
+            PathUtils.get_preset_path("a", "b").endswith("presets/a/b.json")
+        )
 
     def test_get_config_path(self):
         # might end with /beta_XXX
-        self.assertTrue(get_config_path().startswith(f"{tmp}/.config/input-remapper"))
-        self.assertTrue(get_config_path("a", "b").endswith("a/b"))
+        self.assertTrue(
+            PathUtils.get_config_path().startswith(f"{tmp}/.config/input-remapper")
+        )
+        self.assertTrue(PathUtils.get_config_path("a", "b").endswith("a/b"))
 
     def test_split_all(self):
-        self.assertListEqual(split_all("a/b/c/d"), ["a", "b", "c", "d"])
+        self.assertListEqual(PathUtils.split_all("a/b/c/d"), ["a", "b", "c", "d"])

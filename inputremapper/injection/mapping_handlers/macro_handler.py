@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -31,7 +31,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
 )
 from inputremapper.input_event import InputEvent
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 
 class MacroHandler(MappingHandler):

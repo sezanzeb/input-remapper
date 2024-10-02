@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -24,8 +24,10 @@ import unittest
 from evdev._ecodes import EV_ABS, ABS_X, BTN_WEST, BTN_Y, EV_KEY, KEY_A
 
 from inputremapper.utils import get_evdev_constant_name
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestUtil(unittest.TestCase):
     def test_get_evdev_constant_name(self):
         # BTN_WEST and BTN_Y both are code 308. I don't care which one is chosen

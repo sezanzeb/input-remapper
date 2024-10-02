@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -19,21 +19,14 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.lib.cleanup import quick_cleanup
-
 import unittest
 
 from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestNumlock(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        quick_cleanup()
-
-    def tearDown(self):
-        quick_cleanup()
-
     def test_numlock(self):
         before = is_numlock_on()
 

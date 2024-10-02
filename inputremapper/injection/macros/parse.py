@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -27,7 +27,7 @@ from typing import Optional, Any
 
 from inputremapper.configs.validation_errors import MacroParsingError
 from inputremapper.injection.macros.macro import Macro, Variable
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 
 def is_this_a_macro(output: Any):
