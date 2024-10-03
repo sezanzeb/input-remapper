@@ -41,9 +41,10 @@ def gtk_iteration():
 
 
 @test_setup
-@test_setup
 class TestDBusDaemon(unittest.TestCase):
     def setUp(self):
+        # You need to install input-remapper into your system in order for this test
+        # to work.
         self.process = multiprocessing.Process(
             target=os.system, args=("input-remapper-service -d",)
         )

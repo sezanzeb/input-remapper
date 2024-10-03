@@ -24,6 +24,7 @@ from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -43,9 +44,10 @@ class AbsToBtnHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ):
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
 
         self._active = False
         self._input_config = combination[0]

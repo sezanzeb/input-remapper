@@ -23,8 +23,6 @@ from __future__ import annotations
 import os
 import tracemalloc
 
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.paths import PathUtils
 from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.fixture_pipes import create_fixture_pipes, remove_fixture_pipes
 from tests.lib.is_service_running import is_service_running
@@ -64,14 +62,6 @@ def test_setup(cls):
         for patch in patches:
             patch.start()
 
-        # TODO if global_config is injected instead, it could work without doing this
-        #  load_config call here. Because right now the constructor uses variables
-        #  that are unpatched once global_config.py is imported.
-        global_config.path = os.path.join(
-            PathUtils.config_path(),
-            "config.json",
-        )
-
         original_setUpClass()
 
     def tearDownClass():
@@ -94,11 +84,6 @@ def test_setup(cls):
         original_tearDown(self)
 
         quick_cleanup()
-
-        # This assertion was important to me somehow in other tests after the cleanup,
-        # so I added it to the test setup. I don't remember if this is important to
-        # check.
-        assert len(global_config.iterate_autoload_presets()) == 0
 
         for patch in patches:
             patch.stop()
