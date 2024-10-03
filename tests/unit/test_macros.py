@@ -49,10 +49,7 @@ from inputremapper.injection.context import Context
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.macros.macro import (
     Macro,
-    _type_check,
     macro_variables,
-    _type_check_variablename,
-    _resolve,
     Variable,
 )
 from inputremapper.injection.macros.parse import (
@@ -75,6 +72,10 @@ from tests.lib.test_setup import test_setup
 
 
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):
+    @classmethod
+    def setUpClass(cls):
+        macro_variables.start()
+
     def setUp(self):
         self.result = []
         self.global_uinputs = GlobalUInputs(UInput)
@@ -219,80 +220,110 @@ class TestMacros(MacroTestBase):
         self.assertEqual(_count_brackets("a(b(c))d()"), 7)
 
     def test_resolve(self):
-        self.assertEqual(_resolve("a"), "a")
-        self.assertEqual(_resolve(1), 1)
-        self.assertEqual(_resolve(None), None)
+        self.assertEqual(Macro._resolve("a"), "a")
+        self.assertEqual(Macro._resolve(1), 1)
+        self.assertEqual(Macro._resolve(None), None)
 
         # $ is part of a custom string here
-        self.assertEqual(_resolve('"$a"'), '"$a"')
-        self.assertEqual(_resolve("'$a'"), "'$a'")
+        self.assertEqual(Macro._resolve('"$a"'), '"$a"')
+        self.assertEqual(Macro._resolve("'$a'"), "'$a'")
 
         # variables are expected to be of the Variable type here, not a $string
-        self.assertEqual(_resolve("$a"), "$a")
+        self.assertEqual(Macro._resolve("$a"), "$a")
         variable = Variable("a")
-        self.assertEqual(_resolve(variable), None)
+        self.assertEqual(Macro._resolve(variable), None)
         macro_variables["a"] = 1
-        self.assertEqual(_resolve(variable), 1)
+        self.assertEqual(Macro._resolve(variable), 1)
 
     def test_type_check(self):
         # allows params that can be cast to the target type
-        self.assertEqual(_type_check(1, [str, None], "foo", 0), "1")
-        self.assertEqual(_type_check("1", [int, None], "foo", 1), 1)
-        self.assertEqual(_type_check(1.2, [str], "foo", 2), "1.2")
+        self.assertEqual(Macro._type_check(1, [str, None], "foo", 0), "1")
+        self.assertEqual(Macro._type_check("1", [int, None], "foo", 1), 1)
+        self.assertEqual(Macro._type_check(1.2, [str], "foo", 2), "1.2")
 
         self.assertRaises(
             MacroParsingError,
-            lambda: _type_check("1.2", [int], "foo", 3),
-        )
-        self.assertRaises(MacroParsingError, lambda: _type_check("a", [None], "foo", 0))
-        self.assertRaises(MacroParsingError, lambda: _type_check("a", [int], "foo", 1))
-        self.assertRaises(
-            MacroParsingError,
-            lambda: _type_check("a", [int, float], "foo", 2),
+            lambda: Macro._type_check("1.2", [int], "foo", 3),
         )
         self.assertRaises(
-            MacroParsingError,
-            lambda: _type_check("a", [int, None], "foo", 3),
+            MacroParsingError, lambda: Macro._type_check("a", [None], "foo", 0)
         )
-        self.assertEqual(_type_check("a", [int, float, None, str], "foo", 4), "a")
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check("a", [int], "foo", 1)
+        )
+        self.assertRaises(
+            MacroParsingError,
+            lambda: Macro._type_check("a", [int, float], "foo", 2),
+        )
+        self.assertRaises(
+            MacroParsingError,
+            lambda: Macro._type_check("a", [int, None], "foo", 3),
+        )
+        self.assertEqual(Macro._type_check("a", [int, float, None, str], "foo", 4), "a")
 
         # variables are expected to be of the Variable type here, not a $string
-        self.assertRaises(MacroParsingError, lambda: _type_check("$a", [int], "foo", 4))
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check("$a", [int], "foo", 4)
+        )
         variable = Variable("a")
-        self.assertEqual(_type_check(variable, [int], "foo", 4), variable)
+        self.assertEqual(Macro._type_check(variable, [int], "foo", 4), variable)
 
         self.assertRaises(
             MacroParsingError,
-            lambda: _type_check("a", [Macro], "foo", 0),
+            lambda: Macro._type_check("a", [Macro], "foo", 0),
         )
-        self.assertRaises(MacroParsingError, lambda: _type_check(1, [Macro], "foo", 0))
-        self.assertEqual(_type_check("1", [Macro, int], "foo", 4), 1)
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check(1, [Macro], "foo", 0)
+        )
+        self.assertEqual(Macro._type_check("1", [Macro, int], "foo", 4), 1)
 
     def test_type_check_variablename(self):
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("1a"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("$a"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("a()"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("1"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("+"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("-"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("*"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("a,b"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("a,b"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename("#"))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename(1))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename(None))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename([]))
-        self.assertRaises(MacroParsingError, lambda: _type_check_variablename(()))
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("1a")
+        )
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("$a")
+        )
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("a()")
+        )
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("1")
+        )
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("+")
+        )
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("-")
+        )
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("*")
+        )
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("a,b")
+        )
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("a,b")
+        )
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename("#")
+        )
+        self.assertRaises(MacroParsingError, lambda: Macro._type_check_variablename(1))
+        self.assertRaises(
+            MacroParsingError, lambda: Macro._type_check_variablename(None)
+        )
+        self.assertRaises(MacroParsingError, lambda: Macro._type_check_variablename([]))
+        self.assertRaises(MacroParsingError, lambda: Macro._type_check_variablename(()))
 
         # doesn't raise
-        _type_check_variablename("a")
-        _type_check_variablename("_a")
-        _type_check_variablename("_A")
-        _type_check_variablename("A")
-        _type_check_variablename("Abcd")
-        _type_check_variablename("Abcd_")
-        _type_check_variablename("Abcd_1234")
-        _type_check_variablename("Abcd1234_")
+        Macro._type_check_variablename("a")
+        Macro._type_check_variablename("_a")
+        Macro._type_check_variablename("_A")
+        Macro._type_check_variablename("A")
+        Macro._type_check_variablename("Abcd")
+        Macro._type_check_variablename("Abcd_")
+        Macro._type_check_variablename("Abcd_1234")
+        Macro._type_check_variablename("Abcd1234_")
 
     def test_split_keyword_arg(self):
         self.assertTupleEqual(_split_keyword_arg("_A=b"), ("_A", "b"))
