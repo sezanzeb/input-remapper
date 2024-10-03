@@ -65,7 +65,7 @@ gi.require_version("GtkSource", "4")
 gi.require_version("GLib", "2.0")
 from gi.repository import Gtk, GLib, Gdk, GtkSource
 
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.global_config import GlobalConfig
@@ -2156,9 +2156,9 @@ class TestAutocompletion(GuiTestBase):
 
         complete_key_name = "Test_Foo_Bar"
 
-        system_mapping.clear()
-        system_mapping._set(complete_key_name, 1)
-        system_mapping._set("KEY_A", 30)  # we need this for the UIMapping to work
+        keyboard_layout.clear()
+        keyboard_layout._set(complete_key_name, 1)
+        keyboard_layout._set("KEY_A", 30)  # we need this for the UIMapping to work
 
         # it can autocomplete a combination inbetween other things
         incomplete = "qux_1\n +  + qux_2"

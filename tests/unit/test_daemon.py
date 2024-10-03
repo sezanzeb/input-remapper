@@ -34,7 +34,7 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
@@ -236,8 +236,8 @@ class TestDaemon(unittest.TestCase):
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(group)
 
-        system_mapping.clear()
-        system_mapping._set("a", KEY_A)
+        keyboard_layout.clear()
+        keyboard_layout._set("a", KEY_A)
 
         preset = Preset(PathUtils.get_preset_path(group_name, preset_name))
         preset.add(
@@ -250,8 +250,8 @@ class TestDaemon(unittest.TestCase):
 
         # make the daemon load the file instead
         with open(PathUtils.get_config_path("xmodmap.json"), "w") as file:
-            json.dump(system_mapping._mapping, file, indent=4)
-        system_mapping.clear()
+            json.dump(keyboard_layout._mapping, file, indent=4)
+        keyboard_layout.clear()
 
         preset.save()
         self.global_config.set_autoload_preset(group_key, preset_name)
@@ -346,7 +346,7 @@ class TestDaemon(unittest.TestCase):
         )
         preset.save()
 
-        system_mapping.clear()
+        keyboard_layout.clear()
 
         push_events(
             fixtures.bar_device,

@@ -26,7 +26,7 @@ from unittest.mock import patch, MagicMock, call
 import gi
 from evdev.ecodes import EV_ABS, ABS_X, ABS_Y, ABS_RX
 
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.injector import InjectorState
 
 gi.require_version("Gtk", "3.0")
@@ -76,7 +76,7 @@ class TestController(unittest.TestCase):
             ReaderClient(self.message_broker, _Groups()),
             FakeDaemonProxy(),
             uinputs,
-            system_mapping,
+            keyboard_layout,
         )
         self.user_interface = MagicMock()
         self.controller = Controller(self.message_broker, self.data_manager)

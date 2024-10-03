@@ -27,7 +27,7 @@ from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
+from inputremapper.configs.keyboard_layout import DISABLE_CODE, DISABLE_NAME
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import is_this_a_macro

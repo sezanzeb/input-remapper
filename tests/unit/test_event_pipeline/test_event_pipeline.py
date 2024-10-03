@@ -54,7 +54,7 @@ from inputremapper.configs.mapping import (
     DEFAULT_REL_RATE,
 )
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
@@ -141,19 +141,19 @@ class TestIdk(EventPipelineTestBase):
         c_up = (EV_ABS, ABS_HAT0X, 0)
 
         # first change the system mapping because Mapping will validate against it
-        system_mapping.clear()
+        keyboard_layout.clear()
         code_w = 71
         code_b = 72
         code_c = 73
         code_d = 74
         code_a = 75
         code_s = 76
-        system_mapping._set("w", code_w)
-        system_mapping._set("d", code_d)
-        system_mapping._set("a", code_a)
-        system_mapping._set("s", code_s)
-        system_mapping._set("b", code_b)
-        system_mapping._set("c", code_c)
+        keyboard_layout._set("w", code_w)
+        keyboard_layout._set("d", code_d)
+        keyboard_layout._set("a", code_a)
+        keyboard_layout._set("s", code_s)
+        keyboard_layout._set("b", code_b)
+        keyboard_layout._set("c", code_c)
 
         preset = Preset()
         preset.add(
@@ -256,10 +256,10 @@ class TestIdk(EventPipelineTestBase):
         )
         event_reader = self.create_event_reader(preset, fixtures.foo_device_2_keyboard)
 
-        a = system_mapping.get("a")
-        b = system_mapping.get("b")
-        c = system_mapping.get("c")
-        d = system_mapping.get("d")
+        a = keyboard_layout.get("a")
+        b = keyboard_layout.get("b")
+        c = keyboard_layout.get("c")
+        d = keyboard_layout.get("d")
 
         await self.send_events(
             [
@@ -297,7 +297,7 @@ class TestIdk(EventPipelineTestBase):
         """Test if EV_ABS events are forwarded when other events of the same input are not."""
         preset = Preset()
         # BTN_A -> 77
-        system_mapping._set("b", 77)
+        keyboard_layout._set("b", 77)
         preset.add(
             Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=BTN_A)]),
@@ -335,7 +335,7 @@ class TestIdk(EventPipelineTestBase):
         """Test if EV_REL events are forwarded when other events of the same input are not."""
         preset = Preset()
         # BTN_A -> 77
-        system_mapping._set("b", 77)
+        keyboard_layout._set("b", 77)
         preset.add(
             Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=BTN_LEFT)]),
@@ -372,9 +372,9 @@ class TestIdk(EventPipelineTestBase):
 
     async def test_combination(self):
         """Test if combinations map to keys properly."""
-        a = system_mapping.get("a")
-        b = system_mapping.get("b")
-        c = system_mapping.get("c")
+        a = keyboard_layout.get("a")
+        b = keyboard_layout.get("b")
+        c = keyboard_layout.get("c")
 
         origin = fixtures.gamepad
         origin_hash = origin.get_device_hash()
@@ -491,7 +491,7 @@ class TestIdk(EventPipelineTestBase):
                 output_symbol="a",
             )
         )
-        a = system_mapping.get("a")
+        a = keyboard_layout.get("a")
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
         await self.send_events(
@@ -565,9 +565,9 @@ class TestIdk(EventPipelineTestBase):
             )
         )
 
-        a = system_mapping.get("a")
-        b = system_mapping.get("b")
-        c = system_mapping.get("c")
+        a = keyboard_layout.get("a")
+        b = keyboard_layout.get("b")
+        c = keyboard_layout.get("c")
 
         event_reader = self.create_event_reader(preset, origin)
 
@@ -639,8 +639,8 @@ class TestIdk(EventPipelineTestBase):
         up_1 = (EV_ABS, ABS_HAT0X, 0)
         up_2 = (EV_ABS, ABS_HAT0Y, 0)
 
-        a = system_mapping.get("a")
-        b = system_mapping.get("b")
+        a = keyboard_layout.get("a")
+        b = keyboard_layout.get("b")
 
         preset = Preset()
         preset.add(
@@ -722,8 +722,8 @@ class TestIdk(EventPipelineTestBase):
             InputCombination.from_tuples((1, 276, 1), (2, 8, -1))
         )
 
-        system_mapping.clear()
-        system_mapping._set("a", 30)
+        keyboard_layout.clear()
+        keyboard_layout._set("a", 30)
         a = 30
 
         m = Mapping.from_combination(combination, output_symbol="a")
@@ -1337,11 +1337,11 @@ class TestRelToBtn(EventPipelineTestBase):
         # should be forwarded and present in the capabilities
         hw_left = (EV_REL, REL_HWHEEL, -1)
 
-        system_mapping.clear()
+        keyboard_layout.clear()
         code_b = 91
         code_c = 92
-        system_mapping._set("b", code_b)
-        system_mapping._set("c", code_c)
+        keyboard_layout._set("b", code_b)
+        keyboard_layout._set("c", code_c)
 
         # set a high release timeout to make sure the tests pass
         release_timeout = 0.2
@@ -1412,8 +1412,8 @@ class TestRelToBtn(EventPipelineTestBase):
         preset.add(mapping_1)
         preset.add(mapping_2)
 
-        a = system_mapping.get("a")
-        b = system_mapping.get("b")
+        a = keyboard_layout.get("a")
+        b = keyboard_layout.get("b")
 
         event_reader = self.create_event_reader(preset, fixtures.foo_device_2_mouse)
 
@@ -1481,8 +1481,8 @@ class TestAbsToBtn(EventPipelineTestBase):
         preset.add(mapping_1)
         preset.add(mapping_2)
 
-        a = system_mapping.get("a")
-        b = system_mapping.get("b")
+        a = keyboard_layout.get("a")
+        b = keyboard_layout.get("b")
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 

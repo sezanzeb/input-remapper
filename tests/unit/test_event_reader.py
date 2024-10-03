@@ -39,7 +39,7 @@ from evdev.ecodes import (
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
@@ -75,8 +75,8 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         # TODO: Move this somewhere more sensible
         # Integration test style for if_single.
         # won't care about the event, because the purpose is not set to BUTTON
-        code_a = system_mapping.get("a")
-        code_shift = system_mapping.get("KEY_LEFTSHIFT")
+        code_a = keyboard_layout.get("a")
+        code_shift = keyboard_layout.get("KEY_LEFTSHIFT")
         trigger = evdev.ecodes.BTN_A
 
         self.preset.add(
@@ -189,7 +189,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
     async def test_if_single_joystick_under_threshold(self):
         """Triggers then because the joystick events value is too low."""
         # TODO: Move this somewhere more sensible
-        code_a = system_mapping.get("a")
+        code_a = keyboard_layout.get("a")
         trigger = evdev.ecodes.BTN_A
         self.preset.add(
             Mapping.from_combination(

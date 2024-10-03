@@ -54,7 +54,7 @@ from evdev.ecodes import (
     REL_HWHEEL,
 )
 
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.validation_errors import (
     SymbolNotAvailableInTargetError,
     MacroParsingError,
@@ -728,7 +728,7 @@ class Macro:
             return keyname
 
         symbol = str(keyname)
-        code = system_mapping.get(symbol)
+        code = keyboard_layout.get(symbol)
 
         if code is None:
             raise MacroParsingError(msg=f'Unknown key "{symbol}"')

@@ -51,7 +51,7 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.logging.logger import logger, VERSION
@@ -230,7 +230,7 @@ class Migrations:
             # capabilities = parse(symbol).get_capabilities()
             return None
 
-        capabilities[EV_KEY] = {system_mapping.get(symbol)}
+        capabilities[EV_KEY] = {keyboard_layout.get(symbol)}
 
         if len(capabilities[EV_REL]) > 0:
             return "mouse"

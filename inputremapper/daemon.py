@@ -44,7 +44,7 @@ from inputremapper.logging.logger import logger
 from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import GlobalConfig
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.groups import groups
 from inputremapper.configs.paths import PathUtils
 from inputremapper.user import UserUtils
@@ -487,13 +487,13 @@ class Daemon:
                 xmodmap = json.load(file)
                 logger.debug('Using keycodes from "%s"', xmodmap_path)
 
-                # this creates the system_mapping._xmodmap, which we need to do now
+                # this creates the keyboard_layout._xmodmap, which we need to do now
                 # otherwise it might be created later which will override the changes
                 # we do here.
-                # Do we really need to lazyload in the system_mapping?
+                # Do we really need to lazyload in the keyboard_layout?
                 # this kind of bug is stupid to track down
-                system_mapping.get_name(0)
-                system_mapping.update(xmodmap)
+                keyboard_layout.get_name(0)
+                keyboard_layout.update(xmodmap)
                 # the service now has process wide knowledge of xmodmap
                 # keys of the users session
         except FileNotFoundError:

@@ -45,8 +45,8 @@ from evdev.ecodes import (
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import (
-    system_mapping,
+from inputremapper.configs.keyboard_layout import (
+    keyboard_layout,
     DISABLE_CODE,
     DISABLE_NAME,
 )
@@ -374,13 +374,13 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         numlock_before = is_numlock_on()
 
         # stuff the preset outputs
-        system_mapping.clear()
+        keyboard_layout.clear()
         code_a = 100
         code_q = 101
         code_w = 102
-        system_mapping._set("a", code_a)
-        system_mapping._set("key_q", code_q)
-        system_mapping._set("w", code_w)
+        keyboard_layout._set("a", code_a)
+        keyboard_layout._set("key_q", code_q)
+        keyboard_layout._set("w", code_w)
 
         preset = Preset()
         preset.add(
@@ -419,7 +419,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 "a",
             )
         )
-        # one mapping that is unknown in the system_mapping on purpose
+        # one mapping that is unknown in the keyboard_layout on purpose
         input_b = 10
         with self.assertRaises(ValidationError):
             preset.add(
@@ -648,11 +648,11 @@ class TestModifyCapabilities(unittest.TestCase):
             ),
         )
 
-        self.a = system_mapping.get("a")
-        self.shift_l = system_mapping.get("ShIfT_L")
-        self.one = system_mapping.get(1)
-        self.two = system_mapping.get("2")
-        self.left = system_mapping.get("BtN_lEfT")
+        self.a = keyboard_layout.get("a")
+        self.shift_l = keyboard_layout.get("ShIfT_L")
+        self.one = keyboard_layout.get(1)
+        self.two = keyboard_layout.get("2")
+        self.left = keyboard_layout.get("BtN_lEfT")
         self.fake_device = FakeDevice()
         self.preset = preset
         self.macro = macro

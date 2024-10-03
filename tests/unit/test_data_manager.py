@@ -30,7 +30,7 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
@@ -71,7 +71,7 @@ class TestDataManager(unittest.TestCase):
             self.reader,
             FakeDaemonProxy(),
             self.uinputs,
-            system_mapping,
+            keyboard_layout,
         )
 
     def test_load_group_provides_presets(self):

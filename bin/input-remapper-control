@@ -90,9 +90,9 @@ class InputRemapperControl:
             print(group.key)
 
     def list_key_names(self):
-        from inputremapper.configs.system_mapping import system_mapping
+        from inputremapper.configs.keyboard_layout import keyboard_layout
 
-        print("\n".join(system_mapping.list_names()))
+        print("\n".join(keyboard_layout.list_names()))
 
     def communicate(
         self,

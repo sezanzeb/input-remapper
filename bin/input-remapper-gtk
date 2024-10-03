@@ -74,7 +74,7 @@ if __name__ == "__main__":
     #  log-level is set.
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
-    from inputremapper.configs.system_mapping import system_mapping
+    from inputremapper.configs.keyboard_layout import keyboard_layout
     from inputremapper.gui.data_manager import DataManager
     from inputremapper.gui.user_interface import UserInterface
     from inputremapper.gui.controller import Controller
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         reader_client,
         daemon,
         global_uinputs,
-        system_mapping,
+        keyboard_layout,
     )
     controller = Controller(message_broker, data_manager)
     user_interface = UserInterface(message_broker, controller)

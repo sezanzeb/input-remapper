@@ -82,7 +82,7 @@ def quick_cleanup(log=True):
     # Reminder: before patches are applied in test.py, no inputremapper module
     # may be imported. So tests.lib imports them just-in-time in functions instead.
     from inputremapper.injection.macros.macro import macro_variables
-    from inputremapper.configs.system_mapping import system_mapping
+    from inputremapper.configs.keyboard_layout import keyboard_layout
     from inputremapper.gui.utils import debounce_manager
     from inputremapper.injection.global_uinputs import GlobalUInputs
 
@@ -128,7 +128,7 @@ def quick_cleanup(log=True):
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
 
-    system_mapping.populate()
+    keyboard_layout.populate()
 
     clear_write_history()
 
