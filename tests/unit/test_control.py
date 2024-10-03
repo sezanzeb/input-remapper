@@ -27,6 +27,7 @@ import unittest
 from importlib.machinery import SourceFileLoader
 from importlib.util import spec_from_loader, module_from_spec
 from unittest.mock import patch
+import re
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
@@ -43,8 +44,7 @@ from tests.lib.tmp import tmp
 def import_control():
     """Import the core function of the input-remapper-control command."""
     bin_path = os.path.join(
-        os.getcwd().rsplit("input-remapper")[0],
-        "input-remapper",
+        re.sub("/tests.*", "", os.getcwd()),
         "bin",
         "input-remapper-control",
     )

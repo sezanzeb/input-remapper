@@ -173,6 +173,7 @@ def debounce(timeout):
 
     return decorator
 
+
 debounce_manager = DebounceManager()
 
 
