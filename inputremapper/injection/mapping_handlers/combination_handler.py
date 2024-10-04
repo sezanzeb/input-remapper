@@ -119,17 +119,17 @@ class CombinationHandler(MappingHandler):
                 # combination is active: consume the event
                 # combination inactive: forward the event
                 return self._output_active
-
-            # else if it is released:
-            # Returning `False` means that the event-reader will forward the release.
-            return not self.should_release_event(event)
+            else:
+                # Else if it is released: Returning `False` means that the event-reader
+                # will forward the release.
+                return not self.should_release_event(event)
 
         if is_activated:
-            # send key up events to the forwarded uinput
+            # Send key up events to the forwarded uinput if configured to do so.
             self.forward_release()
             event = event.modify(value=1)
-
-        if not is_activated:
+        else:
+            # If not activated. All required keys are not yet pressed.
             if self._output_active or self.mapping.is_axis_mapping():
                 # we ignore the `suppress` argument for release events
                 # otherwise we might end up with stuck keys
@@ -150,10 +150,10 @@ class CombinationHandler(MappingHandler):
         if is_pressed:
             self.remember(sub_handler_result, event)
             return sub_handler_result
-
-        # else if it is released:
-        # Returning `False` means that the event-reader will forward the release.
-        return not self.should_release_event(event)
+        else:
+            # Else if it is released: Returning `False` means that the event-reader
+            # will forward the release.
+            return not self.should_release_event(event)
 
     def should_release_event(self, event: InputEvent) -> bool:
         """Check if the key-up event should be forwarded by the event-reader."""
