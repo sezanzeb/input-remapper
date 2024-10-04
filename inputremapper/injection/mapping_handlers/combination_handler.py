@@ -156,7 +156,12 @@ class CombinationHandler(MappingHandler):
             return not self.should_release_event(event)
 
     def should_release_event(self, event: InputEvent) -> bool:
-        """Check if the key-up event should be forwarded by the event-reader."""
+        """Check if the key-up event should be forwarded by the event-reader.
+
+        After this, the release event needs to be injected by someone, otherwise the
+        dictionary was modified erroneously. If there is no entry, we assume that there
+        was no key-down event to release. Maybe a duplicate event arrived.
+        """
         # Ensure that all injected key-down events will get their release event
         # injected eventually.
         # If a key-up event arrives that will inactivate the combination, but
@@ -165,15 +170,7 @@ class CombinationHandler(MappingHandler):
         # release is injected as well. So we get two release events in that case:
         # one for the key, and one for the output.
         assert event.value == 0
-
-        if event.type_and_code in self._requires_a_release:
-            forward_release = self._requires_a_release[event.type_and_code]
-            del self._requires_a_release[event.type_and_code]
-            # False means "please forward this, event-reader", therefore we negate
-            # this.
-            return forward_release
-
-        return False
+        return self._requires_a_release.pop(event.type_and_code, False)
 
     def remember(self, handled: bool, event: InputEvent) -> None:
         """Remember if this key-down event will need a release event later on."""
