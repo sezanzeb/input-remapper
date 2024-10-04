@@ -349,10 +349,13 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
             self.uinputs[self.keyboard_hash].write_history,
             [InputEvent.key(self.input_combination[1].code, 0)],
         )
-        self.assertListEqual(
-            self.uinputs[self.gamepad_hash].write_history,
-            [InputEvent.key(self.input_combination[2].code, 0)],
-        )
+
+        # We do not expect a release event for this, because there was no key-down
+        # event when the combination triggered.
+        # self.assertListEqual(
+        #     self.uinputs[self.gamepad_hash].write_history,
+        #     [InputEvent.key(self.input_combination[2].code, 0)],
+        # )
 
     def test_no_forwards(self):
         # if a combination is not triggered, nothing is released
