@@ -158,8 +158,8 @@ class CombinationHandler(MappingHandler):
 
     def should_release_event(self, event: InputEvent) -> bool:
         """Check if the key-up event should be forwarded by the event-reader."""
-        # Ensure that all keys that have been pressed-down at some point will get their
-        # proper release event injected.
+        # Ensure that all injected key-down events will get their release event
+        # injected eventually.
         # If a key-up event arrives that will inactivate the combination, but
         # for which previously a key-down event was injected (because it was
         # an earlier key in the combination chain), then we need to ensure that its
