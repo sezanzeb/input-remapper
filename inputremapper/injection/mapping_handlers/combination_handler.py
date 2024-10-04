@@ -115,10 +115,10 @@ class CombinationHandler(MappingHandler):
 
         if is_activated == self._output_active:
             # nothing changed
-            # combination is active: consume the event
-            # combination inactive: forward the event
             if is_pressed:
                 self.remember(self._output_active, event)
+                # combination is active: consume the event
+                # combination inactive: forward the event
                 return self._output_active
 
             if is_released:
