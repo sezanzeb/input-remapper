@@ -108,7 +108,6 @@ class CombinationHandler(MappingHandler):
         # The value of non-key input should have been changed to either 0 or 1 at this
         # point by other handlers.
         is_pressed = event.value == 1
-        is_released = event.value == 0
         self._pressed_keys[event.input_match_hash] = is_pressed
         # maybe this changes the activation status (triggered/not-triggered)
         is_activated = self.is_activated()
@@ -121,9 +120,9 @@ class CombinationHandler(MappingHandler):
                 # combination inactive: forward the event
                 return self._output_active
 
-            if is_released:
-                # `False` means that the event-reader will forward it.
-                return not self.should_release_event(event)
+            # if is released:
+            # `False` means that the event-reader will forward it.
+            return not self.should_release_event(event)
 
         if is_activated:
             # send key up events to the forwarded uinput
@@ -152,9 +151,9 @@ class CombinationHandler(MappingHandler):
             self.remember(sub_handler_result, event)
             return sub_handler_result
 
-        if is_released:
-            # `False` means that the event-reader will forward it.
-            return not self.should_release_event(event)
+        # if is released:
+        # `False` means that the event-reader will forward it.
+        return not self.should_release_event(event)
 
     def should_release_event(self, event: InputEvent) -> bool:
         """Check if the key-up event should be forwarded by the event-reader."""
