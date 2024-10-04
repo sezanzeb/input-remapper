@@ -42,13 +42,11 @@ class CombinationHandler(MappingHandler):
 
     # map of InputEvent.input_match_hash -> bool , keep track of the combination state
     _pressed_keys: Dict[Hashable, bool]
-
     # the last update we sent to a sub-handler. If this is true, the output key is
     # still being held down.
     _output_active: bool
     _sub_handler: InputEventHandler
     _handled_input_hashes: list[Hashable]
-
     _requires_a_release: Dict[Tuple[int, int], bool]
 
     def __init__(
@@ -181,6 +179,7 @@ class CombinationHandler(MappingHandler):
         self._sub_handler.reset()
         for key in self._pressed_keys:
             self._pressed_keys[key] = False
+        self._requires_a_release = {}
         self._output_active = False
 
     def is_activated(self) -> bool:
