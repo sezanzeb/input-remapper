@@ -18,7 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations  # needed for the TYPE_CHECKING import
-from typing import TYPE_CHECKING, Dict, Hashable
+from typing import TYPE_CHECKING, Dict, Hashable, Tuple
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -45,6 +45,7 @@ class CombinationHandler(MappingHandler):
     _output_state: bool  # the last update we sent to a sub-handler
     _sub_handler: InputEventHandler
     _handled_input_hashes: list[Hashable]
+    _notify_results: Dict[Tuple[int, int], bool]
 
     def __init__(
         self,
@@ -58,6 +59,7 @@ class CombinationHandler(MappingHandler):
         self._pressed_keys = {}
         self._output_state = False
         self._context = context
+        self._notify_results = {}
 
         # prepare a key map for all events with non-zero value
         for input_config in combination:
@@ -89,6 +91,27 @@ class CombinationHandler(MappingHandler):
         return self._sub_handler
 
     def notify(
+        self,
+        event: InputEvent,
+        source: evdev.InputDevice,
+        suppress: bool = False,
+    ) -> bool:
+        result = self._notify(event, source, suppress)
+
+        if event.type_and_code in self._notify_results:
+            # The return value is always the same as for the key-down event.
+            # If a key-up event arrives that will inactivate the combination, but
+            # for which previously a key-down event was injected (because it was
+            # an earlier key in the combination chain), then we need to ensure that its
+            # release is injected as well.
+            result = self._notify_results[event.type_and_code]
+            del self._notify_results[event.type_and_code]
+            return result
+
+        self._notify_results[event.type_and_code] = result
+        return result
+
+    def _notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice,

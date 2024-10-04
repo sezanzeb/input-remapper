@@ -21,6 +21,7 @@
 
 """See TestEventPipeline for more tests."""
 
+from tests import test
 
 import asyncio
 import unittest
@@ -59,13 +60,16 @@ from inputremapper.injection.mapping_handlers.axis_switch_handler import (
 from inputremapper.injection.mapping_handlers.hierarchy_handler import HierarchyHandler
 from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    MappingHandler,
+    InputEventHandler,
+)
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.input_event import InputEvent, EventActions
 
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
-from tests.lib.patches import InputDevice
+from tests.lib.patches import InputDevice, UInput
 from tests.lib.constants import MAX_ABS
 from tests.lib.fixtures import fixtures
 
@@ -286,26 +290,29 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
+                release_combination_keys=True,
             ),
             self.context_mock,
         )
+
+        sub_handler_mock = MagicMock(InputEventHandler)
+        self.handler.set_sub_handler(sub_handler_mock)
+
+        # insert our own test-uinput to see what is being written to it
+        self.uinputs = {
+            self.mouse_hash: UInput(),
+            self.keyboard_hash: UInput(),
+            self.gamepad_hash: UInput(),
+        }
+        self.context_mock.get_forward_uinput = lambda origin_hash: self.uinputs[
+            origin_hash
+        ]
 
     def test_forward_correctly(self):
         # In the past, if a mapping has inputs from two different sub devices, it
         # always failed to send the release events to the correct one.
         # Nowadays, self._context.get_forward_uinput(origin_hash) is used to
         # release them correctly.
-        mock = MagicMock()
-        self.handler.set_sub_handler(mock)
-
-        # insert our own test-uinput to see what is being written to it
-        uinputs = {
-            self.mouse_hash: evdev.UInput(),
-            self.keyboard_hash: evdev.UInput(),
-            self.gamepad_hash: evdev.UInput(),
-        }
-        self.context_mock.get_forward_uinput = lambda origin_hash: uinputs[origin_hash]
-
         # 1. trigger the combination
         self.handler.notify(
             InputEvent.rel(
@@ -335,30 +342,20 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         # 2. expect release events to be written to the correct devices, as indicated
         # by the origin_hash of the InputConfigs
         self.assertListEqual(
-            uinputs[self.mouse_hash].write_history,
+            self.uinputs[self.mouse_hash].write_history,
             [InputEvent.rel(self.input_combination[0].code, 0)],
         )
         self.assertListEqual(
-            uinputs[self.keyboard_hash].write_history,
+            self.uinputs[self.keyboard_hash].write_history,
             [InputEvent.key(self.input_combination[1].code, 0)],
         )
         self.assertListEqual(
-            uinputs[self.gamepad_hash].write_history,
+            self.uinputs[self.gamepad_hash].write_history,
             [InputEvent.key(self.input_combination[2].code, 0)],
         )
 
     def test_no_forwards(self):
         # if a combination is not triggered, nothing is released
-        mock = MagicMock()
-        self.handler.set_sub_handler(mock)
-
-        # insert our own test-uinput to see what is being written to it
-        uinputs = {
-            self.mouse_hash: evdev.UInput(),
-            self.keyboard_hash: evdev.UInput(),
-        }
-        self.context_mock.get_forward_uinput = lambda origin_hash: uinputs[origin_hash]
-
         # 1. inject any two events
         self.handler.notify(
             InputEvent.rel(
@@ -378,8 +375,8 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         )
 
         # 2. expect no release events to be written
-        self.assertListEqual(uinputs[self.mouse_hash].write_history, [])
-        self.assertListEqual(uinputs[self.keyboard_hash].write_history, [])
+        self.assertListEqual(self.uinputs[self.mouse_hash].write_history, [])
+        self.assertListEqual(self.uinputs[self.keyboard_hash].write_history, [])
 
 
 class TestHierarchyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):

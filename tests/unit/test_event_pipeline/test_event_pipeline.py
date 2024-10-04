@@ -17,6 +17,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
+from tests import test
+
 import asyncio
 import unittest
 from typing import Iterable
@@ -108,7 +111,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
         return reader
 
 
-class TestIdk(EventPipelineTestBase):
+class TestCombination(EventPipelineTestBase):
     async def test_any_event_as_button(self):
         """As long as there is an event handler and a mapping we should be able
         to map anything to a button"""
@@ -416,6 +419,10 @@ class TestIdk(EventPipelineTestBase):
             output_symbol="c",
         )
 
+        assert mapping_1.release_combination_keys
+        assert mapping_2.release_combination_keys
+        assert mapping_3.release_combination_keys
+
         preset = Preset()
         preset.add(mapping_1)
         preset.add(mapping_2)
@@ -440,6 +447,8 @@ class TestIdk(EventPipelineTestBase):
 
         forwarded_history = self.forward_uinput.write_history
 
+        # I don't remember the specifics. I guess if there is a combination ongoing,
+        # it shouldn't trigger ABS_X -> a?
         self.assertNotIn((EV_KEY, a, 1), keyboard_history)
 
         # c and b should have been written, because the input from send_events
@@ -464,6 +473,70 @@ class TestIdk(EventPipelineTestBase):
         self.assertNotIn((EV_KEY, a, 0), keyboard_history)
         self.assertEqual(keyboard_history.count((EV_KEY, c, 0)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, b, 0)), 1)
+
+    async def test_combination_manual_release_in_press_order(self):
+        """Test if combinations map to keys properly."""
+        # release_combination_keys is off
+        # press 5, then 6, then release 5, then release 6
+        in_1 = system_mapping.get("7")
+        in_2 = system_mapping.get("8")
+        out = system_mapping.get("a")
+
+        origin = fixtures.foo_device_2_keyboard
+        origin_hash = origin.get_device_hash()
+
+        input_combination = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=in_1,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=in_2,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping = Mapping(
+            input_combination=input_combination.to_config(),
+            target_uinput="keyboard",
+            output_symbol="a",
+            release_combination_keys=False,
+        )
+
+        assert not mapping.release_combination_keys
+
+        preset = Preset()
+        preset.add(mapping)
+
+        event_reader = self.create_event_reader(preset, origin)
+
+        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
+
+        # press the first key of the combination
+        await self.send_events([InputEvent.key(in_1, 1, origin_hash)], event_reader)
+        self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1)])
+
+        # then the second, it should trigger the combination
+        await self.send_events([InputEvent.key(in_2, 1, origin_hash)], event_reader)
+        self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1)])
+        self.assertListEqual(keyboard_history, [(EV_KEY, out, 1)])
+
+        # release the first key. A key-down event was injected for it previously, so
+        # now we find a key-up event here as well.
+        await self.send_events([InputEvent.key(in_1, 0, origin_hash)], event_reader)
+        self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1), (EV_KEY, in_1, 0)])
+        self.assertListEqual(keyboard_history, [(EV_KEY, out, 1), (EV_KEY, out, 0)])
+
+        # release the second key. No key-down event was injected, so we don't have a
+        # key-up event here either.
+        await self.send_events([InputEvent.key(in_2, 0, origin_hash)], event_reader)
+        self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1), (EV_KEY, in_1, 0)])
+        self.assertListEqual(keyboard_history, [(EV_KEY, out, 1), (EV_KEY, out, 0)])
 
     async def test_ignore_hold(self):
         # hold as in event-value 2, not in macro-hold.
