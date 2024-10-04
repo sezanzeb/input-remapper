@@ -157,7 +157,7 @@ class CombinationHandler(MappingHandler):
             return not self.should_release_event(event)
 
     def should_release_event(self, event):
-        """Check if the release event should be forwarded by the event-reader."""
+        """Check if the key-up event should be forwarded by the event-reader."""
         # Ensure that all keys that have been pressed-down at some point will get their
         # proper release event injected.
         # If a key-up event arrives that will inactivate the combination, but
@@ -177,7 +177,8 @@ class CombinationHandler(MappingHandler):
         return False
 
     def remember(self, handled, event):
-        """Remember if this event will need a release event later on."""
+        """Remember if this key-down event will need a release event later on."""
+        assert event.value == 1
         self._requires_a_release[event.type_and_code] = not handled
 
     def reset(self) -> None:
