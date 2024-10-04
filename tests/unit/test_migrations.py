@@ -20,7 +20,7 @@ import os
 import unittest
 import shutil
 import json
-import pkg_resources
+from packaging import version
 
 from evdev.ecodes import (
     EV_KEY,
@@ -380,7 +380,7 @@ class TestMigrations(unittest.TestCase):
             file.write("{}")
 
         migrate()
-        self.assertEqual(pkg_resources.parse_version(VERSION), config_version())
+        self.assertEqual(version.parse(VERSION), config_version())
 
     def test_update_version(self):
         path = os.path.join(CONFIG_PATH, "config.json")
@@ -389,7 +389,7 @@ class TestMigrations(unittest.TestCase):
             json.dump({"version": "0.1.0"}, file)
 
         migrate()
-        self.assertEqual(pkg_resources.parse_version(VERSION), config_version())
+        self.assertEqual(version.parse(VERSION), config_version())
 
     def test_config_version(self):
         path = os.path.join(CONFIG_PATH, "config.json")
