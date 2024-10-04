@@ -172,10 +172,10 @@ class CombinationHandler(MappingHandler):
         assert event.value == 0
         return self._requires_a_release.pop(event.type_and_code, False)
 
-    def remember(self, handled: bool, event: InputEvent) -> None:
+    def remember(self, will_require_release_later: bool, event: InputEvent) -> None:
         """Remember if this key-down event will need a release event later on."""
         assert event.value == 1
-        self._requires_a_release[event.type_and_code] = not handled
+        self._requires_a_release[event.type_and_code] = not will_require_release_later
 
     def reset(self) -> None:
         self._sub_handler.reset()
