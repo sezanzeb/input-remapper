@@ -49,11 +49,6 @@ class CombinationHandler(MappingHandler):
     _sub_handler: InputEventHandler
     _handled_input_hashes: list[Hashable]
 
-    # If a key-up event arrives that will inactivate the combination, but
-    # for which previously a key-down event was injected (because it was
-    # an earlier key in the combination chain), then we need to ensure that its
-    # release is injected as well. So we get two release events in that case:
-    # one for the key, and one for the output.
     _requires_a_release: Dict[Tuple[int, int], bool]
 
     def __init__(
@@ -127,7 +122,8 @@ class CombinationHandler(MappingHandler):
                 return self._output_active
 
             if is_released:
-                return self.should_release_event(event)
+                # `False` means that the event-reader will forward it.
+                return not self.should_release_event(event)
 
         if is_activated:
             # send key up events to the forwarded uinput
@@ -157,19 +153,31 @@ class CombinationHandler(MappingHandler):
             return sub_handler_result
 
         if is_released:
-            return self.should_release_event(event)
+            # `False` means that the event-reader will forward it.
+            return not self.should_release_event(event)
 
     def should_release_event(self, event):
-        if event.value == 0 and event.type_and_code in self._requires_a_release:
+        """Check if the release event should be forwarded by the event-reader."""
+        # Ensure that all keys that have been pressed-down at some point will get their
+        # proper release event injected.
+        # If a key-up event arrives that will inactivate the combination, but
+        # for which previously a key-down event was injected (because it was
+        # an earlier key in the combination chain), then we need to ensure that its
+        # release is injected as well. So we get two release events in that case:
+        # one for the key, and one for the output.
+        assert event.value == 0
+
+        if event.type_and_code in self._requires_a_release:
             forward_release = self._requires_a_release[event.type_and_code]
             del self._requires_a_release[event.type_and_code]
             # False means "please forward this, event-reader", therefore we negate
             # this.
-            return not forward_release
+            return forward_release
 
-        return True
+        return False
 
     def remember(self, handled, event):
+        """Remember if this event will need a release event later on."""
         self._requires_a_release[event.type_and_code] = not handled
 
     def reset(self) -> None:
