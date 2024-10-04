@@ -42,10 +42,19 @@ class CombinationHandler(MappingHandler):
 
     # map of InputEvent.input_match_hash -> bool , keep track of the combination state
     _pressed_keys: Dict[Hashable, bool]
-    _output_state: bool  # the last update we sent to a sub-handler
+
+    # the last update we sent to a sub-handler. If this is true, the output key is
+    # still being held down.
+    _output_active: bool
     _sub_handler: InputEventHandler
     _handled_input_hashes: list[Hashable]
-    _notify_results: Dict[Tuple[int, int], bool]
+
+    # If a key-up event arrives that will inactivate the combination, but
+    # for which previously a key-down event was injected (because it was
+    # an earlier key in the combination chain), then we need to ensure that its
+    # release is injected as well. So we get two release events in that case:
+    # one for the key, and one for the output.
+    _requires_a_release: Dict[Tuple[int, int], bool]
 
     def __init__(
         self,
@@ -57,9 +66,9 @@ class CombinationHandler(MappingHandler):
         logger.debug(str(mapping))
         super().__init__(combination, mapping)
         self._pressed_keys = {}
-        self._output_state = False
+        self._output_active = False
         self._context = context
-        self._notify_results = {}
+        self._requires_a_release = {}
 
         # prepare a key map for all events with non-zero value
         for input_config in combination:
@@ -96,57 +105,38 @@ class CombinationHandler(MappingHandler):
         source: evdev.InputDevice,
         suppress: bool = False,
     ) -> bool:
-        result = self._notify(event, source, suppress)
-
-        if event.type_and_code in self._notify_results:
-            # The return value is always the same as for the key-down event.
-            # If a key-up event arrives that will inactivate the combination, but
-            # for which previously a key-down event was injected (because it was
-            # an earlier key in the combination chain), then we need to ensure that its
-            # release is injected as well.
-            result = self._notify_results[event.type_and_code]
-            del self._notify_results[event.type_and_code]
-            return result
-
-        self._notify_results[event.type_and_code] = result
-        return result
-
-    def _notify(
-        self,
-        event: InputEvent,
-        source: evdev.InputDevice,
-        suppress: bool = False,
-    ) -> bool:
         if event.input_match_hash not in self._handled_input_hashes:
             # we are not responsible for the event
             return False
-
-        was_activated = self.is_activated()
 
         # update the state
         # The value of non-key input should have been changed to either 0 or 1 at this
         # point by other handlers.
         is_pressed = event.value == 1
+        is_released = event.value == 0
         self._pressed_keys[event.input_match_hash] = is_pressed
         # maybe this changes the activation status (triggered/not-triggered)
         is_activated = self.is_activated()
 
-        if is_activated == was_activated or is_activated == self._output_state:
+        if is_activated == self._output_active:
             # nothing changed
-            if self._output_state:
-                # combination is active, consume the event
-                return True
-            else:
-                # combination inactive, forward the event
-                return False
+            # combination is active: consume the event
+            # combination inactive: forward the event
+            if is_pressed:
+                self.remember(self._output_active, event)
+                return self._output_active
+
+            if is_released:
+                return self.should_release_event(event)
 
         if is_activated:
             # send key up events to the forwarded uinput
             self.forward_release()
             event = event.modify(value=1)
-        else:
-            if self._output_state or self.mapping.is_axis_mapping():
-                # we ignore the suppress argument for release events
+
+        if not is_activated:
+            if self._output_active or self.mapping.is_axis_mapping():
+                # we ignore the `suppress` argument for release events
                 # otherwise we might end up with stuck keys
                 # (test_event_pipeline.test_combination)
 
@@ -159,14 +149,34 @@ class CombinationHandler(MappingHandler):
             return False
 
         logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
-        self._output_state = bool(event.value)
-        return self._sub_handler.notify(event, source, suppress)
+        self._output_active = bool(event.value)
+        sub_handler_result = self._sub_handler.notify(event, source, suppress)
+
+        if is_pressed:
+            self.remember(sub_handler_result, event)
+            return sub_handler_result
+
+        if is_released:
+            return self.should_release_event(event)
+
+    def should_release_event(self, event):
+        if event.value == 0 and event.type_and_code in self._requires_a_release:
+            forward_release = self._requires_a_release[event.type_and_code]
+            del self._requires_a_release[event.type_and_code]
+            # False means "please forward this, event-reader", therefore we negate
+            # this.
+            return not forward_release
+
+        return True
+
+    def remember(self, handled, event):
+        self._requires_a_release[event.type_and_code] = not handled
 
     def reset(self) -> None:
         self._sub_handler.reset()
         for key in self._pressed_keys:
             self._pressed_keys[key] = False
-        self._output_state = False
+        self._output_active = False
 
     def is_activated(self) -> bool:
         """Return if all keys in the keymap are set to True."""
@@ -188,6 +198,9 @@ class CombinationHandler(MappingHandler):
         logger.debug("Forwarding release for %s", self.mapping.input_combination)
 
         for input_config in keys_to_release:
+            if not self._requires_a_release.get(input_config.type_and_code):
+                continue
+
             origin_hash = input_config.origin_hash
             if origin_hash is None:
                 logger.error(
@@ -199,6 +212,9 @@ class CombinationHandler(MappingHandler):
             logger.write(input_config, forward_to)
             forward_to.write(*input_config.type_and_code, 0)
             forward_to.syn()
+
+            # We are done with this key, forget about it
+            del self._requires_a_release[input_config.type_and_code]
 
     def needs_ranking(self) -> bool:
         return bool(self.input_configs)
