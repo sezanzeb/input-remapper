@@ -113,9 +113,11 @@ class CombinationHandler(MappingHandler):
         if is_activated == self._output_active:
             # nothing changed
             if is_pressed:
-                self.remember(self._output_active, event)
-                # combination is active: consume the event
-                # combination inactive: forward the event
+                # If the output is active, a key-down event triggered it, which then
+                # did not get forwarded, therefore it doesn't require a release.
+                self.require_release_later(not self._output_active, event)
+                # output is active: consume the event
+                # output inactive: forward the event
                 return self._output_active
             else:
                 # Else if it is released: Returning `False` means that the event-reader
@@ -146,7 +148,9 @@ class CombinationHandler(MappingHandler):
         sub_handler_result = self._sub_handler.notify(event, source, suppress)
 
         if is_pressed:
-            self.remember(sub_handler_result, event)
+            # If the sub-handler return True, it handled the event, so the user never
+            # sees this key-down event. In that case, we don't require a release event.
+            self.require_release_later(not sub_handler_result, event)
             return sub_handler_result
         else:
             # Else if it is released: Returning `False` means that the event-reader
@@ -170,10 +174,10 @@ class CombinationHandler(MappingHandler):
         assert event.value == 0
         return self._requires_a_release.pop(event.type_and_code, False)
 
-    def remember(self, will_require_release_later: bool, event: InputEvent) -> None:
+    def require_release_later(self, require: bool, event: InputEvent) -> None:
         """Remember if this key-down event will need a release event later on."""
         assert event.value == 1
-        self._requires_a_release[event.type_and_code] = not will_require_release_later
+        self._requires_a_release[event.type_and_code] = require
 
     def reset(self) -> None:
         self._sub_handler.reset()
