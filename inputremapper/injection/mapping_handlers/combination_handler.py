@@ -120,8 +120,8 @@ class CombinationHandler(MappingHandler):
                 # combination inactive: forward the event
                 return self._output_active
 
-            # if is released:
-            # `False` means that the event-reader will forward it.
+            # else if it is released:
+            # Returning `False` means that the event-reader will forward the release.
             return not self.should_release_event(event)
 
         if is_activated:
@@ -151,8 +151,8 @@ class CombinationHandler(MappingHandler):
             self.remember(sub_handler_result, event)
             return sub_handler_result
 
-        # if is released:
-        # `False` means that the event-reader will forward it.
+        # else if it is released:
+        # Returning `False` means that the event-reader will forward the release.
         return not self.should_release_event(event)
 
     def should_release_event(self, event: InputEvent) -> bool:
