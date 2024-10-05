@@ -21,9 +21,9 @@ from __future__ import annotations
 
 import enum
 from collections import namedtuple
+from packaging import version
 from typing import Optional, Callable, Tuple, TypeVar, Union, Any, Dict
 
-import pkg_resources
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -84,9 +84,7 @@ from inputremapper.utils import get_evdev_constant_name
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ancient pydantic 1.2
 
-needs_workaround = pkg_resources.parse_version(
-    str(VERSION)
-) < pkg_resources.parse_version("1.7.1")
+needs_workaround = version.parse(str(VERSION)) < version.parse("1.7.1")
 
 
 EMPTY_MAPPING_NAME: str = _("Empty Mapping")
