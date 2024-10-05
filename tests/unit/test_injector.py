@@ -23,11 +23,6 @@ try:
 except ImportError:
     from pydantic import ValidationError
 
-from inputremapper.input_event import InputEvent
-from tests.lib.global_uinputs import (
-    reset_global_uinputs_for_service,
-    reset_global_uinputs_for_gui,
-)
 from tests.lib.patches import uinputs
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT
@@ -35,6 +30,7 @@ from tests.lib.fixtures import fixtures
 from tests.lib.pipes import uinput_write_history_pipe
 from tests.lib.pipes import read_write_history_pipe, push_events
 from tests.lib.fixtures import keyboard_keys
+from inputremapper.input_event import InputEvent
 
 import unittest
 from unittest import mock
@@ -438,9 +434,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             [
                 # should execute a macro...
                 InputEvent.key(8, 1),  # forwarded
-                InputEvent.key(9, 1),  # triggers macro
-                InputEvent.key(8, 0),  # releases macro
-                InputEvent.key(9, 0),  # forwarded
+                InputEvent.key(9, 1),  # triggers macro, not forwarding
+                # macro runs now and injects a few more keys
+                InputEvent.key(8, 0),  # releases macro (needs to be forwarded as well)
+                InputEvent.key(9, 0),  # not forwarded, just like the down-event
             ],
         )
 
@@ -477,19 +474,14 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         history = read_write_history_pipe()
 
         # 1 event before the combination was triggered
-        # 2 events for releasing the combination trigger (by combination handler)
         # 4 events for the macro
-        # 1 release of the event that didn't release the macro
+        # 1 event for releasing the previous key-down event
         # 2 for mapped keys
         # 3 for forwarded events
-        self.assertEqual(len(history), 13)
+        self.assertEqual(len(history), 11)
 
         # the first bit is ordered properly
         self.assertEqual(history[0], (EV_KEY, 8, 1))  # forwarded
-        del history[0]
-        self.assertIn((EV_KEY, 8, 0), history[0:2])  # released by combination handler
-        self.assertIn((EV_KEY, 9, 0), history[0:2])  # released by combination handler
-        del history[0]
         del history[0]
 
         # since the macro takes a little bit of time to execute, its
@@ -512,10 +504,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         del history[index_q_0]
         del history[index_q_1]
 
-        # the rest should be in order now.
-        # first the released combination key which did not release the macro.
-        # the combination key which released the macro won't appear here.
-        self.assertEqual(history[0], (EV_KEY, 9, 0))
+        # The rest should be in order now.
+        # First the released combination key which did not release the macro.
+        # The combination key which released the macro won't appear here, because
+        # it also didn't have a key-down event and therefore doesn't need to be
+        # released itself.
+        self.assertEqual(history[0], (EV_KEY, 8, 0))
         # value should be 1, even if the input event was -1.
         # Injected keycodes should always be either 0 or 1
         self.assertEqual(history[1], (EV_KEY, code_a, 1))

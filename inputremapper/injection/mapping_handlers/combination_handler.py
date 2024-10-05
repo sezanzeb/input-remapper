@@ -18,7 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations  # needed for the TYPE_CHECKING import
-from typing import TYPE_CHECKING, Dict, Hashable
+from typing import TYPE_CHECKING, Dict, Hashable, Tuple
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -42,9 +42,12 @@ class CombinationHandler(MappingHandler):
 
     # map of InputEvent.input_match_hash -> bool , keep track of the combination state
     _pressed_keys: Dict[Hashable, bool]
-    _output_state: bool  # the last update we sent to a sub-handler
+    # the last update we sent to a sub-handler. If this is true, the output key is
+    # still being held down.
+    _output_active: bool
     _sub_handler: InputEventHandler
     _handled_input_hashes: list[Hashable]
+    _requires_a_release: Dict[Tuple[int, int], bool]
 
     def __init__(
         self,
@@ -56,8 +59,9 @@ class CombinationHandler(MappingHandler):
         logger.debug(str(mapping))
         super().__init__(combination, mapping)
         self._pressed_keys = {}
-        self._output_state = False
+        self._output_active = False
         self._context = context
+        self._requires_a_release = {}
 
         # prepare a key map for all events with non-zero value
         for input_config in combination:
@@ -98,8 +102,6 @@ class CombinationHandler(MappingHandler):
             # we are not responsible for the event
             return False
 
-        was_activated = self.is_activated()
-
         # update the state
         # The value of non-key input should have been changed to either 0 or 1 at this
         # point by other handlers.
@@ -108,22 +110,28 @@ class CombinationHandler(MappingHandler):
         # maybe this changes the activation status (triggered/not-triggered)
         is_activated = self.is_activated()
 
-        if is_activated == was_activated or is_activated == self._output_state:
+        if is_activated == self._output_active:
             # nothing changed
-            if self._output_state:
-                # combination is active, consume the event
-                return True
+            if is_pressed:
+                # If the output is active, a key-down event triggered it, which then
+                # did not get forwarded, therefore it doesn't require a release.
+                self.require_release_later(not self._output_active, event)
+                # output is active: consume the event
+                # output inactive: forward the event
+                return self._output_active
             else:
-                # combination inactive, forward the event
-                return False
+                # Else if it is released: Returning `False` means that the event-reader
+                # will forward the release.
+                return not self.should_release_event(event)
 
         if is_activated:
-            # send key up events to the forwarded uinput
+            # Send key up events to the forwarded uinput if configured to do so.
             self.forward_release()
             event = event.modify(value=1)
         else:
-            if self._output_state or self.mapping.is_axis_mapping():
-                # we ignore the suppress argument for release events
+            # If not activated. All required keys are not yet pressed.
+            if self._output_active or self.mapping.is_axis_mapping():
+                # we ignore the `suppress` argument for release events
                 # otherwise we might end up with stuck keys
                 # (test_event_pipeline.test_combination)
 
@@ -136,14 +144,47 @@ class CombinationHandler(MappingHandler):
             return False
 
         logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
-        self._output_state = bool(event.value)
-        return self._sub_handler.notify(event, source, suppress)
+        self._output_active = bool(event.value)
+        sub_handler_result = self._sub_handler.notify(event, source, suppress)
+
+        if is_pressed:
+            # If the sub-handler return True, it handled the event, so the user never
+            # sees this key-down event. In that case, we don't require a release event.
+            self.require_release_later(not sub_handler_result, event)
+            return sub_handler_result
+        else:
+            # Else if it is released: Returning `False` means that the event-reader
+            # will forward the release.
+            return not self.should_release_event(event)
+
+    def should_release_event(self, event: InputEvent) -> bool:
+        """Check if the key-up event should be forwarded by the event-reader.
+
+        After this, the release event needs to be injected by someone, otherwise the
+        dictionary was modified erroneously. If there is no entry, we assume that there
+        was no key-down event to release. Maybe a duplicate event arrived.
+        """
+        # Ensure that all injected key-down events will get their release event
+        # injected eventually.
+        # If a key-up event arrives that will inactivate the combination, but
+        # for which previously a key-down event was injected (because it was
+        # an earlier key in the combination chain), then we need to ensure that its
+        # release is injected as well. So we get two release events in that case:
+        # one for the key, and one for the output.
+        assert event.value == 0
+        return self._requires_a_release.pop(event.type_and_code, False)
+
+    def require_release_later(self, require: bool, event: InputEvent) -> None:
+        """Remember if this key-down event will need a release event later on."""
+        assert event.value == 1
+        self._requires_a_release[event.type_and_code] = require
 
     def reset(self) -> None:
         self._sub_handler.reset()
         for key in self._pressed_keys:
             self._pressed_keys[key] = False
-        self._output_state = False
+        self._requires_a_release = {}
+        self._output_active = False
 
     def is_activated(self) -> bool:
         """Return if all keys in the keymap are set to True."""
@@ -165,6 +206,9 @@ class CombinationHandler(MappingHandler):
         logger.debug("Forwarding release for %s", self.mapping.input_combination)
 
         for input_config in keys_to_release:
+            if not self._requires_a_release.get(input_config.type_and_code):
+                continue
+
             origin_hash = input_config.origin_hash
             if origin_hash is None:
                 logger.error(
@@ -176,6 +220,9 @@ class CombinationHandler(MappingHandler):
             logger.write(input_config, forward_to)
             forward_to.write(*input_config.type_and_code, 0)
             forward_to.syn()
+
+            # We are done with this key, forget about it
+            del self._requires_a_release[input_config.type_and_code]
 
     def needs_ranking(self) -> bool:
         return bool(self.input_configs)
