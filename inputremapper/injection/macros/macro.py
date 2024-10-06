@@ -40,6 +40,7 @@ import asyncio
 import copy
 import math
 import re
+import random
 from typing import List, Callable, Awaitable, Tuple, Optional, Union, Any
 
 from evdev.ecodes import (
@@ -540,12 +541,18 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_wait(self, time: Union[int, float]):
+    def add_wait(self, time: Union[str, int], vary: int=0):
         """Wait time in milliseconds."""
-        time = _type_check(time, [int, float], "wait", 1)
+        time = _type_check(time, [int], "wait", 1)
+        vary = _type_check(vary, [int], "wait", 2)
 
         async def task(_):
-            await asyncio.sleep(_resolve(time, [int, float]) / 1000)
+            if _resolve(vary, [int]) > _resolve(time, [int]):
+                time_vary = random.randint(_resolve(time, [int]), _resolve(vary, [int]))
+            else:
+                time_vary = _resolve(time, [int])
+
+            await asyncio.sleep(_resolve(time_vary, [int, float]) / 1000)
 
         self.tasks.append(task)
 
