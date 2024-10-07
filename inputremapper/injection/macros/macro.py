@@ -546,16 +546,16 @@ class Macro:
         time = _type_check(time, [int], "wait", 1)
         max_time = _type_check(max_time, [int], "wait", 2)
 
-        time = _resolve(time, [int])
-        max_time = _resolve(max_time, [int])
-
         async def task(_):
-            if max_time > time:
-                time_vary = random.randint(time, max_time)
-            else:
-                time_vary = time
+            resolved_min_time = _resolve(time, [int])
+            resolved_max_time = _resolve(max_time, [int])
 
-            await asyncio.sleep(time_vary / 1000)
+            if resolved_max_time > resolved_min_time:
+                variabletime = random.randint(resolved_min_time, resolved_max_time)
+            else:
+                variabletime = resolved_min_time
+
+            await asyncio.sleep(variabletime / 1000)
 
         self.tasks.append(task)
 
