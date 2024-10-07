@@ -541,18 +541,21 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_wait(self, time: Union[str, int], vary: int=0):
+    def add_wait(self, time: Union[str, int], max_time: int=0):
         """Wait time in milliseconds."""
         time = _type_check(time, [int], "wait", 1)
-        vary = _type_check(vary, [int], "wait", 2)
+        max_time = _type_check(max_time, [int], "wait", 2)
+
+        time = _resolve(time, [int])
+        max_time = _resolve(max_time, [int])
 
         async def task(_):
-            if _resolve(vary, [int]) > _resolve(time, [int]):
-                time_vary = random.randint(_resolve(time, [int]), _resolve(vary, [int]))
+            if max_time > time:
+                time_vary = random.randint(time, max_time)
             else:
-                time_vary = _resolve(time, [int])
+                time_vary = time
 
-            await asyncio.sleep(_resolve(time_vary, [int, float]) / 1000)
+            await asyncio.sleep(time_vary / 1000)
 
         self.tasks.append(task)
 
