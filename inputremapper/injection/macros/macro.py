@@ -544,7 +544,7 @@ class Macro:
     def add_wait(self, time: Union[str, int], max_time=None):
         """Wait time in milliseconds."""
         time = _type_check(time, [int], "wait", 1)
-        max_time = _type_check(max_time, [int], "wait", 2)
+        max_time = _type_check(max_time, [int,None], "wait", 2)
 
         async def task(_):
             resolved_min_time = _resolve(time, [int])
