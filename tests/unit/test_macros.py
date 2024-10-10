@@ -915,6 +915,39 @@ class TestMacros(MacroTestBase):
         self.assertIsInstance(macro, Macro)
         self.assertListEqual(self.result, [])
 
+    async def test_wait_1(self):
+        macro = parse("wait(10).key(1)", self.context, DummyMapping, True)
+        one_code = system_mapping.get("1")
+
+        await macro.run(self.handler)
+        self.assertListEqual(
+            self.result,
+            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
+        )
+        self.assertEqual(len(macro.child_macros), 0)
+
+    async def test_wait_2(self):
+        macro = parse("wait(10,100).key(1)", self.context, DummyMapping, True)
+        one_code = system_mapping.get("1")
+
+        await macro.run(self.handler)
+        self.assertListEqual(
+            self.result,
+            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
+        )
+        self.assertEqual(len(macro.child_macros), 0)
+
+    async def test_wait_3(self):
+        macro = parse("set(a,100).wait(10, $a).key(1)", self.context, DummyMapping, True)
+        one_code = system_mapping.get("1")
+
+        await macro.run(self.handler)
+        self.assertListEqual(
+            self.result,
+            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
+        )
+        self.assertEqual(len(macro.child_macros), 0)
+
     async def test_duplicate_run(self):
         # it won't restart the macro, because that may screw up the
         # internal state (in particular the _trigger_release_event).
