@@ -13,10 +13,10 @@ as shown in the screenshots below.
   <img src="usage_2.png"/>
 </p>
 
-In the text input field, type the key to which you would like to map this input.
+In the "Output" textbox on the right, type the key to which you would like to map this input.
 More information about the possible mappings can be found in 
 [examples.md](./examples.md) and [below](#key-names). You can also write your macro 
-into the text input field. If you hit enter, it will switch to a multiline-editor with
+into the "Output" textbox. If you hit enter, it will switch to a multiline-editor with
 line-numbers.
 
 Changes are saved automatically. Press the "Apply" button to activate (inject) the 
