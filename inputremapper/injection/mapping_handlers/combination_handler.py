@@ -148,8 +148,8 @@ class CombinationHandler(MappingHandler):
             sub_handler_result = self._sub_handler.notify(event, source, suppress)
 
             if is_pressed:
-                # If the sub-handler return True, it handled the event, so the user never
-                # sees this key-down event. In that case, we don't require a release event.
+                # Only if the sub-handler return False, we need a release-event later.
+                # If it handled the event, the user never sees this key-down event.
                 self.require_release_later(not sub_handler_result, event)
                 return sub_handler_result
             else:

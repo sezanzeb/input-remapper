@@ -45,6 +45,7 @@ from evdev.ecodes import (
     ABS_HAT0Y,
     KEY_B,
     KEY_C,
+    KEY_D,
     BTN_TL,
     KEY_1,
 )
@@ -75,7 +76,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         global_uinputs.is_service = True
         global_uinputs.prepare_all()
-        self.forward_uinput = evdev.UInput()
+        self.forward_uinput = evdev.UInput(name="test-forward-uinput")
         self.stop_event = asyncio.Event()
 
     def tearDown(self) -> None:
@@ -597,6 +598,7 @@ class TestCombination(EventPipelineTestBase):
         preset.add(mapping_2)
 
         event_reader = self.create_event_reader(preset, origin)
+        # Trigger mapping_1, mapping_2 should be suppressed
         await self.send_events(
             [
                 InputEvent.key(KEY_A, 1, origin_hash),
@@ -615,6 +617,96 @@ class TestCombination(EventPipelineTestBase):
             [
                 (EV_KEY, KEY_A, 1),
                 (EV_KEY, KEY_B, 1),
+            ],
+        )
+        self.assertListEqual(
+            keyboard_history,
+            [
+                (EV_KEY, KEY_1, 1),
+            ],
+        )
+
+    async def test_no_stuck_key(self):
+        origin = fixtures.foo_device_2_keyboard
+        origin_hash = origin.get_device_hash()
+
+        input_combination_1 = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_B,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_D,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping_1 = Mapping(
+            input_combination=input_combination_1.to_config(),
+            target_uinput="keyboard",
+            output_symbol="1",
+            release_combination_keys=False,
+        )
+
+        input_combination_2 = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_C,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_D,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping_2 = Mapping(
+            input_combination=input_combination_2.to_config(),
+            target_uinput="keyboard",
+            output_symbol="2",
+            release_combination_keys=False,
+        )
+
+        preset = Preset()
+        preset.add(mapping_1)
+        preset.add(mapping_2)
+
+        event_reader = self.create_event_reader(preset, origin)
+        # Trigger mapping_1, mapping_2 should be suppressed
+        await self.send_events(
+            [
+                InputEvent.key(KEY_A, 1, origin_hash),
+                InputEvent.key(KEY_B, 1, origin_hash),
+                InputEvent.key(KEY_C, 1, origin_hash),
+                InputEvent.key(KEY_D, 1, origin_hash),
+                # Release c -> mapping_2 transitions from suppressed to passive.
+                # The release of c should be forwarded.
+                InputEvent.key(KEY_C, 0, origin_hash),
+            ],
+            event_reader,
+        )
+
+        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
+        self.assertListEqual(
+            forwarded_history,
+            [
+                (EV_KEY, KEY_A, 1),
+                (EV_KEY, KEY_B, 1),
+                (EV_KEY, KEY_C, 1),
+                (EV_KEY, KEY_C, 0),
             ],
         )
         self.assertListEqual(
