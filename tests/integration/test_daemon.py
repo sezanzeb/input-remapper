@@ -41,7 +41,6 @@ def gtk_iteration():
 
 
 @test_setup
-@test_setup
 class TestDBusDaemon(unittest.TestCase):
     def setUp(self):
         self.process = multiprocessing.Process(
