@@ -433,13 +433,13 @@ class TestController(unittest.TestCase):
         )
 
         path = os.path.join(
-            PathUtils.config_path(), "presets", "Qux_Device_", "foo__bar.json"
+            PathUtils.config_path(), "presets", "Qux_[Device]_", "foo__bar.json"
         )
         self.assertTrue(os.path.exists(path))
 
         # using the sanitized name in function calls works as well
         self.assertTrue(
-            os.path.isfile(PathUtils.get_preset_path("Qux_Device_", "foo__bar"))
+            os.path.isfile(PathUtils.get_preset_path("Qux_[Device]_", "foo__bar"))
         )
 
     def test_rename_preset_should_pick_available_name(self):
