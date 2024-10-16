@@ -30,9 +30,9 @@ import os
 import re
 import shutil
 from pathlib import Path
+from packaging import version
 from typing import Iterator, Tuple, Dict, List, Optional, TypedDict
 
-import pkg_resources
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -78,29 +78,29 @@ class Migrations:
 
         v = self.config_version()
 
-        if v < pkg_resources.parse_version("0.4.0"):
+        if v < version.parse("0.4.0"):
             self._config_suffix()
             self._preset_path()
 
-        if v < pkg_resources.parse_version("1.2.2"):
+        if v < version.parse("1.2.2"):
             self._mapping_keys()
 
-        if v < pkg_resources.parse_version("1.4.0"):
+        if v < version.parse("1.4.0"):
             self.global_uinputs.prepare_all()
             self._add_target()
 
-        if v < pkg_resources.parse_version("1.4.1"):
+        if v < version.parse("1.4.1"):
             self._otherwise_to_else()
 
-        if v < pkg_resources.parse_version("1.5.0"):
+        if v < version.parse("1.5.0"):
             self._remove_logs()
 
-        if v < pkg_resources.parse_version("1.6.0-beta"):
+        if v < version.parse("1.6.0-beta"):
             self._convert_to_individual_mappings()
 
         # add new migrations here
 
-        if v < pkg_resources.parse_version(VERSION):
+        if v < version.parse(VERSION):
             self._update_version()
 
     def all_presets(
@@ -132,15 +132,15 @@ class Migrations:
         config_path = os.path.join(PathUtils.config_path(), "config.json")
 
         if not os.path.exists(config_path):
-            return pkg_resources.parse_version("0.0.0")
+            return version.parse("0.0.0")
 
         with open(config_path, "r") as file:
             config = json.load(file)
 
         if "version" in config.keys():
-            return pkg_resources.parse_version(config["version"])
+            return version.parse(config["version"])
 
-        return pkg_resources.parse_version("0.0.0")
+        return version.parse("0.0.0")
 
     def _config_suffix(self):
         """Append the .json suffix to the config file."""
