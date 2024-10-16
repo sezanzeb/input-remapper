@@ -135,7 +135,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.groups, f)
         self.message_broker.signal(MessageType.init)
         self.assertEqual(
-            ["Foo Device", "Foo Device 2", "Bar Device", "gamepad", "Qux/Device?"],
+            ["Foo Device", "Foo Device 2", "Bar Device", "gamepad", "Qux/[Device]?"],
             list(calls[-1].groups.keys()),
         )
 
@@ -408,26 +408,28 @@ class TestController(unittest.TestCase):
         self.assertTrue(os.path.exists(PathUtils.get_preset_path("Foo Device", "foo")))
 
     def test_rename_preset_sanitized(self):
-        Preset(PathUtils.get_preset_path("Qux/Device?", "bla")).save()
+        Preset(PathUtils.get_preset_path("Qux/[Device]?", "bla")).save()
 
-        self.assertTrue(os.path.isfile(PathUtils.get_preset_path("Qux/Device?", "bla")))
+        self.assertTrue(
+            os.path.isfile(PathUtils.get_preset_path("Qux/[Device]?", "bla"))
+        )
         self.assertFalse(
-            os.path.exists(PathUtils.get_preset_path("Qux/Device?", "blubb"))
+            os.path.exists(PathUtils.get_preset_path("Qux/[Device]?", "blubb"))
         )
 
-        self.data_manager.load_group("Qux/Device?")
+        self.data_manager.load_group("Qux/[Device]?")
         self.data_manager.load_preset("bla")
         self.controller.rename_preset(new_name="foo:/bar")
 
         # all functions expect the true name, which is also shown to the user, but on
         # the file system it always uses sanitized names.
         self.assertTrue(
-            os.path.exists(PathUtils.get_preset_path("Qux/Device?", "foo__bar"))
+            os.path.exists(PathUtils.get_preset_path("Qux/[Device]?", "foo__bar"))
         )
 
         # since the name is never stored in an un-sanitized way, this can't work
         self.assertFalse(
-            os.path.exists(PathUtils.get_preset_path("Qux/Device?", "foo:/bar"))
+            os.path.exists(PathUtils.get_preset_path("Qux/[Device]?", "foo:/bar"))
         )
 
         path = os.path.join(

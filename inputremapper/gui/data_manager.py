@@ -250,15 +250,11 @@ class DataManager:
         if not self.active_group:
             raise DataManagementError("Cannot find newest preset: Group is not set")
 
-        paths = [
-            (path, os.path.getmtime(path))
-            for path in glob.glob(
-                os.path.join(
-                    glob.escape(PathUtils.get_preset_path(self.active_group.name)),
-                    "*.json",
-                )
-            )
-        ]
+        pattern = os.path.join(
+            glob.escape(PathUtils.get_preset_path(self.active_group.name)),
+            "*.json",
+        )
+        paths = [(path, os.path.getmtime(path)) for path in glob.glob(pattern)]
         if not paths:
             raise FileNotFoundError()
 

@@ -369,7 +369,7 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_start_stop(self):
-        group_key = "Qux/Device?"
+        group_key = "Qux/[Device]?"
         group = groups.find(key=group_key)
         preset_name = "preset8"
 
@@ -438,7 +438,7 @@ class TestDaemon(unittest.TestCase):
 
     def test_autoload(self):
         preset_name = "preset7"
-        group_key = "Qux/Device?"
+        group_key = "Qux/[Device]?"
         group = groups.find(key=group_key)
 
         daemon = Daemon()

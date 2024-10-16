@@ -135,9 +135,9 @@ class TestGroups(unittest.TestCase):
                     json.dumps(
                         {
                             "paths": ["/dev/input/event52"],
-                            "names": ["Qux/Device?"],
+                            "names": ["Qux/[Device]?"],
                             "types": [DeviceType.KEYBOARD],
-                            "key": "Qux/Device?",
+                            "key": "Qux/[Device]?",
                         }
                     ),
                 ]
@@ -157,7 +157,7 @@ class TestGroups(unittest.TestCase):
                 "Foo Device",
                 "Bar Device",
                 "gamepad",
-                "Qux/Device?",
+                "Qux/[Device]?",
             ],
         )
 
