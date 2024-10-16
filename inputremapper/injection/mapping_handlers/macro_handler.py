@@ -22,7 +22,7 @@ from typing import Dict, Callable
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.mapping_handlers.mapping_handler import (
@@ -45,10 +45,11 @@ class MacroHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         *,
         context: ContextProtocol,
     ):
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
         self._active = False
         assert self.mapping.output_symbol is not None
         self._macro = parse(self.mapping.output_symbol, context, mapping)
@@ -79,7 +80,9 @@ class MacroHandler(MappingHandler):
 
             def handler(type_, code, value) -> None:
                 """Handler for macros."""
-                global_uinputs.write((type_, code, value), self.mapping.target_uinput)
+                self.global_uinputs.write(
+                    (type_, code, value), self.mapping.target_uinput
+                )
 
             asyncio.ensure_future(self.run_macro(handler))
             return True

@@ -31,6 +31,7 @@ from inputremapper.groups import groups, _Groups
 from inputremapper.gui.messages.message_broker import MessageBroker
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
+from inputremapper.injection.global_uinputs import UInput, GlobalUInputs
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 from tests.lib.cleanup import cleanup
@@ -91,9 +92,10 @@ class TestTest(unittest.TestCase):
             # this will cause pending events to be copied over to the reader-service
             # process
             def start_reader_service():
-                # there is no point in using the global groups object
-                # because the reader-service runs in a different process
-                reader_service = ReaderService(_Groups())
+                # Create dependencies from scratch, because the reader-service runs
+                # in a different process
+                global_uinputs = GlobalUInputs(UInput)
+                reader_service = ReaderService(_Groups(), global_uinputs)
                 loop = asyncio.new_event_loop()
                 loop.run_until_complete(reader_service.run())
 

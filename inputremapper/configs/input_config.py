@@ -31,7 +31,7 @@ try:
 except ImportError:
     from pydantic import BaseModel, root_validator, validator
 
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
@@ -142,7 +142,7 @@ class InputConfig(BaseModel):
         # first try to find the name in xmodmap to not display wrong
         # names due to the keyboard layout
         if self.type == ecodes.EV_KEY:
-            key_name = system_mapping.get_name(self.code)
+            key_name = keyboard_layout.get_name(self.code)
 
         if key_name is None:
             # if no result, look in the linux combination constants. On a german

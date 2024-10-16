@@ -25,7 +25,7 @@ from evdev.ecodes import EV_ABS
 from inputremapper import exceptions
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
@@ -49,9 +49,10 @@ class AbsToAbsHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ) -> None:
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + ABS_X + BTN_B, then use the value of ABS_X for the transformation
@@ -133,7 +134,7 @@ class AbsToAbsHandler(MappingHandler):
     def _write(self, value: int):
         """Inject."""
         try:
-            global_uinputs.write(
+            self.global_uinputs.write(
                 (*self._output_axis, value), self.mapping.target_uinput
             )
         except OverflowError:

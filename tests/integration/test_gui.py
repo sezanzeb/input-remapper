@@ -46,13 +46,14 @@ from inputremapper.gui.autocompletion import (
     get_incomplete_parameter,
     get_incomplete_function_name,
 )
+from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput, UInput
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.integration.test_components import FlowBoxTestUtils
 from tests.lib.cleanup import cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import fixtures
 from tests.lib.fixtures import prepare_presets
-from tests.lib.global_uinputs import reset_global_uinputs_for_service
 from tests.lib.logger import logger
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
 from tests.lib.project_root import get_project_root
@@ -64,10 +65,10 @@ gi.require_version("GtkSource", "4")
 gi.require_version("GLib", "2.0")
 from gi.repository import Gtk, GLib, Gdk, GtkSource
 
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
-from inputremapper.configs.global_config import global_config
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
 from inputremapper.gui.messages.message_broker import (
@@ -102,7 +103,14 @@ Gtk.main_quit = lambda: None
 
 def launch(
     argv=None,
-) -> Tuple[UserInterface, Controller, DataManager, MessageBroker, DaemonProxy]:
+) -> Tuple[
+    UserInterface,
+    Controller,
+    DataManager,
+    MessageBroker,
+    DaemonProxy,
+    GlobalConfig,
+]:
     """Start input-remapper-gtk with the command line argument array argv."""
     bin_path = os.path.join(get_project_root(), "bin", "input-remapper-gtk")
 
@@ -127,12 +135,14 @@ def launch(
         module.data_manager,
         module.message_broker,
         module.daemon,
+        module.global_config,
     )
 
 
 def start_reader_service():
     def process():
-        reader_service = ReaderService(_Groups())
+        global_uinputs = GlobalUInputs(FrontendUInput)
+        reader_service = ReaderService(_Groups(), global_uinputs)
         loop = asyncio.new_event_loop()
         loop.run_until_complete(reader_service.run())
 
@@ -154,15 +164,25 @@ def os_system_patch(cmd, original_os_system=os.system):
 def patch_launch():
     """patch the launch function such that we don't connect to
     the dbus and don't use pkexec to start the reader-service"""
+
+    def bootstrap_daemon():
+        # The daemon gets fresh instances of everything, because as far as I remember
+        # it runs in a separate process.
+        global_config = GlobalConfig()
+        global_uinputs = GlobalUInputs(UInput)
+        mapping_parser = MappingParser(global_uinputs)
+
+        return Daemon(
+            global_config,
+            global_uinputs,
+            mapping_parser,
+        )
+
     with patch.object(
         os,
         "system",
         os_system_patch,
-    ), patch.object(
-        Daemon,
-        "connect",
-        Daemon,
-    ):
+    ), patch.object(Daemon, "connect", bootstrap_daemon):
         yield
 
 
@@ -213,12 +233,25 @@ class TestGroupsFromReaderService(unittest.TestCase):
         # time for the application
         self.os_system_patch.start()
 
+    def bootstrap_daemon(self):
+        # The daemon gets fresh instances of everything, because as far as I remember
+        # it runs in a separate process.
+        global_config = GlobalConfig()
+        global_uinputs = GlobalUInputs(UInput)
+        mapping_parser = MappingParser(global_uinputs)
+
+        return Daemon(
+            global_config,
+            global_uinputs,
+            mapping_parser,
+        )
+
     def patch_daemon(self):
         # don't try to connect, return an object instance of it instead
         self.daemon_connect_patch = patch.object(
             Daemon,
             "connect",
-            Daemon,
+            lambda: self.bootstrap_daemon(),
         )
         self.daemon_connect_patch.start()
 
@@ -233,6 +266,7 @@ class TestGroupsFromReaderService(unittest.TestCase):
             self.data_manager,
             self.message_broker,
             self.daemon,
+            self.global_config,
         ) = launch()
 
     def tearDown(self):
@@ -306,6 +340,7 @@ class GuiTestBase(unittest.TestCase):
                 self.data_manager,
                 self.message_broker,
                 self.daemon,
+                self.global_config,
             ) = launch()
 
         get = self.user_interface.get
@@ -340,7 +375,7 @@ class GuiTestBase(unittest.TestCase):
 
         evdev.InputDevice.grab = grab
 
-        global_config._save_config()
+        self.global_config._save_config()
 
         self.throttle(20)
 
@@ -1781,11 +1816,6 @@ class TestGui(GuiTestBase):
         self.assertIn("Stop", text)
 
     def test_start_injecting(self):
-        # It's 2023 everyone! That means this test randomly stopped working because it
-        # used FrontendUInputs instead of regular UInputs. I guess a fucking ghost
-        # was fixing this for us during 2022, but it seems to have disappeared.
-        reset_global_uinputs_for_service()
-
         self.controller.load_group("Foo Device 2")
 
         with spy(self.daemon, "set_config_dir") as spy1:
@@ -1840,8 +1870,6 @@ class TestGui(GuiTestBase):
             self.assertNotIn("input-remapper", device_group_entry.name)
 
     def test_stop_injecting(self):
-        reset_global_uinputs_for_service()
-
         self.controller.load_group("Foo Device 2")
         self.start_injector_btn.clicked()
         gtk_iteration()
@@ -2128,9 +2156,9 @@ class TestAutocompletion(GuiTestBase):
 
         complete_key_name = "Test_Foo_Bar"
 
-        system_mapping.clear()
-        system_mapping._set(complete_key_name, 1)
-        system_mapping._set("KEY_A", 30)  # we need this for the UIMapping to work
+        keyboard_layout.clear()
+        keyboard_layout._set(complete_key_name, 1)
+        keyboard_layout._set("KEY_A", 30)  # we need this for the UIMapping to work
 
         # it can autocomplete a combination inbetween other things
         incomplete = "qux_1\n +  + qux_2"

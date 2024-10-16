@@ -74,20 +74,25 @@ if __name__ == "__main__":
     #  log-level is set.
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
-    from inputremapper.configs.system_mapping import system_mapping
+    from inputremapper.configs.keyboard_layout import keyboard_layout
     from inputremapper.gui.data_manager import DataManager
     from inputremapper.gui.user_interface import UserInterface
     from inputremapper.gui.controller import Controller
-    from inputremapper.injection.global_uinputs import GlobalUInputs
+    from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
     from inputremapper.groups import _Groups
     from inputremapper.gui.reader_client import ReaderClient
     from inputremapper.daemon import Daemon
     from inputremapper.configs.global_config import GlobalConfig
     from inputremapper.configs.migrations import Migrations
 
-    Migrations.migrate()
+    global_uinputs = GlobalUInputs(FrontendUInput)
+    migrations = Migrations(global_uinputs)
+
+    Migrations(global_uinputs).migrate()
 
     message_broker = MessageBroker()
+
+    global_config = GlobalConfig()
 
     # create the reader before we start the reader-service (start_processes) otherwise
     # it can come to race conditions with the creation of pipes
@@ -96,11 +101,11 @@ if __name__ == "__main__":
 
     data_manager = DataManager(
         message_broker,
-        GlobalConfig(),
+        global_config,
         reader_client,
         daemon,
-        GlobalUInputs(),
-        system_mapping,
+        global_uinputs,
+        keyboard_layout,
     )
     controller = Controller(message_broker, data_manager)
     user_interface = UserInterface(message_broker, controller)

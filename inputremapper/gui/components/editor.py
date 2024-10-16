@@ -57,7 +57,7 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
-from inputremapper.configs.system_mapping import system_mapping, XKB_KEYCODE_OFFSET
+from inputremapper.configs.keyboard_layout import keyboard_layout, XKB_KEYCODE_OFFSET
 from inputremapper.utils import get_evdev_constant_name
 
 Capabilities = Dict[int, List]
@@ -384,9 +384,9 @@ class GdkEventRecorder:
 
         if is_press and len(self._combination) > 0:
             names = [
-                system_mapping.get_name(code)
+                keyboard_layout.get_name(code)
                 for code in self._combination
-                if code is not None and system_mapping.get_name(code) is not None
+                if code is not None and keyboard_layout.get_name(code) is not None
             ]
             self._gui.set_text(" + ".join(names))
 

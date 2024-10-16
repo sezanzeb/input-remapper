@@ -38,6 +38,7 @@ from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.migrations import Migrations
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.logging.logger import VERSION
 from inputremapper.user import UserUtils
 from tests.lib.test_setup import test_setup
@@ -60,6 +61,10 @@ class TestMigrations(unittest.TestCase):
             UserUtils.home, ".config", "input-remapper", "beta_1.6.0-beta"
         )
 
+        global_uinputs = GlobalUInputs(UInput)
+        global_uinputs.prepare_all()
+        self.migrations = Migrations(global_uinputs)
+
     def test_migrate_suffix(self):
         old = os.path.join(PathUtils.config_path(), "config")
         new = os.path.join(PathUtils.config_path(), "config.json")
@@ -73,7 +78,7 @@ class TestMigrations(unittest.TestCase):
         with open(old, "w") as f:
             f.write("{}")
 
-        Migrations.migrate()
+        self.migrations.migrate()
         self.assertTrue(os.path.exists(new))
         self.assertFalse(os.path.exists(old))
 
@@ -94,7 +99,7 @@ class TestMigrations(unittest.TestCase):
         with open(old_config_json, "w") as f:
             f.write('{"foo":"bar"}')
 
-        Migrations.migrate()
+        self.migrations.migrate()
 
         self.assertTrue(os.path.exists(new))
         self.assertFalse(os.path.exists(old))
@@ -116,7 +121,7 @@ class TestMigrations(unittest.TestCase):
         with open(old, "w") as f:
             f.write("{}")
 
-        Migrations.migrate()
+        self.migrations.migrate()
         self.assertTrue(os.path.exists(new))
         self.assertTrue(os.path.exists(old))
 
@@ -135,7 +140,7 @@ class TestMigrations(unittest.TestCase):
         with open(p2, "w") as f:
             f.write("{}")
 
-        Migrations.migrate()
+        self.migrations.migrate()
 
         self.assertFalse(
             os.path.exists(os.path.join(PathUtils.config_path(), "foo1", "bar1.json"))
@@ -173,7 +178,7 @@ class TestMigrations(unittest.TestCase):
         # already migrated
         PathUtils.mkdir(os.path.join(PathUtils.config_path(), "presets"))
 
-        Migrations.migrate()
+        self.migrations.migrate()
 
         self.assertTrue(
             os.path.exists(os.path.join(PathUtils.config_path(), "foo1", "bar1.json"))
@@ -225,7 +230,7 @@ class TestMigrations(unittest.TestCase):
                 },
                 file,
             )
-        Migrations.migrate()
+        self.migrations.migrate()
         # use UIMapping to also load invalid mappings
         preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
         preset.load()
@@ -332,7 +337,7 @@ class TestMigrations(unittest.TestCase):
                 file,
             )
 
-        Migrations.migrate()
+        self.migrations.migrate()
 
         preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
         preset.load()
@@ -384,8 +389,11 @@ class TestMigrations(unittest.TestCase):
         with open(path, "w") as file:
             file.write("{}")
 
-        Migrations.migrate()
-        self.assertEqual(version.parse(VERSION), Migrations.config_version())
+        self.migrations.migrate()
+        self.assertEqual(
+            version.parse(VERSION),
+            self.migrations.config_version(),
+        )
 
     def test_update_version(self):
         path = os.path.join(PathUtils.config_path(), "config.json")
@@ -393,22 +401,25 @@ class TestMigrations(unittest.TestCase):
         with open(path, "w") as file:
             json.dump({"version": "0.1.0"}, file)
 
-        Migrations.migrate()
-        self.assertEqual(version.parse(VERSION), Migrations.config_version())
+        self.migrations.migrate()
+        self.assertEqual(
+            version.parse(VERSION),
+            self.migrations.config_version(),
+        )
 
     def test_config_version(self):
         path = os.path.join(PathUtils.config_path(), "config.json")
         with open(path, "w") as file:
             file.write("{}")
 
-        self.assertEqual("0.0.0", Migrations.config_version().public)
+        self.assertEqual("0.0.0", self.migrations.config_version().public)
 
         try:
             os.remove(path)
         except FileNotFoundError:
             pass
 
-        self.assertEqual("0.0.0", Migrations.config_version().public)
+        self.assertEqual("0.0.0", self.migrations.config_version().public)
 
     def test_migrate_left_and_right_purpose(self):
         path = os.path.join(
@@ -430,7 +441,7 @@ class TestMigrations(unittest.TestCase):
                 },
                 file,
             )
-        Migrations.migrate()
+        self.migrations.migrate()
 
         preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
         preset.load()
@@ -516,7 +527,7 @@ class TestMigrations(unittest.TestCase):
                 },
                 file,
             )
-        Migrations.migrate()
+        self.migrations.migrate()
 
         preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
         preset.load()
@@ -632,7 +643,7 @@ class TestMigrations(unittest.TestCase):
         self.assertFalse(os.path.exists(PathUtils.get_preset_path(device_name, "foo")))
         self.assertFalse(os.path.exists(PathUtils.get_config_path("config.json")))
 
-        Migrations.migrate()
+        self.migrations.migrate()
 
         self.assertTrue(os.path.exists(PathUtils.get_preset_path(device_name, "foo")))
         self.assertTrue(os.path.exists(PathUtils.get_config_path("config.json")))
@@ -678,7 +689,7 @@ class TestMigrations(unittest.TestCase):
         self.assertFalse(os.path.exists(PathUtils.get_preset_path(device_name, "bar")))
         self.assertFalse(os.path.exists(PathUtils.get_config_path("config.json")))
 
-        Migrations.migrate()
+        self.migrations.migrate()
 
         self.assertTrue(os.path.exists(PathUtils.get_preset_path(device_name, "bar")))
         self.assertTrue(os.path.exists(PathUtils.get_config_path("config.json")))

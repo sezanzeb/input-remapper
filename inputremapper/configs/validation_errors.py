@@ -31,7 +31,7 @@ from typing import Optional
 
 from evdev.ecodes import EV_KEY
 
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.global_uinputs import GlobalUInputs
 
 
@@ -62,7 +62,7 @@ class OnlyOneAnalogInputError(ValueError):
 
 class SymbolNotAvailableInTargetError(ValueError):
     def __init__(self, symbol, target):
-        code = system_mapping.get(symbol)
+        code = keyboard_layout.get(symbol)
 
         fitting_targets = GlobalUInputs.find_fitting_default_uinputs(EV_KEY, code)
         fitting_targets_string = '", "'.join(fitting_targets)
@@ -92,8 +92,8 @@ class SymbolAndCodeMismatchError(ValueError):
     def __init__(self, symbol, code):
         super().__init__(
             "output_symbol and output_code mismatch: "
-            f"output macro is {symbol} -> {system_mapping.get(symbol)} "
-            f"but output_code is {code} -> {system_mapping.get_name(code)} "
+            f"output macro is {symbol} -> {keyboard_layout.get(symbol)} "
+            f"but output_code is {code} -> {keyboard_layout.get_name(code)} "
         )
 
 

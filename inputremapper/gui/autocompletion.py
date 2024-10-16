@@ -28,7 +28,7 @@ from evdev.ecodes import EV_KEY
 from gi.repository import Gdk, Gtk, GLib, GObject
 
 from inputremapper.configs.mapping import MappingData
-from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
+from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
 from inputremapper.gui.components.editor import CodeEditor
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
@@ -111,7 +111,7 @@ def propose_symbols(text_iter: Gtk.TextIter, codes: List[int]) -> List[Tuple[str
 
     incomplete_name = incomplete_name.lower()
 
-    names = list(system_mapping.list_names(codes=codes)) + [DISABLE_NAME]
+    names = list(keyboard_layout.list_names(codes=codes)) + [DISABLE_NAME]
 
     return [
         (name, name)
