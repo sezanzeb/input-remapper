@@ -181,9 +181,8 @@ class TestGroups(unittest.TestCase):
         self.assertIsNotNone(groups.find(name="gamepad"))
 
     def test_device_with_only_ev_abs(self):
-        # could be anything, a lot of devices have ABS_X capabilities,
-        # so it is not treated as gamepad joystick and since it also
-        # doesn't have key capabilities, there is nothing to map.
+        # As Input Mapper can now map axes to buttons,
+        # a single EV_ABS device is valid for mapping.
         fixtures["/foo/bar"] = {
             "name": "qux",
             "phys": "abcd2",
@@ -193,12 +192,19 @@ class TestGroups(unittest.TestCase):
 
         groups.refresh()
         self.assertIsNotNone(groups.find(name="gamepad"))
-        self.assertIsNone(groups.find(name="qux"))
-
-        # verify this test even works at all
-        fixtures["/foo/bar"].capabilities[EV_KEY] = [KEY_A]
-        groups.refresh()
         self.assertIsNotNone(groups.find(name="qux"))
+
+    def test_device_with_no_capabilities(self):
+        fixtures["/foo/bar"] = {
+            "name": "nulcap",
+            "phys": "abcd3",
+            "info": evdev.DeviceInfo(1, 2, 3, 4),
+            "capabilities": {},
+        }
+
+        groups.refresh()
+        self.assertIsNotNone(groups.find(name="gamepad"))
+        self.assertIsNone(groups.find(name="nulcap"))
 
     def test_duplicate_device(self):
         fixtures["/dev/input/event100"] = {
