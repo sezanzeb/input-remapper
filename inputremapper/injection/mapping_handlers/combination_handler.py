@@ -125,8 +125,6 @@ class CombinationHandler(MappingHandler):
                 return not self.should_release_event(event)
 
         if is_activated:
-            # Send key up events to the forwarded uinput if configured to do so.
-            self.forward_release()
             event = event.modify(value=1)
         else:
             # If not activated. All required keys are not yet pressed.
@@ -140,22 +138,26 @@ class CombinationHandler(MappingHandler):
                 suppress = False
             event = event.modify(value=0)
 
-        if suppress:
-            return False
+        if not suppress:
+            if is_activated:
+                # Send key up events to the forwarded uinput if configured to do so.
+                self.forward_release()
 
-        logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
-        self._output_active = bool(event.value)
-        sub_handler_result = self._sub_handler.notify(event, source, suppress)
+            logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
+            self._output_active = bool(event.value)
+            sub_handler_result = self._sub_handler.notify(event, source, suppress)
 
-        if is_pressed:
-            # If the sub-handler return True, it handled the event, so the user never
-            # sees this key-down event. In that case, we don't require a release event.
-            self.require_release_later(not sub_handler_result, event)
-            return sub_handler_result
-        else:
-            # Else if it is released: Returning `False` means that the event-reader
-            # will forward the release.
-            return not self.should_release_event(event)
+            if is_pressed:
+                # If the sub-handler return True, it handled the event, so the user never
+                # sees this key-down event. In that case, we don't require a release event.
+                self.require_release_later(not sub_handler_result, event)
+                return sub_handler_result
+            else:
+                # Else if it is released: Returning `False` means that the event-reader
+                # will forward the release.
+                return not self.should_release_event(event)
+
+        return False
 
     def should_release_event(self, event: InputEvent) -> bool:
         """Check if the key-up event should be forwarded by the event-reader.

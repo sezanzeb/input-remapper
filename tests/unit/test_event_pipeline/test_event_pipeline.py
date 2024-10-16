@@ -46,6 +46,7 @@ from evdev.ecodes import (
     KEY_B,
     KEY_C,
     BTN_TL,
+    KEY_1,
 )
 
 from inputremapper.configs.mapping import (
@@ -537,6 +538,91 @@ class TestCombination(EventPipelineTestBase):
         await self.send_events([InputEvent.key(in_2, 0, origin_hash)], event_reader)
         self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1), (EV_KEY, in_1, 0)])
         self.assertListEqual(keyboard_history, [(EV_KEY, out, 1), (EV_KEY, out, 0)])
+
+    async def test_suppressed_doesnt_forward_releases(self):
+        origin = fixtures.foo_device_2_keyboard
+        origin_hash = origin.get_device_hash()
+
+        input_combination_1 = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_B,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_C,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping_1 = Mapping(
+            input_combination=input_combination_1.to_config(),
+            target_uinput="keyboard",
+            output_symbol="1",
+            release_combination_keys=False,
+        )
+
+        input_combination_2 = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_C,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping_2 = Mapping(
+            input_combination=input_combination_2.to_config(),
+            target_uinput="keyboard",
+            output_symbol="2",
+            release_combination_keys=True,
+        )
+
+        preset = Preset()
+        preset.add(mapping_1)
+        preset.add(mapping_2)
+
+        event_reader = self.create_event_reader(preset, origin)
+        await self.send_events(
+            [
+                InputEvent.key(KEY_A, 1, origin_hash),
+                InputEvent.key(KEY_B, 1, origin_hash),
+                InputEvent.key(KEY_C, 1, origin_hash),
+            ],
+            event_reader,
+        )
+
+        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
+        # There used to be an incorrect KEY_A release, caused by
+        # `release_combination_keys` on the suppressed mapping.
+        self.assertListEqual(
+            forwarded_history,
+            [
+                (EV_KEY, KEY_A, 1),
+                (EV_KEY, KEY_B, 1),
+            ],
+        )
+        self.assertListEqual(
+            keyboard_history,
+            [
+                (EV_KEY, KEY_1, 1),
+            ],
+        )
 
     async def test_ignore_hold(self):
         # hold as in event-value 2, not in macro-hold.
