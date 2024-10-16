@@ -231,7 +231,11 @@ class DataManager:
     def get_newest_group_key(self) -> GroupKey:
         """group_key of the group with the most recently modified preset."""
         paths = []
-        for path in glob.glob(os.path.join(glob.escape(PathUtils.get_preset_path()), "*/*.json",)):
+        pattern = os.path.join(
+            glob.escape(PathUtils.get_preset_path()),
+            "*/*.json",
+        )
+        for path in glob.glob(pattern):
             if self._reader_client.groups.find(key=PathUtils.split_all(path)[-2]):
                 paths.append((path, os.path.getmtime(path)))
 
@@ -249,7 +253,10 @@ class DataManager:
         paths = [
             (path, os.path.getmtime(path))
             for path in glob.glob(
-                os.path.join(glob.escape(PathUtils.get_preset_path(self.active_group.name)), "*.json",)
+                os.path.join(
+                    glob.escape(PathUtils.get_preset_path(self.active_group.name)),
+                    "*.json",
+                )
             )
         ]
         if not paths:
