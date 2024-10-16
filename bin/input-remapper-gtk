@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,14 +22,15 @@
 
 from __future__ import annotations
 
-import sys
 import atexit
+import sys
 from argparse import ArgumentParser
 
 import gi
-gi.require_version('Gtk', '3.0')
-gi.require_version('GLib', '2.0')
-gi.require_version('GtkSource', '4')
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("GLib", "2.0")
+gi.require_version("GtkSource", "4")
 from gi.repository import Gtk
 
 # https://github.com/Nuitka/Nuitka/issues/607#issuecomment-650217096
@@ -38,7 +39,7 @@ Gtk.init()
 from inputremapper.gui.gettext import _, LOCALE_DIR
 from inputremapper.gui.reader_service import ReaderService
 from inputremapper.daemon import DaemonProxy
-from inputremapper.logger import logger, update_verbosity, log_info
+from inputremapper.logging.logger import logger
 
 
 def start_processes() -> DaemonProxy:
@@ -53,19 +54,24 @@ def start_processes() -> DaemonProxy:
     return Daemon.connect()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        '-d', '--debug', action='store_true', dest='debug',
-        help=_('Displays additional debug information'),
-        default=False
+        "-d",
+        "--debug",
+        action="store_true",
+        dest="debug",
+        help=_("Displays additional debug information"),
+        default=False,
     )
 
     options = parser.parse_args(sys.argv[1:])
-    update_verbosity(options.debug)
-    log_info('input-remapper-gtk')
-    logger.debug('Using locale directory: {}'.format(LOCALE_DIR))
+    logger.update_verbosity(options.debug)
+    logger.log_info("input-remapper-gtk")
+    logger.debug("Using locale directory: {}".format(LOCALE_DIR))
 
+    # TODO no. Importing files shouldn't run any code, so it shouldn't matter when the
+    #  log-level is set.
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
     from inputremapper.configs.system_mapping import system_mapping
@@ -77,9 +83,9 @@ if __name__ == '__main__':
     from inputremapper.gui.reader_client import ReaderClient
     from inputremapper.daemon import Daemon
     from inputremapper.configs.global_config import GlobalConfig
-    from inputremapper.configs.migrations import migrate
+    from inputremapper.configs.migrations import Migrations
 
-    migrate()
+    Migrations.migrate()
 
     message_broker = MessageBroker()
 
@@ -89,7 +95,12 @@ if __name__ == '__main__':
     daemon = start_processes()
 
     data_manager = DataManager(
-        message_broker, GlobalConfig(), reader_client, daemon, GlobalUInputs(), system_mapping
+        message_broker,
+        GlobalConfig(),
+        reader_client,
+        daemon,
+        GlobalUInputs(),
+        system_mapping,
     )
     controller = Controller(message_broker, data_manager)
     user_interface = UserInterface(message_broker, controller)

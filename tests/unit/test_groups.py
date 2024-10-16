@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,18 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import fixtures, keyboard_keys
-
+import json
 import os
 import unittest
-import json
 
 import evdev
 from evdev.ecodes import EV_KEY, KEY_A
 
-from inputremapper.configs.paths import CONFIG_PATH
+from inputremapper.configs.paths import PathUtils
 from inputremapper.groups import (
     _FindGroups,
     groups,
@@ -37,6 +33,8 @@ from inputremapper.groups import (
     DeviceType,
     _Group,
 )
+from tests.lib.fixtures import fixtures, keyboard_keys
+from tests.lib.test_setup import test_setup
 
 
 class FakePipe:
@@ -46,10 +44,8 @@ class FakePipe:
         self.groups = groups
 
 
+@test_setup
 class TestGroups(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
     def test_group(self):
         group = _Group(
             paths=["/dev/a", "/dev/b", "/dev/c"],
@@ -61,7 +57,12 @@ class TestGroups(unittest.TestCase):
         self.assertEqual(group.key, "key")
         self.assertEqual(
             group.get_preset_path("preset1234"),
-            os.path.join(CONFIG_PATH, "presets", group.name, "preset1234.json"),
+            os.path.join(
+                PathUtils.config_path(),
+                "presets",
+                group.name,
+                "preset1234.json",
+            ),
         )
 
     def test_find_groups(self):
@@ -180,9 +181,8 @@ class TestGroups(unittest.TestCase):
         self.assertIsNotNone(groups.find(name="gamepad"))
 
     def test_device_with_only_ev_abs(self):
-        # could be anything, a lot of devices have ABS_X capabilities,
-        # so it is not treated as gamepad joystick and since it also
-        # doesn't have key capabilities, there is nothing to map.
+        # As Input Mapper can now map axes to buttons,
+        # a single EV_ABS device is valid for mapping.
         fixtures["/foo/bar"] = {
             "name": "qux",
             "phys": "abcd2",
@@ -192,12 +192,19 @@ class TestGroups(unittest.TestCase):
 
         groups.refresh()
         self.assertIsNotNone(groups.find(name="gamepad"))
-        self.assertIsNone(groups.find(name="qux"))
-
-        # verify this test even works at all
-        fixtures["/foo/bar"].capabilities[EV_KEY] = [KEY_A]
-        groups.refresh()
         self.assertIsNotNone(groups.find(name="qux"))
+
+    def test_device_with_no_capabilities(self):
+        fixtures["/foo/bar"] = {
+            "name": "nulcap",
+            "phys": "abcd3",
+            "info": evdev.DeviceInfo(1, 2, 3, 4),
+            "capabilities": {},
+        }
+
+        groups.refresh()
+        self.assertIsNotNone(groups.find(name="gamepad"))
+        self.assertIsNone(groups.find(name="nulcap"))
 
     def test_duplicate_device(self):
         fixtures["/dev/input/event100"] = {

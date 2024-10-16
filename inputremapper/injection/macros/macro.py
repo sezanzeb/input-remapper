@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -59,9 +59,9 @@ from inputremapper.configs.validation_errors import (
     SymbolNotAvailableInTargetError,
     MacroParsingError,
 )
-from inputremapper.injection.global_uinputs import can_default_uinput_emit
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.ipc.shared_dict import SharedDict
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 Handler = Callable[[Tuple[int, int, int]], None]
 MacroTask = Callable[[Handler], Awaitable]
@@ -735,7 +735,9 @@ class Macro:
 
         if self.mapping is not None:
             target = self.mapping.target_uinput
-            if target is not None and not can_default_uinput_emit(target, EV_KEY, code):
+            if target is not None and not GlobalUInputs.can_default_uinput_emit(
+                target, EV_KEY, code
+            ):
                 raise SymbolNotAvailableInTargetError(symbol, target)
 
         return code

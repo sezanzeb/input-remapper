@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,7 +22,7 @@ from __future__ import annotations
 import copy
 from typing import Union, List, Optional, Callable, Any
 
-from inputremapper.logger import logger, VERSION
+from inputremapper.logging.logger import logger, VERSION
 
 NONE = "none"
 
