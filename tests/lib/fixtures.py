@@ -22,12 +22,16 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import time
 from hashlib import md5
 from typing import Dict, Optional
-import time
 
 import evdev
 
+from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.preset import Preset
 from tests.lib.logger import logger
 
 # input-remapper is only interested in devices that have EV_KEY, add some
@@ -347,12 +351,6 @@ def prepare_presets():
     """prepare a few presets for use in tests
     "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
     """
-    from inputremapper.configs.preset import Preset
-    from inputremapper.configs.mapping import Mapping
-    from inputremapper.configs.paths import PathUtils
-    from inputremapper.configs.global_config import global_config
-    from inputremapper.configs.input_config import InputCombination
-
     preset1 = Preset(PathUtils.get_preset_path("Foo Device", "preset1"))
     preset1.add(
         Mapping.from_combination(
@@ -378,7 +376,5 @@ def prepare_presets():
 
     with open(PathUtils.get_config_path("config.json"), "w") as file:
         json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
-
-    global_config.load_config()
 
     return preset1, preset2, preset3

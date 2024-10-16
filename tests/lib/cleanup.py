@@ -20,30 +20,34 @@
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import os
 import shutil
 import time
-import asyncio
-import psutil
 from pickle import UnpicklingError
 
-# TODO on it. You don't need a framework for this by the way:
-# don't import anything from input_remapper gloablly here, because some files execute
-# code when imported, which can screw up patches. I wish we had a dependency injection
-# framework that patches together the dependencies during runtime...
+import psutil
 
+from tests.lib.constants import EVENT_READ_TIMEOUT
+from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
+from tests.lib.patches import uinputs
 from tests.lib.pipes import (
     uinput_write_history_pipe,
     uinput_write_history,
     pending_events,
     setup_pipe,
 )
-from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.tmp import tmp
-from tests.lib.fixtures import fixtures
-from tests.lib.patches import uinputs
+
+# TODO on it. You don't need a framework for this by the way:
+# don't import anything from input_remapper gloablly here, because some files execute
+# code when imported, which can screw up patches. I wish we had a dependency injection
+# framework that patches together the dependencies during runtime...
+
+
+environ_copy = copy.deepcopy(os.environ)
 
 
 environ_copy = copy.deepcopy(os.environ)
@@ -81,12 +85,9 @@ def quick_cleanup(log=True):
     # Reminder: before patches are applied in test.py, no inputremapper module
     # may be imported. So tests.lib imports them just-in-time in functions instead.
     from inputremapper.injection.macros.macro import macro_variables
-    from inputremapper.configs.global_config import global_config
-    from inputremapper.configs.system_mapping import system_mapping
+    from inputremapper.configs.keyboard_layout import keyboard_layout
     from inputremapper.gui.utils import debounce_manager
-    from inputremapper.configs.paths import PathUtils
-    from inputremapper.injection.global_uinputs import global_uinputs
-    from tests.lib.global_uinputs import reset_global_uinputs_for_service
+    from inputremapper.injection.global_uinputs import GlobalUInputs
 
     if log:
         logger.info("Quick cleanup...")
@@ -130,11 +131,7 @@ def quick_cleanup(log=True):
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
 
-    global_config.path = os.path.join(PathUtils.get_config_path(), "config.json")
-    global_config.clear_config()
-    global_config._save_config()
-
-    system_mapping.populate()
+    keyboard_layout.populate()
 
     clear_write_history()
 
@@ -155,11 +152,6 @@ def quick_cleanup(log=True):
         assert not pipe.poll()
 
     assert macro_variables.is_alive(1)
-    for uinput in global_uinputs.devices.values():
-        uinput.write_count = 0
-        uinput.write_history = []
-
-    reset_global_uinputs_for_service()
 
     if log:
         logger.info("Quick cleanup done")

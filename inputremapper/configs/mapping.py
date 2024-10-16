@@ -62,7 +62,7 @@ except ImportError:
     )
 
 from inputremapper.configs.input_config import InputCombination
-from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
+from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
 from inputremapper.configs.validation_errors import (
     OutputSymbolUnknownError,
     SymbolNotAvailableInTargetError,
@@ -286,13 +286,13 @@ class UIMapping(BaseModel):
 
     def get_output_type_code(self) -> Optional[Tuple[int, int]]:
         """Returns the output_type and output_code if set,
-        otherwise looks the output_symbol up in the system_mapping
+        otherwise looks the output_symbol up in the keyboard_layout
         return None for unknown symbols and macros
         """
         if self.output_code and self.output_type:
             return self.output_type, self.output_code
         if self.output_symbol and not is_this_a_macro(self.output_symbol):
-            return EV_KEY, system_mapping.get(self.output_symbol)
+            return EV_KEY, keyboard_layout.get(self.output_symbol)
         return None
 
     def get_output_name_constant(self) -> str:
@@ -385,7 +385,7 @@ class Mapping(UIMapping):
             parse(symbol, mapping=mapping_mock, verbose=False)
             return values
 
-        code = system_mapping.get(symbol)
+        code = keyboard_layout.get(symbol)
         if code is None:
             raise OutputSymbolUnknownError(symbol)
 
@@ -450,7 +450,7 @@ class Mapping(UIMapping):
             if type_ is not None or code is not None:
                 raise MacroButTypeOrCodeSetError()
 
-        if code is not None and code != system_mapping.get(symbol) or type_ != EV_KEY:
+        if code is not None and code != keyboard_layout.get(symbol) or type_ != EV_KEY:
             raise SymbolAndCodeMismatchError(symbol, code)
         return values
 

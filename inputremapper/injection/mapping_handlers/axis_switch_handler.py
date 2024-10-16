@@ -24,6 +24,7 @@ import evdev
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.input_config import InputConfig
 from inputremapper.configs.mapping import Mapping
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,
@@ -59,9 +60,10 @@ class AxisSwitchHandler(MappingHandler):
         combination: InputCombination,
         mapping: Mapping,
         context: ContextProtocol,
+        global_uinputs: GlobalUInputs,
         **_,
     ):
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
         trigger_keys = tuple(
             event.input_match_hash
             for event in combination

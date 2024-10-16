@@ -37,7 +37,7 @@ from inputremapper.configs.mapping import (
     WHEEL_SCALING,
     WHEEL_HI_RES_SCALING,
 )
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
@@ -91,9 +91,10 @@ class RelToRelHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ) -> None:
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
 
         assert self.mapping.output_code is not None
 
@@ -256,7 +257,7 @@ class RelToRelHandler(MappingHandler):
         if value == 0:
             return
 
-        global_uinputs.write(
+        self.global_uinputs.write(
             (EV_REL, code, value),
             self.mapping.target_uinput,
         )
