@@ -345,7 +345,7 @@ class Daemon:
             return
 
         self.config_dir = config_dir
-        self.global_config.load_config(config_path)
+        self.global_config.load_config(str(config_path))
 
     def _autoload(self, group_key: str):
         """Check if autoloading is a good idea, and if so do it.

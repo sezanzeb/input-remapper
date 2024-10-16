@@ -111,6 +111,7 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
             groups = self.groups
 
         global_uinputs = GlobalUInputs(UInput)
+        assert groups is not None
         self.reader_service = ReaderService(groups, global_uinputs)
         asyncio.ensure_future(self.reader_service.run())
 
