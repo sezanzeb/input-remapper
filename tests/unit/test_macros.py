@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -28,7 +28,6 @@ from unittest import mock
 
 from evdev.ecodes import (
     EV_REL,
-    EV_ABS,
     EV_KEY,
     ABS_Y,
     REL_Y,
@@ -70,7 +69,7 @@ from inputremapper.injection.macros.parse import (
 )
 from inputremapper.input_event import InputEvent
 from tests.lib.logger import logger
-from tests.lib.cleanup import quick_cleanup
+from tests.lib.test_setup import test_setup
 
 
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):
@@ -89,7 +88,6 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
 
     def tearDown(self):
         self.result = []
-        quick_cleanup()
 
     def handler(self, type_: int, code: int, value: int):
         """Where macros should write codes to."""
@@ -123,6 +121,7 @@ class DummyMapping:
     target_uinput = "keyboard + mouse"
 
 
+@test_setup
 class TestMacros(MacroTestBase):
     async def test_named_parameter(self):
         result = []
@@ -1152,6 +1151,7 @@ class TestMacros(MacroTestBase):
         )
 
 
+@test_setup
 class TestIfEq(MacroTestBase):
     async def test_ifeq_runs(self):
         # deprecated ifeq function, but kept for compatibility reasons
@@ -1304,6 +1304,7 @@ class TestIfEq(MacroTestBase):
         )
 
 
+@test_setup
 class TestIfSingle(MacroTestBase):
     async def test_if_single(self):
         macro = parse("if_single(key(x), key(y))", self.context, DummyMapping)
@@ -1451,6 +1452,7 @@ class TestIfSingle(MacroTestBase):
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
 
 
+@test_setup
 class TestIfTap(MacroTestBase):
     async def test_if_tap(self):
         macro = parse("if_tap(key(x), key(y), 100)", self.context, DummyMapping)

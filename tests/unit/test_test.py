@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,37 +17,35 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
-
-from tests.lib.cleanup import cleanup, quick_cleanup
-from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
-from tests.lib.logger import logger
-from tests.lib.fixtures import fixtures
-from tests.lib.pipes import push_events
-from tests.lib.patches import InputDevice
-
-import os
-import unittest
-import time
 import multiprocessing
+import os
+import time
+import unittest
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_KEY
 
 from inputremapper.groups import groups, _Groups
+from inputremapper.gui.messages.message_broker import MessageBroker
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
-from inputremapper.gui.messages.message_broker import MessageBroker
+from tests.lib.cleanup import cleanup
+from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
+from tests.lib.fixtures import fixtures
+from tests.lib.logger import logger
+from tests.lib.patches import InputDevice
+from tests.lib.pipes import push_events
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestTest(unittest.TestCase):
     def test_stubs(self):
         self.assertIsNotNone(groups.find(key="Foo Device 2"))
-
-    def tearDown(self):
-        quick_cleanup()
 
     def test_fake_capabilities(self):
         device = InputDevice("/dev/input/event30")

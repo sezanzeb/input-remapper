@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
@@ -16,3 +17,20 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
+from __future__ import annotations
+
+from tests.lib.fixtures import fixtures
+from tests.lib.pipes import setup_pipe, close_pipe
+
+
+def create_fixture_pipes():
+    # make sure those pipes exist before any process (the reader-service) gets forked,
+    # so that events can be pushed after the fork.
+    for _fixture in fixtures:
+        setup_pipe(_fixture)
+
+
+def remove_fixture_pipes():
+    for _fixture in fixtures:
+        close_pipe(_fixture)

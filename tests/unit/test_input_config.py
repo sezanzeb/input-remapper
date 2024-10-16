@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -44,8 +44,10 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestInputConfig(unittest.TestCase):
     def test_input_config(self):
         test_cases = [
@@ -320,6 +322,7 @@ class TestInputConfig(unittest.TestCase):
             input_config.origin_hash = "foo"
 
 
+@test_setup
 class TestInputCombination(unittest.TestCase):
     def test_eq(self):
         a = InputCombination(

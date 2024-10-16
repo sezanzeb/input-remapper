@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import time
 import unittest
@@ -25,11 +26,14 @@ from typing import List
 from unittest.mock import MagicMock, call
 
 from inputremapper.configs.global_config import global_config
-from inputremapper.configs.mapping import UIMapping, MappingData
-from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import UIMapping, MappingData
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
+from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
@@ -40,13 +44,9 @@ from inputremapper.gui.messages.message_data import (
 )
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.patches import FakeDaemonProxy
 from tests.lib.fixtures import prepare_presets
-
-from inputremapper.configs.paths import get_preset_path
-from inputremapper.configs.preset import Preset
-from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
+from tests.lib.patches import FakeDaemonProxy
+from tests.lib.test_setup import test_setup
 
 
 class Listener:
@@ -57,6 +57,7 @@ class Listener:
         self.calls.append(data)
 
 
+@test_setup
 class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
@@ -71,9 +72,6 @@ class TestDataManager(unittest.TestCase):
             self.uinputs,
             system_mapping,
         )
-
-    def tearDown(self) -> None:
-        quick_cleanup()
 
     def test_load_group_provides_presets(self):
         """we should get all preset of a group, when loading it"""
@@ -135,7 +133,7 @@ class TestDataManager(unittest.TestCase):
         mappings = listener.calls[0].mappings
         preset_name = listener.calls[0].name
 
-        expected_preset = Preset(get_preset_path("Foo Device", "preset1"))
+        expected_preset = Preset(PathUtils.get_preset_path("Foo Device", "preset1"))
         expected_preset.load()
         expected_mappings = list(expected_preset)
 
@@ -167,7 +165,7 @@ class TestDataManager(unittest.TestCase):
         )
 
         mapping: MappingData = listener.calls[0]
-        control_preset = Preset(get_preset_path("Foo Device", "preset1"))
+        control_preset = Preset(PathUtils.get_preset_path("Foo Device", "preset1"))
         control_preset.load()
         self.assertEqual(
             control_preset.get_mapping(
@@ -353,9 +351,9 @@ class TestDataManager(unittest.TestCase):
 
     def test_delete_preset_sanitized(self):
         """should be able to delete the current preset"""
-        Preset(get_preset_path("Qux/Device?", "bla")).save()
-        Preset(get_preset_path("Qux/Device?", "foo")).save()
-        self.assertTrue(os.path.exists(get_preset_path("Qux/Device?", "bla")))
+        Preset(PathUtils.get_preset_path("Qux/Device?", "bla")).save()
+        Preset(PathUtils.get_preset_path("Qux/Device?", "foo")).save()
+        self.assertTrue(os.path.exists(PathUtils.get_preset_path("Qux/Device?", "bla")))
 
         self.data_manager.load_group(group_key="Qux/Device?")
         self.data_manager.load_preset(name="bla")
@@ -373,7 +371,9 @@ class TestDataManager(unittest.TestCase):
         self.assertIn("foo", presets_in_group)
         self.assertEqual(len(listener.calls), 1)
 
-        self.assertFalse(os.path.exists(get_preset_path("Qux/Device?", "bla")))
+        self.assertFalse(
+            os.path.exists(PathUtils.get_preset_path("Qux/Device?", "bla"))
+        )
 
     def test_load_mapping(self):
         """should be able to load a mapping"""
@@ -540,7 +540,7 @@ class TestDataManager(unittest.TestCase):
         )
         self.data_manager.save()
 
-        preset = Preset(get_preset_path("Foo Device", "preset2"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"), UIMapping)
         preset.load()
         mapping = preset.get_mapping(InputCombination([InputConfig(type=1, code=4)]))
         self.assertEqual(mapping.format_name(), "foo")
@@ -561,7 +561,7 @@ class TestDataManager(unittest.TestCase):
         )
         self.data_manager.save()
 
-        preset = Preset(get_preset_path("Foo Device", "preset2"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"), UIMapping)
         preset.load()
         mapping = preset.get_mapping(InputCombination([InputConfig(type=1, code=4)]))
         self.assertIsNotNone(mapping.get_error())
@@ -667,7 +667,7 @@ class TestDataManager(unittest.TestCase):
         """should be able to delete a mapping"""
         prepare_presets()
 
-        old_preset = Preset(get_preset_path("Foo Device", "preset2"))
+        old_preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"))
         old_preset.load()
 
         self.data_manager.load_group(group_key="Foo Device 2")
@@ -688,7 +688,7 @@ class TestDataManager(unittest.TestCase):
         )
         mappings = listener.calls[0].mappings
         preset_name = listener.calls[0].name
-        expected_preset = Preset(get_preset_path("Foo Device", "preset2"))
+        expected_preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"))
         expected_preset.load()
         expected_mappings = list(expected_preset)
 
@@ -757,40 +757,40 @@ class TestDataManager(unittest.TestCase):
         )
 
     def test_finds_newest_group(self):
-        Preset(get_preset_path("Foo Device", "preset 1")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "preset 1")).save()
         time.sleep(0.01)
-        Preset(get_preset_path("Bar Device", "preset 2")).save()
+        Preset(PathUtils.get_preset_path("Bar Device", "preset 2")).save()
         self.assertEqual(self.data_manager.get_newest_group_key(), "Bar Device")
 
     def test_finds_newest_preset(self):
-        Preset(get_preset_path("Foo Device", "preset 1")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "preset 1")).save()
         time.sleep(0.01)
-        Preset(get_preset_path("Foo Device", "preset 2")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "preset 2")).save()
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.get_newest_preset_name(), "preset 2")
 
     def test_newest_group_ignores_unknown_filetypes(self):
-        Preset(get_preset_path("Foo Device", "preset 1")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "preset 1")).save()
         time.sleep(0.01)
-        Preset(get_preset_path("Bar Device", "preset 2")).save()
+        Preset(PathUtils.get_preset_path("Bar Device", "preset 2")).save()
 
         # not a preset, ignore
         time.sleep(0.01)
-        path = os.path.join(get_preset_path("Foo Device"), "picture.png")
+        path = os.path.join(PathUtils.get_preset_path("Foo Device"), "picture.png")
         os.mknod(path)
 
         self.assertEqual(self.data_manager.get_newest_group_key(), "Bar Device")
 
     def test_newest_preset_ignores_unknown_filetypes(self):
-        Preset(get_preset_path("Bar Device", "preset 1")).save()
+        Preset(PathUtils.get_preset_path("Bar Device", "preset 1")).save()
         time.sleep(0.01)
-        Preset(get_preset_path("Bar Device", "preset 2")).save()
+        Preset(PathUtils.get_preset_path("Bar Device", "preset 2")).save()
         time.sleep(0.01)
-        Preset(get_preset_path("Bar Device", "preset 3")).save()
+        Preset(PathUtils.get_preset_path("Bar Device", "preset 3")).save()
 
         # not a preset, ignore
         time.sleep(0.01)
-        path = os.path.join(get_preset_path("Bar Device"), "picture.png")
+        path = os.path.join(PathUtils.get_preset_path("Bar Device"), "picture.png")
         os.mknod(path)
 
         self.data_manager.load_group("Bar Device")
@@ -798,16 +798,18 @@ class TestDataManager(unittest.TestCase):
         self.assertEqual(self.data_manager.get_newest_preset_name(), "preset 3")
 
     def test_newest_group_ignores_unknon_groups(self):
-        Preset(get_preset_path("Bar Device", "preset 1")).save()
+        Preset(PathUtils.get_preset_path("Bar Device", "preset 1")).save()
         time.sleep(0.01)
-        Preset(get_preset_path("unknown_group", "preset 2")).save()  # not a known group
+        Preset(
+            PathUtils.get_preset_path("unknown_group", "preset 2")
+        ).save()  # not a known group
 
         self.assertEqual(self.data_manager.get_newest_group_key(), "Bar Device")
 
     def test_newest_group_and_preset_raises_file_not_found(self):
         """should raise file not found error when all preset folders are empty"""
         self.assertRaises(FileNotFoundError, self.data_manager.get_newest_group_key)
-        os.makedirs(get_preset_path("Bar Device"))
+        os.makedirs(PathUtils.get_preset_path("Bar Device"))
         self.assertRaises(FileNotFoundError, self.data_manager.get_newest_group_key)
         self.data_manager.load_group("Bar Device")
         self.assertRaises(FileNotFoundError, self.data_manager.get_newest_preset_name)
@@ -817,11 +819,11 @@ class TestDataManager(unittest.TestCase):
         self.assertRaises(DataManagementError, self.data_manager.get_newest_preset_name)
 
     def test_newest_preset_only_searches_active_group(self):
-        Preset(get_preset_path("Foo Device", "preset 1")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "preset 1")).save()
         time.sleep(0.01)
-        Preset(get_preset_path("Foo Device", "preset 3")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "preset 3")).save()
         time.sleep(0.01)
-        Preset(get_preset_path("Bar Device", "preset 2")).save()
+        Preset(PathUtils.get_preset_path("Bar Device", "preset 2")).save()
 
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.get_newest_preset_name(), "preset 3")
@@ -833,7 +835,7 @@ class TestDataManager(unittest.TestCase):
         )
 
     def test_available_preset_name_adds_number_to_default(self):
-        Preset(get_preset_path("Foo Device", DEFAULT_PRESET_NAME)).save()
+        Preset(PathUtils.get_preset_path("Foo Device", DEFAULT_PRESET_NAME)).save()
         self.data_manager.load_group("Foo Device")
         self.assertEqual(
             self.data_manager.get_available_preset_name(), f"{DEFAULT_PRESET_NAME} 2"
@@ -844,7 +846,7 @@ class TestDataManager(unittest.TestCase):
         self.assertEqual(self.data_manager.get_available_preset_name("bar"), "bar")
 
     def test_available_preset_name__adds_number_to_provided_name(self):
-        Preset(get_preset_path("Foo Device", "bar")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "bar")).save()
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.get_available_preset_name("bar"), "bar 2")
 
@@ -860,27 +862,31 @@ class TestDataManager(unittest.TestCase):
             self.data_manager.get_available_preset_name(), DEFAULT_PRESET_NAME
         )
 
-        Preset(get_preset_path("Qux/Device?", DEFAULT_PRESET_NAME)).save()
+        Preset(PathUtils.get_preset_path("Qux/Device?", DEFAULT_PRESET_NAME)).save()
         self.assertEqual(
             self.data_manager.get_available_preset_name(), f"{DEFAULT_PRESET_NAME} 2"
         )
 
-        Preset(get_preset_path("Qux/Device?", "foo")).save()
+        Preset(PathUtils.get_preset_path("Qux/Device?", "foo")).save()
         self.assertEqual(self.data_manager.get_available_preset_name("foo"), "foo 2")
 
     def test_available_preset_name_increments_default(self):
-        Preset(get_preset_path("Foo Device", DEFAULT_PRESET_NAME)).save()
-        Preset(get_preset_path("Foo Device", f"{DEFAULT_PRESET_NAME} 2")).save()
-        Preset(get_preset_path("Foo Device", f"{DEFAULT_PRESET_NAME} 3")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", DEFAULT_PRESET_NAME)).save()
+        Preset(
+            PathUtils.get_preset_path("Foo Device", f"{DEFAULT_PRESET_NAME} 2")
+        ).save()
+        Preset(
+            PathUtils.get_preset_path("Foo Device", f"{DEFAULT_PRESET_NAME} 3")
+        ).save()
         self.data_manager.load_group("Foo Device")
         self.assertEqual(
             self.data_manager.get_available_preset_name(), f"{DEFAULT_PRESET_NAME} 4"
         )
 
     def test_available_preset_name_increments_provided_name(self):
-        Preset(get_preset_path("Foo Device", "foo")).save()
-        Preset(get_preset_path("Foo Device", "foo 1")).save()
-        Preset(get_preset_path("Foo Device", "foo 2")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "foo")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "foo 1")).save()
+        Preset(PathUtils.get_preset_path("Foo Device", "foo 2")).save()
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.get_available_preset_name("foo 1"), "foo 3")
 

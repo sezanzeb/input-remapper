@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -43,8 +43,8 @@ except ImportError:
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.configs.paths import touch
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logging.logger import logger
 
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
 
@@ -175,7 +175,7 @@ class Preset(Generic[MappingModel]):
             logger.debug("unable to save preset without a path set Preset.path first")
             return
 
-        touch(self.path)
+        PathUtils.touch(self.path)
         if not self.has_unsaved_changes():
             logger.debug("Not saving unchanged preset")
             return

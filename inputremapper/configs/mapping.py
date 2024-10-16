@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,9 +21,9 @@ from __future__ import annotations
 
 import enum
 from collections import namedtuple
+from packaging import version
 from typing import Optional, Callable, Tuple, TypeVar, Union, Any, Dict
 
-import pkg_resources
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -73,20 +73,17 @@ from inputremapper.configs.validation_errors import (
     SymbolAndCodeMismatchError,
     MissingMacroOrKeyError,
     MissingOutputAxisError,
-    MacroParsingError,
 )
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
-from inputremapper.injection.global_uinputs import can_default_uinput_emit
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.utils import get_evdev_constant_name
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ancient pydantic 1.2
 
-needs_workaround = pkg_resources.parse_version(
-    str(VERSION)
-) < pkg_resources.parse_version("1.7.1")
+needs_workaround = version.parse(str(VERSION)) < version.parse("1.7.1")
 
 
 EMPTY_MAPPING_NAME: str = _("Empty Mapping")
@@ -393,7 +390,9 @@ class Mapping(UIMapping):
             raise OutputSymbolUnknownError(symbol)
 
         target = values.get("target_uinput")
-        if target is not None and not can_default_uinput_emit(target, EV_KEY, code):
+        if target is not None and not GlobalUInputs.can_default_uinput_emit(
+            target, EV_KEY, code
+        ):
             raise SymbolNotAvailableInTargetError(symbol, target)
 
         return values

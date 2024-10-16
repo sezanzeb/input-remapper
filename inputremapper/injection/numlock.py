@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -28,7 +28,7 @@ which is why these functions exist.
 import re
 import subprocess
 
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 
 def is_numlock_on():

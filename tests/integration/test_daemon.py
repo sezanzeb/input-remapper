@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,20 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
-from tests.test import is_service_running
-
-import os
 import multiprocessing
-import unittest
+import os
 import time
+import unittest
 
 import gi
+
+from tests.lib.test_setup import is_service_running
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from inputremapper.daemon import Daemon, BUS_NAME
+from tests.lib.test_setup import test_setup
 
 
 def gtk_iteration():
@@ -40,6 +40,7 @@ def gtk_iteration():
         Gtk.main_iteration()
 
 
+@test_setup
 class TestDBusDaemon(unittest.TestCase):
     def setUp(self):
         self.process = multiprocessing.Process(

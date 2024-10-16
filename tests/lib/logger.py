@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -37,9 +37,9 @@ logger.setLevel(logging.INFO)
 
 
 def update_inputremapper_verbosity():
-    from inputremapper.logger import update_verbosity
+    from inputremapper.logging.logger import logger
 
-    update_verbosity(True)
+    logger.update_verbosity(True)
 
 
 def warn_with_traceback(message, category, filename, lineno, file=None, line=None):

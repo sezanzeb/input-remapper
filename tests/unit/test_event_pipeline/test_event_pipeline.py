@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,8 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-from tests import test
 
 import asyncio
 import unittest
@@ -68,6 +66,7 @@ from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
 from tests.lib.constants import MAX_ABS, MIN_ABS
 from tests.lib.fixtures import Fixture, fixtures
+from tests.lib.test_setup import test_setup
 
 
 class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
@@ -113,6 +112,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
         return reader
 
 
+@test_setup
 class TestCombination(EventPipelineTestBase):
     async def test_any_event_as_button(self):
         """As long as there is an event handler and a mapping we should be able
@@ -1184,6 +1184,7 @@ class TestCombination(EventPipelineTestBase):
         )
 
 
+@test_setup
 class TestAbsToAbs(EventPipelineTestBase):
     async def test_abs_to_abs(self):
         gain = 0.5
@@ -1284,6 +1285,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         )
 
 
+@test_setup
 class TestRelToAbs(EventPipelineTestBase):
     async def test_rel_to_abs(self):
         timestamp = 0
@@ -1419,6 +1421,7 @@ class TestRelToAbs(EventPipelineTestBase):
         )
 
 
+@test_setup
 class TestAbsToRel(EventPipelineTestBase):
     async def test_abs_to_rel(self):
         """Map gamepad EV_ABS events to EV_REL events."""
@@ -1565,6 +1568,7 @@ class TestAbsToRel(EventPipelineTestBase):
         self.assertAlmostEqual(rel_hwheel, rel_hwheel_hi_res / 120, places=0)
 
 
+@test_setup
 class TestRelToBtn(EventPipelineTestBase):
     async def test_rel_to_btn(self):
         """Rel axis mapped to buttons are automatically released if no new rel event arrives."""
@@ -1697,6 +1701,7 @@ class TestRelToBtn(EventPipelineTestBase):
         )
 
 
+@test_setup
 class TestAbsToBtn(EventPipelineTestBase):
     async def test_abs_trigger_threshold(self):
         """Test that different activation points for abs_to_btn work correctly."""
@@ -1765,6 +1770,7 @@ class TestAbsToBtn(EventPipelineTestBase):
         self.assertEqual(len(forwarded_history), 0)
 
 
+@test_setup
 class TestRelToRel(EventPipelineTestBase):
     async def _test(self, input_code, input_value, output_code, output_value, gain=1):
         preset = Preset()
