@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -33,7 +33,7 @@ except ImportError:
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.messages.message_types import MessageType
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
 # having shift in combinations modifies the configured output,

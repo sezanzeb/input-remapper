@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,14 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import os
-import copy
-from unittest.mock import patch
 
 
-def spy(obj, name):
-    """Convenient wrapper for patch.object(..., ..., wraps=...)."""
-    return patch.object(obj, name, wraps=obj.__getattribute__(name))
+def get_project_root():
+    """Find the projects root, i.e. the uppermost directory of the repo."""
+    # when tests are started in pycharm via the green arrow, the working directory
+    # is not the project root. Go up until it is found.
+    root = os.getcwd()
+    for _ in range(10):
+        if "setup.py" in os.listdir(root):
+            return root
 
+        root = os.path.dirname(root)
 
-environ_copy = copy.deepcopy(os.environ)
+    raise Exception("Could not find project root")

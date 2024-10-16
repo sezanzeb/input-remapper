@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -37,11 +37,9 @@ import multiprocessing
 import os
 import re
 import threading
-import traceback
 from typing import List, Optional
 
 import evdev
-from evdev import InputDevice
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -56,8 +54,8 @@ from evdev.ecodes import (
     REL_WHEEL,
 )
 
-from inputremapper.configs.paths import get_preset_path
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logging.logger import logger
 from inputremapper.utils import get_device_hash
 
 TABLET_KEYS = [
@@ -197,7 +195,7 @@ def classify(device) -> DeviceType:
 DENYLIST = [".*Yubico.*YubiKey.*", "Eee PC WMI hotkeys"]
 
 
-def is_denylisted(device: InputDevice):
+def is_denylisted(device: evdev.InputDevice):
     """Check if a device should not be used in input-remapper.
 
     Parameters
@@ -211,7 +209,7 @@ def is_denylisted(device: InputDevice):
     return False
 
 
-def get_unique_key(device: InputDevice):
+def get_unique_key(device: evdev.InputDevice):
     """Find a string key that is unique for a single hardware device.
 
     All InputDevices in /dev/input that originate from the same physical
@@ -299,7 +297,7 @@ class _Group:
         This path is unique per device-model, not per group. Groups
         of the same model share the same preset paths.
         """
-        return get_preset_path(self.name, preset)
+        return PathUtils.get_preset_path(self.name, preset)
 
     def get_devices(self) -> List[evdev.InputDevice]:
         devices: List[evdev.InputDevice] = []

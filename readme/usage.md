@@ -49,13 +49,19 @@ on the `Advanced` button.
 
 A mapping with an input combination is only injected once all combination keys 
 are pressed. This means all the input keys you press before the combination is complete 
-will be injected unmodified. In some cases this can be desirable, in others not. 
-In the advanced input configuration there is the `Release Input` toggle. 
+will be injected unmodified. In some cases this can be desirable, in others not.
+
+*Option 1*: In the advanced input configuration there is the `Release Input` toggle. 
 This will release all inputs which are part of the combination before the mapping is 
 injected. Consider a mapping `Shift+1 -> a` this will inject a lowercase `a` if the 
 toggle is on and an uppercase `A` if it is off. The exact behaviour if the toggle is off 
 is dependent on keys (are modifiers involved?), the order in which they are pressed and 
 on your environment (X11/Wayland). By default the toggle is on.
+
+*Option 2*: Disable the keys that are part of the combination individually. So with
+a mapping of `Super+1 -> a`, you could additionally map `Super` to `disable`. Now
+`Super` won't do anything anymore, and therefore pressing the combination won't have
+any side effects anymore.
 
 ## Writing Combinations
 

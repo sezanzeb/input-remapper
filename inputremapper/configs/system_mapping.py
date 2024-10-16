@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -25,8 +25,8 @@ from typing import Optional, List, Iterable, Tuple
 
 import evdev
 
-from inputremapper.configs.paths import get_config_path, touch
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logging.logger import logger
 from inputremapper.utils import is_service
 
 DISABLE_NAME = "disable"
@@ -108,8 +108,8 @@ class SystemMapping:
 
         # Write this stuff into the input-remapper config directory, because
         # the systemd service won't know the user sessions xmodmap.
-        path = get_config_path(XMODMAP_FILENAME)
-        touch(path)
+        path = PathUtils.get_config_path(XMODMAP_FILENAME)
+        PathUtils.touch(path)
         with open(path, "w") as file:
             logger.debug('Writing "%s"', path)
             json.dump(xmodmap_dict, file, indent=4)
@@ -214,5 +214,6 @@ class SystemMapping:
         return xmodmap_dict
 
 
+# TODO DI
 # this mapping represents the xmodmap output, which stays constant
 system_mapping = SystemMapping()

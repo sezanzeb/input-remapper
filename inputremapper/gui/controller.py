@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -33,11 +33,10 @@ from typing import (
     Any,
 )
 
-import gi
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
-
 from gi.repository import Gtk
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     MappingData,
     UIMapping,
@@ -47,8 +46,7 @@ from inputremapper.configs.mapping import (
     MissingMacroOrKeyError,
     OutputSymbolVariantError,
 )
-from inputremapper.configs.paths import sanitize_path_component
-from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.validation_errors import pydantify
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
@@ -69,7 +67,7 @@ from inputremapper.injection.injector import (
     InjectorState,
     InjectorStateMessage,
 )
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
     # avoids gtk import error in tests
@@ -494,7 +492,7 @@ class Controller:
         ):
             return
 
-        new_name = sanitize_path_component(new_name)
+        new_name = PathUtils.sanitize_path_component(new_name)
         new_name = self.data_manager.get_available_preset_name(new_name)
         self.data_manager.rename_preset(new_name)
 

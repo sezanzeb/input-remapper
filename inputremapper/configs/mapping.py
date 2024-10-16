@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -73,11 +73,10 @@ from inputremapper.configs.validation_errors import (
     SymbolAndCodeMismatchError,
     MissingMacroOrKeyError,
     MissingOutputAxisError,
-    MacroParsingError,
 )
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
-from inputremapper.injection.global_uinputs import can_default_uinput_emit
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.utils import get_evdev_constant_name
 
@@ -391,7 +390,9 @@ class Mapping(UIMapping):
             raise OutputSymbolUnknownError(symbol)
 
         target = values.get("target_uinput")
-        if target is not None and not can_default_uinput_emit(target, EV_KEY, code):
+        if target is not None and not GlobalUInputs.can_default_uinput_emit(
+            target, EV_KEY, code
+        ):
             raise SymbolNotAvailableInTargetError(symbol, target)
 
         return values

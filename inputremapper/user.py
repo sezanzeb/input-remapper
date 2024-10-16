@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -26,42 +26,46 @@ import os
 import pwd
 
 
-def get_user():
-    """Try to find the user who called sudo/pkexec."""
-    try:
-        return os.getlogin()
-    except OSError:
-        # failed in some ubuntu installations and in systemd services
-        pass
-
-    try:
-        user = os.environ["USER"]
-    except KeyError:
-        # possibly the systemd service. no sudo was used
-        return getpass.getuser()
-
-    if user == "root":
+class UserUtils:
+    @staticmethod
+    def get_user():
+        """Try to find the user who called sudo/pkexec."""
         try:
-            return os.environ["SUDO_USER"]
-        except KeyError:
-            # no sudo was used
+            return os.getlogin()
+        except OSError:
+            # failed in some ubuntu installations and in systemd services
             pass
 
         try:
-            pkexec_uid = int(os.environ["PKEXEC_UID"])
-            return pwd.getpwuid(pkexec_uid).pw_name
+            user = os.environ["USER"]
         except KeyError:
-            # no pkexec was used or the uid is unknown
-            pass
+            # possibly the systemd service. no sudo was used
+            return getpass.getuser()
 
-    return user
+        if user == "root":
+            try:
+                return os.environ["SUDO_USER"]
+            except KeyError:
+                # no sudo was used
+                pass
 
+            try:
+                pkexec_uid = int(os.environ["PKEXEC_UID"])
+                return pwd.getpwuid(pkexec_uid).pw_name
+            except KeyError:
+                # no pkexec was used or the uid is unknown
+                pass
 
-def get_home(user):
-    """Try to find the user's home directory."""
-    return pwd.getpwnam(user).pw_dir
+        return user
 
+    @staticmethod
+    def get_home(user):
+        """Try to find the user's home directory."""
+        return pwd.getpwnam(user).pw_dir
 
-USER = get_user()
-
-HOME = get_home(USER)
+    # An odd construct, but it can't really be helped because this was done as an
+    # afterthought, after I learned about proper object-oriented software architecture.
+    # TODO Eventually, UserUtils should be constructed and injected as a UserService,
+    #  which then initializes stuff.
+    user = get_user()
+    home = get_home(user)

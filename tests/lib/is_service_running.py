@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
@@ -16,3 +17,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
+from __future__ import annotations
+
+import subprocess
+
+
+def is_service_running():
+    """Check if the daemon is running."""
+    try:
+        subprocess.check_output(["pgrep", "-f", "input-remapper-service"])
+        return True
+    except subprocess.CalledProcessError:
+        return False
