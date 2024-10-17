@@ -112,24 +112,44 @@ class CombinationHandler(MappingHandler):
         is_activated = self.is_activated()
 
         if is_activated == self._output_active:
-            # nothing changed
-            if is_pressed:
-                # If the output is active, a key-down event triggered it, which then
-                # did not get forwarded, therefore it doesn't require a release.
-                self.require_release_later(not self._output_active, event)
-                # output is active: consume the event
-                # output inactive: forward the event
-                return self._output_active
-            else:
-                # Else if it is released: Returning `False` means that the event-reader
-                # will forward the release.
-                return not self.should_release_event(event)
+            return self._handle_state_did_not_change(is_pressed, event)
 
-        # State changed
         # This depends on whether the key was pressed or released, therefore those are
         # equal
         assert is_activated == is_pressed
+        return self._handle_state_changed(is_activated, suppress, event, source)
 
+    def _handle_state_did_not_change(self, is_pressed: bool, event: InputEvent) -> bool:
+        """Handle the event when it didn't change the combination activation state.
+
+        The combination was previously triggered, and is still triggered,
+        or it was not yet triggered and still isn't triggered.
+        """
+        if is_pressed:
+            # self._output_active is negated, because if the output is active, a
+            # key-down event triggered it, which then did not get forwarded, therefore
+            # it doesn't require a release.
+            self.require_release_later(not self._output_active, event)
+            # output is active: consume the event
+            # output inactive: forward the event
+            return self._output_active
+
+        # Else if it is released: Returning `False` means that the event-reader
+        # will forward the release.
+        return not self.should_release_event(event)
+
+    def _handle_state_changed(
+        self,
+        is_activated: bool,
+        suppress: bool,
+        event: InputEvent,
+        source: evdev.InputDevice,
+    ) -> bool:
+        """Handle a changed combination-activation state.
+
+        Either it was previously triggered, but not anymore, or it was not yet
+        triggered, but is now.
+        """
         if not is_activated:
             # We ignore the `suppress` argument for release events. Otherwise, we
             # might end up with stuck keys (test_event_pipeline.test_combination).
