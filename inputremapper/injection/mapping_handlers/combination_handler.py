@@ -45,7 +45,7 @@ class CombinationHandler(MappingHandler):
     _pressed_keys: Dict[Hashable, bool]
     # the last update we sent to a sub-handler. If this is true, the output key is
     # still being held down.
-    _output_active: bool
+    _output_previously_active: bool
     _sub_handler: InputEventHandler
     _handled_input_hashes: list[Hashable]
     _requires_a_release: Dict[Tuple[int, int], bool]
@@ -60,7 +60,7 @@ class CombinationHandler(MappingHandler):
         logger.debug(str(mapping))
         super().__init__(combination, mapping)
         self._pressed_keys = {}
-        self._output_active = False
+        self._output_previously_active = False
         self._context = context
         self._requires_a_release = {}
 
@@ -109,74 +109,77 @@ class CombinationHandler(MappingHandler):
         is_pressed = event.value == 1
         self._pressed_keys[event.input_match_hash] = is_pressed
         # maybe this changes the activation status (triggered/not-triggered)
-        is_activated = self.is_activated()
+        changed = self.is_activated() != self._output_previously_active
 
-        if is_activated == self._output_active:
-            return self._handle_state_did_not_change(is_pressed, event)
+        if changed:
+            if is_pressed:
+                return self._handle_freshly_activated(suppress, event, source)
+            else:
+                return self._handle_freshly_deactivated(event, source)
+        else:
+            if is_pressed:
+                return self._handle_no_change_press(event)
+            else:
+                return self._handle_no_change_release(event)
 
-        # This depends on whether the key was pressed or released, therefore those are
-        # equal
-        assert is_activated == is_pressed
-        return self._handle_state_changed(is_activated, suppress, event, source)
-
-    def _handle_state_did_not_change(self, is_pressed: bool, event: InputEvent) -> bool:
-        """Handle the event when it didn't change the combination activation state.
-
-        The combination was previously triggered, and is still triggered,
-        or it was not yet triggered and still isn't triggered.
+    def _handle_no_change_press(self, event: InputEvent) -> bool:
+        """A key was pressed, but this doesn't change the combinations activation state.
+        Can only happen if either the combination wasn't already active, or a duplicate
+        key-down event arrived (EV_ABS?)
         """
-        if is_pressed:
-            # self._output_active is negated, because if the output is active, a
-            # key-down event triggered it, which then did not get forwarded, therefore
-            # it doesn't require a release.
-            self.require_release_later(not self._output_active, event)
-            # output is active: consume the event
-            # output inactive: forward the event
-            return self._output_active
+        # self._output_previously_active is negated, because if the output is active, a
+        # key-down event triggered it, which then did not get forwarded, therefore
+        # it doesn't require a release.
+        self.require_release_later(not self._output_previously_active, event)
+        # output is active: consume the event
+        # output inactive: forward the event
+        return self._output_previously_active
 
-        # Else if it is released: Returning `False` means that the event-reader
-        # will forward the release.
+    def _handle_no_change_release(self, event: InputEvent) -> bool:
+        """One of the combinations keys was released, but it didn't untrigger the
+        combination yet."""
+        # Negate: `False` means that the event-reader will forward the release.
         return not self.should_release_event(event)
 
-    def _handle_state_changed(
+    def _handle_freshly_activated(
         self,
-        is_activated: bool,
         suppress: bool,
         event: InputEvent,
         source: evdev.InputDevice,
     ) -> bool:
-        """Handle a changed combination-activation state.
+        """The combination was deactivated, but is activated now."""
+        if suppress:
+            return False
 
-        Either it was previously triggered, but not anymore, or it was not yet
-        triggered, but is now.
-        """
-        if not is_activated:
-            # We ignore the `suppress` argument for release events. Otherwise, we
-            # might end up with stuck keys (test_event_pipeline.test_combination).
-            # In the case of output axis, this will enable us to activate multiple
-            # axis with the same button.
-            suppress = False
+        # Send key up events to the forwarded uinput if configured to do so.
+        self.forward_release()
 
-        if not suppress:
-            if is_activated:
-                # Send key up events to the forwarded uinput if configured to do so.
-                self.forward_release()
+        logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
+        self._output_previously_active = bool(event.value)
+        sub_handler_result = self._sub_handler.notify(event, source, suppress)
 
-            logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
-            self._output_active = bool(event.value)
-            sub_handler_result = self._sub_handler.notify(event, source, suppress)
+        # Only if the sub-handler return False, we need a release-event later.
+        # If it handled the event, the user never sees this key-down event.
+        self.require_release_later(not sub_handler_result, event)
+        return sub_handler_result
 
-            if is_activated:
-                # Only if the sub-handler return False, we need a release-event later.
-                # If it handled the event, the user never sees this key-down event.
-                self.require_release_later(not sub_handler_result, event)
-                return sub_handler_result
+    def _handle_freshly_deactivated(
+        self,
+        event: InputEvent,
+        source: evdev.InputDevice,
+    ) -> bool:
+        """The combination was activated, but is deactivated now."""
+        # We ignore the `suppress` argument for release events. Otherwise, we
+        # might end up with stuck keys (test_event_pipeline.test_combination).
+        # In the case of output axis, this will enable us to activate multiple
+        # axis with the same button.
 
-            # Else if it is released: Returning `False` means that the event-reader
-            # will forward the release.
-            return not self.should_release_event(event)
+        logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
+        self._output_previously_active = bool(event.value)
+        self._sub_handler.notify(event, source, suppress=False)
 
-        return False
+        # Negate: `False` means that the event-reader will forward the release.
+        return not self.should_release_event(event)
 
     def should_release_event(self, event: InputEvent) -> bool:
         """Check if the key-up event should be forwarded by the event-reader.
@@ -205,7 +208,7 @@ class CombinationHandler(MappingHandler):
         for key in self._pressed_keys:
             self._pressed_keys[key] = False
         self._requires_a_release = {}
-        self._output_active = False
+        self._output_previously_active = False
 
     def is_activated(self) -> bool:
         """Return if all keys in the keymap are set to True."""
