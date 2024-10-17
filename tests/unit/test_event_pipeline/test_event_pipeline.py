@@ -66,6 +66,7 @@ from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
 from tests.lib.constants import MAX_ABS, MIN_ABS
 from tests.lib.fixtures import Fixture, fixtures
+from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
 
 
@@ -539,6 +540,56 @@ class TestCombination(EventPipelineTestBase):
         await self.send_events([InputEvent.key(in_2, 0, origin_hash)], event_reader)
         self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1), (EV_KEY, in_1, 0)])
         self.assertListEqual(keyboard_history, [(EV_KEY, out, 1), (EV_KEY, out, 0)])
+
+    async def test_releases_before_triggering(self):
+        origin = fixtures.foo_device_2_keyboard
+        origin_hash = origin.get_device_hash()
+
+        input_combination = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_B,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping = Mapping(
+            input_combination=input_combination.to_config(),
+            target_uinput="keyboard",
+            output_symbol="1",
+            release_combination_keys=True,
+        )
+
+        preset = Preset()
+        preset.add(mapping)
+
+        event_reader = self.create_event_reader(preset, origin)
+
+        await self.send_events(
+            [
+                InputEvent.key(KEY_A, 1, origin_hash),
+                InputEvent.key(KEY_B, 1, origin_hash),
+            ],
+            event_reader,
+        )
+
+        # Other tests check forwarded_history and keyboard_history individually,
+        # so here is one that looks at the order in uinput_write_history
+        self.assertListEqual(
+            uinput_write_history,
+            [
+                (EV_KEY, KEY_A, 1),
+                (EV_KEY, KEY_A, 0),
+                (EV_KEY, KEY_1, 1),
+            ],
+        )
 
     async def test_suppressed_doesnt_forward_releases(self):
         origin = fixtures.foo_device_2_keyboard

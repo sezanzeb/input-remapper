@@ -125,19 +125,17 @@ class CombinationHandler(MappingHandler):
                 # will forward the release.
                 return not self.should_release_event(event)
 
-        if is_activated:
-            event = event.modify(value=1)
-        else:
-            # If not activated. All required keys are not yet pressed.
-            if self._output_active or self.mapping.is_axis_mapping():
-                # we ignore the `suppress` argument for release events
-                # otherwise we might end up with stuck keys
-                # (test_event_pipeline.test_combination)
+        # State changed
+        # This depends on whether the key was pressed or released, therefore those are
+        # equal
+        assert is_activated == is_pressed
 
-                # we also ignore it if the mapping specifies an output axis
-                # this will enable us to activate multiple axis with the same button
-                suppress = False
-            event = event.modify(value=0)
+        if not is_activated:
+            # We ignore the `suppress` argument for release events. Otherwise, we
+            # might end up with stuck keys (test_event_pipeline.test_combination).
+            # In the case of output axis, this will enable us to activate multiple
+            # axis with the same button.
+            suppress = False
 
         if not suppress:
             if is_activated:
@@ -148,15 +146,15 @@ class CombinationHandler(MappingHandler):
             self._output_active = bool(event.value)
             sub_handler_result = self._sub_handler.notify(event, source, suppress)
 
-            if is_pressed:
+            if is_activated:
                 # Only if the sub-handler return False, we need a release-event later.
                 # If it handled the event, the user never sees this key-down event.
                 self.require_release_later(not sub_handler_result, event)
                 return sub_handler_result
-            else:
-                # Else if it is released: Returning `False` means that the event-reader
-                # will forward the release.
-                return not self.should_release_event(event)
+
+            # Else if it is released: Returning `False` means that the event-reader
+            # will forward the release.
+            return not self.should_release_event(event)
 
         return False
 
