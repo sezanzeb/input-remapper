@@ -858,9 +858,11 @@ class TestDataManager(unittest.TestCase):
             DataManagementError, self.data_manager.get_available_preset_name
         )
 
-    def test_special_characters(self):
+    def test_get_preset_names(self):
         self.data_manager.load_group("Qux/[Device]?")
         Preset(PathUtils.get_preset_path("Qux/[Device]?", "new preset")).save()
+        # get_preset_names uses glob, the special characters in the device name
+        # don't break it.
         self.assertEqual(self.data_manager.get_preset_names(), ("new preset",))
 
     def test_available_preset_name_sanitized(self):
