@@ -109,7 +109,7 @@ class CombinationHandler(MappingHandler):
         is_pressed = event.value == 1
         self._pressed_keys[event.input_match_hash] = is_pressed
         # maybe this changes the activation status (triggered/not-triggered)
-        changed = self.is_activated() != self._output_previously_active
+        changed = self._is_activated() != self._output_previously_active
 
         if changed:
             if is_pressed:
@@ -130,7 +130,7 @@ class CombinationHandler(MappingHandler):
         # self._output_previously_active is negated, because if the output is active, a
         # key-down event triggered it, which then did not get forwarded, therefore
         # it doesn't require a release.
-        self.require_release_later(not self._output_previously_active, event)
+        self._require_release_later(not self._output_previously_active, event)
         # output is active: consume the event
         # output inactive: forward the event
         return self._output_previously_active
@@ -139,7 +139,7 @@ class CombinationHandler(MappingHandler):
         """One of the combinations keys was released, but it didn't untrigger the
         combination yet."""
         # Negate: `False` means that the event-reader will forward the release.
-        return not self.should_release_event(event)
+        return not self._should_release_event(event)
 
     def _handle_freshly_activated(
         self,
@@ -152,7 +152,7 @@ class CombinationHandler(MappingHandler):
             return False
 
         # Send key up events to the forwarded uinput if configured to do so.
-        self.forward_release()
+        self._forward_release()
 
         logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
         self._output_previously_active = bool(event.value)
@@ -160,7 +160,7 @@ class CombinationHandler(MappingHandler):
 
         # Only if the sub-handler return False, we need a release-event later.
         # If it handled the event, the user never sees this key-down event.
-        self.require_release_later(not sub_handler_result, event)
+        self._require_release_later(not sub_handler_result, event)
         return sub_handler_result
 
     def _handle_freshly_deactivated(
@@ -179,9 +179,9 @@ class CombinationHandler(MappingHandler):
         self._sub_handler.notify(event, source, suppress=False)
 
         # Negate: `False` means that the event-reader will forward the release.
-        return not self.should_release_event(event)
+        return not self._should_release_event(event)
 
-    def should_release_event(self, event: InputEvent) -> bool:
+    def _should_release_event(self, event: InputEvent) -> bool:
         """Check if the key-up event should be forwarded by the event-reader.
 
         After this, the release event needs to be injected by someone, otherwise the
@@ -198,7 +198,7 @@ class CombinationHandler(MappingHandler):
         assert event.value == 0
         return self._requires_a_release.pop(event.type_and_code, False)
 
-    def require_release_later(self, require: bool, event: InputEvent) -> None:
+    def _require_release_later(self, require: bool, event: InputEvent) -> None:
         """Remember if this key-down event will need a release event later on."""
         assert event.value == 1
         self._requires_a_release[event.type_and_code] = require
@@ -210,11 +210,11 @@ class CombinationHandler(MappingHandler):
         self._requires_a_release = {}
         self._output_previously_active = False
 
-    def is_activated(self) -> bool:
+    def _is_activated(self) -> bool:
         """Return if all keys in the keymap are set to True."""
         return False not in self._pressed_keys.values()
 
-    def forward_release(self) -> None:
+    def _forward_release(self) -> None:
         """Forward a button release for all keys if this is a combination.
 
         This might cause duplicate key-up events but those are ignored by evdev anyway
