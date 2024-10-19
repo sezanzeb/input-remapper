@@ -47,7 +47,7 @@ from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtn
 
 from inputremapper.configs.mapping import Mapping, DEFAULT_REL_RATE
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
@@ -101,6 +101,8 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 InputConfig(type=1, code=3),
             )
         )
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = AxisSwitchHandler(
             input_combination,
             Mapping(
@@ -110,6 +112,7 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 output_code=1,
             ),
             MagicMock(),
+            self.global_uinputs,
         )
 
 
@@ -119,6 +122,8 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         input_combination = InputCombination(
             [InputConfig(type=3, code=5, analog_threshold=10)]
         )
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = AbsToBtnHandler(
             input_combination,
             Mapping(
@@ -126,6 +131,7 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
+            global_uinputs=self.global_uinputs,
         )
 
 
@@ -133,6 +139,8 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination([InputConfig(type=EV_ABS, code=ABS_X)])
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = AbsToAbsHandler(
             input_combination,
             Mapping(
@@ -141,6 +149,7 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 output_type=EV_ABS,
                 output_code=ABS_X,
             ),
+            global_uinputs=self.global_uinputs,
         )
 
     async def test_reset(self):
@@ -149,7 +158,7 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
             source=InputDevice("/dev/input/event15"),
         )
         self.handler.reset()
-        history = global_uinputs.get_uinput("gamepad").write_history
+        history = self.global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
             [InputEvent.from_tuple((3, 0, MAX_ABS)), InputEvent.from_tuple((3, 0, 0))],
@@ -160,6 +169,8 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination([InputConfig(type=EV_REL, code=REL_X)])
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = RelToAbsHandler(
             input_combination,
             Mapping(
@@ -168,6 +179,7 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 output_type=EV_ABS,
                 output_code=ABS_X,
             ),
+            self.global_uinputs,
         )
 
     async def test_reset(self):
@@ -176,7 +188,7 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
             source=InputDevice("/dev/input/event15"),
         )
         self.handler.reset()
-        history = global_uinputs.get_uinput("gamepad").write_history
+        history = self.global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(len(history), 2)
 
         # something large, doesn't matter
@@ -224,6 +236,8 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination([InputConfig(type=EV_ABS, code=ABS_X)])
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = AbsToRelHandler(
             input_combination,
             Mapping(
@@ -232,6 +246,7 @@ class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 output_type=EV_REL,
                 output_code=REL_X,
             ),
+            self.global_uinputs,
         )
 
     async def test_reset(self):
@@ -243,10 +258,10 @@ class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.reset()
         await asyncio.sleep(0.05)
 
-        count = global_uinputs.get_uinput("mouse").write_count
+        count = self.global_uinputs.get_uinput("mouse").write_count
         self.assertGreater(count, 6)  # count should be 60*0.2 = 12
         await asyncio.sleep(0.2)
-        self.assertEqual(count, global_uinputs.get_uinput("mouse").write_count)
+        self.assertEqual(count, self.global_uinputs.get_uinput("mouse").write_count)
 
 
 @test_setup
@@ -288,6 +303,8 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
         self.context_mock = MagicMock()
 
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = CombinationHandler(
             input_combination,
             Mapping(
@@ -297,6 +314,7 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 release_combination_keys=True,
             ),
             self.context_mock,
+            global_uinputs=self.global_uinputs,
         )
 
         sub_handler_mock = MagicMock(InputEventHandler)
@@ -392,9 +410,12 @@ class TestHierarchyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.mock1 = MagicMock()
         self.mock2 = MagicMock()
         self.mock3 = MagicMock()
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = HierarchyHandler(
             [self.mock1, self.mock2, self.mock3],
             InputConfig(type=EV_KEY, code=KEY_A),
+            self.global_uinputs,
         )
 
     def test_reset(self):
@@ -413,6 +434,8 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 InputConfig(type=1, code=3),
             )
         )
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = KeyHandler(
             input_combination,
             Mapping(
@@ -420,6 +443,7 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
+            self.global_uinputs,
         )
 
     def test_reset(self):
@@ -427,12 +451,12 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
             InputEvent(0, 0, EV_REL, REL_X, 1, actions=(EventActions.as_key,)),
             source=InputDevice("/dev/input/event11"),
         )
-        history = global_uinputs.get_uinput("mouse").write_history
+        history = self.global_uinputs.get_uinput("mouse").write_history
         self.assertEqual(history[0], InputEvent.key(BTN_LEFT, 1))
         self.assertEqual(len(history), 1)
 
         self.handler.reset()
-        history = global_uinputs.get_uinput("mouse").write_history
+        history = self.global_uinputs.get_uinput("mouse").write_history
         self.assertEqual(history[1], InputEvent.key(BTN_LEFT, 0))
         self.assertEqual(len(history), 2)
 
@@ -447,6 +471,8 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
             )
         )
         self.context_mock = MagicMock()
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = MacroHandler(
             input_combination,
             Mapping(
@@ -455,6 +481,7 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 output_symbol="hold_keys(BTN_LEFT, BTN_RIGHT)",
             ),
             context=self.context_mock,
+            global_uinputs=self.global_uinputs,
         )
 
     async def test_reset(self):
@@ -464,14 +491,14 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         )
 
         await asyncio.sleep(0.1)
-        history = global_uinputs.get_uinput("mouse").write_history
+        history = self.global_uinputs.get_uinput("mouse").write_history
         self.assertIn(InputEvent.key(BTN_LEFT, 1), history)
         self.assertIn(InputEvent.key(BTN_RIGHT, 1), history)
         self.assertEqual(len(history), 2)
 
         self.handler.reset()
         await asyncio.sleep(0.1)
-        history = global_uinputs.get_uinput("mouse").write_history
+        history = self.global_uinputs.get_uinput("mouse").write_history
         self.assertIn(InputEvent.key(BTN_LEFT, 0), history[-2:])
         self.assertIn(InputEvent.key(BTN_RIGHT, 0), history[-2:])
         self.assertEqual(len(history), 4)
@@ -483,6 +510,8 @@ class TestRelToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         input_combination = InputCombination(
             [InputConfig(type=2, code=0, analog_threshold=10)]
         )
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = RelToBtnHandler(
             input_combination,
             Mapping(
@@ -490,6 +519,7 @@ class TestRelToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
+            self.global_uinputs,
         )
 
 
@@ -499,6 +529,8 @@ class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         input_combination = InputCombination([InputConfig(type=EV_REL, code=REL_X)])
+        self.global_uinputs = GlobalUInputs(UInput)
+        self.global_uinputs.prepare_all()
         self.handler = RelToRelHandler(
             input_combination,
             Mapping(
@@ -508,6 +540,7 @@ class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
                 output_value=20,
                 target_uinput="mouse",
             ),
+            self.global_uinputs,
         )
 
     def test_should_map(self):

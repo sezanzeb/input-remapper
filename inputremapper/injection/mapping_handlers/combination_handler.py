@@ -26,6 +26,7 @@ from evdev.ecodes import EV_ABS, EV_REL
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -55,10 +56,11 @@ class CombinationHandler(MappingHandler):
         combination: InputCombination,
         mapping: Mapping,
         context: Context,
+        global_uinputs: GlobalUInputs,
         **_,
     ) -> None:
         logger.debug(str(mapping))
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
         self._pressed_keys = {}
         self._output_previously_active = False
         self._context = context

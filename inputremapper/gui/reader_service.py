@@ -55,6 +55,7 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     NotifyCallback,
@@ -113,10 +114,11 @@ class ReaderService:
     _maximum_lifetime: int = 60 * 15
     _timeout_tolerance: int = 60
 
-    def __init__(self, groups: _Groups):
+    def __init__(self, groups: _Groups, global_uinputs: GlobalUInputs):
         """Construct the reader-service and initialize its communication pipes."""
         self._start_time = time.time()
         self.groups = groups
+        self.global_uinputs = global_uinputs
         self._results_pipe = Pipe(get_pipe_paths()[0])
         self._commands_pipe = Pipe(get_pipe_paths()[1])
         self._pipe = multiprocessing.Pipe()
@@ -291,7 +293,9 @@ class ReaderService:
                     output_symbol="KEY_A",
                 )
                 handler: MappingHandler = AbsToBtnHandler(
-                    InputCombination([input_config]), mapping
+                    InputCombination([input_config]),
+                    mapping,
+                    self.global_uinputs,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context_dummy.add_handler(input_config, handler)
@@ -303,7 +307,11 @@ class ReaderService:
                     target_uinput="keyboard",
                     output_symbol="KEY_A",
                 )
-                handler = AbsToBtnHandler(InputCombination([input_config]), mapping)
+                handler = AbsToBtnHandler(
+                    InputCombination([input_config]),
+                    mapping,
+                    self.global_uinputs,
+                )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context_dummy.add_handler(input_config, handler)
 
@@ -322,7 +330,11 @@ class ReaderService:
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
-                handler = RelToBtnHandler(InputCombination([input_config]), mapping)
+                handler = RelToBtnHandler(
+                    InputCombination([input_config]),
+                    mapping,
+                    self.global_uinputs,
+                )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context_dummy.add_handler(input_config, handler)
 
@@ -337,7 +349,11 @@ class ReaderService:
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
-                handler = RelToBtnHandler(InputCombination([input_config]), mapping)
+                handler = RelToBtnHandler(
+                    InputCombination([input_config]),
+                    mapping,
+                    self.global_uinputs,
+                )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context_dummy.add_handler(input_config, handler)
 
