@@ -33,6 +33,8 @@ from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.context import Context
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.test_setup import test_setup
 
@@ -40,6 +42,9 @@ from tests.lib.test_setup import test_setup
 @test_setup
 class TestContext(unittest.TestCase):
     def test_callbacks(self):
+        global_uinputs = GlobalUInputs(UInput)
+        mapping_parser = MappingParser(global_uinputs)
+
         preset = Preset()
         cfg = {
             "input_combination": InputCombination.from_tuples((EV_ABS, ABS_X)),
@@ -81,7 +86,7 @@ class TestContext(unittest.TestCase):
             ),
         )
 
-        context = Context(preset, {}, {})
+        context = Context(preset, {}, {}, mapping_parser)
 
         expected_num_callbacks = {
             # ABS_X -> "d" and ABS_X -> wheel have the same type and code

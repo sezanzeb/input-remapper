@@ -51,8 +51,8 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.configs.keyboard_layout import keyboard_layout
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.logging.logger import logger, VERSION
 from inputremapper.user import UserUtils
@@ -66,43 +66,46 @@ class Config(TypedDict):
 
 
 class Migrations:
-    @staticmethod
-    def migrate():
+    def __init__(self, global_uinputs: GlobalUInputs):
+        self.global_uinputs = global_uinputs
+
+    def migrate(self):
         """Migrate config files to the current release."""
 
-        Migrations._rename_to_input_remapper()
+        self._rename_to_input_remapper()
 
-        Migrations._copy_to_v2()
+        self._copy_to_v2()
 
-        v = Migrations.config_version()
+        v = self.config_version()
 
         if v < version.parse("0.4.0"):
-            Migrations._config_suffix()
-            Migrations._preset_path()
+            self._config_suffix()
+            self._preset_path()
 
         if v < version.parse("1.2.2"):
-            Migrations._mapping_keys()
+            self._mapping_keys()
 
         if v < version.parse("1.4.0"):
-            global_uinputs.prepare_all()
-            Migrations._add_target()
+            self.global_uinputs.prepare_all()
+            self._add_target()
 
         if v < version.parse("1.4.1"):
-            Migrations._otherwise_to_else()
+            self._otherwise_to_else()
 
         if v < version.parse("1.5.0"):
-            Migrations._remove_logs()
+            self._remove_logs()
 
         if v < version.parse("1.6.0-beta"):
-            Migrations._convert_to_individual_mappings()
+            self._convert_to_individual_mappings()
 
         # add new migrations here
 
         if v < version.parse(VERSION):
-            Migrations._update_version()
+            self._update_version()
 
-    @staticmethod
-    def all_presets() -> Iterator[Tuple[os.PathLike, Dict | List]]:
+    def all_presets(
+        self,
+    ) -> Iterator[Tuple[os.PathLike, Dict | List]]:
         """Get all presets for all groups as list."""
         if not os.path.exists(PathUtils.get_preset_path()):
             return
@@ -124,8 +127,7 @@ class Migrations:
                     logger.warning('Invalid json format in preset "%s"', preset)
                     continue
 
-    @staticmethod
-    def config_version():
+    def config_version(self):
         """Get the version string in config.json as packaging.Version object."""
         config_path = os.path.join(PathUtils.config_path(), "config.json")
 
@@ -140,8 +142,7 @@ class Migrations:
 
         return version.parse("0.0.0")
 
-    @staticmethod
-    def _config_suffix():
+    def _config_suffix(self):
         """Append the .json suffix to the config file."""
         deprecated_path = os.path.join(PathUtils.config_path(), "config")
         config_path = os.path.join(PathUtils.config_path(), "config.json")
@@ -149,8 +150,7 @@ class Migrations:
             logger.info('Moving "%s" to "%s"', deprecated_path, config_path)
             os.rename(deprecated_path, config_path)
 
-    @staticmethod
-    def _preset_path():
+    def _preset_path(self):
         """Migrate the folder structure from < 0.4.0.
 
         Move existing presets into the new subfolder 'presets'
@@ -173,13 +173,12 @@ class Migrations:
 
         logger.info("done")
 
-    @staticmethod
-    def _mapping_keys():
+    def _mapping_keys(self):
         """Update all preset mappings.
 
         Update all keys in preset to include value e.g.: '1,5'->'1,5,1'
         """
-        for preset, preset_structure in Migrations.all_presets():
+        for preset, preset_structure in self.all_presets():
             if isinstance(preset_structure, list):
                 continue  # the preset must be at least 1.6-beta version
 
@@ -199,8 +198,7 @@ class Migrations:
                     json.dump(preset_structure, file, indent=4)
                     file.write("\n")
 
-    @staticmethod
-    def _update_version():
+    def _update_version(self):
         """Write the current version to the config file."""
         config_file = os.path.join(PathUtils.config_path(), "config.json")
         if not os.path.exists(config_file):
@@ -214,8 +212,7 @@ class Migrations:
             logger.info('Updating version in config to "%s"', VERSION)
             json.dump(config, file, indent=4)
 
-    @staticmethod
-    def _rename_to_input_remapper():
+    def _rename_to_input_remapper(self):
         """Rename .config/key-mapper to .config/input-remapper."""
         old_config_path = os.path.join(UserUtils.home, ".config/key-mapper")
         if not os.path.exists(PathUtils.config_path()) and os.path.exists(
@@ -224,8 +221,7 @@ class Migrations:
             logger.info("Moving %s to %s", old_config_path, PathUtils.config_path())
             shutil.move(old_config_path, PathUtils.config_path())
 
-    @staticmethod
-    def _find_target(symbol):
+    def _find_target(self, symbol):
         """Try to find a uinput with the required capabilities for the symbol."""
         capabilities = {EV_KEY: set(), EV_REL: set()}
 
@@ -234,22 +230,21 @@ class Migrations:
             # capabilities = parse(symbol).get_capabilities()
             return None
 
-        capabilities[EV_KEY] = {system_mapping.get(symbol)}
+        capabilities[EV_KEY] = {keyboard_layout.get(symbol)}
 
         if len(capabilities[EV_REL]) > 0:
             return "mouse"
 
-        for name, uinput in global_uinputs.devices.items():
+        for name, uinput in self.global_uinputs.devices.items():
             if capabilities[EV_KEY].issubset(uinput.capabilities()[EV_KEY]):
                 return name
 
         logger.info('could not find a suitable target UInput for "%s"', symbol)
         return None
 
-    @staticmethod
-    def _add_target():
+    def _add_target(self):
         """Add the target field to each preset mapping."""
-        for preset, preset_structure in Migrations.all_presets():
+        for preset, preset_structure in self.all_presets():
             if isinstance(preset_structure, list):
                 continue
 
@@ -261,7 +256,7 @@ class Migrations:
                 if isinstance(symbol, list):
                     continue
 
-                target = Migrations._find_target(symbol)
+                target = self._find_target(symbol)
                 if target is None:
                     target = "keyboard"
                     symbol = (
@@ -288,10 +283,9 @@ class Migrations:
                 json.dump(preset_structure, file, indent=4)
                 file.write("\n")
 
-    @staticmethod
-    def _otherwise_to_else():
+    def _otherwise_to_else(self):
         """Conditional macros should use an "else" parameter instead of "otherwise"."""
-        for preset, preset_structure in Migrations.all_presets():
+        for preset, preset_structure in self.all_presets():
             if isinstance(preset_structure, list):
                 continue
 
@@ -328,8 +322,9 @@ class Migrations:
                 json.dump(preset_structure, file, indent=4)
                 file.write("\n")
 
-    @staticmethod
-    def _input_combination_from_string(combination_string: str) -> InputCombination:
+    def _input_combination_from_string(
+        self, combination_string: str
+    ) -> InputCombination:
         configs = []
         for event_str in combination_string.split("+"):
             type_, code, analog_threshold = event_str.split(",")
@@ -343,14 +338,15 @@ class Migrations:
 
         return InputCombination(configs)
 
-    @staticmethod
-    def _convert_to_individual_mappings() -> None:
+    def _convert_to_individual_mappings(
+        self,
+    ) -> None:
         """Convert preset.json
         from {key: [symbol, target]}
         to [{input_combination: ..., output_symbol: symbol, ...}]
         """
 
-        for old_preset_path, old_preset in Migrations.all_presets():
+        for old_preset_path, old_preset in self.all_presets():
             if isinstance(old_preset, list):
                 continue
 
@@ -363,9 +359,7 @@ class Migrations:
                         symbol_target,
                     )
                     try:
-                        combination = Migrations._input_combination_from_string(
-                            combination
-                        )
+                        combination = self._input_combination_from_string(combination)
                     except ValueError:
                         logger.error(
                             "unable to migrate mapping with invalid combination %s",
@@ -482,8 +476,7 @@ class Migrations:
 
             migrated_preset.save()
 
-    @staticmethod
-    def _copy_to_v2():
+    def _copy_to_v2(self):
         """Move the beta config to the v2 path, or copy the v1 config to the v2 path."""
         # TODO test
         if os.path.exists(PathUtils.config_path()):
@@ -495,7 +488,7 @@ class Migrations:
         old_path = os.path.join(UserUtils.home, ".config/input-remapper")
         if os.path.exists(os.path.join(old_path, "config.json")):
             # no beta path, only old presets exist. COPY to v2 path, which will then be
-            # migrated by the various migrations.
+            # migrated by the various self.
             logger.debug("copying all from %s to %s", old_path, PathUtils.config_path())
             shutil.copytree(old_path, PathUtils.config_path())
             return
@@ -511,8 +504,7 @@ class Migrations:
             logger.debug("moving %s to %s", beta_path, PathUtils.config_path())
             shutil.move(beta_path, PathUtils.config_path())
 
-    @staticmethod
-    def _remove_logs():
+    def _remove_logs(self):
         """We will try to rely on journalctl for this in the future."""
         try:
             PathUtils.remove(f"{UserUtils.home}/.log/input-remapper")

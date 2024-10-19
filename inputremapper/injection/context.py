@@ -34,7 +34,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     NotifyCallback,
 )
 from inputremapper.injection.mapping_handlers.mapping_parser import (
-    parse_mappings,
+    MappingParser,
     EventPipelines,
 )
 from inputremapper.input_event import InputEvent
@@ -82,6 +82,7 @@ class Context:
         preset: Preset,
         source_devices: Dict[DeviceHash, evdev.InputDevice],
         forward_devices: Dict[DeviceHash, evdev.UInput],
+        mapping_parser: MappingParser,
     ):
         if len(forward_devices) == 0:
             logger.warning("Not forward_devices set")
@@ -93,7 +94,7 @@ class Context:
         self._source_devices = source_devices
         self._forward_devices = forward_devices
         self._notify_callbacks = defaultdict(list)
-        self._handlers = parse_mappings(preset, self)
+        self._handlers = mapping_parser.parse_mappings(preset, self)
 
         self._create_callbacks()
 

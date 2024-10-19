@@ -27,12 +27,16 @@ import unittest
 from importlib.machinery import SourceFileLoader
 from importlib.util import spec_from_loader, module_from_spec
 from unittest.mock import patch
+import re
 
-from inputremapper.configs.global_config import global_config
+from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.configs.migrations import Migrations
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
+from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp
 
@@ -40,7 +44,7 @@ from tests.lib.tmp import tmp
 def import_control():
     """Import the core function of the input-remapper-control command."""
     bin_path = os.path.join(
-        os.getcwd().replace("/tests", ""),
+        re.sub("/tests.*", "", os.getcwd()),
         "bin",
         "input-remapper-control",
     )
@@ -65,7 +69,13 @@ options = collections.namedtuple(
 @test_setup
 class TestControl(unittest.TestCase):
     def setUp(self):
-        self.input_remapper_control = InputRemapperControl()
+        self.global_config = GlobalConfig()
+        self.global_uinputs = GlobalUInputs(FrontendUInput)
+        self.migrations = Migrations(self.global_uinputs)
+        self.mapping_parser = MappingParser(self.global_uinputs)
+        self.input_remapper_control = InputRemapperControl(
+            self.global_config, self.migrations
+        )
 
     def test_autoload(self):
         device_keys = ["Foo Device 2", "Bar Device"]
@@ -81,7 +91,7 @@ class TestControl(unittest.TestCase):
         Preset(paths[1]).save()
         Preset(paths[2]).save()
 
-        daemon = Daemon()
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
 
         self.input_remapper_control.set_daemon(daemon)
 
@@ -101,8 +111,8 @@ class TestControl(unittest.TestCase):
 
         patch.object(daemon, "start_injecting", start_injecting).start()
 
-        global_config.set_autoload_preset(groups_[0].key, presets[0])
-        global_config.set_autoload_preset(groups_[1].key, presets[1])
+        self.global_config.set_autoload_preset(groups_[0].key, presets[0])
+        self.global_config.set_autoload_preset(groups_[1].key, presets[1])
 
         self.input_remapper_control.communicate(
             command="autoload",
@@ -181,7 +191,7 @@ class TestControl(unittest.TestCase):
             daemon.autoload_history.may_autoload(groups_[1].key, presets[1])
         )
         self.assertEqual(stop_counter, 3)
-        global_config.set_autoload_preset(groups_[1].key, presets[2])
+        self.global_config.set_autoload_preset(groups_[1].key, presets[2])
         self.input_remapper_control.communicate(
             command="autoload",
             config_dir=None,
@@ -236,16 +246,16 @@ class TestControl(unittest.TestCase):
         Preset(paths[0]).save()
         Preset(paths[1]).save()
 
-        daemon = Daemon()
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
         self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
         daemon.start_injecting = lambda *args: start_history.append(args)
 
-        global_config.path = os.path.join(config_dir, "config.json")
-        global_config.load_config()
-        global_config.set_autoload_preset(device_names[0], presets[0])
-        global_config.set_autoload_preset(device_names[1], presets[1])
+        self.global_config.path = os.path.join(config_dir, "config.json")
+        self.global_config.load_config()
+        self.global_config.set_autoload_preset(device_names[0], presets[0])
+        self.global_config.set_autoload_preset(device_names[1], presets[1])
 
         self.input_remapper_control.communicate(
             command="autoload",
@@ -262,7 +272,7 @@ class TestControl(unittest.TestCase):
         group = groups.find(key="Foo Device 2")
         preset = "preset9"
 
-        daemon = Daemon()
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
         self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
@@ -306,7 +316,7 @@ class TestControl(unittest.TestCase):
         path = "~/a/preset.json"
         config_dir = "/foo/bar"
 
-        daemon = Daemon()
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
         self.input_remapper_control.set_daemon(daemon)
 
         start_history = []
@@ -335,26 +345,26 @@ class TestControl(unittest.TestCase):
         )
 
     def test_autoload_config_dir(self):
-        daemon = Daemon()
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
 
         path = os.path.join(tmp, "foo")
         os.makedirs(path)
         with open(os.path.join(path, "config.json"), "w") as file:
             file.write('{"foo":"bar"}')
 
-        self.assertIsNone(global_config.get("foo"))
+        self.assertIsNone(self.global_config.get("foo"))
         daemon.set_config_dir(path)
         # since daemon and this test share the same memory, the global_config
         # object that this test can access will be modified
-        self.assertEqual(global_config.get("foo"), "bar")
+        self.assertEqual(self.global_config.get("foo"), "bar")
 
         # passing a path that doesn't exist or a path that doesn't contain
         # a config.json file won't do anything
         os.makedirs(os.path.join(tmp, "bar"))
         daemon.set_config_dir(os.path.join(tmp, "bar"))
-        self.assertEqual(global_config.get("foo"), "bar")
+        self.assertEqual(self.global_config.get("foo"), "bar")
         daemon.set_config_dir(os.path.join(tmp, "qux"))
-        self.assertEqual(global_config.get("foo"), "bar")
+        self.assertEqual(self.global_config.get("foo"), "bar")
 
     def test_internals_reader(self):
         with patch.object(os, "system") as os_system_patch:

@@ -145,9 +145,6 @@ class DebounceManager:
                 logger.error(exception)
 
 
-debounce_manager = DebounceManager()
-
-
 def debounce(timeout):
     """Debounce a method call to improve performance.
 
@@ -175,6 +172,9 @@ def debounce(timeout):
         return wrapped
 
     return decorator
+
+
+debounce_manager = DebounceManager()
 
 
 class HandlerDisabled:

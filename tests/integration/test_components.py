@@ -37,7 +37,7 @@ from tests.lib.spy import spy
 from tests.lib.logger import logger
 
 from inputremapper.gui.controller import Controller
-from inputremapper.configs.system_mapping import XKB_KEYCODE_OFFSET
+from inputremapper.configs.keyboard_layout import XKB_KEYCODE_OFFSET
 from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,

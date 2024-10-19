@@ -25,8 +25,8 @@ from typing import Optional
 
 from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
 from inputremapper.configs.paths import PathUtils
-from inputremapper.user import UserUtils
 from inputremapper.logging.logger import logger
+from inputremapper.user import UserUtils
 
 MOUSE = "mouse"
 WHEEL = "wheel"
@@ -35,7 +35,7 @@ NONE = "none"
 
 
 class GlobalConfig(ConfigBase):
-    """Global default configuration.
+    """Global default configuration, from which all presets inherit.
     It can also contain some extra stuff not relevant for presets, like the
     autoload stuff. If presets have a config key set, it will ignore
     the default global configuration for that one. If none of the configs
@@ -129,7 +129,3 @@ class GlobalConfig(ConfigBase):
             json.dump(self._config, file, indent=4)
             logger.info("Saved config to %s", self.path)
             file.write("\n")
-
-
-# TODO DI
-global_config = GlobalConfig()

@@ -28,6 +28,7 @@ import sys
 from argparse import ArgumentParser
 
 from inputremapper.groups import _Groups
+from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.logging.logger import logger
 
 if __name__ == "__main__":
@@ -57,5 +58,6 @@ if __name__ == "__main__":
 
     atexit.register(on_exit)
     groups = _Groups()
-    reader_service = ReaderService(groups)
+    global_uinputs = GlobalUInputs(FrontendUInput)
+    reader_service = ReaderService(groups, global_uinputs)
     asyncio.run(reader_service.run())
