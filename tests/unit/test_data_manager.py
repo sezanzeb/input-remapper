@@ -352,11 +352,13 @@ class TestDataManager(unittest.TestCase):
 
     def test_delete_preset_sanitized(self):
         """should be able to delete the current preset"""
-        Preset(PathUtils.get_preset_path("Qux/Device?", "bla")).save()
-        Preset(PathUtils.get_preset_path("Qux/Device?", "foo")).save()
-        self.assertTrue(os.path.exists(PathUtils.get_preset_path("Qux/Device?", "bla")))
+        Preset(PathUtils.get_preset_path("Qux/[Device]?", "bla")).save()
+        Preset(PathUtils.get_preset_path("Qux/[Device]?", "foo")).save()
+        self.assertTrue(
+            os.path.exists(PathUtils.get_preset_path("Qux/[Device]?", "bla"))
+        )
 
-        self.data_manager.load_group(group_key="Qux/Device?")
+        self.data_manager.load_group(group_key="Qux/[Device]?")
         self.data_manager.load_preset(name="bla")
         listener = Listener()
         self.message_broker.subscribe(MessageType.group, listener)
@@ -373,7 +375,7 @@ class TestDataManager(unittest.TestCase):
         self.assertEqual(len(listener.calls), 1)
 
         self.assertFalse(
-            os.path.exists(PathUtils.get_preset_path("Qux/Device?", "bla"))
+            os.path.exists(PathUtils.get_preset_path("Qux/[Device]?", "bla"))
         )
 
     def test_load_mapping(self):
@@ -798,12 +800,12 @@ class TestDataManager(unittest.TestCase):
 
         self.assertEqual(self.data_manager.get_newest_preset_name(), "preset 3")
 
-    def test_newest_group_ignores_unknon_groups(self):
+    def test_newest_group_ignores_unknown_groups(self):
         Preset(PathUtils.get_preset_path("Bar Device", "preset 1")).save()
         time.sleep(0.01)
-        Preset(
-            PathUtils.get_preset_path("unknown_group", "preset 2")
-        ).save()  # not a known group
+
+        # not a known group
+        Preset(PathUtils.get_preset_path("unknown_group", "preset 2")).save()
 
         self.assertEqual(self.data_manager.get_newest_group_key(), "Bar Device")
 
@@ -857,18 +859,25 @@ class TestDataManager(unittest.TestCase):
             DataManagementError, self.data_manager.get_available_preset_name
         )
 
+    def test_get_preset_names(self):
+        self.data_manager.load_group("Qux/[Device]?")
+        Preset(PathUtils.get_preset_path("Qux/[Device]?", "new preset")).save()
+        # get_preset_names uses glob, the special characters in the device name
+        # don't break it.
+        self.assertEqual(self.data_manager.get_preset_names(), ("new preset",))
+
     def test_available_preset_name_sanitized(self):
-        self.data_manager.load_group("Qux/Device?")
+        self.data_manager.load_group("Qux/[Device]?")
         self.assertEqual(
             self.data_manager.get_available_preset_name(), DEFAULT_PRESET_NAME
         )
 
-        Preset(PathUtils.get_preset_path("Qux/Device?", DEFAULT_PRESET_NAME)).save()
+        Preset(PathUtils.get_preset_path("Qux/[Device]?", DEFAULT_PRESET_NAME)).save()
         self.assertEqual(
             self.data_manager.get_available_preset_name(), f"{DEFAULT_PRESET_NAME} 2"
         )
 
-        Preset(PathUtils.get_preset_path("Qux/Device?", "foo")).save()
+        Preset(PathUtils.get_preset_path("Qux/[Device]?", "foo")).save()
         self.assertEqual(self.data_manager.get_available_preset_name("foo"), "foo 2")
 
     def test_available_preset_name_increments_default(self):
@@ -906,7 +915,7 @@ class TestDataManager(unittest.TestCase):
                 "Foo Device 2": ["gamepad", "keyboard", "mouse"],
                 "Bar Device": ["keyboard"],
                 "gamepad": ["gamepad"],
-                "Qux/Device?": ["keyboard"],
+                "Qux/[Device]?": ["keyboard"],
             },
         )
 

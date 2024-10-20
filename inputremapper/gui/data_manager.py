@@ -187,7 +187,7 @@ class DataManager:
         device_folder = PathUtils.get_preset_path(self.active_group.name)
         PathUtils.mkdir(device_folder)
 
-        paths = glob.glob(os.path.join(device_folder, "*.json"))
+        paths = glob.glob(os.path.join(glob.escape(device_folder), "*.json"))
         presets = [
             os.path.splitext(os.path.basename(path))[0]
             for path in sorted(paths, key=os.path.getmtime)
@@ -231,7 +231,11 @@ class DataManager:
     def get_newest_group_key(self) -> GroupKey:
         """group_key of the group with the most recently modified preset."""
         paths = []
-        for path in glob.glob(os.path.join(PathUtils.get_preset_path(), "*/*.json")):
+        pattern = os.path.join(
+            glob.escape(PathUtils.get_preset_path()),
+            "*/*.json",
+        )
+        for path in glob.glob(pattern):
             if self._reader_client.groups.find(key=PathUtils.split_all(path)[-2]):
                 paths.append((path, os.path.getmtime(path)))
 
@@ -246,14 +250,11 @@ class DataManager:
         if not self.active_group:
             raise DataManagementError("Cannot find newest preset: Group is not set")
 
-        paths = [
-            (path, os.path.getmtime(path))
-            for path in glob.glob(
-                os.path.join(
-                    PathUtils.get_preset_path(self.active_group.name), "*.json"
-                )
-            )
-        ]
+        pattern = os.path.join(
+            glob.escape(PathUtils.get_preset_path(self.active_group.name)),
+            "*.json",
+        )
+        paths = [(path, os.path.getmtime(path)) for path in glob.glob(pattern)]
         if not paths:
             raise FileNotFoundError()
 
