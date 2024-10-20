@@ -67,7 +67,7 @@ class Pipe:
         PathUtils.mkdir(os.path.dirname(path))
 
         if not os.path.exists(paths[0]):
-            logger.debug('Creating new pipe for "%s"', path)
+            logger.debug("Creating new pipes %s", paths)
             # The fd the link points to is closed, or none ever existed
             # If there is a link, remove it.
             if os.path.islink(paths[0]):
@@ -84,7 +84,7 @@ class Pipe:
             os.symlink(f"{fds_dir}{self._fds[0]}", paths[0])
             os.symlink(f"{fds_dir}{self._fds[1]}", paths[1])
         else:
-            logger.debug('Using existing pipe for "%s"', path)
+            logger.debug("Using existing pipes %s", paths)
 
         # thanks to os.O_NONBLOCK, readline will return b'' when there
         # is nothing to read

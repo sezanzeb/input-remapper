@@ -45,6 +45,7 @@ class PathUtils:
     def chown(path):
         """Set the owner of a path to the user."""
         try:
+            logger.debug('Chown "%s", "%s"', path, UserUtils.user)
             shutil.chown(path, user=UserUtils.user, group=UserUtils.user)
         except LookupError:
             # the users group was unknown in one case for whatever reason
