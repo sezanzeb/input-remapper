@@ -907,9 +907,9 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     json.dumps(
                         {
                             "paths": ["/dev/input/event52"],
-                            "names": ["Qux/Device?"],
+                            "names": ["Qux/[Device]?"],
                             "types": [DeviceType.KEYBOARD],
-                            "key": "Qux/Device?",
+                            "key": "Qux/[Device]?",
                         }
                     ),
                 ]
