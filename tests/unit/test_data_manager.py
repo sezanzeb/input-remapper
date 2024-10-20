@@ -25,12 +25,12 @@ from itertools import permutations
 from typing import List
 from unittest.mock import MagicMock, call
 
-from inputremapper.configs.global_config import global_config
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
@@ -43,7 +43,7 @@ from inputremapper.gui.messages.message_data import (
     CombinationUpdate,
 )
 from inputremapper.gui.reader_client import ReaderClient
-from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from tests.lib.fixtures import prepare_presets
 from tests.lib.patches import FakeDaemonProxy
 from tests.lib.test_setup import test_setup
@@ -62,15 +62,16 @@ class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
         self.reader = ReaderClient(self.message_broker, _Groups())
-        self.uinputs = GlobalUInputs()
+        self.uinputs = GlobalUInputs(FrontendUInput)
         self.uinputs.prepare_all()
+        self.global_config = GlobalConfig()
         self.data_manager = DataManager(
             self.message_broker,
-            global_config,
+            self.global_config,
             self.reader,
             FakeDaemonProxy(),
             self.uinputs,
-            system_mapping,
+            keyboard_layout,
         )
 
     def test_load_group_provides_presets(self):

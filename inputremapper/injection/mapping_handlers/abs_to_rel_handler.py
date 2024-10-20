@@ -41,7 +41,7 @@ from inputremapper.configs.mapping import (
     WHEEL_HI_RES_SCALING,
     DEFAULT_REL_RATE,
 )
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
@@ -134,9 +134,10 @@ class AbsToRelHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ) -> None:
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
 
         # find the input event we are supposed to map
         assert (map_axis := combination.find_analog_input_config(type_=EV_ABS))
@@ -228,7 +229,9 @@ class AbsToRelHandler(MappingHandler):
             return  # rel 0 does not make sense
 
         try:
-            global_uinputs.write((type_, keycode, value), self.mapping.target_uinput)
+            self.global_uinputs.write(
+                (type_, keycode, value), self.mapping.target_uinput
+            )
         except OverflowError:
             # screwed up the calculation of mouse movements
             logger.error("OverflowError (%s, %s, %s)", type_, keycode, value)

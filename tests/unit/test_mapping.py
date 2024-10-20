@@ -37,7 +37,7 @@ except ImportError:
     from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
+from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.gui.messages.message_broker import MessageType
 from tests.lib.test_setup import test_setup
@@ -105,7 +105,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             "output_symbol": "a",
         }
         m = Mapping(**cfg)
-        a = system_mapping.get("a")
+        a = keyboard_layout.get("a")
         self.assertEqual(m.get_output_type_code(), (EV_KEY, a))
 
         m.output_symbol = "key(a)"
@@ -127,7 +127,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             "output_symbol": "\t a \n",
         }
         m = Mapping(**cfg)
-        a = system_mapping.get("a")
+        a = keyboard_layout.get("a")
         self.assertEqual(m.get_output_type_code(), (EV_KEY, a))
 
     def test_combination_changed_callback(self):
@@ -191,7 +191,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         Mapping(**cfg)
 
         # matching type, code and symbol
-        a = system_mapping.get("a")
+        a = keyboard_layout.get("a")
         cfg["output_code"] = a
         cfg["output_symbol"] = "a"
         cfg["output_type"] = EV_KEY

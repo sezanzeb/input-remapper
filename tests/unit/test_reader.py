@@ -52,6 +52,7 @@ from inputremapper.gui.messages.message_data import CombinationRecorded
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService, ContextDummy
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
 from inputremapper.input_event import InputEvent
 from tests.lib.constants import (
     EVENT_READ_TIMEOUT,
@@ -109,7 +110,9 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
         if not groups:
             groups = self.groups
 
-        self.reader_service = ReaderService(groups)
+        global_uinputs = GlobalUInputs(UInput)
+        assert groups is not None
+        self.reader_service = ReaderService(groups, global_uinputs)
         asyncio.ensure_future(self.reader_service.run())
 
     async def test_should_forward_to_dummy(self):
@@ -164,6 +167,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.reader_service_process = None
         self.groups = _Groups()
         self.message_broker = MessageBroker()
+        self.global_uinputs = GlobalUInputs(UInput)
         self.reader_client = ReaderClient(self.message_broker, self.groups)
 
     def tearDown(self):
@@ -182,10 +186,13 @@ class TestReaderMultiprocessing(unittest.TestCase):
             groups = self.groups
 
         def start_reader_service():
-            reader_service = ReaderService(groups)
-            # this is a new process, so create a new event loop, or something
+            # this is a new process, so create a new event loop, and all dependencies
+            # from scratch, or something
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+            global_uinputs = GlobalUInputs(FrontendUInput)
+            global_uinputs.reset()
+            reader_service = ReaderService(groups, global_uinputs)
             loop.run_until_complete(reader_service.run())
 
         self.reader_service_process = multiprocessing.Process(

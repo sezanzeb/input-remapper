@@ -30,7 +30,7 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import SystemMapping
+from inputremapper.configs.keyboard_layout import KeyboardLayout
 from inputremapper.daemon import DaemonProxy
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Group
@@ -73,13 +73,13 @@ class DataManager:
         reader_client: ReaderClient,
         daemon: DaemonProxy,
         uinputs: GlobalUInputs,
-        system_mapping: SystemMapping,
+        keyboard_layout: KeyboardLayout,
     ):
         self.message_broker = message_broker
         self._reader_client = reader_client
         self._daemon = daemon
         self._uinputs = uinputs
-        self._system_mapping = system_mapping
+        self._keyboard_layout = keyboard_layout
         uinputs.prepare_all()
 
         self._config = config
@@ -455,7 +455,7 @@ class DataManager:
             raise DataManagementError("Cannot modify Mapping: Mapping is not set")
 
         if symbol := kwargs.get("output_symbol"):
-            kwargs["output_symbol"] = self._system_mapping.correct_case(symbol)
+            kwargs["output_symbol"] = self._keyboard_layout.correct_case(symbol)
 
         combination = self.active_mapping.input_combination
         for key, value in kwargs.items():
