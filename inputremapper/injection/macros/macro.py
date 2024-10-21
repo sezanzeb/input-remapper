@@ -541,22 +541,22 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_wait(self, time: Union[str, int, float], max_time=None):
+    def add_wait(self, time: Union[str, float, int], max_time=None):
         """Wait time in milliseconds."""
-        time = _type_check(time, [int, float], "wait", 1)
-        max_time = _type_check(max_time, [int, float, None], "wait", 2)
+        time = _type_check(time, [float, int], "wait", 1)
+        max_time = _type_check(max_time, [float, int, None], "wait", 2)
 
         async def task(_):
-            resolved_min_time = _resolve(time, [int, float])
-            resolved_max_time = _resolve(max_time, [int, float])
+            resolved_min_time = _resolve(time, [float, int])
+            resolved_max_time = _resolve(max_time, [float, int])
 
             if resolved_max_time is not None and resolved_max_time > resolved_min_time:
-                logger.debug('Wait time is between "%f" and "%f"ms', resolved_min_time, resolved_max_time)
                 variabletime = random.uniform(resolved_min_time, resolved_max_time)
+                logger.debug('Wait time %f <= [%f] <= %fms', resolved_min_time, variabletime, resolved_max_time)
             else:
                 variabletime = resolved_min_time
+                logger.debug('Wait time used is %fms', variabletime)
 
-            logger.debug('Wait time used is "%f"ms', variabletime)
 
             await asyncio.sleep(variabletime / 1000)
 
