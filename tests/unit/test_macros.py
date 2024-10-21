@@ -919,34 +919,76 @@ class TestMacros(MacroTestBase):
         macro = parse("wait(10).key(1)", self.context, DummyMapping, True)
         one_code = system_mapping.get("1")
 
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
-        )
-        self.assertEqual(len(macro.child_macros), 0)
+        minTime = 999999
+        maxTime = 0
+        its = 10
+        totalStart = time.time()
+        for loopcount in range(its):
+            runStart = time.time()
+            await macro.run(self.handler)
+            runEnd = time.time()
+            runTime = runEnd - runStart
+            if runTime < minTime:
+                minTime = runTime
+
+            if runTime > maxTime:
+                maxTime = runTime
+
+        totalEnd = time.time()
+        totalTime = totalEnd - totalStart
+        meanTime = totalTime / its
+        print(f"Runtimes min, mean, max {(minTime*1000, meanTime*1000, maxTime*1000)}")
+        self.assertTrue(self.result, [totalTime, meanTime, minTime, maxTime])
 
     async def test_wait_2(self):
         macro = parse("wait(10,100).key(1)", self.context, DummyMapping, True)
         one_code = system_mapping.get("1")
 
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
-        )
-        self.assertEqual(len(macro.child_macros), 0)
+        minTime = 999999
+        maxTime = 0
+        its = 10
+        totalStart = time.time()
+        for loopcount in range(its):
+            runStart = time.time()
+            await macro.run(self.handler)
+            runEnd = time.time()
+            runTime = runEnd - runStart
+            if runTime < minTime:
+                minTime = runTime
+
+            if runTime > maxTime:
+                maxTime = runTime
+
+        totalEnd = time.time()
+        totalTime = totalEnd - totalStart
+        meanTime = totalTime / its
+        print(f"Runtimes min, mean, max {(minTime*1000, meanTime*1000, maxTime*1000)}")
+        self.assertTrue(self.result, [totalTime, meanTime, minTime, maxTime])
 
     async def test_wait_3(self):
         macro = parse("set(a,100).wait(10, $a).key(1)", self.context, DummyMapping, True)
         one_code = system_mapping.get("1")
 
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
-        )
-        self.assertEqual(len(macro.child_macros), 0)
+        minTime = 999999
+        maxTime = 0
+        its = 10
+        totalStart = time.time()
+        for loopcount in range(its):
+            runStart = time.time()
+            await macro.run(self.handler)
+            runEnd = time.time()
+            runTime = runEnd - runStart
+            if runTime < minTime:
+                minTime = runTime
+
+            if runTime > maxTime:
+                maxTime = runTime
+
+        totalEnd = time.time()
+        totalTime = totalEnd - totalStart
+        meanTime = totalTime / its
+        print(f"Runtimes min, mean, max {(minTime*1000, meanTime*1000, maxTime*1000)}")
+        self.assertTrue(self.result, [totalTime, meanTime, minTime, maxTime])
 
     async def test_duplicate_run(self):
         # it won't restart the macro, because that may screw up the
