@@ -69,7 +69,6 @@ class KeyHandler(MappingHandler):
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
         """Inject event.value to the target key."""
-
         event_tuple = (*self._maps_to, event.value)
         try:
             self.global_uinputs.write(event_tuple, self.mapping.target_uinput)
