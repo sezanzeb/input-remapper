@@ -41,7 +41,16 @@ from inputremapper.logging.logger import logger
 # log level is applied before anything is logged
 
 
-class Commands(Enum):
+class MetaEnum(EnumMeta):
+    def __contains__(cls, item):
+        try:
+            cls(item)
+        except ValueError:
+            return False
+        return True    
+
+
+class Commands(Enum, metaclass=MetaEnum):
     AUTOLOAD = "autoload"
     START = "start"
     STOP = "stop"
@@ -49,7 +58,7 @@ class Commands(Enum):
     HELLO = "hello"
 
 
-class Internals(Enum):
+class Internals(Enum, metaclass=MetaEnum):
     # internal stuff that the gui uses
     START_DAEMON = "start-daemon"
     START_READER_SERVICE = "start-reader-service"
