@@ -26,7 +26,7 @@ import logging
 import os
 import subprocess
 import sys
-from enum import Enum
+from enum import Enum, EnumMeta
 from typing import Union, Optional
 
 from inputremapper.configs.global_config import GlobalConfig
