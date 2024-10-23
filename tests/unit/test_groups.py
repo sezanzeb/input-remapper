@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,18 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import fixtures, keyboard_keys
-
+import json
 import os
 import unittest
-import json
 
 import evdev
 from evdev.ecodes import EV_KEY, KEY_A
 
-from inputremapper.configs.paths import CONFIG_PATH
+from inputremapper.configs.paths import PathUtils
 from inputremapper.groups import (
     _FindGroups,
     groups,
@@ -37,6 +33,8 @@ from inputremapper.groups import (
     DeviceType,
     _Group,
 )
+from tests.lib.fixtures import fixtures, keyboard_keys
+from tests.lib.test_setup import test_setup
 
 
 class FakePipe:
@@ -46,10 +44,8 @@ class FakePipe:
         self.groups = groups
 
 
+@test_setup
 class TestGroups(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
     def test_group(self):
         group = _Group(
             paths=["/dev/a", "/dev/b", "/dev/c"],
@@ -61,7 +57,12 @@ class TestGroups(unittest.TestCase):
         self.assertEqual(group.key, "key")
         self.assertEqual(
             group.get_preset_path("preset1234"),
-            os.path.join(CONFIG_PATH, "presets", group.name, "preset1234.json"),
+            os.path.join(
+                PathUtils.config_path(),
+                "presets",
+                group.name,
+                "preset1234.json",
+            ),
         )
 
     def test_find_groups(self):
@@ -134,9 +135,9 @@ class TestGroups(unittest.TestCase):
                     json.dumps(
                         {
                             "paths": ["/dev/input/event52"],
-                            "names": ["Qux/Device?"],
+                            "names": ["Qux/[Device]?"],
                             "types": [DeviceType.KEYBOARD],
-                            "key": "Qux/Device?",
+                            "key": "Qux/[Device]?",
                         }
                     ),
                 ]
@@ -156,7 +157,7 @@ class TestGroups(unittest.TestCase):
                 "Foo Device",
                 "Bar Device",
                 "gamepad",
-                "Qux/Device?",
+                "Qux/[Device]?",
             ],
         )
 

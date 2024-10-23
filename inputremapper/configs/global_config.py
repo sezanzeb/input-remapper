@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -24,8 +24,9 @@ import os
 from typing import Optional
 
 from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
-from inputremapper.configs.paths import CONFIG_PATH, USER, touch
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logging.logger import logger
+from inputremapper.user import UserUtils
 
 MOUSE = "mouse"
 WHEEL = "wheel"
@@ -34,7 +35,7 @@ NONE = "none"
 
 
 class GlobalConfig(ConfigBase):
-    """Global default configuration.
+    """Global default configuration, from which all presets inherit.
     It can also contain some extra stuff not relevant for presets, like the
     autoload stuff. If presets have a config key set, it will ignore
     the default global configuration for that one. If none of the configs
@@ -42,7 +43,7 @@ class GlobalConfig(ConfigBase):
     """
 
     def __init__(self):
-        self.path = os.path.join(CONFIG_PATH, "config.json")
+        self.path = os.path.join(PathUtils.config_path(), "config.json")
         super().__init__()
 
     def get_dir(self) -> str:
@@ -118,16 +119,13 @@ class GlobalConfig(ConfigBase):
 
     def _save_config(self):
         """Save the config to the file system."""
-        if USER == "root":
+        if UserUtils.user == "root":
             logger.debug("Skipping config file creation for the root user")
             return
 
-        touch(self.path)
+        PathUtils.touch(self.path)
 
         with open(self.path, "w") as file:
             json.dump(self._config, file, indent=4)
             logger.info("Saved config to %s", self.path)
             file.write("\n")
-
-
-global_config = GlobalConfig()

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 from typing import Tuple
 
 import evdev
@@ -25,6 +24,7 @@ from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -44,9 +44,10 @@ class AbsToBtnHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ):
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
 
         self._active = False
         self._input_config = combination[0]

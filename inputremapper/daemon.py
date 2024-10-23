@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -35,18 +35,21 @@ from typing import Protocol, Dict, Optional
 import gi
 from pydbus import SystemBus
 
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
+
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
-from inputremapper.logger import logger, is_debug
+from inputremapper.logging.logger import logger
 from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.groups import groups
-from inputremapper.configs.paths import get_config_path, sanitize_path_component, USER
+from inputremapper.configs.paths import PathUtils
+from inputremapper.user import UserUtils
 from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 
 
 BUS_NAME = "inputremapper.Control"
@@ -183,15 +186,25 @@ class Daemon:
         </node>
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        global_config: GlobalConfig,
+        global_uinputs: GlobalUInputs,
+        mapping_parser: MappingParser,
+    ):
         """Constructs the daemon."""
         logger.debug("Creating daemon")
+
+        self.global_config = global_config
+        self.global_uinputs = global_uinputs
+        self.mapping_parser = mapping_parser
+
         self.injectors: Dict[str, Injector] = {}
 
         self.config_dir = None
 
-        if USER != "root":
-            self.set_config_dir(get_config_path())
+        if UserUtils.home != "root":
+            self.set_config_dir(PathUtils.get_config_path())
 
         # check privileges
         if os.getuid() != 0:
@@ -227,7 +240,7 @@ class Daemon:
             # Blocks until pkexec is done asking for the password.
             # Runs via input-remapper-control so that auth_admin_keep works
             # for all pkexec calls of the gui
-            debug = " -d" if is_debug() else ""
+            debug = " -d" if logger.is_debug() else ""
             cmd = f"pkexec input-remapper-control --command start-daemon {debug}"
 
             # using pkexec will also cause the service to continue running in
@@ -251,10 +264,10 @@ class Daemon:
                 logger.error("Failed to connect to the service")
                 sys.exit(8)
 
-        if USER != "root":
-            config_path = get_config_path()
+        if UserUtils.home != "root":
+            config_path = PathUtils.get_config_path()
             logger.debug('Telling service about "%s"', config_path)
-            interface.set_config_dir(get_config_path(), timeout=2)
+            interface.set_config_dir(PathUtils.get_config_path(), timeout=2)
 
         return interface
 
@@ -332,7 +345,7 @@ class Daemon:
             return
 
         self.config_dir = config_dir
-        global_config.load_config(config_path)
+        self.global_config.load_config(str(config_path))
 
     def _autoload(self, group_key: str):
         """Check if autoloading is a good idea, and if so do it.
@@ -350,7 +363,7 @@ class Daemon:
             # either not relevant for input-remapper, or not connected yet
             return
 
-        preset = global_config.get(["autoload", group.key], log_unknown=False)
+        preset = self.global_config.get(["autoload", group.key], log_unknown=False)
 
         if preset is None:
             # no autoloading is configured for this device
@@ -414,7 +427,7 @@ class Daemon:
             )
             return
 
-        autoload_presets = list(global_config.iterate_autoload_presets())
+        autoload_presets = list(self.global_config.iterate_autoload_presets())
 
         logger.info("Autoloading for all devices")
 
@@ -458,7 +471,7 @@ class Daemon:
         preset_path = PurePath(
             self.config_dir,
             "presets",
-            sanitize_path_component(group.name),
+            PathUtils.sanitize_path_component(group.name),
             f"{preset_name}.json",
         )
 
@@ -474,13 +487,13 @@ class Daemon:
                 xmodmap = json.load(file)
                 logger.debug('Using keycodes from "%s"', xmodmap_path)
 
-                # this creates the system_mapping._xmodmap, which we need to do now
+                # this creates the keyboard_layout._xmodmap, which we need to do now
                 # otherwise it might be created later which will override the changes
                 # we do here.
-                # Do we really need to lazyload in the system_mapping?
+                # Do we really need to lazyload in the keyboard_layout?
                 # this kind of bug is stupid to track down
-                system_mapping.get_name(0)
-                system_mapping.update(xmodmap)
+                keyboard_layout.get_name(0)
+                keyboard_layout.update(xmodmap)
                 # the service now has process wide knowledge of xmodmap
                 # keys of the users session
         except FileNotFoundError:
@@ -499,13 +512,13 @@ class Daemon:
             # confusing the system. Seems to be especially important with
             # gamepads, because some apps treat the first gamepad they found
             # as the only gamepad they'll ever care about.
-            global_uinputs.prepare_single(mapping.target_uinput)
+            self.global_uinputs.prepare_single(mapping.target_uinput)
 
         if self.injectors.get(group_key) is not None:
             self.stop_injecting(group_key)
 
         try:
-            injector = Injector(group, preset)
+            injector = Injector(group, preset, self.mapping_parser)
             injector.start()
             self.injectors[group.key] = injector
         except OSError:

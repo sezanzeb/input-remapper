@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -23,19 +23,18 @@ import re
 import time
 from typing import Optional, List, Tuple, Set
 
-import gi
 from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
-from inputremapper.configs.mapping import UIMapping, MappingData
-from inputremapper.configs.paths import get_preset_path, mkdir, split_all
-from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import SystemMapping
-from inputremapper.daemon import DaemonProxy
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import UIMapping, MappingData
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.keyboard_layout import KeyboardLayout
+from inputremapper.daemon import DaemonProxy
 from inputremapper.exceptions import DataManagementError
-from inputremapper.gui.gettext import _
 from inputremapper.groups import _Group
+from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
 )
@@ -51,7 +50,7 @@ from inputremapper.injection.injector import (
     InjectorState,
     InjectorStateMessage,
 )
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 DEFAULT_PRESET_NAME = _("new preset")
 
@@ -74,13 +73,13 @@ class DataManager:
         reader_client: ReaderClient,
         daemon: DaemonProxy,
         uinputs: GlobalUInputs,
-        system_mapping: SystemMapping,
+        keyboard_layout: KeyboardLayout,
     ):
         self.message_broker = message_broker
         self._reader_client = reader_client
         self._daemon = daemon
         self._uinputs = uinputs
-        self._system_mapping = system_mapping
+        self._keyboard_layout = keyboard_layout
         uinputs.prepare_all()
 
         self._config = config
@@ -185,10 +184,10 @@ class DataManager:
         """Get all preset names for active_group and current user sorted by age."""
         if not self.active_group:
             raise DataManagementError("Cannot find presets: Group is not set")
-        device_folder = get_preset_path(self.active_group.name)
-        mkdir(device_folder)
+        device_folder = PathUtils.get_preset_path(self.active_group.name)
+        PathUtils.mkdir(device_folder)
 
-        paths = glob.glob(os.path.join(device_folder, "*.json"))
+        paths = glob.glob(os.path.join(glob.escape(device_folder), "*.json"))
         presets = [
             os.path.splitext(os.path.basename(path))[0]
             for path in sorted(paths, key=os.path.getmtime)
@@ -232,27 +231,30 @@ class DataManager:
     def get_newest_group_key(self) -> GroupKey:
         """group_key of the group with the most recently modified preset."""
         paths = []
-        for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
-            if self._reader_client.groups.find(key=split_all(path)[-2]):
+        pattern = os.path.join(
+            glob.escape(PathUtils.get_preset_path()),
+            "*/*.json",
+        )
+        for path in glob.glob(pattern):
+            if self._reader_client.groups.find(key=PathUtils.split_all(path)[-2]):
                 paths.append((path, os.path.getmtime(path)))
 
         if not paths:
             raise FileNotFoundError()
 
         path, _ = max(paths, key=lambda x: x[1])
-        return split_all(path)[-2]
+        return PathUtils.split_all(path)[-2]
 
     def get_newest_preset_name(self) -> Name:
         """Preset name of the most recently modified preset in the active group."""
         if not self.active_group:
             raise DataManagementError("Cannot find newest preset: Group is not set")
 
-        paths = [
-            (path, os.path.getmtime(path))
-            for path in glob.glob(
-                os.path.join(get_preset_path(self.active_group.name), "*.json")
-            )
-        ]
+        pattern = os.path.join(
+            glob.escape(PathUtils.get_preset_path(self.active_group.name)),
+            "*.json",
+        )
+        paths = [(path, os.path.getmtime(path)) for path in glob.glob(pattern)]
         if not paths:
             raise FileNotFoundError()
 
@@ -267,7 +269,7 @@ class DataManager:
         name = name.strip()
 
         # find a name that is not already taken
-        if os.path.exists(get_preset_path(self.active_group.name, name)):
+        if os.path.exists(PathUtils.get_preset_path(self.active_group.name, name)):
             # if there already is a trailing number, increment it instead of
             # adding another one
             match = re.match(r"^(.+) (\d+)$", name)
@@ -278,7 +280,7 @@ class DataManager:
                 i = 2
 
             while os.path.exists(
-                get_preset_path(self.active_group.name, f"{name} {i}")
+                PathUtils.get_preset_path(self.active_group.name, f"{name} {i}")
             ):
                 i += 1
 
@@ -314,7 +316,7 @@ class DataManager:
 
         logger.info('Loading preset "%s"', name)
 
-        preset_path = get_preset_path(self.active_group.name, name)
+        preset_path = PathUtils.get_preset_path(self.active_group.name, name)
         preset = Preset(preset_path, mapping_factory=UIMapping)
         preset.load()
         self._active_input_config = None
@@ -363,13 +365,15 @@ class DataManager:
         if not self.active_preset or not self.active_group:
             raise DataManagementError("Unable rename preset: Preset is not set")
 
-        if self.active_preset.path == get_preset_path(self.active_group.name, new_name):
+        if self.active_preset.path == PathUtils.get_preset_path(
+            self.active_group.name, new_name
+        ):
             return
 
         old_path = self.active_preset.path
         assert old_path is not None
         old_name = os.path.basename(old_path).split(".")[0]
-        new_path = get_preset_path(self.active_group.name, new_name)
+        new_path = PathUtils.get_preset_path(self.active_group.name, new_name)
         if os.path.exists(new_path):
             raise ValueError(
                 f"cannot rename {old_name} to " f"{new_name}, preset already exists"
@@ -383,7 +387,9 @@ class DataManager:
         if self._config.is_autoloaded(self.active_group.key, old_name):
             self._config.set_autoload_preset(self.active_group.key, new_name)
 
-        self.active_preset.path = get_preset_path(self.active_group.name, new_name)
+        self.active_preset.path = PathUtils.get_preset_path(
+            self.active_group.name, new_name
+        )
         self.publish_group()
         self.publish_preset()
 
@@ -396,13 +402,15 @@ class DataManager:
         if not self.active_preset or not self.active_group:
             raise DataManagementError("Unable to copy preset: Preset is not set")
 
-        if self.active_preset.path == get_preset_path(self.active_group.name, name):
+        if self.active_preset.path == PathUtils.get_preset_path(
+            self.active_group.name, name
+        ):
             return
 
         if name in self.get_preset_names():
             raise ValueError(f"a preset with the name {name} already exits")
 
-        new_path = get_preset_path(self.active_group.name, name)
+        new_path = PathUtils.get_preset_path(self.active_group.name, name)
         logger.info('Copy "%s" to "%s"', self.active_preset.path, new_path)
         self.active_preset.path = new_path
         self.save()
@@ -417,7 +425,7 @@ class DataManager:
         if not self.active_group:
             raise DataManagementError("Unable to add preset. Group is not set")
 
-        path = get_preset_path(self.active_group.name, name)
+        path = PathUtils.get_preset_path(self.active_group.name, name)
         if os.path.exists(path):
             raise DataManagementError("Unable to add preset. Preset exists")
 
@@ -447,7 +455,7 @@ class DataManager:
             raise DataManagementError("Cannot modify Mapping: Mapping is not set")
 
         if symbol := kwargs.get("output_symbol"):
-            kwargs["output_symbol"] = self._system_mapping.correct_case(symbol)
+            kwargs["output_symbol"] = self._keyboard_layout.correct_case(symbol)
 
         combination = self.active_mapping.input_combination
         for key, value in kwargs.items():

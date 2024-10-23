@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,18 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import sys
 from unittest.mock import patch
 
-from inputremapper.injection.global_uinputs import global_uinputs
 
-
-def reset_global_uinputs_for_service():
-    with patch.object(sys, "argv", ["input-remapper-service"]):
-        # patch argv for global_uinputs to think it is a service
-        global_uinputs.reset()
-
-
-def reset_global_uinputs_for_gui():
-    with patch.object(sys, "argv", ["input-remapper-gtk"]):
-        global_uinputs.reset()
+def spy(obj, name):
+    """Convenient wrapper for patch.object(..., ..., wraps=...)."""
+    return patch.object(obj, name, wraps=obj.__getattribute__(name))

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -68,8 +68,9 @@ import evdev
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.exceptions import MappingParsingError
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.input_event import InputEvent
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 
 class EventListener(Protocol):
@@ -154,6 +155,7 @@ class MappingHandler:
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ) -> None:
         """Initialize the handler
@@ -167,6 +169,7 @@ class MappingHandler:
         self.mapping = mapping
         self.input_configs = list(combination)
         self._sub_handler = None
+        self.global_uinputs = global_uinputs
 
     def notify(
         self,

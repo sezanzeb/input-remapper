@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -19,17 +19,17 @@
 
 from typing import Tuple, Dict
 
-from inputremapper.configs.input_config import InputCombination
 from inputremapper import exceptions
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
 from inputremapper.exceptions import MappingParsingError
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,
 )
 from inputremapper.input_event import InputEvent
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
 
@@ -43,9 +43,10 @@ class KeyHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ):
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
         maps_to = mapping.get_output_type_code()
         if not maps_to:
             raise MappingParsingError(
@@ -71,7 +72,7 @@ class KeyHandler(MappingHandler):
 
         event_tuple = (*self._maps_to, event.value)
         try:
-            global_uinputs.write(event_tuple, self.mapping.target_uinput)
+            self.global_uinputs.write(event_tuple, self.mapping.target_uinput)
             self._active = bool(event.value)
             return True
         except exceptions.Error:
@@ -81,7 +82,7 @@ class KeyHandler(MappingHandler):
         logger.debug("resetting key_handler")
         if self._active:
             event_tuple = (*self._maps_to, 0)
-            global_uinputs.write(event_tuple, self.mapping.target_uinput)
+            self.global_uinputs.write(event_tuple, self.mapping.target_uinput)
             self._active = False
 
     def needs_wrapping(self) -> bool:

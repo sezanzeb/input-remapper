@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,8 +17,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.input_event import InputEvent
-from tests.lib.cleanup import quick_cleanup
+
+import unittest
+
 from evdev.ecodes import (
     EV_REL,
     EV_ABS,
@@ -27,20 +28,23 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
     REL_HWHEEL_HI_RES,
 )
-import unittest
 
-from inputremapper.injection.context import Context
-from inputremapper.configs.preset import Preset
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.input_config import InputConfig, InputCombination
+from inputremapper.configs.preset import Preset
+from inputremapper.injection.context import Context
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
+from inputremapper.input_event import InputEvent
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestContext(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        quick_cleanup()
-
     def test_callbacks(self):
+        global_uinputs = GlobalUInputs(UInput)
+        mapping_parser = MappingParser(global_uinputs)
+
         preset = Preset()
         cfg = {
             "input_combination": InputCombination.from_tuples((EV_ABS, ABS_X)),
@@ -82,7 +86,7 @@ class TestContext(unittest.TestCase):
             ),
         )
 
-        context = Context(preset, {}, {})
+        context = Context(preset, {}, {}, mapping_parser)
 
         expected_num_callbacks = {
             # ABS_X -> "d" and ABS_X -> wheel have the same type and code

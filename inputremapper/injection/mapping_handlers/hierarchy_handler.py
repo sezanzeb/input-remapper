@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -16,12 +16,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from typing import List, Dict
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -40,14 +42,17 @@ class HierarchyHandler(MappingHandler):
     _input_config: InputConfig
 
     def __init__(
-        self, handlers: List[MappingHandler], input_config: InputConfig
+        self,
+        handlers: List[MappingHandler],
+        input_config: InputConfig,
+        global_uinputs: GlobalUInputs,
     ) -> None:
         self.handlers = handlers
         self._input_config = input_config
         combination = InputCombination([input_config])
         # use the mapping from the first child TODO: find a better solution
         mapping = handlers[0].mapping
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
 
     def __str__(self):
         return f"HierarchyHandler for {self._input_config}"

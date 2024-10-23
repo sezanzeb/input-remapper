@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,29 +17,29 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.input_event import InputEvent
-from tests.lib.cleanup import cleanup
 
 import sys
 import unittest
-import evdev
-
 from unittest.mock import patch
+
+import evdev
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
     KEY_A,
     ABS_X,
 )
 
+from inputremapper.exceptions import EventNotHandled, UinputNotAvailable
 from inputremapper.injection.global_uinputs import (
-    global_uinputs,
     FrontendUInput,
     GlobalUInputs,
+    UInput,
 )
-from inputremapper.exceptions import EventNotHandled, UinputNotAvailable
+from inputremapper.input_event import InputEvent
+from tests.lib.cleanup import cleanup
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestFrontendUinput(unittest.TestCase):
     def setUp(self) -> None:
         cleanup()
@@ -57,11 +57,13 @@ class TestFrontendUinput(unittest.TestCase):
         self.assertEqual(uinput_custom.capabilities(), capabilities)
 
 
-class TestGlobalUinputs(unittest.TestCase):
+@test_setup
+class TestGlobalUInputs(unittest.TestCase):
     def setUp(self) -> None:
         cleanup()
 
     def test_iter(self):
+        global_uinputs = GlobalUInputs(FrontendUInput)
         for uinput in global_uinputs:
             self.assertIsInstance(uinput, evdev.UInput)
 
@@ -70,6 +72,9 @@ class TestGlobalUinputs(unittest.TestCase):
 
         implicitly tests get_uinput and UInput.can_emit
         """
+        global_uinputs = GlobalUInputs(UInput)
+        global_uinputs.prepare_all()
+
         ev_1 = InputEvent.key(KEY_A, 1)
         ev_2 = InputEvent.abs(ABS_X, 10)
 
@@ -85,9 +90,13 @@ class TestGlobalUinputs(unittest.TestCase):
             global_uinputs.write(ev_1.event_tuple, "foo")
 
     def test_creates_frontend_uinputs(self):
-        frontend_uinputs = GlobalUInputs()
-        with patch.object(sys, "argv", ["foo"]):
-            frontend_uinputs.prepare_all()
-
+        frontend_uinputs = GlobalUInputs(FrontendUInput)
+        frontend_uinputs.prepare_all()
         uinput = frontend_uinputs.get_uinput("keyboard")
         self.assertIsInstance(uinput, FrontendUInput)
+
+    def test_creates_backend_service_uinputs(self):
+        frontend_uinputs = GlobalUInputs(UInput)
+        frontend_uinputs.prepare_all()
+        uinput = frontend_uinputs.get_uinput("keyboard")
+        self.assertIsInstance(uinput, UInput)

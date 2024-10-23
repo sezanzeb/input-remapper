@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -29,15 +29,15 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper import exceptions
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     Mapping,
     REL_XY_SCALING,
     WHEEL_SCALING,
     WHEEL_HI_RES_SCALING,
 )
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
@@ -45,7 +45,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     InputEventHandler,
 )
 from inputremapper.input_event import InputEvent
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 
 def is_wheel(event) -> bool:
@@ -91,9 +91,10 @@ class RelToRelHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ) -> None:
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
 
         assert self.mapping.output_code is not None
 
@@ -256,7 +257,7 @@ class RelToRelHandler(MappingHandler):
         if value == 0:
             return
 
-        global_uinputs.write(
+        self.global_uinputs.write(
             (EV_REL, code, value),
             self.mapping.target_uinput,
         )

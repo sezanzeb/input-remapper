@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -25,12 +25,13 @@ from evdev.ecodes import EV_REL
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 
 class RelToBtnHandler(MappingHandler):
@@ -49,9 +50,10 @@ class RelToBtnHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ) -> None:
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
 
         self._active = False
         self._input_config = combination[0]

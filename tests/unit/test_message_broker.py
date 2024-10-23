@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,6 +22,7 @@ import unittest
 from dataclasses import dataclass
 
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType, Signal
+from tests.lib.test_setup import test_setup
 
 
 class Listener:
@@ -38,6 +39,7 @@ class Message:
     msg: str
 
 
+@test_setup
 class TestMessageBroker(unittest.TestCase):
     def test_calls_listeners(self):
         """The correct Listeners get called"""
@@ -99,6 +101,7 @@ class TestMessageBroker(unittest.TestCase):
         self.assertEqual([4, 4, 4], calls[3:])
 
 
+@test_setup
 class TestSignal(unittest.TestCase):
     def test_eq(self):
         self.assertEqual(Signal(MessageType.uinputs), Signal(MessageType.uinputs))

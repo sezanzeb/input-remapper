@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -25,8 +25,8 @@ from typing import Optional, List, Iterable, Tuple
 
 import evdev
 
-from inputremapper.configs.paths import get_config_path, touch
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logging.logger import logger
 from inputremapper.utils import is_service
 
 DISABLE_NAME = "disable"
@@ -41,7 +41,7 @@ XMODMAP_FILENAME = "xmodmap.json"
 LAZY_LOAD = None
 
 
-class SystemMapping:
+class KeyboardLayout:
     """Stores information about all available keycodes."""
 
     _mapping: Optional[dict] = LAZY_LOAD
@@ -49,7 +49,7 @@ class SystemMapping:
     _case_insensitive_mapping: Optional[dict] = LAZY_LOAD
 
     def __getattribute__(self, wanted: str):
-        """To lazy load system_mapping info only when needed.
+        """To lazy load keyboard_layout info only when needed.
 
         For example, this helps to keep logs of input-remapper-control clear when it
         doesn't need it the information.
@@ -108,8 +108,8 @@ class SystemMapping:
 
         # Write this stuff into the input-remapper config directory, because
         # the systemd service won't know the user sessions xmodmap.
-        path = get_config_path(XMODMAP_FILENAME)
-        touch(path)
+        path = PathUtils.get_config_path(XMODMAP_FILENAME)
+        PathUtils.touch(path)
         with open(path, "w") as file:
             logger.debug('Writing "%s"', path)
             json.dump(xmodmap_dict, file, indent=4)
@@ -160,7 +160,7 @@ class SystemMapping:
 
     def get(self, name: str) -> int:
         """Return the code mapped to the key."""
-        # the correct casing should be shown when asking the system_mapping
+        # the correct casing should be shown when asking the keyboard_layout
         # for stuff. indexing case insensitive to support old presets.
         if name not in self._mapping:
             # only if not e.g. both "a" and "A" are in the mapping
@@ -214,5 +214,6 @@ class SystemMapping:
         return xmodmap_dict
 
 
+# TODO DI
 # this mapping represents the xmodmap output, which stays constant
-system_mapping = SystemMapping()
+keyboard_layout = KeyboardLayout()

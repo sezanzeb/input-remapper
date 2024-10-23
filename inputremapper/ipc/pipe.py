@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -41,8 +41,8 @@ import os
 import time
 from typing import Optional, AsyncIterator, Union
 
-from inputremapper.configs.paths import mkdir, chown
-from inputremapper.logger import logger
+from inputremapper.configs.paths import PathUtils
+from inputremapper.logging.logger import logger
 
 
 class Pipe:
@@ -64,10 +64,10 @@ class Pipe:
 
         paths = (f"{path}r", f"{path}w")
 
-        mkdir(os.path.dirname(path))
+        PathUtils.mkdir(os.path.dirname(path))
 
         if not os.path.exists(paths[0]):
-            logger.debug('Creating new pipe for "%s"', path)
+            logger.debug("Creating new pipes %s", paths)
             # The fd the link points to is closed, or none ever existed
             # If there is a link, remove it.
             if os.path.islink(paths[0]):
@@ -77,14 +77,14 @@ class Pipe:
 
             self._fds = os.pipe()
             fds_dir = f"/proc/{os.getpid()}/fd/"
-            chown(f"{fds_dir}{self._fds[0]}")
-            chown(f"{fds_dir}{self._fds[1]}")
+            PathUtils.chown(f"{fds_dir}{self._fds[0]}")
+            PathUtils.chown(f"{fds_dir}{self._fds[1]}")
 
             # to make it accessible by path constants, create symlinks
             os.symlink(f"{fds_dir}{self._fds[0]}", paths[0])
             os.symlink(f"{fds_dir}{self._fds[1]}", paths[1])
         else:
-            logger.debug('Using existing pipe for "%s"', path)
+            logger.debug("Using existing pipes %s", paths)
 
         # thanks to os.O_NONBLOCK, readline will return b'' when there
         # is nothing to read

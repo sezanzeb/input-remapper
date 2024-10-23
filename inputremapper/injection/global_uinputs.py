@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,13 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Union, Tuple, Optional, List
+from typing import Dict, Union, Tuple, Optional, List, Type
 
 import evdev
 
 import inputremapper.exceptions
 import inputremapper.utils
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 MIN_ABS = -(2**15)  # -32768
 MAX_ABS = 2**15  # 32768
@@ -59,43 +59,31 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
 }
 
 
-def can_default_uinput_emit(target: str, type_: int, code: int) -> bool:
-    """Check if the uinput with the target name is capable of the event."""
-    capabilities = DEFAULT_UINPUTS.get(target, {}).get(type_)
-    return capabilities is not None and code in capabilities
-
-
-def find_fitting_default_uinputs(type_: int, code: int) -> List[str]:
-    """Find the names of default uinputs that are able to emit this event."""
-    return [
-        uinput
-        for uinput in DEFAULT_UINPUTS
-        if code in DEFAULT_UINPUTS[uinput].get(type_, [])
-    ]
-
-
 class UInput(evdev.UInput):
+    _capabilities_cache: Optional[Dict] = None
+
     def __init__(self, *args, **kwargs):
         name = kwargs["name"]
         logger.debug('creating UInput device: "%s"', name)
         super().__init__(*args, **kwargs)
-
-        # this will never change, so we cache it since evdev runs an expensive loop to
-        # gather the capabilities. (can_emit is called regularly)
-        self._capabilities_cache = self.capabilities(absinfo=False)
 
     def can_emit(self, event: Tuple[int, int, int]):
         """Check if an event can be emitted by the UIinput.
 
         Wrong events might be injected if the group mappings are wrong,
         """
+        # this will never change, so we cache it since evdev runs an expensive loop to
+        # gather the capabilities. (can_emit is called regularly)
+        if self._capabilities_cache is None:
+            self._capabilities_cache = self.capabilities(absinfo=False)
+
         return event[1] in self._capabilities_cache.get(event[0], [])
 
 
 class FrontendUInput:
     """Uinput which can not actually send events, for use in the frontend."""
 
-    def __init__(self, *args, events=None, name="py-evdev-uinput", **kwargs):
+    def __init__(self, *_, events=None, name="py-evdev-uinput", **__):
         # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput  # noqa pylint: disable=line-too-long
         self.events = events
         self.name = name
@@ -109,36 +97,37 @@ class FrontendUInput:
 class GlobalUInputs:
     """Manages all UInputs that are shared between all injection processes."""
 
-    def __init__(self):
+    def __init__(
+        self,
+        uinput_factory: Union[Type[UInput], Type[FrontendUInput]],
+    ):
         self.devices: Dict[str, Union[UInput, FrontendUInput]] = {}
-        self._uinput_factory = None
-        self.is_service = inputremapper.utils.is_service()
+        self._uinput_factory = uinput_factory
 
     def __iter__(self):
         return iter(uinput for _, uinput in self.devices.items())
 
+    @staticmethod
+    def can_default_uinput_emit(target: str, type_: int, code: int) -> bool:
+        """Check if the uinput with the target name is capable of the event."""
+        capabilities = DEFAULT_UINPUTS.get(target, {}).get(type_)
+        return capabilities is not None and code in capabilities
+
+    @staticmethod
+    def find_fitting_default_uinputs(type_: int, code: int) -> List[str]:
+        """Find the names of default uinputs that are able to emit this event."""
+        return [
+            uinput
+            for uinput in DEFAULT_UINPUTS
+            if code in DEFAULT_UINPUTS[uinput].get(type_, [])
+        ]
+
     def reset(self):
-        self.is_service = inputremapper.utils.is_service()
-        self._uinput_factory = None
         self.devices = {}
         self.prepare_all()
 
-    def ensure_uinput_factory_set(self):
-        if self._uinput_factory is not None:
-            return
-
-        # overwrite global_uinputs.is_service in tests to control this
-        if self.is_service:
-            logger.debug("Creating regular UInputs")
-            self._uinput_factory = UInput
-        else:
-            logger.debug("Creating FrontendUInputs")
-            self._uinput_factory = FrontendUInput
-
     def prepare_all(self):
         """Generate UInputs."""
-        self.ensure_uinput_factory_set()
-
         for name, events in DEFAULT_UINPUTS.items():
             if name in self.devices.keys():
                 continue
@@ -154,8 +143,6 @@ class GlobalUInputs:
 
         This has to be done in the main process before injections that use it start.
         """
-        self.ensure_uinput_factory_set()
-
         if name not in DEFAULT_UINPUTS:
             raise KeyError("Could not find a matching uinput to generate.")
 
@@ -200,6 +187,3 @@ class GlobalUInputs:
             return None
 
         return self.devices.get(name)
-
-
-global_uinputs = GlobalUInputs()

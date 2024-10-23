@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -41,7 +41,7 @@ from inputremapper.configs.mapping import (
     WHEEL_HI_RES_SCALING,
     DEFAULT_REL_RATE,
 )
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
@@ -49,7 +49,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
 
@@ -134,9 +134,10 @@ class AbsToRelHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        global_uinputs: GlobalUInputs,
         **_,
     ) -> None:
-        super().__init__(combination, mapping)
+        super().__init__(combination, mapping, global_uinputs)
 
         # find the input event we are supposed to map
         assert (map_axis := combination.find_analog_input_config(type_=EV_ABS))
@@ -228,7 +229,9 @@ class AbsToRelHandler(MappingHandler):
             return  # rel 0 does not make sense
 
         try:
-            global_uinputs.write((type_, keycode, value), self.mapping.target_uinput)
+            self.global_uinputs.write(
+                (type_, keycode, value), self.mapping.target_uinput
+            )
         except OverflowError:
             # screwed up the calculation of mouse movements
             logger.error("OverflowError (%s, %s, %s)", type_, keycode, value)

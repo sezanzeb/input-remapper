@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -28,17 +28,17 @@ from typing import List, Dict, Set, Hashable
 import evdev
 
 from inputremapper.configs.input_config import DeviceHash
-from inputremapper.input_event import InputEvent
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
     NotifyCallback,
 )
 from inputremapper.injection.mapping_handlers.mapping_parser import (
-    parse_mappings,
+    MappingParser,
     EventPipelines,
 )
-from inputremapper.logger import logger
+from inputremapper.input_event import InputEvent
+from inputremapper.logging.logger import logger
 
 
 class Context:
@@ -82,6 +82,7 @@ class Context:
         preset: Preset,
         source_devices: Dict[DeviceHash, evdev.InputDevice],
         forward_devices: Dict[DeviceHash, evdev.UInput],
+        mapping_parser: MappingParser,
     ):
         if len(forward_devices) == 0:
             logger.warning("Not forward_devices set")
@@ -93,7 +94,7 @@ class Context:
         self._source_devices = source_devices
         self._forward_devices = forward_devices
         self._notify_callbacks = defaultdict(list)
-        self._handlers = parse_mappings(preset, self)
+        self._handlers = mapping_parser.parse_mappings(preset, self)
 
         self._create_callbacks()
 

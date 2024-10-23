@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,12 +22,16 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import time
 from hashlib import md5
 from typing import Dict, Optional
-import time
 
 import evdev
 
+from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.preset import Preset
 from tests.lib.logger import logger
 
 # input-remapper is only interested in devices that have EV_KEY, add some
@@ -209,7 +213,7 @@ class _Fixtures:
         capabilities={evdev.ecodes.EV_KEY: keyboard_keys},
         phys="usb-0000:03:00.0-3/input1",
         info=evdev.device.DeviceInfo(2, 1, 2, 1),
-        name="Qux/Device?",
+        name="Qux/[Device]?",
         path="/dev/input/event52",
     )
 
@@ -347,13 +351,7 @@ def prepare_presets():
     """prepare a few presets for use in tests
     "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
     """
-    from inputremapper.configs.preset import Preset
-    from inputremapper.configs.mapping import Mapping
-    from inputremapper.configs.paths import get_config_path, get_preset_path
-    from inputremapper.configs.global_config import global_config
-    from inputremapper.configs.input_config import InputCombination
-
-    preset1 = Preset(get_preset_path("Foo Device", "preset1"))
+    preset1 = Preset(PathUtils.get_preset_path("Foo Device", "preset1"))
     preset1.add(
         Mapping.from_combination(
             InputCombination.from_tuples((1, 1)),
@@ -364,7 +362,7 @@ def prepare_presets():
     preset1.save()
 
     time.sleep(0.1)
-    preset2 = Preset(get_preset_path("Foo Device", "preset2"))
+    preset2 = Preset(PathUtils.get_preset_path("Foo Device", "preset2"))
     preset2.add(Mapping.from_combination(InputCombination.from_tuples((1, 3))))
     preset2.add(Mapping.from_combination(InputCombination.from_tuples((1, 4))))
     preset2.save()
@@ -372,13 +370,11 @@ def prepare_presets():
     # make sure the timestamp of preset 3 is the newest,
     # so that it will be automatically loaded by the GUI
     time.sleep(0.1)
-    preset3 = Preset(get_preset_path("Foo Device", "preset3"))
+    preset3 = Preset(PathUtils.get_preset_path("Foo Device", "preset3"))
     preset3.add(Mapping.from_combination(InputCombination.from_tuples((1, 5))))
     preset3.save()
 
-    with open(get_config_path("config.json"), "w") as file:
+    with open(PathUtils.get_config_path("config.json"), "w") as file:
         json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
-
-    global_config.load_config()
 
     return preset1, preset2, preset3

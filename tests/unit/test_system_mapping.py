@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -26,28 +26,26 @@ from unittest.mock import patch
 
 from evdev.ecodes import BTN_LEFT, KEY_A
 
-from inputremapper.configs.paths import CONFIG_PATH
-from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
-from tests.lib.cleanup import quick_cleanup
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.keyboard_layout import KeyboardLayout, XMODMAP_FILENAME
+from tests.lib.test_setup import test_setup
 
 
+@test_setup
 class TestSystemMapping(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
     def test_update(self):
-        system_mapping = SystemMapping()
-        system_mapping.update({"foo1": 101, "bar1": 102})
-        system_mapping.update({"foo2": 201, "bar2": 202})
-        self.assertEqual(system_mapping.get("foo1"), 101)
-        self.assertEqual(system_mapping.get("bar2"), 202)
+        keyboard_layout = KeyboardLayout()
+        keyboard_layout.update({"foo1": 101, "bar1": 102})
+        keyboard_layout.update({"foo2": 201, "bar2": 202})
+        self.assertEqual(keyboard_layout.get("foo1"), 101)
+        self.assertEqual(keyboard_layout.get("bar2"), 202)
 
     def test_xmodmap_file(self):
-        system_mapping = SystemMapping()
-        path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+        keyboard_layout = KeyboardLayout()
+        path = os.path.join(PathUtils.config_path(), XMODMAP_FILENAME)
         os.remove(path)
 
-        system_mapping.populate()
+        keyboard_layout.populate()
         self.assertTrue(os.path.exists(path))
         with open(path, "r") as file:
             content = json.load(file)
@@ -69,11 +67,11 @@ class TestSystemMapping(unittest.TestCase):
             return SubprocessMock()
 
         with patch.object(subprocess, "check_output", check_output):
-            system_mapping = SystemMapping()
-            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+            keyboard_layout = KeyboardLayout()
+            path = os.path.join(PathUtils.config_path(), XMODMAP_FILENAME)
             os.remove(path)
 
-            system_mapping.populate()
+            keyboard_layout.populate()
             self.assertFalse(os.path.exists(path))
 
     def test_xmodmap_command_missing(self):
@@ -82,61 +80,61 @@ class TestSystemMapping(unittest.TestCase):
             raise FileNotFoundError
 
         with patch.object(subprocess, "check_output", check_output):
-            system_mapping = SystemMapping()
-            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+            keyboard_layout = KeyboardLayout()
+            path = os.path.join(PathUtils.config_path(), XMODMAP_FILENAME)
             os.remove(path)
 
-            system_mapping.populate()
+            keyboard_layout.populate()
             self.assertFalse(os.path.exists(path))
 
     def test_correct_case(self):
-        system_mapping = SystemMapping()
-        system_mapping.clear()
-        system_mapping._set("A", 31)
-        system_mapping._set("a", 32)
-        system_mapping._set("abcd_B", 33)
+        keyboard_layout = KeyboardLayout()
+        keyboard_layout.clear()
+        keyboard_layout._set("A", 31)
+        keyboard_layout._set("a", 32)
+        keyboard_layout._set("abcd_B", 33)
 
-        self.assertEqual(system_mapping.correct_case("a"), "a")
-        self.assertEqual(system_mapping.correct_case("A"), "A")
-        self.assertEqual(system_mapping.correct_case("ABCD_b"), "abcd_B")
+        self.assertEqual(keyboard_layout.correct_case("a"), "a")
+        self.assertEqual(keyboard_layout.correct_case("A"), "A")
+        self.assertEqual(keyboard_layout.correct_case("ABCD_b"), "abcd_B")
         # unknown stuff is returned as is
-        self.assertEqual(system_mapping.correct_case("FOo"), "FOo")
+        self.assertEqual(keyboard_layout.correct_case("FOo"), "FOo")
 
-        self.assertEqual(system_mapping.get("A"), 31)
-        self.assertEqual(system_mapping.get("a"), 32)
-        self.assertEqual(system_mapping.get("ABCD_b"), 33)
-        self.assertEqual(system_mapping.get("abcd_B"), 33)
+        self.assertEqual(keyboard_layout.get("A"), 31)
+        self.assertEqual(keyboard_layout.get("a"), 32)
+        self.assertEqual(keyboard_layout.get("ABCD_b"), 33)
+        self.assertEqual(keyboard_layout.get("abcd_B"), 33)
 
-    def test_system_mapping(self):
-        system_mapping = SystemMapping()
-        system_mapping.populate()
-        self.assertGreater(len(system_mapping._mapping), 100)
+    def test_keyboard_layout(self):
+        keyboard_layout = KeyboardLayout()
+        keyboard_layout.populate()
+        self.assertGreater(len(keyboard_layout._mapping), 100)
 
         # this is case-insensitive
-        self.assertEqual(system_mapping.get("1"), 2)
-        self.assertEqual(system_mapping.get("KeY_1"), 2)
+        self.assertEqual(keyboard_layout.get("1"), 2)
+        self.assertEqual(keyboard_layout.get("KeY_1"), 2)
 
-        self.assertEqual(system_mapping.get("AlT_L"), 56)
-        self.assertEqual(system_mapping.get("KEy_LEFtALT"), 56)
+        self.assertEqual(keyboard_layout.get("AlT_L"), 56)
+        self.assertEqual(keyboard_layout.get("KEy_LEFtALT"), 56)
 
-        self.assertEqual(system_mapping.get("kEY_LeFTSHIFT"), 42)
-        self.assertEqual(system_mapping.get("ShiFt_L"), 42)
+        self.assertEqual(keyboard_layout.get("kEY_LeFTSHIFT"), 42)
+        self.assertEqual(keyboard_layout.get("ShiFt_L"), 42)
 
-        self.assertEqual(system_mapping.get("BTN_left"), 272)
+        self.assertEqual(keyboard_layout.get("BTN_left"), 272)
 
-        self.assertIsNotNone(system_mapping.get("KEY_KP4"))
-        self.assertEqual(system_mapping.get("KP_Left"), system_mapping.get("KEY_KP4"))
+        self.assertIsNotNone(keyboard_layout.get("KEY_KP4"))
+        self.assertEqual(keyboard_layout.get("KP_Left"), keyboard_layout.get("KEY_KP4"))
 
         # this only lists the correct casing,
         # includes linux constants and xmodmap symbols
-        names = system_mapping.list_names()
+        names = keyboard_layout.list_names()
         self.assertIn("2", names)
         self.assertIn("c", names)
         self.assertIn("KEY_3", names)
         self.assertNotIn("key_3", names)
         self.assertIn("KP_Down", names)
         self.assertNotIn("kp_down", names)
-        names = system_mapping._mapping.keys()
+        names = keyboard_layout._mapping.keys()
         self.assertIn("F4", names)
         self.assertNotIn("f4", names)
         self.assertIn("BTN_RIGHT", names)
@@ -145,22 +143,22 @@ class TestSystemMapping(unittest.TestCase):
         self.assertIn("KP_Home", names)
         self.assertNotIn("kp_home", names)
 
-        self.assertEqual(system_mapping.get("disable"), -1)
+        self.assertEqual(keyboard_layout.get("disable"), -1)
 
     def test_get_name_no_xmodmap(self):
         # if xmodmap is not installed, uses the linux constant names
-        system_mapping = SystemMapping()
+        keyboard_layout = KeyboardLayout()
 
         def check_output(*args, **kwargs):
             raise FileNotFoundError
 
         with patch.object(subprocess, "check_output", check_output):
-            system_mapping.populate()
-            self.assertEqual(system_mapping.get_name(KEY_A), "KEY_A")
+            keyboard_layout.populate()
+            self.assertEqual(keyboard_layout.get_name(KEY_A), "KEY_A")
 
             # testing for BTN_LEFT is especially important, because
             # `evdev.ecodes.BTN.get(code)` returns an array of ['BTN_LEFT', 'BTN_MOUSE']
-            self.assertEqual(system_mapping.get_name(BTN_LEFT), "BTN_LEFT")
+            self.assertEqual(keyboard_layout.get_name(BTN_LEFT), "BTN_LEFT")
 
 
 if __name__ == "__main__":

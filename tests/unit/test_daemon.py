@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,80 +17,71 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from evdev._ecodes import EV_ABS
 
-from inputremapper.input_event import InputEvent
-from tests.test import is_service_running
-from tests.lib.logger import logger
-from tests.lib.cleanup import cleanup
-from tests.lib.fixtures import Fixture
-from tests.lib.pipes import push_events, uinput_write_history_pipe
-from tests.lib.tmp import tmp
-from tests.lib.fixtures import fixtures
-
-import os
-import unittest
-import time
-import subprocess
 import json
+import os
+import time
+import unittest
+from unittest.mock import patch, MagicMock
 
 import evdev
+from evdev._ecodes import EV_ABS
 from evdev.ecodes import EV_KEY, KEY_B, KEY_A, ABS_X, BTN_A, BTN_B
 from pydbus import SystemBus
 
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.global_config import global_config
-from inputremapper.groups import groups
-from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.injection.injector import InjectorState
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.daemon import Daemon
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.groups import groups
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.injector import InjectorState
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
+from inputremapper.input_event import InputEvent
+from tests.lib.cleanup import cleanup
+from tests.lib.fixtures import Fixture
+from tests.lib.fixtures import fixtures
+from tests.lib.logger import logger
+from tests.lib.pipes import push_events, uinput_write_history_pipe
+from tests.lib.test_setup import test_setup, is_service_running
+from tests.lib.tmp import tmp
 
 
-check_output = subprocess.check_output
-os_system = os.system
-dbus_get = type(SystemBus()).get
-
-
+@test_setup
 class TestDaemon(unittest.TestCase):
     new_fixture_path = "/dev/input/event9876"
 
     def setUp(self):
-        self.grab = evdev.InputDevice.grab
         self.daemon = None
-        mkdir(get_config_path())
-        global_config._save_config()
+        self.global_config = GlobalConfig()
+        self.global_uinputs = GlobalUInputs(UInput)
+        PathUtils.mkdir(PathUtils.get_config_path())
+        self.global_config._save_config()
+        self.mapping_parser = MappingParser(self.global_uinputs)
 
         # the daemon should be able to create them on demand:
-        global_uinputs.devices = {}
-        global_uinputs.is_service = True
+        self.global_uinputs.devices = {}
+        self.global_uinputs.is_service = True
 
     def tearDown(self):
         # avoid race conditions with other tests, daemon may run processes
         if self.daemon is not None:
             self.daemon.stop_all()
             self.daemon = None
-        evdev.InputDevice.grab = self.grab
-
-        subprocess.check_output = check_output
-        os.system = os_system
-        type(SystemBus()).get = dbus_get
 
         cleanup()
 
-    def test_connect(self):
-        os_system_history = []
-        os.system = os_system_history.append
-
+    @patch.object(os, "system")
+    def test_connect(self, os_system_mock: MagicMock):
         self.assertFalse(is_service_running())
 
         # no daemon runs, should try to run it via pkexec instead.
         # It fails due to the patch on os.system and therefore exits the process
         self.assertRaises(SystemExit, Daemon.connect)
-        self.assertEqual(len(os_system_history), 1)
+        os_system_mock.assert_called_once()
         self.assertIsNone(Daemon.connect(False))
 
         # make the connect command work this time by acting like a connection is
@@ -99,21 +90,23 @@ class TestDaemon(unittest.TestCase):
         set_config_dir_callcount = 0
 
         class FakeConnection:
-            def set_config_dir(self, *args, **kwargs):
+            def set_config_dir(self, *_, **__):
                 nonlocal set_config_dir_callcount
                 set_config_dir_callcount += 1
 
-        type(SystemBus()).get = lambda *args, **kwargs: FakeConnection()
-        self.assertIsInstance(Daemon.connect(), FakeConnection)
-        self.assertEqual(set_config_dir_callcount, 1)
+        system_bus = SystemBus()
+        with patch.object(type(system_bus), "get") as get_mock:
+            get_mock.return_value = FakeConnection()
+            self.assertIsInstance(Daemon.connect(), FakeConnection)
+            self.assertEqual(set_config_dir_callcount, 1)
 
-        self.assertIsInstance(Daemon.connect(False), FakeConnection)
-        self.assertEqual(set_config_dir_callcount, 2)
+            self.assertIsInstance(Daemon.connect(False), FakeConnection)
+            self.assertEqual(set_config_dir_callcount, 2)
 
     def test_daemon(self):
         # remove the existing system mapping to force our own into it
-        if os.path.exists(get_config_path("xmodmap.json")):
-            os.remove(get_config_path("xmodmap.json"))
+        if os.path.exists(PathUtils.get_config_path("xmodmap.json")):
+            os.remove(PathUtils.get_config_path("xmodmap.json"))
 
         preset_name = "foo"
 
@@ -142,7 +135,7 @@ class TestDaemon(unittest.TestCase):
             )
         )
         preset.save()
-        global_config.set_autoload_preset(group.key, preset_name)
+        self.global_config.set_autoload_preset(group.key, preset_name)
 
         """Injection 1"""
 
@@ -152,19 +145,23 @@ class TestDaemon(unittest.TestCase):
             [InputEvent.key(BTN_B, 1, fixtures.gamepad.get_device_hash())],
         )
 
-        self.daemon = Daemon()
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
 
         self.assertFalse(uinput_write_history_pipe[0].poll())
 
         # has been cleanedUp in setUp
-        self.assertNotIn("keyboard", global_uinputs.devices)
+        self.assertNotIn("keyboard", self.global_uinputs.devices)
 
         logger.info(f"start injector for {group.key}")
         self.daemon.start_injecting(group.key, preset_name)
 
         # created on demand
-        self.assertIn("keyboard", global_uinputs.devices)
-        self.assertNotIn("gamepad", global_uinputs.devices)
+        self.assertIn("keyboard", self.global_uinputs.devices)
+        self.assertNotIn("gamepad", self.global_uinputs.devices)
 
         self.assertEqual(self.daemon.get_state(group.key), InjectorState.STARTING)
         self.assertEqual(self.daemon.get_state(group2.key), InjectorState.UNKNOWN)
@@ -210,19 +207,23 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_config_dir(self):
-        global_config.set("foo", "bar")
-        self.assertEqual(global_config.get("foo"), "bar")
+        self.global_config.set("foo", "bar")
+        self.assertEqual(self.global_config.get("foo"), "bar")
 
         # freshly loads the config and therefore removes the previosly added key.
         # This is important so that if the service is started via sudo or pkexec
         # it knows where to look for configuration files.
-        self.daemon = Daemon()
-        self.assertEqual(self.daemon.config_dir, get_config_path())
-        self.assertIsNone(global_config.get("foo"))
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
+        self.assertEqual(self.daemon.config_dir, PathUtils.get_config_path())
+        self.assertIsNone(self.global_config.get("foo"))
 
     def test_refresh_on_start(self):
-        if os.path.exists(get_config_path("xmodmap.json")):
-            os.remove(get_config_path("xmodmap.json"))
+        if os.path.exists(PathUtils.get_config_path("xmodmap.json")):
+            os.remove(PathUtils.get_config_path("xmodmap.json"))
 
         preset_name = "foo"
         key_code = 9
@@ -235,10 +236,10 @@ class TestDaemon(unittest.TestCase):
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(group)
 
-        system_mapping.clear()
-        system_mapping._set("a", KEY_A)
+        keyboard_layout.clear()
+        keyboard_layout._set("a", KEY_A)
 
-        preset = Preset(get_preset_path(group_name, preset_name))
+        preset = Preset(PathUtils.get_preset_path(group_name, preset_name))
         preset.add(
             Mapping.from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=key_code)]),
@@ -248,13 +249,17 @@ class TestDaemon(unittest.TestCase):
         )
 
         # make the daemon load the file instead
-        with open(get_config_path("xmodmap.json"), "w") as file:
-            json.dump(system_mapping._mapping, file, indent=4)
-        system_mapping.clear()
+        with open(PathUtils.get_config_path("xmodmap.json"), "w") as file:
+            json.dump(keyboard_layout._mapping, file, indent=4)
+        keyboard_layout.clear()
 
         preset.save()
-        global_config.set_autoload_preset(group_key, preset_name)
-        self.daemon = Daemon()
+        self.global_config.set_autoload_preset(group_key, preset_name)
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
 
         # make sure the devices are populated
         groups.refresh()
@@ -291,7 +296,11 @@ class TestDaemon(unittest.TestCase):
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(groups.find(name=device_9876))
 
-        self.daemon = Daemon()
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
 
         # make sure the devices are populated
         groups.refresh()
@@ -337,7 +346,7 @@ class TestDaemon(unittest.TestCase):
         )
         preset.save()
 
-        system_mapping.clear()
+        keyboard_layout.clear()
 
         push_events(
             fixtures.bar_device,
@@ -353,8 +362,8 @@ class TestDaemon(unittest.TestCase):
         # an existing config file is needed otherwise set_config_dir refuses
         # to use the directory
         config_path = os.path.join(config_dir, "config.json")
-        global_config.path = config_path
-        global_config._save_config()
+        self.global_config.path = config_path
+        self.global_config._save_config()
 
         # finally, create the xmodmap file
         xmodmap_path = os.path.join(config_dir, "xmodmap.json")
@@ -363,7 +372,11 @@ class TestDaemon(unittest.TestCase):
 
         # test setup complete
 
-        self.daemon = Daemon()
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
         self.daemon.set_config_dir(config_dir)
 
         self.daemon.start_injecting(group.key, preset_name)
@@ -377,11 +390,15 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_start_stop(self):
-        group_key = "Qux/Device?"
+        group_key = "Qux/[Device]?"
         group = groups.find(key=group_key)
         preset_name = "preset8"
 
-        daemon = Daemon()
+        daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
         self.daemon = daemon
 
         pereset = Preset(group.get_preset_path(preset_name))
@@ -446,10 +463,10 @@ class TestDaemon(unittest.TestCase):
 
     def test_autoload(self):
         preset_name = "preset7"
-        group_key = "Qux/Device?"
+        group_key = "Qux/[Device]?"
         group = groups.find(key=group_key)
 
-        daemon = Daemon()
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
         self.daemon = daemon
 
         preset = Preset(group.get_preset_path(preset_name))
@@ -467,13 +484,14 @@ class TestDaemon(unittest.TestCase):
         self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
         self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
 
-        global_config.set_autoload_preset(group_key, preset_name)
+        self.global_config.set_autoload_preset(group_key, preset_name)
         len_before = len(self.daemon.autoload_history._autoload_history)
         # now autoloading is configured, so it will autoload
         self.daemon._autoload(group_key)
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(
-            daemon.autoload_history._autoload_history[group_key][1], preset_name
+            daemon.autoload_history._autoload_history[group_key][1],
+            preset_name,
         )
         self.assertFalse(daemon.autoload_history.may_autoload(group_key, preset_name))
         injector = daemon.injectors[group_key]
@@ -482,7 +500,8 @@ class TestDaemon(unittest.TestCase):
         # calling duplicate get_autoload does nothing
         self.daemon._autoload(group_key)
         self.assertEqual(
-            daemon.autoload_history._autoload_history[group_key][1], preset_name
+            daemon.autoload_history._autoload_history[group_key][1],
+            preset_name,
         )
         self.assertEqual(injector, daemon.injectors[group_key])
         self.assertFalse(daemon.autoload_history.may_autoload(group_key, preset_name))
@@ -504,7 +523,11 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(len_before, len_after)
 
     def test_autoload_2(self):
-        self.daemon = Daemon()
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
         history = self.daemon.autoload_history._autoload_history
 
         # existing device
@@ -519,10 +542,10 @@ class TestDaemon(unittest.TestCase):
             )
         )
         preset.save()
-        global_config.set_autoload_preset(group.key, preset_name)
+        self.global_config.set_autoload_preset(group.key, preset_name)
 
         # ignored, won't cause problems:
-        global_config.set_autoload_preset("non-existant-key", "foo")
+        self.global_config.set_autoload_preset("non-existant-key", "foo")
 
         self.daemon.autoload()
         self.assertEqual(len(history), 1)
@@ -543,9 +566,13 @@ class TestDaemon(unittest.TestCase):
         )
         preset.save()
 
-        global_config.set_autoload_preset(group.key, preset_name)
+        self.global_config.set_autoload_preset(group.key, preset_name)
 
-        self.daemon = Daemon()
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
         groups.set_groups([])  # caused the bug
         self.assertIsNone(groups.find(key="Foo Device 2"))
         self.daemon.autoload()

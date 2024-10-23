@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,26 +21,30 @@
 
 """Starts the root reader-service."""
 import asyncio
-import os
-import sys
 import atexit
+import os
 import signal
+import sys
 from argparse import ArgumentParser
 
-from inputremapper.logger import update_verbosity
 from inputremapper.groups import _Groups
+from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
+from inputremapper.logging.logger import logger
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        '-d', '--debug', action='store_true', dest='debug',
-        help='Displays additional debug information', default=False
+        "-d",
+        "--debug",
+        action="store_true",
+        dest="debug",
+        help="Displays additional debug information",
+        default=False,
     )
 
     options = parser.parse_args(sys.argv[1:])
 
-    update_verbosity(options.debug)
+    logger.update_verbosity(options.debug)
 
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.gui.reader_service import ReaderService
@@ -54,5 +58,6 @@ if __name__ == '__main__':
 
     atexit.register(on_exit)
     groups = _Groups()
-    reader_service = ReaderService(groups)
+    global_uinputs = GlobalUInputs(FrontendUInput)
+    reader_service = ReaderService(groups, global_uinputs)
     asyncio.run(reader_service.run())

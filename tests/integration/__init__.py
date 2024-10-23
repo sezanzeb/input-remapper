@@ -1,6 +1,5 @@
 """Tests that require a linux desktop environment to be running."""
 
-import tests.test
 import gi
 
 gi.require_version("Gdk", "3.0")

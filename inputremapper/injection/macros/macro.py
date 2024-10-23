@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -55,14 +55,14 @@ from evdev.ecodes import (
     REL_HWHEEL,
 )
 
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.validation_errors import (
     SymbolNotAvailableInTargetError,
     MacroParsingError,
 )
-from inputremapper.injection.global_uinputs import can_default_uinput_emit
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.ipc.shared_dict import SharedDict
-from inputremapper.logger import logger
+from inputremapper.logging.logger import logger
 
 Handler = Callable[[Tuple[int, int, int]], None]
 MacroTask = Callable[[Handler], Awaitable]
@@ -88,78 +88,6 @@ class Variable:
 
     def __repr__(self):
         return f'<Variable "{self.name}" at {hex(id(self))}>'
-
-
-def _type_check(value: Any, allowed_types, display_name=None, position=None) -> Any:
-    """Validate a parameter used in a macro.
-
-    If the value is a Variable, it will be returned and should be resolved
-    during runtime with _resolve.
-    """
-    if isinstance(value, Variable):
-        # it is a variable and will be read at runtime
-        return value
-
-    for allowed_type in allowed_types:
-        if allowed_type is None:
-            if value is None:
-                return value
-
-            continue
-
-        # try to parse "1" as 1 if possible
-        if allowed_type != Macro:
-            # the macro constructor with a single argument always succeeds,
-            # but will definitely not result in the correct macro
-            try:
-                return allowed_type(value)
-            except (TypeError, ValueError):
-                pass
-
-        if isinstance(value, allowed_type):
-            return value
-
-    if display_name is not None and position is not None:
-        raise MacroParsingError(
-            msg=f"Expected parameter {position} for {display_name} to be "
-            f"one of {allowed_types}, but got {value}"
-        )
-
-    raise MacroParsingError(
-        msg=f"Expected parameter to be one of {allowed_types}, but got {value}"
-    )
-
-
-def _type_check_variablename(name: str):
-    """Check if this is a legit variable name.
-
-    Because they could clash with language features. If the macro is able to be
-    parsed at all due to a problematic choice of a variable name.
-
-    Allowed examples: "foo", "Foo1234_", "_foo_1234"
-    Not allowed: "1_foo", "foo=blub", "$foo", "foo,1234", "foo()"
-    """
-    if not isinstance(name, str) or not re.match(r"^[A-Za-z_][A-Za-z_0-9]*$", name):
-        raise MacroParsingError(msg=f'"{name}" is not a legit variable name')
-
-
-def _resolve(argument, allowed_types=None):
-    """If the argument is a variable, figure out its value and cast it.
-
-    Variables are prefixed with `$` in the syntax.
-
-    Use this just-in-time when you need the actual value of the variable
-    during runtime.
-    """
-    if isinstance(argument, Variable):
-        value = argument.resolve()
-        logger.debug('"%s" is "%s"', argument, value)
-        if allowed_types:
-            return _type_check(value, allowed_types)
-        else:
-            return value
-
-    return argument
 
 
 class Macro:
@@ -313,10 +241,10 @@ class Macro:
 
         async def task(handler: Callable):
             # if the code is $foo, figure out the correct code now.
-            resolved_symbol = _resolve(symbol, [str])
+            resolved_symbol = self._resolve(symbol, [str])
             code = self._type_check_symbol(resolved_symbol)
 
-            resolved_code = _resolve(code, [int])
+            resolved_code = self._resolve(code, [int])
             handler(EV_KEY, resolved_code, 1)
             await self._keycode_pause()
             handler(EV_KEY, resolved_code, 0)
@@ -329,10 +257,10 @@ class Macro:
         self._type_check_symbol(symbol)
 
         async def task(handler: Callable):
-            resolved_symbol = _resolve(symbol, [str])
+            resolved_symbol = self._resolve(symbol, [str])
             code = self._type_check_symbol(resolved_symbol)
 
-            resolved_code = _resolve(code, [int])
+            resolved_code = self._resolve(code, [int])
             handler(EV_KEY, resolved_code, 1)
 
         self.tasks.append(task)
@@ -342,17 +270,17 @@ class Macro:
         self._type_check_symbol(symbol)
 
         async def task(handler: Callable):
-            resolved_symbol = _resolve(symbol, [str])
+            resolved_symbol = self._resolve(symbol, [str])
             code = self._type_check_symbol(resolved_symbol)
 
-            resolved_code = _resolve(code, [int])
+            resolved_code = self._resolve(code, [int])
             handler(EV_KEY, resolved_code, 0)
 
         self.tasks.append(task)
 
     def add_hold(self, macro=None):
         """Loops the execution until key release."""
-        _type_check(macro, [Macro, str, None], "hold", 1)
+        self._type_check(macro, [Macro, str, None], "hold", 1)
 
         if macro is None:
             self.tasks.append(lambda _: self._trigger_release_event.wait())
@@ -365,10 +293,10 @@ class Macro:
             self._type_check_symbol(symbol)
 
             async def task(handler: Callable):
-                resolved_symbol = _resolve(symbol, [str])
+                resolved_symbol = self._resolve(symbol, [str])
                 code = self._type_check_symbol(resolved_symbol)
 
-                resolved_code = _resolve(code, [int])
+                resolved_code = self._resolve(code, [int])
                 handler(EV_KEY, resolved_code, 1)
                 await self._trigger_release_event.wait()
                 handler(EV_KEY, resolved_code, 0)
@@ -396,14 +324,14 @@ class Macro:
         modifier
         macro
         """
-        _type_check(macro, [Macro], "modify", 2)
+        self._type_check(macro, [Macro], "modify", 2)
         self._type_check_symbol(modifier)
 
         self.child_macros.append(macro)
 
         async def task(handler: Callable):
             # TODO test var
-            resolved_modifier = _resolve(modifier, [str])
+            resolved_modifier = self._resolve(modifier, [str])
             code = self._type_check_symbol(resolved_modifier)
 
             handler(EV_KEY, code, 1)
@@ -420,7 +348,7 @@ class Macro:
             self._type_check_symbol(symbol)
 
         async def task(handler: Callable):
-            resolved_symbols = [_resolve(symbol, [str]) for symbol in symbols]
+            resolved_symbols = [self._resolve(symbol, [str]) for symbol in symbols]
             codes = [self._type_check_symbol(symbol) for symbol in resolved_symbols]
 
             for code in codes:
@@ -437,11 +365,11 @@ class Macro:
 
     def add_repeat(self, repeats: Union[str, int], macro: Macro):
         """Repeat actions."""
-        repeats = _type_check(repeats, [int], "repeat", 1)
-        _type_check(macro, [Macro], "repeat", 2)
+        repeats = self._type_check(repeats, [int], "repeat", 1)
+        self._type_check(macro, [Macro], "repeat", 2)
 
         async def task(handler: Callable):
-            for _ in range(_resolve(repeats, [int])):
+            for _ in range(self._resolve(repeats, [int])):
                 await macro.run(handler)
 
         self.tasks.append(task)
@@ -458,9 +386,9 @@ class Macro:
             examples: 52, 'KEY_A'
         value
         """
-        type_ = _type_check(type_, [int, str], "event", 1)
-        code = _type_check(code, [int, str], "event", 2)
-        value = _type_check(value, [int, str], "event", 3)
+        type_ = self._type_check(type_, [int, str], "event", 1)
+        code = self._type_check(code, [int, str], "event", 2)
+        value = self._type_check(value, [int, str], "event", 3)
 
         if isinstance(type_, str):
             type_ = ecodes[type_.upper()]
@@ -477,9 +405,9 @@ class Macro:
         acceleration: Optional[float] = None,
     ):
         """Move the mouse cursor."""
-        _type_check(direction, [str], "mouse", 1)
-        speed = _type_check(speed, [int], "mouse", 2)
-        acceleration = _type_check(acceleration, [float, None], "mouse", 3)
+        self._type_check(direction, [str], "mouse", 1)
+        speed = self._type_check(speed, [int], "mouse", 2)
+        acceleration = self._type_check(acceleration, [float, None], "mouse", 3)
 
         code, value = {
             "up": (REL_Y, -1),
@@ -489,8 +417,8 @@ class Macro:
         }[direction.lower()]
 
         async def task(handler: Callable):
-            resolved_speed = _resolve(speed, [int])
-            resolved_accel = _resolve(acceleration, [float, None])
+            resolved_speed = self._resolve(speed, [int])
+            resolved_accel = self._resolve(acceleration, [float, None])
 
             if resolved_accel:
                 current_speed = 0.0
@@ -518,8 +446,8 @@ class Macro:
 
     def add_wheel(self, direction: str, speed: int):
         """Move the scroll wheel."""
-        _type_check(direction, [str], "wheel", 1)
-        speed = _type_check(speed, [int], "wheel", 2)
+        self._type_check(direction, [str], "wheel", 1)
+        speed = self._type_check(speed, [int], "wheel", 2)
 
         code, value = {
             "up": ([REL_WHEEL, REL_WHEEL_HI_RES], [1 / 120, 1]),
@@ -529,7 +457,7 @@ class Macro:
         }[direction.lower()]
 
         async def task(handler: Callable):
-            resolved_speed = _resolve(speed, [int])
+            resolved_speed = self._resolve(speed, [int])
             remainder = [0.0, 0.0]
             while self.is_holding():
                 for i in range(0, 2):
@@ -543,12 +471,12 @@ class Macro:
 
     def add_wait(self, time: Union[str, float, int], max_time=None):
         """Wait time in milliseconds."""
-        time = _type_check(time, [float, int], "wait", 1)
-        max_time = _type_check(max_time, [float, int, None], "wait", 2)
+        time = self._type_check(time, [float, int], "wait", 1)
+        max_time = self._type_check(max_time, [float, int, None], "wait", 2)
 
         async def task(_):
-            resolved_min_time = _resolve(time, [float, int])
-            resolved_max_time = _resolve(max_time, [float, int])
+            resolved_min_time = self._resolve(time, [float, int])
+            resolved_max_time = self._resolve(max_time, [float, int])
 
             if resolved_max_time is not None and resolved_max_time > resolved_min_time:
                 variabletime = random.uniform(resolved_min_time, resolved_max_time)
@@ -557,18 +485,17 @@ class Macro:
                 variabletime = resolved_min_time
                 logger.debug('Wait time used is %fms', variabletime)
 
-
             await asyncio.sleep(variabletime / 1000)
 
         self.tasks.append(task)
 
     def add_set(self, variable: str, value):
         """Set a variable to a certain value."""
-        _type_check_variablename(variable)
+        self._type_check_variablename(variable)
 
         async def task(_):
             # can also copy with set(a, $b)
-            resolved_value = _resolve(value)
+            resolved_value = self._resolve(value)
             logger.debug('"%s" set to "%s"', variable, resolved_value)
             macro_variables[variable] = value
 
@@ -576,8 +503,8 @@ class Macro:
 
     def add_add(self, variable: str, value: Union[int, float]):
         """Add a number to a variable."""
-        _type_check_variablename(variable)
-        _type_check(value, [int, float], "value", 1)
+        self._type_check_variablename(variable)
+        self._type_check(value, [int, float], "value", 1)
 
         async def task(_):
             current = macro_variables[variable]
@@ -586,7 +513,7 @@ class Macro:
                 macro_variables[variable] = 0
                 current = 0
 
-            resolved_value = _resolve(value)
+            resolved_value = self._resolve(value)
             if not isinstance(resolved_value, (int, float)):
                 logger.error('Expected delta "%s" to be a number', resolved_value)
                 return
@@ -611,8 +538,8 @@ class Macro:
         "foo" without breaking old functionality, because "foo" is treated as a
         variable name.
         """
-        _type_check(then, [Macro, None], "ifeq", 3)
-        _type_check(else_, [Macro, None], "ifeq", 4)
+        self._type_check(then, [Macro, None], "ifeq", 3)
+        self._type_check(else_, [Macro, None], "ifeq", 4)
 
         async def task(handler: Callable):
             set_value = macro_variables.get(variable)
@@ -632,12 +559,12 @@ class Macro:
 
     def add_if_eq(self, value_1, value_2, then=None, else_=None):
         """Compare two values."""
-        _type_check(then, [Macro, None], "if_eq", 3)
-        _type_check(else_, [Macro, None], "if_eq", 4)
+        self._type_check(then, [Macro, None], "if_eq", 3)
+        self._type_check(else_, [Macro, None], "if_eq", 4)
 
         async def task(handler: Callable):
-            resolved_value_1 = _resolve(value_1)
-            resolved_value_2 = _resolve(value_2)
+            resolved_value_1 = self._resolve(value_1)
+            resolved_value_2 = self._resolve(value_2)
             if resolved_value_1 == resolved_value_2:
                 if then is not None:
                     await then.run(handler)
@@ -659,9 +586,9 @@ class Macro:
         macro key pressed -> released (does other stuff in the meantime)
         -> if_tap starts -> pressed -> released -> then
         """
-        _type_check(then, [Macro, None], "if_tap", 1)
-        _type_check(else_, [Macro, None], "if_tap", 2)
-        timeout = _type_check(timeout, [int, float], "if_tap", 3)
+        self._type_check(then, [Macro, None], "if_tap", 1)
+        self._type_check(else_, [Macro, None], "if_tap", 2)
+        timeout = self._type_check(timeout, [int, float], "if_tap", 3)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
@@ -677,7 +604,7 @@ class Macro:
                 await self._trigger_release_event.wait()
 
         async def task(handler: Callable):
-            resolved_timeout = _resolve(timeout, [int, float]) / 1000
+            resolved_timeout = self._resolve(timeout, [int, float]) / 1000
             try:
                 await asyncio.wait_for(wait(), resolved_timeout)
                 if then:
@@ -690,8 +617,8 @@ class Macro:
 
     def add_if_single(self, then, else_, timeout=None):
         """If a key was pressed without combining it."""
-        _type_check(then, [Macro, None], "if_single", 1)
-        _type_check(else_, [Macro, None], "if_single", 2)
+        self._type_check(then, [Macro, None], "if_single", 1)
+        self._type_check(else_, [Macro, None], "if_single", 2)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
@@ -713,7 +640,7 @@ class Macro:
 
             self.context.listeners.add(listener)
 
-            resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
+            resolved_timeout = Macro._resolve(timeout, allowed_types=[int, float, None])
             await asyncio.wait(
                 [
                     asyncio.Task(listener_done.wait()),
@@ -741,14 +668,88 @@ class Macro:
             return keyname
 
         symbol = str(keyname)
-        code = system_mapping.get(symbol)
+        code = keyboard_layout.get(symbol)
 
         if code is None:
             raise MacroParsingError(msg=f'Unknown key "{symbol}"')
 
         if self.mapping is not None:
             target = self.mapping.target_uinput
-            if target is not None and not can_default_uinput_emit(target, EV_KEY, code):
+            if target is not None and not GlobalUInputs.can_default_uinput_emit(
+                target, EV_KEY, code
+            ):
                 raise SymbolNotAvailableInTargetError(symbol, target)
 
         return code
+
+    @staticmethod
+    def _type_check(value: Any, allowed_types, display_name=None, position=None) -> Any:
+        """Validate a parameter used in a macro.
+
+        If the value is a Variable, it will be returned and should be resolved
+        during runtime with _resolve.
+        """
+        if isinstance(value, Variable):
+            # it is a variable and will be read at runtime
+            return value
+
+        for allowed_type in allowed_types:
+            if allowed_type is None:
+                if value is None:
+                    return value
+
+                continue
+
+            # try to parse "1" as 1 if possible
+            if allowed_type != Macro:
+                # the macro constructor with a single argument always succeeds,
+                # but will definitely not result in the correct macro
+                try:
+                    return allowed_type(value)
+                except (TypeError, ValueError):
+                    pass
+
+            if isinstance(value, allowed_type):
+                return value
+
+        if display_name is not None and position is not None:
+            raise MacroParsingError(
+                msg=f"Expected parameter {position} for {display_name} to be "
+                f"one of {allowed_types}, but got {value}"
+            )
+
+        raise MacroParsingError(
+            msg=f"Expected parameter to be one of {allowed_types}, but got {value}"
+        )
+
+    @staticmethod
+    def _type_check_variablename(name: str):
+        """Check if this is a legit variable name.
+
+        Because they could clash with language features. If the macro is able to be
+        parsed at all due to a problematic choice of a variable name.
+
+        Allowed examples: "foo", "Foo1234_", "_foo_1234"
+        Not allowed: "1_foo", "foo=blub", "$foo", "foo,1234", "foo()"
+        """
+        if not isinstance(name, str) or not re.match(r"^[A-Za-z_][A-Za-z_0-9]*$", name):
+            raise MacroParsingError(msg=f'"{name}" is not a legit variable name')
+
+    @staticmethod
+    def _resolve(argument, allowed_types=None):
+        """If the argument is a variable, figure out its value and cast it.
+
+        Variables are prefixed with `$` in the syntax.
+
+        Use this just-in-time when you need the actual value of the variable
+        during runtime.
+        """
+        if isinstance(argument, Variable):
+            value = argument.resolve()
+            logger.debug('"%s" is "%s"', argument, value)
+            if allowed_types:
+                return Macro._type_check(value, allowed_types)
+            else:
+                return value
+
+        return argument

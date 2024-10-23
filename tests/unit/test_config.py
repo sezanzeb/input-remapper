@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -19,22 +19,19 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.lib.cleanup import quick_cleanup
-from tests.lib.tmp import tmp
-
 import os
 import unittest
 
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.paths import touch
+from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.configs.paths import PathUtils
+from tests.lib.test_setup import test_setup
+from tests.lib.tmp import tmp
 
 
+@test_setup
 class TestConfig(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-        self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
-
     def test_basic(self):
+        global_config = GlobalConfig()
         self.assertEqual(global_config.get("a"), None)
 
         global_config.set("a", 1)
@@ -51,6 +48,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(global_config._config["a"]["b"]["c"], 3)
 
     def test_autoload(self):
+        global_config = GlobalConfig()
         self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
         self.assertFalse(global_config.is_autoloaded("d1", "a"))
         self.assertFalse(global_config.is_autoloaded("d2.foo", "b"))
@@ -95,9 +93,9 @@ class TestConfig(unittest.TestCase):
         self.assertRaises(ValueError, global_config.is_autoloaded, None, "a")
 
     def test_initial(self):
+        global_config = GlobalConfig()
         # when loading for the first time, create a config file with
         # the default values
-        os.remove(global_config.path)
         self.assertFalse(os.path.exists(global_config.path))
         global_config.load_config()
         self.assertTrue(os.path.exists(global_config.path))
@@ -107,6 +105,7 @@ class TestConfig(unittest.TestCase):
             self.assertIn('"autoload": {}', contents)
 
     def test_save_load(self):
+        global_config = GlobalConfig()
         self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
 
         global_config.load_config()
@@ -122,7 +121,7 @@ class TestConfig(unittest.TestCase):
         )
 
         config_2 = os.path.join(tmp, "config_2.json")
-        touch(config_2)
+        PathUtils.touch(config_2)
         with open(config_2, "w") as f:
             f.write('{"a":"b"}')
 

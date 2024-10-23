@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -19,9 +19,9 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-import os
 import json
 import multiprocessing
+import os
 import time
 import unittest
 from typing import List, Optional
@@ -52,18 +52,19 @@ from inputremapper.gui.messages.message_data import CombinationRecorded
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService, ContextDummy
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
 from inputremapper.input_event import InputEvent
-from tests.lib.fixtures import new_event
-from tests.lib.cleanup import quick_cleanup
 from tests.lib.constants import (
     EVENT_READ_TIMEOUT,
     START_READING_DELAY,
     MAX_ABS,
     MIN_ABS,
 )
-from tests.lib.pipes import push_event, push_events
 from tests.lib.fixtures import fixtures
-from tests.lib.stuff import spy
+from tests.lib.fixtures import new_event
+from tests.lib.pipes import push_event, push_events
+from tests.lib.spy import spy
+from tests.lib.test_setup import test_setup
 
 CODE_1 = 100
 CODE_2 = 101
@@ -89,6 +90,7 @@ def wait(func, timeout=1.0):
             break
 
 
+@test_setup
 class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.reader_service = None
@@ -97,7 +99,6 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
         self.reader_client = ReaderClient(self.message_broker, self.groups)
 
     def tearDown(self):
-        quick_cleanup()
         try:
             self.reader_client.terminate()
         except (BrokenPipeError, OSError):
@@ -109,7 +110,9 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
         if not groups:
             groups = self.groups
 
-        self.reader_service = ReaderService(groups)
+        global_uinputs = GlobalUInputs(UInput)
+        assert groups is not None
+        self.reader_service = ReaderService(groups, global_uinputs)
         asyncio.ensure_future(self.reader_service.run())
 
     async def test_should_forward_to_dummy(self):
@@ -126,8 +129,9 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
             context = original_create_event_pipeline(*args, **kwargs)
             return context
 
-        with mock.patch(
-            "inputremapper.gui.reader_service.ReaderService._create_event_pipeline",
+        with mock.patch.object(
+            ReaderService,
+            "_create_event_pipeline",
             remember_context,
         ):
             await self.create_reader_service()
@@ -157,15 +161,16 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([call[0] for call in write_spy.call_args_list], events)
 
 
+@test_setup
 class TestReaderMultiprocessing(unittest.TestCase):
     def setUp(self):
         self.reader_service_process = None
         self.groups = _Groups()
         self.message_broker = MessageBroker()
+        self.global_uinputs = GlobalUInputs(UInput)
         self.reader_client = ReaderClient(self.message_broker, self.groups)
 
     def tearDown(self):
-        quick_cleanup()
         try:
             self.reader_client.terminate()
         except (BrokenPipeError, OSError):
@@ -181,10 +186,13 @@ class TestReaderMultiprocessing(unittest.TestCase):
             groups = self.groups
 
         def start_reader_service():
-            reader_service = ReaderService(groups)
-            # this is a new process, so create a new event loop, or something
+            # this is a new process, so create a new event loop, and all dependencies
+            # from scratch, or something
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+            global_uinputs = GlobalUInputs(FrontendUInput)
+            global_uinputs.reset()
+            reader_service = ReaderService(groups, global_uinputs)
             loop.run_until_complete(reader_service.run())
 
         self.reader_service_process = multiprocessing.Process(
@@ -899,9 +907,9 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     json.dumps(
                         {
                             "paths": ["/dev/input/event52"],
-                            "names": ["Qux/Device?"],
+                            "names": ["Qux/[Device]?"],
                             "types": [DeviceType.KEYBOARD],
-                            "key": "Qux/Device?",
+                            "key": "Qux/[Device]?",
                         }
                     ),
                 ]

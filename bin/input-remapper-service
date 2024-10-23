@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2023 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -25,30 +25,43 @@
 import sys
 from argparse import ArgumentParser
 
-from inputremapper.logger import update_verbosity, log_info
+from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
+from inputremapper.logging.logger import logger
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        '-d', '--debug', action='store_true', dest='debug',
-        help='Displays additional debug information', default=False
+        "-d",
+        "--debug",
+        action="store_true",
+        dest="debug",
+        help="Displays additional debug information",
+        default=False,
     )
     parser.add_argument(
-        '--hide-info', action='store_true', dest='hide_info',
-        help='Don\'t display version information', default=False
+        "--hide-info",
+        action="store_true",
+        dest="hide_info",
+        help="Don't display version information",
+        default=False,
     )
 
     options = parser.parse_args(sys.argv[1:])
 
-    update_verbosity(options.debug)
+    logger.update_verbosity(options.debug)
 
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.daemon import Daemon
 
     if not options.hide_info:
-        log_info('input-remapper-service')
+        logger.log_info("input-remapper-service")
 
-    daemon = Daemon()
+    global_config = GlobalConfig()
+    global_uinputs = GlobalUInputs(UInput)
+    mapping_parser = MappingParser(global_uinputs)
+
+    daemon = Daemon(global_config, global_uinputs, mapping_parser)
     daemon.publish()
     daemon.run()
