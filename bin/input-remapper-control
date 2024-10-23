@@ -310,9 +310,9 @@ def main(options: Options) -> None:
         return
 
     if options.command is not None:
-        if options.command in Internals:
+        if options.command in [command.value for command in Internals]:
             input_remapper_control.internals(options.command, options.debug)
-        elif options.command in Commands:
+        elif options.command in [command.value for command in Commands]:
             from inputremapper.daemon import Daemon
 
             daemon = Daemon.connect(fallback=False)
