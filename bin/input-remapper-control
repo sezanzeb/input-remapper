@@ -26,7 +26,7 @@ import logging
 import os
 import subprocess
 import sys
-from enum import Enum, EnumMeta
+from enum import Enum
 from typing import Union, Optional
 
 from inputremapper.configs.global_config import GlobalConfig
@@ -41,16 +41,7 @@ from inputremapper.logging.logger import logger
 # log level is applied before anything is logged
 
 
-class MetaEnum(EnumMeta):
-    def __contains__(cls, item):
-        try:
-            cls(item)
-        except ValueError:
-            return False
-        return True    
-
-
-class Commands(Enum, metaclass=MetaEnum):
+class Commands(Enum):
     AUTOLOAD = "autoload"
     START = "start"
     STOP = "stop"
@@ -58,7 +49,7 @@ class Commands(Enum, metaclass=MetaEnum):
     HELLO = "hello"
 
 
-class Internals(Enum, metaclass=MetaEnum):
+class Internals(Enum):
     # internal stuff that the gui uses
     START_DAEMON = "start-daemon"
     START_READER_SERVICE = "start-reader-service"
@@ -319,9 +310,9 @@ def main(options: Options) -> None:
         return
 
     if options.command is not None:
-        if options.command in Internals:
+        if options.command in [command.value for command in Internals]:
             input_remapper_control.internals(options.command, options.debug)
-        elif options.command in Commands:
+        elif options.command in [command.value for command in Commands]:
             from inputremapper.daemon import Daemon
 
             daemon = Daemon.connect(fallback=False)
