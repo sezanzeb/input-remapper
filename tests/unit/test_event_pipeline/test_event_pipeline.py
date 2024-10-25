@@ -43,7 +43,9 @@ from evdev.ecodes import (
     ABS_HAT0Y,
     KEY_B,
     KEY_C,
+    KEY_D,
     BTN_TL,
+    KEY_1,
 )
 
 from inputremapper.configs.mapping import (
@@ -65,6 +67,7 @@ from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
 from tests.lib.constants import MAX_ABS, MIN_ABS
 from tests.lib.fixtures import Fixture, fixtures
+from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
 
 
@@ -77,7 +80,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
         self.mapping_parser = MappingParser(self.global_uinputs)
         self.global_uinputs.is_service = True
         self.global_uinputs.prepare_all()
-        self.forward_uinput = evdev.UInput()
+        self.forward_uinput = evdev.UInput(name="test-forward-uinput")
         self.stop_event = asyncio.Event()
 
     def tearDown(self) -> None:
@@ -116,7 +119,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
 
 
 @test_setup
-class TestIdk(EventPipelineTestBase):
+class TestCombination(EventPipelineTestBase):
     async def test_any_event_as_button(self):
         """As long as there is an event handler and a mapping we should be able
         to map anything to a button"""
@@ -424,6 +427,10 @@ class TestIdk(EventPipelineTestBase):
             output_symbol="c",
         )
 
+        assert mapping_1.release_combination_keys
+        assert mapping_2.release_combination_keys
+        assert mapping_3.release_combination_keys
+
         preset = Preset()
         preset.add(mapping_1)
         preset.add(mapping_2)
@@ -448,6 +455,8 @@ class TestIdk(EventPipelineTestBase):
 
         forwarded_history = self.forward_uinput.write_history
 
+        # I don't remember the specifics. I guess if there is a combination ongoing,
+        # it shouldn't trigger ABS_X -> a?
         self.assertNotIn((EV_KEY, a, 1), keyboard_history)
 
         # c and b should have been written, because the input from send_events
@@ -472,6 +481,296 @@ class TestIdk(EventPipelineTestBase):
         self.assertNotIn((EV_KEY, a, 0), keyboard_history)
         self.assertEqual(keyboard_history.count((EV_KEY, c, 0)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, b, 0)), 1)
+
+    async def test_combination_manual_release_in_press_order(self):
+        """Test if combinations map to keys properly."""
+        # release_combination_keys is off
+        # press 5, then 6, then release 5, then release 6
+        in_1 = keyboard_layout.get("7")
+        in_2 = keyboard_layout.get("8")
+        out = keyboard_layout.get("a")
+
+        origin = fixtures.foo_device_2_keyboard
+        origin_hash = origin.get_device_hash()
+
+        input_combination = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=in_1,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=in_2,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping = Mapping(
+            input_combination=input_combination.to_config(),
+            target_uinput="keyboard",
+            output_symbol="a",
+            release_combination_keys=False,
+        )
+
+        assert not mapping.release_combination_keys
+
+        preset = Preset()
+        preset.add(mapping)
+
+        event_reader = self.create_event_reader(preset, origin)
+
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
+
+        # press the first key of the combination
+        await self.send_events([InputEvent.key(in_1, 1, origin_hash)], event_reader)
+        self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1)])
+
+        # then the second, it should trigger the combination
+        await self.send_events([InputEvent.key(in_2, 1, origin_hash)], event_reader)
+        self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1)])
+        self.assertListEqual(keyboard_history, [(EV_KEY, out, 1)])
+
+        # release the first key. A key-down event was injected for it previously, so
+        # now we find a key-up event here as well.
+        await self.send_events([InputEvent.key(in_1, 0, origin_hash)], event_reader)
+        self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1), (EV_KEY, in_1, 0)])
+        self.assertListEqual(keyboard_history, [(EV_KEY, out, 1), (EV_KEY, out, 0)])
+
+        # release the second key. No key-down event was injected, so we don't have a
+        # key-up event here either.
+        await self.send_events([InputEvent.key(in_2, 0, origin_hash)], event_reader)
+        self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1), (EV_KEY, in_1, 0)])
+        self.assertListEqual(keyboard_history, [(EV_KEY, out, 1), (EV_KEY, out, 0)])
+
+    async def test_releases_before_triggering(self):
+        origin = fixtures.foo_device_2_keyboard
+        origin_hash = origin.get_device_hash()
+
+        input_combination = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_B,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping = Mapping(
+            input_combination=input_combination.to_config(),
+            target_uinput="keyboard",
+            output_symbol="1",
+            release_combination_keys=True,
+        )
+
+        preset = Preset()
+        preset.add(mapping)
+
+        event_reader = self.create_event_reader(preset, origin)
+
+        await self.send_events(
+            [
+                InputEvent.key(KEY_A, 1, origin_hash),
+                InputEvent.key(KEY_B, 1, origin_hash),
+            ],
+            event_reader,
+        )
+
+        # Other tests check forwarded_history and keyboard_history individually,
+        # so here is one that looks at the order in uinput_write_history
+        self.assertListEqual(
+            uinput_write_history,
+            [
+                (EV_KEY, KEY_A, 1),
+                (EV_KEY, KEY_A, 0),
+                (EV_KEY, KEY_1, 1),
+            ],
+        )
+
+    async def test_suppressed_doesnt_forward_releases(self):
+        origin = fixtures.foo_device_2_keyboard
+        origin_hash = origin.get_device_hash()
+
+        input_combination_1 = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_B,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_C,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping_1 = Mapping(
+            input_combination=input_combination_1.to_config(),
+            target_uinput="keyboard",
+            output_symbol="1",
+            release_combination_keys=False,
+        )
+
+        input_combination_2 = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_C,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping_2 = Mapping(
+            input_combination=input_combination_2.to_config(),
+            target_uinput="keyboard",
+            output_symbol="2",
+            release_combination_keys=True,
+        )
+
+        preset = Preset()
+        preset.add(mapping_1)
+        preset.add(mapping_2)
+
+        event_reader = self.create_event_reader(preset, origin)
+        # Trigger mapping_1, mapping_2 should be suppressed
+        await self.send_events(
+            [
+                InputEvent.key(KEY_A, 1, origin_hash),
+                InputEvent.key(KEY_B, 1, origin_hash),
+                InputEvent.key(KEY_C, 1, origin_hash),
+            ],
+            event_reader,
+        )
+
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
+        # There used to be an incorrect KEY_A release, caused by
+        # `release_combination_keys` on the suppressed mapping.
+        self.assertListEqual(
+            forwarded_history,
+            [
+                (EV_KEY, KEY_A, 1),
+                (EV_KEY, KEY_B, 1),
+            ],
+        )
+        self.assertListEqual(
+            keyboard_history,
+            [
+                (EV_KEY, KEY_1, 1),
+            ],
+        )
+
+    async def test_no_stuck_key(self):
+        origin = fixtures.foo_device_2_keyboard
+        origin_hash = origin.get_device_hash()
+
+        input_combination_1 = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_B,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_D,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping_1 = Mapping(
+            input_combination=input_combination_1.to_config(),
+            target_uinput="keyboard",
+            output_symbol="1",
+            release_combination_keys=False,
+        )
+
+        input_combination_2 = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_C,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_D,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping_2 = Mapping(
+            input_combination=input_combination_2.to_config(),
+            target_uinput="keyboard",
+            output_symbol="2",
+            release_combination_keys=False,
+        )
+
+        preset = Preset()
+        preset.add(mapping_1)
+        preset.add(mapping_2)
+
+        event_reader = self.create_event_reader(preset, origin)
+        # Trigger mapping_1, mapping_2 should be suppressed
+        await self.send_events(
+            [
+                InputEvent.key(KEY_A, 1, origin_hash),
+                InputEvent.key(KEY_B, 1, origin_hash),
+                InputEvent.key(KEY_C, 1, origin_hash),
+                InputEvent.key(KEY_D, 1, origin_hash),
+                # Release c -> mapping_2 transitions from suppressed to passive.
+                # The release of c should be forwarded.
+                InputEvent.key(KEY_C, 0, origin_hash),
+            ],
+            event_reader,
+        )
+
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
+        self.assertListEqual(
+            forwarded_history,
+            [
+                (EV_KEY, KEY_A, 1),
+                (EV_KEY, KEY_B, 1),
+                (EV_KEY, KEY_C, 1),
+                (EV_KEY, KEY_C, 0),
+            ],
+        )
+        self.assertListEqual(
+            keyboard_history,
+            [
+                (EV_KEY, KEY_1, 1),
+            ],
+        )
 
     async def test_ignore_hold(self):
         # hold as in event-value 2, not in macro-hold.
