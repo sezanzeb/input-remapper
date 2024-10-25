@@ -47,10 +47,11 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 ### wait
 
-> Waits in milliseconds before continuing the macro
->
+> Waits in milliseconds before continuing the macro. If the max_time argument is
+> provided, it will randomize the time between time and max_time.
+> 
 > ```c#
-> wait(time: int)
+> wait(time: int, max_time: int | None)
 > ```
 >
 > Examples:
@@ -58,6 +59,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```c#
 > wait(time=100)
 > wait(500)
+> wait(10, 1000)
 > ```
 
 ### repeat
