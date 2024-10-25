@@ -1345,6 +1345,56 @@ class TestIfEq(MacroTestBase):
 
 
 @test_setup
+class TestWait(MacroTestBase):
+    async def assert_time_randomized(
+        self,
+        macro: Macro,
+        min_: float,
+        max_: float,
+    ):
+        for _ in range(100):
+            start = time.time()
+            await macro.run(self.handler)
+            time_taken = time.time() - start
+
+            # Any of the runs should be within the defined range, to prove that they
+            # are indeed random.
+            if min_ < time_taken < max_:
+                return
+
+        raise AssertionError("`wait` was not randomized")
+
+    async def test_wait_1_core(self):
+        mapping = DummyMapping()
+        mapping.macro_key_sleep_ms = 0
+        macro = parse("repeat(5, wait(50))", self.context, mapping, True)
+
+        start = time.time()
+        await macro.run(self.handler)
+        time_per_iteration = (time.time() - start) / 5
+
+        self.assertLess(abs(time_per_iteration - 0.05), 0.005)
+
+    async def test_wait_2_ranged(self):
+        mapping = DummyMapping()
+        mapping.macro_key_sleep_ms = 0
+        macro = parse("wait(1, 100)", self.context, mapping, True)
+        await self.assert_time_randomized(macro, 0.02, 0.08)
+
+    async def test_wait_3_ranged_single_get(self):
+        mapping = DummyMapping()
+        mapping.macro_key_sleep_ms = 0
+        macro = parse("set(a, 100).wait(1, $a)", self.context, mapping, True)
+        await self.assert_time_randomized(macro, 0.02, 0.08)
+
+    async def test_wait_4_ranged_double_get(self):
+        mapping = DummyMapping()
+        mapping.macro_key_sleep_ms = 0
+        macro = parse("set(a, 1).set(b, 100).wait($a, $b)", self.context, mapping, True)
+        await self.assert_time_randomized(macro, 0.02, 0.08)
+
+
+@test_setup
 class TestIfSingle(MacroTestBase):
     async def test_if_single(self):
         macro = parse("if_single(key(x), key(y))", self.context, DummyMapping)
