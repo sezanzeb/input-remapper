@@ -1,24 +1,25 @@
 #!/usr/bin/env bash
 
-# sudo pip install git+https://github.com/jongracecox/anybadge
+# pip install git+https://github.com/jongracecox/anybadge
 
 coverage_badge() {
-  coverage run tests/test.py
-  coverage combine
-  rating=$(coverage report | tail -n 1 | ack "\d+%" -o | ack "\d+" -o)
+  python3 -m coverage erase
+  python3 -m coverage run -m unittest discover -s ./tests/
+  python3 -m coverage combine
+  rating=$(python3 -m coverage report | tail -n 1 | ack "\d+%" -o | ack "\d+" -o)
   echo "coverage rating: $rating"
   rm readme/coverage.svg
-  anybadge -l coverage -v $rating -f readme/coverage.svg coverage
+  python3 -m anybadge -l coverage -v $rating -f readme/coverage.svg coverage
 
-  coverage report -m
+  python3 -m coverage report -m
   echo "coverage badge created"
 }
 
 pylint_badge() {
-  pylint_output=$(pylint inputremapper --extension-pkg-whitelist=evdev)
+  pylint_output=$(python3 -m pylint inputremapper --extension-pkg-whitelist=evdev)
   rating=$(echo $pylint_output | grep -Po "rated at .+?/" | grep -Po "\d+.\d+")
   rm readme/pylint.svg
-  anybadge -l pylint -v $rating -f readme/pylint.svg pylint
+  python3 -m anybadge -l pylint -v $rating -f readme/pylint.svg pylint
 
   echo "pylint rating: $rating"
   echo "pylint badge created"
