@@ -53,18 +53,6 @@ from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
 
 
-def start_processes() -> DaemonProxy:
-    """Start reader-service and daemon via pkexec to run in the background."""
-    # this function is overwritten in tests
-    try:
-        ReaderService.pkexec_reader_service()
-    except Exception as e:
-        logger.error(e)
-        sys.exit(11)
-
-    return Daemon.connect()
-
-
 def stop(daemon, controller):
     if isinstance(daemon, Daemon):
         # have fun debugging completely unrelated tests if you remove this
@@ -90,6 +78,17 @@ def main() -> Tuple[
         help=_("Displays additional debug information"),
         default=False,
     )
+    parser.add_argument(
+        "--without-reader-service",
+        action="store_true",
+        dest="without_reader_service",
+        help=_(
+            "Don't attempt to start input-remapper-reader-service automatically via "
+            "pkexec. You need to start it with elevated privileges yourself "
+            "afterwards, and restart it if it times out."
+        ),
+        default=False,
+    )
 
     options = parser.parse_args(sys.argv[1:])
     logger.update_verbosity(options.debug)
@@ -105,10 +104,18 @@ def main() -> Tuple[
 
     global_config = GlobalConfig()
 
-    # create the reader before we start the reader-service (start_processes) otherwise
-    # it can come to race conditions with the creation of pipes
+    # Create the reader before we start the reader-service, otherwise
+    # there might be race conditions with the creation of pipes.
     reader_client = ReaderClient(message_broker, _Groups())
-    daemon = start_processes()
+
+    if not options.without_reader_service:
+        try:
+            ReaderService.pkexec_reader_service()
+        except Exception as e:
+            logger.error(e)
+            sys.exit(11)
+
+    daemon = Daemon.connect()
 
     data_manager = DataManager(
         message_broker,
