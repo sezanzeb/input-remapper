@@ -26,16 +26,18 @@ errors. Mypy checks for typing errors. Use black to format it.
 Automated tests
 ---------------
 
+You should be able to use your IDEs built in python unittest features to run tests.
+But you can also run them from your console:
+
 ```bash
-pip install coverage psutil --user  # https://github.com/nedbat/coveragepy, https://github.com/giampaolo/psutil
-export PATH="$PATH:$HOME/.local/bin"
+pip install psutil  # https://github.com/giampaolo/psutil
+pip install -e .
 sudo pkill -f input-remapper
-sudo pip install . && coverage run tests/test.py
-coverage combine && coverage report -m
+python3 -m unittest discover -s ./tests/
 ```
 
 This assumes you are using your system's `pip`. If you are in a virtual env,
-a `sudo pip install` is not recommened. See [Scripts](#scripts) for alternatives.
+a `sudo pip install` is not recommended. See [Scripts](#scripts) for alternatives.
 
 ```
 python -m unittest tests/unit/test_daemon.py
@@ -105,17 +107,17 @@ Badges
 ------
 
 ```bash
-sudo pip install anybadge pylint
+# https://github.com/nedbat/coveragepy https://github.com/giampaolo/psutil
+pip install coverage anybadge pylint psutil
 sudo pkill -f input-remapper
-sudo pip install .
-# the source path in .coveragerc might be incorrect for your system
+# Make sure input-remapper is uninstalled, then install it editable (without sudo
+# should be fine), so that the path for the coverage collection is correct.
+# Use `find /usr/ -iname "*inputremapper*"` to check if it is uninstalled.
+pip install -e .
 ./scripts/badges.sh
 ```
 
 New badges, if needed, will be created in `readme/` and they just need to be commited.
-
-Beware that coverage can suffer if old files reside in your python path. Remove the
-build folder and reinstall it.
 
 Translations
 ------------
