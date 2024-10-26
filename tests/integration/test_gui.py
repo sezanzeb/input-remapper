@@ -22,12 +22,9 @@ import asyncio
 import atexit
 import multiprocessing
 import os
-import sys
 import time
 import unittest
 from contextlib import contextmanager
-from importlib.machinery import SourceFileLoader
-from importlib.util import spec_from_loader, module_from_spec
 from typing import Tuple, List, Optional, Iterable
 from unittest.mock import patch, MagicMock, call
 
@@ -56,7 +53,6 @@ from tests.lib.fixtures import fixtures
 from tests.lib.fixtures import prepare_presets
 from tests.lib.logger import logger
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
-from tests.lib.project_root import get_project_root
 from tests.lib.spy import spy
 
 gi.require_version("Gdk", "3.0")
@@ -89,6 +85,8 @@ from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.daemon import Daemon, DaemonProxy
+from inputremapper.bin.input_remapper_gtk import stop, main
+
 from tests.lib.test_setup import test_setup
 
 
@@ -101,9 +99,7 @@ Gtk.main = gtk_iteration
 Gtk.main_quit = lambda: None
 
 
-def launch(
-    argv=None,
-) -> Tuple[
+def launch() -> Tuple[
     UserInterface,
     Controller,
     DataManager,
@@ -111,32 +107,13 @@ def launch(
     DaemonProxy,
     GlobalConfig,
 ]:
-    """Start input-remapper-gtk with the command line argument array argv."""
-    bin_path = os.path.join(get_project_root(), "bin", "input-remapper-gtk")
-
-    if not argv:
-        argv = ["-d"]
-
-    with patch.object(sys, "argv", [""] + [str(arg) for arg in argv]):
-        loader = SourceFileLoader("__main__", bin_path)
-        spec = spec_from_loader("__main__", loader)
-        module = module_from_spec(spec)
-        spec.loader.exec_module(module)
-
+    """Start input-remapper-gtk."""
+    return_ = main()
     gtk_iteration()
-
     # otherwise a new handler is added with each call to launch, which
     # spams tons of garbage when all tests finish
-    atexit.unregister(module.stop)
-
-    return (
-        module.user_interface,
-        module.controller,
-        module.data_manager,
-        module.message_broker,
-        module.daemon,
-        module.global_config,
-    )
+    atexit.unregister(stop)
+    return return_
 
 
 def start_reader_service():
@@ -161,9 +138,8 @@ def os_system_patch(cmd, original_os_system=os.system):
 
 
 @contextmanager
-def patch_launch():
-    """patch the launch function such that we don't connect to
-    the dbus and don't use pkexec to start the reader-service"""
+def patch_services():
+    """Don't connect to the dbus and don't use pkexec to start the reader-service"""
 
     def bootstrap_daemon():
         # The daemon gets fresh instances of everything, because as far as I remember
@@ -333,7 +309,7 @@ def patch_confirm_delete(
 class GuiTestBase(unittest.TestCase):
     def setUp(self):
         prepare_presets()
-        with patch_launch():
+        with patch_services():
             (
                 self.user_interface,
                 self.controller,

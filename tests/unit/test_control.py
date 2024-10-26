@@ -24,11 +24,9 @@ import collections
 import os
 import time
 import unittest
-from importlib.machinery import SourceFileLoader
-from importlib.util import spec_from_loader, module_from_spec
 from unittest.mock import patch
-import re
 
+from inputremapper.bin.input_remapper_control import InputRemapperControl
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
 from inputremapper.configs.paths import PathUtils
@@ -39,25 +37,6 @@ from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp
-
-
-def import_control():
-    """Import the core function of the input-remapper-control command."""
-    bin_path = os.path.join(
-        re.sub("/tests.*", "", os.getcwd()),
-        "bin",
-        "input-remapper-control",
-    )
-
-    loader = SourceFileLoader("__not_main_idk__", bin_path)
-    spec = spec_from_loader("__not_main_idk__", loader)
-    module = module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    return module.InputRemapperControl, module.Options
-
-
-InputRemapperControl, Options = import_control()
 
 
 options = collections.namedtuple(
