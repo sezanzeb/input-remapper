@@ -104,8 +104,9 @@ def main() -> Tuple[
 
     global_config = GlobalConfig()
 
-    # Create the reader before we start the reader-service, otherwise
-    # there might be race conditions with the creation of pipes.
+    # Create the ReaderClient before we start the reader-service, otherwise the
+    # privileged service creates and owns those pipes, and then they cannot be accessed
+    # by the user.
     reader_client = ReaderClient(message_broker, _Groups())
 
     if not options.without_reader_service:
