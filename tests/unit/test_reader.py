@@ -177,7 +177,9 @@ class TestReaderMultiprocessing(unittest.TestCase):
             pass
 
         if self.reader_service_process is not None:
-            self.reader_service_process.join()
+            self.reader_service_process.join(timeout=1)
+            if self.reader_service_process.is_alive():
+                self.reader_service_process.terminate()
 
     def create_reader_service(self, groups: Optional[_Groups] = None):
         # this will cause pending events to be copied over to the reader-service
