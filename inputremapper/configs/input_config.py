@@ -425,8 +425,8 @@ class InputCombination(Tuple[InputConfig, ...]):
 
         if len(self) > 6:
             logger.warning(
-                'Your input combination has a length of %d, it might freeze the '
-                'process',
+                "Your input combination has a length of %d, it might freeze the "
+                "process",
                 len(self),
             )
 

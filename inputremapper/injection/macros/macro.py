@@ -581,6 +581,8 @@ class Macro:
 
     def _add_if_led(self, code: int, then: Optional[Macro], else_: Optional[Macro]):
         async def task(handler: Callable):
+            # self.context is only None when the frontend is parsing the macro
+            assert self.context is not None
             is_numlock_on = code in self.context.get_leds()
 
             if is_numlock_on:
