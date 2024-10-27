@@ -57,26 +57,6 @@ from inputremapper.configs.migrations import Migrations
 
 class InputRemapperGtkBin:
     @staticmethod
-    def stop(daemon, controller):
-        if isinstance(daemon, Daemon):
-            # have fun debugging completely unrelated tests if you remove this
-            daemon.stop_all()
-
-        controller.close()
-
-    @staticmethod
-    def start_reader_service():
-        if ProcessUtils.count_python_processes("input-remapper-reader-service") >= 1:
-            logger.info("Found an input-remapper-reader-service to already be running")
-            return
-
-        try:
-            ReaderService.pkexec_reader_service()
-        except Exception as e:
-            logger.error(e)
-            sys.exit(11)
-
-    @staticmethod
     def main() -> Tuple[
         UserInterface,
         Controller,
@@ -151,3 +131,23 @@ class InputRemapperGtkBin:
             daemon,
             global_config,
         )
+
+    @staticmethod
+    def start_reader_service():
+        if ProcessUtils.count_python_processes("input-remapper-reader-service") >= 1:
+            logger.info("Found an input-remapper-reader-service to already be running")
+            return
+
+        try:
+            ReaderService.pkexec_reader_service()
+        except Exception as e:
+            logger.error(e)
+            sys.exit(11)
+
+    @staticmethod
+    def stop(daemon, controller):
+        if isinstance(daemon, Daemon):
+            # have fun debugging completely unrelated tests if you remove this
+            daemon.stop_all()
+
+        controller.close()

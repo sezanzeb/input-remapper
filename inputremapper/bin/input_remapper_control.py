@@ -75,12 +75,68 @@ class InputRemapperControlBin:
         self.global_config = global_config
         self.migrations = migrations
 
-    def run(self, cmd) -> None:
-        """Run and log a command."""
-        logger.info("Running `%s`...", cmd)
-        code = os.system(cmd)
-        if code != 0:
-            logger.error("Failed. exit code %d", code)
+    @staticmethod
+    def main(options: Options) -> None:
+        global_config = GlobalConfig()
+        global_uinputs = GlobalUInputs(FrontendUInput)
+        migrations = Migrations(global_uinputs)
+        input_remapper_control = InputRemapperControlBin(
+            global_config,
+            migrations,
+        )
+
+        if options.debug:
+            logger.update_verbosity(True)
+
+        if options.version:
+            logger.log_info()
+            return
+
+        logger.debug('Call for "%s"', sys.argv)
+
+        from inputremapper.user import UserUtils
+
+        boot_finished_ = input_remapper_control.boot_finished()
+        is_root = UserUtils.user == "root"
+        is_autoload = options.command == Commands.AUTOLOAD
+        config_dir_set = options.config_dir is not None
+        if is_autoload and not boot_finished_ and is_root and not config_dir_set:
+            # this is probably happening during boot time and got
+            # triggered by udev. There is no need to try to inject anything if the
+            # service doesn't know where to look for a config file. This avoids a lot
+            # of confusing service logs. And also avoids potential for problems when
+            # input-remapper-control stresses about evdev, dbus and multiprocessing already
+            # while the system hasn't even booted completely.
+            logger.warning("Skipping autoload command without a logged in user")
+            return
+
+        if options.command is not None:
+            if options.command in [command.value for command in Internals]:
+                input_remapper_control.internals(options.command, options.debug)
+            elif options.command in [command.value for command in Commands]:
+                from inputremapper.daemon import Daemon
+
+                daemon = Daemon.connect(fallback=False)
+
+                input_remapper_control.set_daemon(daemon)
+
+                input_remapper_control.communicate(
+                    options.command,
+                    options.device,
+                    options.config_dir,
+                    options.preset,
+                )
+            else:
+                logger.error('Unknown command "%s"', options.command)
+        else:
+            if options.list_devices:
+                input_remapper_control.list_devices()
+
+            if options.key_names:
+                input_remapper_control.list_key_names()
+
+        if options.command:
+            logger.info("Done")
 
     def list_devices(self):
         logger.setLevel(logging.ERROR)
@@ -273,69 +329,6 @@ class InputRemapperControlBin:
     def set_daemon(self, daemon):
         # TODO DI?
         self.daemon = daemon
-
-    @staticmethod
-    def main(options: Options) -> None:
-        global_config = GlobalConfig()
-        global_uinputs = GlobalUInputs(FrontendUInput)
-        migrations = Migrations(global_uinputs)
-        input_remapper_control = InputRemapperControlBin(
-            global_config,
-            migrations,
-        )
-
-        if options.debug:
-            logger.update_verbosity(True)
-
-        if options.version:
-            logger.log_info()
-            return
-
-        logger.debug('Call for "%s"', sys.argv)
-
-        from inputremapper.user import UserUtils
-
-        boot_finished_ = input_remapper_control.boot_finished()
-        is_root = UserUtils.user == "root"
-        is_autoload = options.command == Commands.AUTOLOAD
-        config_dir_set = options.config_dir is not None
-        if is_autoload and not boot_finished_ and is_root and not config_dir_set:
-            # this is probably happening during boot time and got
-            # triggered by udev. There is no need to try to inject anything if the
-            # service doesn't know where to look for a config file. This avoids a lot
-            # of confusing service logs. And also avoids potential for problems when
-            # input-remapper-control stresses about evdev, dbus and multiprocessing already
-            # while the system hasn't even booted completely.
-            logger.warning("Skipping autoload command without a logged in user")
-            return
-
-        if options.command is not None:
-            if options.command in [command.value for command in Internals]:
-                input_remapper_control.internals(options.command, options.debug)
-            elif options.command in [command.value for command in Commands]:
-                from inputremapper.daemon import Daemon
-
-                daemon = Daemon.connect(fallback=False)
-
-                input_remapper_control.set_daemon(daemon)
-
-                input_remapper_control.communicate(
-                    options.command,
-                    options.device,
-                    options.config_dir,
-                    options.preset,
-                )
-            else:
-                logger.error('Unknown command "%s"', options.command)
-        else:
-            if options.list_devices:
-                input_remapper_control.list_devices()
-
-            if options.key_names:
-                input_remapper_control.list_key_names()
-
-        if options.command:
-            logger.info("Done")
 
     @staticmethod
     def parse_args() -> Options:
