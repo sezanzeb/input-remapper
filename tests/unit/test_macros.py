@@ -600,6 +600,15 @@ class TestMacros(MacroTestBase):
         parse("add(a, 1)", self.context)  # no error
         self.assertRaises(MacroParsingError, parse, "add(a, b)", self.context)
 
+        parse("if_capslock(else=key(KEY_A))", self.context)  # no error
+        parse("if_capslock(key(KEY_A), None)", self.context)  # no error
+        parse("if_capslock(key(KEY_A))", self.context)  # no error
+        parse("if_capslock(then=key(KEY_A))", self.context)  # no error
+        parse("if_numlock(else=key(KEY_A))", self.context)  # no error
+        parse("if_numlock(key(KEY_A), None)", self.context)  # no error
+        parse("if_numlock(key(KEY_A))", self.context)  # no error
+        parse("if_numlock(then=key(KEY_A))", self.context)  # no error
+
         # wrong target for BTN_A
         self.assertRaises(
             SymbolNotAvailableInTargetError,
@@ -1238,6 +1247,42 @@ class TestLeds(MacroTestBase):
             self.result = []
             await macro.run(self.handler)
             self.assertListEqual(self.result, [(EV_KEY, KEY_2, 1), (EV_KEY, KEY_2, 0)])
+
+    async def test_if_numlock_no_else(self):
+        macro = parse(
+            "if_numlock(key(KEY_1))",
+            self.context,
+            DummyMapping,
+            True,
+        )
+        self.assertEqual(len(macro.child_macros), 1)
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_CAPSL]):
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [])
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_NUML]):
+            self.result = []
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [(EV_KEY, KEY_1, 1), (EV_KEY, KEY_1, 0)])
+
+    async def test_if_capslock_no_then(self):
+        macro = parse(
+            "if_capslock(None, key(KEY_1))",
+            self.context,
+            DummyMapping,
+            True,
+        )
+        self.assertEqual(len(macro.child_macros), 1)
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_CAPSL]):
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [])
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_NUML]):
+            self.result = []
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [(EV_KEY, KEY_1, 1), (EV_KEY, KEY_1, 0)])
 
 
 @test_setup
