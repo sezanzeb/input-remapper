@@ -55,97 +55,99 @@ from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
 
 
-def stop(daemon, controller):
-    if isinstance(daemon, Daemon):
-        # have fun debugging completely unrelated tests if you remove this
-        daemon.stop_all()
+class InputRemapperGtkBin:
+    @staticmethod
+    def stop(daemon, controller):
+        if isinstance(daemon, Daemon):
+            # have fun debugging completely unrelated tests if you remove this
+            daemon.stop_all()
 
-    controller.close()
+        controller.close()
 
+    @staticmethod
+    def start_reader_service():
+        if ProcessUtils.count_python_processes("input-remapper-reader-service") >= 1:
+            logger.info("Found an input-remapper-reader-service to already be running")
+            return
 
-def start_reader_service():
-    if ProcessUtils.count_python_processes("input-remapper-reader-service") >= 1:
-        logger.info("Found an input-remapper-reader-service to already be running")
-        return
+        try:
+            ReaderService.pkexec_reader_service()
+        except Exception as e:
+            logger.error(e)
+            sys.exit(11)
 
-    try:
-        ReaderService.pkexec_reader_service()
-    except Exception as e:
-        logger.error(e)
-        sys.exit(11)
-
-
-def main() -> Tuple[
-    UserInterface,
-    Controller,
-    DataManager,
-    MessageBroker,
-    DaemonProxy,
-    GlobalConfig,
-]:
-    parser = ArgumentParser()
-    parser.add_argument(
-        "-d",
-        "--debug",
-        action="store_true",
-        dest="debug",
-        help=_("Displays additional debug information"),
-        default=False,
-    )
-
-    options = parser.parse_args(sys.argv[1:])
-    logger.update_verbosity(options.debug)
-    logger.log_info("input-remapper-gtk")
-    logger.debug("Using locale directory: {}".format(LOCALE_DIR))
-
-    global_uinputs = GlobalUInputs(FrontendUInput)
-
-    migrations = Migrations(global_uinputs)
-    migrations.migrate()
-
-    message_broker = MessageBroker()
-
-    global_config = GlobalConfig()
-
-    # Create the ReaderClient before we start the reader-service, otherwise the
-    # privileged service creates and owns those pipes, and then they cannot be accessed
-    # by the user.
-    reader_client = ReaderClient(message_broker, _Groups())
-
-    if ProcessUtils.count_python_processes("input-remapper-gtk") >= 2:
-        logger.warning(
-            "Another input-remapper GUI is already running. "
-            "This can cause problems while recording keys"
+    @staticmethod
+    def main() -> Tuple[
+        UserInterface,
+        Controller,
+        DataManager,
+        MessageBroker,
+        DaemonProxy,
+        GlobalConfig,
+    ]:
+        parser = ArgumentParser()
+        parser.add_argument(
+            "-d",
+            "--debug",
+            action="store_true",
+            dest="debug",
+            help=_("Displays additional debug information"),
+            default=False,
         )
 
-    start_reader_service()
+        options = parser.parse_args(sys.argv[1:])
+        logger.update_verbosity(options.debug)
+        logger.log_info("input-remapper-gtk")
+        logger.debug("Using locale directory: {}".format(LOCALE_DIR))
 
-    daemon = Daemon.connect()
+        global_uinputs = GlobalUInputs(FrontendUInput)
 
-    data_manager = DataManager(
-        message_broker,
-        global_config,
-        reader_client,
-        daemon,
-        global_uinputs,
-        keyboard_layout,
-    )
-    controller = Controller(message_broker, data_manager)
-    user_interface = UserInterface(message_broker, controller)
-    controller.set_gui(user_interface)
+        migrations = Migrations(global_uinputs)
+        migrations.migrate()
 
-    message_broker.signal(MessageType.init)
+        message_broker = MessageBroker()
 
-    atexit.register(lambda: stop(daemon, controller))
+        global_config = GlobalConfig()
 
-    Gtk.main()
+        # Create the ReaderClient before we start the reader-service, otherwise the
+        # privileged service creates and owns those pipes, and then they cannot be accessed
+        # by the user.
+        reader_client = ReaderClient(message_broker, _Groups())
 
-    # For tests:
-    return (
-        user_interface,
-        controller,
-        data_manager,
-        message_broker,
-        daemon,
-        global_config,
-    )
+        if ProcessUtils.count_python_processes("input-remapper-gtk") >= 2:
+            logger.warning(
+                "Another input-remapper GUI is already running. "
+                "This can cause problems while recording keys"
+            )
+
+        InputRemapperGtkBin.start_reader_service()
+
+        daemon = Daemon.connect()
+
+        data_manager = DataManager(
+            message_broker,
+            global_config,
+            reader_client,
+            daemon,
+            global_uinputs,
+            keyboard_layout,
+        )
+        controller = Controller(message_broker, data_manager)
+        user_interface = UserInterface(message_broker, controller)
+        controller.set_gui(user_interface)
+
+        message_broker.signal(MessageType.init)
+
+        atexit.register(lambda: InputRemapperGtkBin.stop(daemon, controller))
+
+        Gtk.main()
+
+        # For tests:
+        return (
+            user_interface,
+            controller,
+            data_manager,
+            message_broker,
+            daemon,
+            global_config,
+        )

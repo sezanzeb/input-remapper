@@ -156,20 +156,6 @@ class Macro:
         """Check if the macro is waiting for a key to be released."""
         return not self._trigger_release_event.is_set()
 
-    def get_capabilities(self):
-        """Get the merged capabilities of the macro and its children."""
-        capabilities = copy.deepcopy(self.capabilities)
-
-        for macro in self.child_macros:
-            macro_capabilities = macro.get_capabilities()
-            for type_ in macro_capabilities:
-                if type_ not in capabilities:
-                    capabilities[type_] = set()
-
-                capabilities[type_].update(macro_capabilities[type_])
-
-        return capabilities
-
     async def run(self, handler: Callable):
         """Run the macro.
 

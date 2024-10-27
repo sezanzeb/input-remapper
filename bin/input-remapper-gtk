@@ -20,7 +20,7 @@
 
 """Starts the user interface."""
 
-from inputremapper.bin.input_remapper_gtk import main
+from inputremapper.bin.input_remapper_gtk import InputRemapperGtkBin
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    InputRemapperGtkBin.main()

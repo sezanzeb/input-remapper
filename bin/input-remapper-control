@@ -20,7 +20,7 @@
 
 """Control the dbus service from the command line."""
 
-from inputremapper.bin.input_remapper_control import main, parse_args
+from inputremapper.bin.input_remapper_control import InputRemapperControlBin
 
-if __name__ == '__main__':
-    main(parse_args())
+if __name__ == "__main__":
+    InputRemapperControlBin.main(InputRemapperControlBin.parse_args())

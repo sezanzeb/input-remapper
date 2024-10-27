@@ -27,11 +27,11 @@ import os
 import subprocess
 import sys
 from enum import Enum
-from typing import Union, Optional
+from typing import Optional
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
-from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
+from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.logging.logger import logger
 
 
@@ -66,7 +66,7 @@ class Options:
     version: str
 
 
-class InputRemapperControl:
+class InputRemapperControlBin:
     def __init__(
         self,
         global_config: GlobalConfig,
@@ -274,140 +274,140 @@ class InputRemapperControl:
         # TODO DI?
         self.daemon = daemon
 
+    @staticmethod
+    def main(options: Options) -> None:
+        global_config = GlobalConfig()
+        global_uinputs = GlobalUInputs(FrontendUInput)
+        migrations = Migrations(global_uinputs)
+        input_remapper_control = InputRemapperControlBin(
+            global_config,
+            migrations,
+        )
 
-def main(options: Options) -> None:
-    global_config = GlobalConfig()
-    global_uinputs = GlobalUInputs(FrontendUInput)
-    migrations = Migrations(global_uinputs)
-    input_remapper_control = InputRemapperControl(
-        global_config,
-        migrations,
-    )
+        if options.debug:
+            logger.update_verbosity(True)
 
-    if options.debug:
-        logger.update_verbosity(True)
+        if options.version:
+            logger.log_info()
+            return
 
-    if options.version:
-        logger.log_info()
-        return
+        logger.debug('Call for "%s"', sys.argv)
 
-    logger.debug('Call for "%s"', sys.argv)
+        from inputremapper.user import UserUtils
 
-    from inputremapper.user import UserUtils
+        boot_finished_ = input_remapper_control.boot_finished()
+        is_root = UserUtils.user == "root"
+        is_autoload = options.command == Commands.AUTOLOAD
+        config_dir_set = options.config_dir is not None
+        if is_autoload and not boot_finished_ and is_root and not config_dir_set:
+            # this is probably happening during boot time and got
+            # triggered by udev. There is no need to try to inject anything if the
+            # service doesn't know where to look for a config file. This avoids a lot
+            # of confusing service logs. And also avoids potential for problems when
+            # input-remapper-control stresses about evdev, dbus and multiprocessing already
+            # while the system hasn't even booted completely.
+            logger.warning("Skipping autoload command without a logged in user")
+            return
 
-    boot_finished_ = input_remapper_control.boot_finished()
-    is_root = UserUtils.user == "root"
-    is_autoload = options.command == Commands.AUTOLOAD
-    config_dir_set = options.config_dir is not None
-    if is_autoload and not boot_finished_ and is_root and not config_dir_set:
-        # this is probably happening during boot time and got
-        # triggered by udev. There is no need to try to inject anything if the
-        # service doesn't know where to look for a config file. This avoids a lot
-        # of confusing service logs. And also avoids potential for problems when
-        # input-remapper-control stresses about evdev, dbus and multiprocessing already
-        # while the system hasn't even booted completely.
-        logger.warning("Skipping autoload command without a logged in user")
-        return
+        if options.command is not None:
+            if options.command in [command.value for command in Internals]:
+                input_remapper_control.internals(options.command, options.debug)
+            elif options.command in [command.value for command in Commands]:
+                from inputremapper.daemon import Daemon
 
-    if options.command is not None:
-        if options.command in [command.value for command in Internals]:
-            input_remapper_control.internals(options.command, options.debug)
-        elif options.command in [command.value for command in Commands]:
-            from inputremapper.daemon import Daemon
+                daemon = Daemon.connect(fallback=False)
 
-            daemon = Daemon.connect(fallback=False)
+                input_remapper_control.set_daemon(daemon)
 
-            input_remapper_control.set_daemon(daemon)
-
-            input_remapper_control.communicate(
-                options.command,
-                options.device,
-                options.config_dir,
-                options.preset,
-            )
+                input_remapper_control.communicate(
+                    options.command,
+                    options.device,
+                    options.config_dir,
+                    options.preset,
+                )
+            else:
+                logger.error('Unknown command "%s"', options.command)
         else:
-            logger.error('Unknown command "%s"', options.command)
-    else:
-        if options.list_devices:
-            input_remapper_control.list_devices()
+            if options.list_devices:
+                input_remapper_control.list_devices()
 
-        if options.key_names:
-            input_remapper_control.key_names()
+            if options.key_names:
+                input_remapper_control.list_key_names()
 
-    if options.command:
-        logger.info("Done")
+        if options.command:
+            logger.info("Done")
 
+    @staticmethod
+    def parse_args() -> Options:
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "--command",
+            action="store",
+            dest="command",
+            help=(
+                "Communicate with the daemon. Available commands are start, "
+                "stop, autoload, hello or stop-all"
+            ),
+            default=None,
+            metavar="NAME",
+        )
+        parser.add_argument(
+            "--config-dir",
+            action="store",
+            dest="config_dir",
+            help=(
+                "path to the config directory containing config.json, "
+                "xmodmap.json and the presets folder. "
+                "defaults to ~/.config/input-remapper/"
+            ),
+            default=None,
+            metavar="PATH",
+        )
+        parser.add_argument(
+            "--preset",
+            action="store",
+            dest="preset",
+            help="The filename of the preset without the .json extension.",
+            default=None,
+            metavar="NAME",
+        )
+        parser.add_argument(
+            "--device",
+            action="store",
+            dest="device",
+            help="One of the device keys from --list-devices",
+            default=None,
+            metavar="NAME",
+        )
+        parser.add_argument(
+            "--list-devices",
+            action="store_true",
+            dest="list_devices",
+            help="List available device keys and exit",
+            default=False,
+        )
+        parser.add_argument(
+            "--symbol-names",
+            action="store_true",
+            dest="key_names",
+            help="Print all available names for the preset",
+            default=False,
+        )
+        parser.add_argument(
+            "-d",
+            "--debug",
+            action="store_true",
+            dest="debug",
+            help="Displays additional debug information",
+            default=False,
+        )
+        parser.add_argument(
+            "-v",
+            "--version",
+            action="store_true",
+            dest="version",
+            help="Print the version and exit",
+            default=False,
+        )
 
-def parse_args() -> Options:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--command",
-        action="store",
-        dest="command",
-        help=(
-            "Communicate with the daemon. Available commands are start, "
-            "stop, autoload, hello or stop-all"
-        ),
-        default=None,
-        metavar="NAME",
-    )
-    parser.add_argument(
-        "--config-dir",
-        action="store",
-        dest="config_dir",
-        help=(
-            "path to the config directory containing config.json, "
-            "xmodmap.json and the presets folder. "
-            "defaults to ~/.config/input-remapper/"
-        ),
-        default=None,
-        metavar="PATH",
-    )
-    parser.add_argument(
-        "--preset",
-        action="store",
-        dest="preset",
-        help="The filename of the preset without the .json extension.",
-        default=None,
-        metavar="NAME",
-    )
-    parser.add_argument(
-        "--device",
-        action="store",
-        dest="device",
-        help="One of the device keys from --list-devices",
-        default=None,
-        metavar="NAME",
-    )
-    parser.add_argument(
-        "--list-devices",
-        action="store_true",
-        dest="list_devices",
-        help="List available device keys and exit",
-        default=False,
-    )
-    parser.add_argument(
-        "--symbol-names",
-        action="store_true",
-        dest="key_names",
-        help="Print all available names for the preset",
-        default=False,
-    )
-    parser.add_argument(
-        "-d",
-        "--debug",
-        action="store_true",
-        dest="debug",
-        help="Displays additional debug information",
-        default=False,
-    )
-    parser.add_argument(
-        "-v",
-        "--version",
-        action="store_true",
-        dest="version",
-        help="Print the version and exit",
-        default=False,
-    )
-
-    return parser.parse_args(sys.argv[1:])  # type: ignore
+        return parser.parse_args(sys.argv[1:])  # type: ignore

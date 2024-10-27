@@ -85,7 +85,7 @@ from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.daemon import Daemon, DaemonProxy
-from inputremapper.bin.input_remapper_gtk import stop, main
+from inputremapper.bin.input_remapper_gtk import InputRemapperGtkBin
 
 from tests.lib.test_setup import test_setup
 
@@ -108,11 +108,11 @@ def launch() -> Tuple[
     GlobalConfig,
 ]:
     """Start input-remapper-gtk."""
-    return_ = main()
+    return_ = InputRemapperGtkBin.main()
     gtk_iteration()
     # otherwise a new handler is added with each call to launch, which
     # spams tons of garbage when all tests finish
-    atexit.unregister(stop)
+    atexit.unregister(InputRemapperGtkBin.stop)
     return return_
 
 
