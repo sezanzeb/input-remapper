@@ -226,6 +226,34 @@ Bear in mind that anti-cheat software might detect macros in games.
 > set(a, 1).if_eq($a, 1, None, key(KEY_B))
 > ```
 
+### if_capslock
+
+> Run the first macro if your capslock is on, otherwise the second.
+>
+> ```c#
+> if_capslock(then: Macro | None, else: Macro | None)
+> ```
+>
+> Examples:
+>
+> ```c#
+> if_capslock(key(KEY_1), key(KEY_2))
+> ```
+
+### if_numlock
+
+> Run the first macro if your numlock is on, otherwise the second.
+>
+> ```c#
+> if_numlock(then: Macro | None, else: Macro | None)
+> ```
+>
+> Examples:
+>
+> ```c#
+> if_numlock(key(KEY_3), key(KEY_4))
+> ```
+
 ### if_tap
 
 > If the key is tapped quickly, run the `then` macro, otherwise the

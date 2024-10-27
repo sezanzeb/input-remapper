@@ -423,6 +423,13 @@ class InputCombination(Tuple[InputConfig, ...]):
         if len(self) <= 2:
             return [self]
 
+        if len(self) > 6:
+            logger.warning(
+                'Your input combination has a length of %d, it might freeze the '
+                'process',
+                len(self),
+            )
+
         permutations = []
         for permutation in itertools.permutations(self[:-1]):
             permutations.append(InputCombination((*permutation, self[-1])))

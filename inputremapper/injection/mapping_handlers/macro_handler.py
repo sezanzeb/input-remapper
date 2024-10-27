@@ -18,7 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-from typing import Dict, Callable
+from typing import Dict, Callable, Set
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping

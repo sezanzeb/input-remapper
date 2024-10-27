@@ -123,3 +123,9 @@ class Context:
 
     def get_source(self, key: DeviceHash) -> evdev.InputDevice:
         return self._source_devices[key]
+
+    def get_leds(self) -> Set[int]:
+        leds = set()
+        for device in self._source_devices.values():
+            leds.update(device.leds())
+        return leds
