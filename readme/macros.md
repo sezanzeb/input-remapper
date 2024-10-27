@@ -241,7 +241,10 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Examples:
 >
 > ```c#
-> if_capslock(hold_keys(KEY_1), hold_keys(KEY_2))
+> if_capslock(
+>     then=hold_keys(KEY_3),
+>     else=hold_keys(KEY_4)
+> )
 > ```
 
 ### if_numlock
