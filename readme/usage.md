@@ -182,7 +182,7 @@ Here is an example configuration for preset "a" for the "gamepad" device:
             {"type": 1, "code": 307}
         ], 
         "target_uinput": "keyboard", 
-        "output_symbol": "k(2).k(3)", 
+        "output_symbol": "key(2).key(3)", 
         "macro_key_sleep_ms": 100
     }, 
     {

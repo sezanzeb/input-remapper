@@ -88,7 +88,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Examples:
 >
 > ```c#
-> modify(Control_L, k(a).k(x))
+> modify(Control_L, key(a).key(x))
 > ```
 
 ### hold
@@ -107,9 +107,12 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 ### hold_keys
 
-> Holds down all the provided symbols like a combination.
+> Holds down all the provided symbols like a combination, and releases them when the
+> actual key on your keyboard is released.
 >
 > An arbitrary number of symbols can be provided.
+> 
+> When provided with a single key, it will behave just like a regular keyboard key.
 >
 > ```c#
 > hold_keys(*symbols: str)
@@ -121,6 +124,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > hold_keys(KEY_LEFTCTRL, KEY_A)
 > hold_keys(Control_L, Alt_L, Delete)
 > set(foo, KEY_A).hold_keys($foo)
+> hold_keys(KEY_B)
 > ```
 
 ### mouse
@@ -237,7 +241,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Examples:
 >
 > ```c#
-> if_capslock(key(KEY_1), key(KEY_2))
+> if_capslock(hold_keys(KEY_1), hold_keys(KEY_2))
 > ```
 
 ### if_numlock
@@ -251,7 +255,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Examples:
 >
 > ```c#
-> if_numlock(key(KEY_3), key(KEY_4))
+> if_numlock(hold_keys(KEY_3), hold_keys(KEY_4))
 > ```
 
 ### if_tap

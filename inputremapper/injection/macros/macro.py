@@ -78,7 +78,7 @@ macro_variables = SharedDict()
 class Variable:
     """Can be used as function parameter in the various add_... functions.
 
-    Parsed from strings like `$foo` in `repeat($foo, k(KEY_A))`
+    Parsed from strings like `$foo` in `repeat($foo, key(KEY_A))`
 
     Its value is unknown during construction and needs to be set using the `set` macro
     during runtime.
