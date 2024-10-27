@@ -198,6 +198,9 @@ class InputDevice:
     def input_props(self):
         return []
 
+    def leds(self):
+        return []
+
 
 uinputs = {}
 

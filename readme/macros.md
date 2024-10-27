@@ -88,7 +88,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Examples:
 >
 > ```c#
-> modify(Control_L, k(a).k(x))
+> modify(Control_L, key(a).key(x))
 > ```
 
 ### hold
@@ -107,9 +107,12 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 ### hold_keys
 
-> Holds down all the provided symbols like a combination.
+> Holds down all the provided symbols like a combination, and releases them when the
+> actual key on your keyboard is released.
 >
 > An arbitrary number of symbols can be provided.
+> 
+> When provided with a single key, it will behave just like a regular keyboard key.
 >
 > ```c#
 > hold_keys(*symbols: str)
@@ -121,6 +124,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > hold_keys(KEY_LEFTCTRL, KEY_A)
 > hold_keys(Control_L, Alt_L, Delete)
 > set(foo, KEY_A).hold_keys($foo)
+> hold_keys(KEY_B)
 > ```
 
 ### mouse
@@ -224,6 +228,37 @@ Bear in mind that anti-cheat software might detect macros in games.
 > set(a, 1).set(b, 1).if_eq($a, $b, else=key(KEY_B).key(KEY_C))
 > set(a, "foo").if_eq("foo", $a, key(KEY_A))
 > set(a, 1).if_eq($a, 1, None, key(KEY_B))
+> ```
+
+### if_capslock
+
+> Run the first macro if your capslock is on, otherwise the second.
+>
+> ```c#
+> if_capslock(then: Macro | None, else: Macro | None)
+> ```
+>
+> Examples:
+>
+> ```c#
+> if_capslock(
+>     then=hold_keys(KEY_3),
+>     else=hold_keys(KEY_4)
+> )
+> ```
+
+### if_numlock
+
+> Run the first macro if your numlock is on, otherwise the second.
+>
+> ```c#
+> if_numlock(then: Macro | None, else: Macro | None)
+> ```
+>
+> Examples:
+>
+> ```c#
+> if_numlock(hold_keys(KEY_3), hold_keys(KEY_4))
 > ```
 
 ### if_tap

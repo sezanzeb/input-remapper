@@ -41,7 +41,7 @@ import copy
 import math
 import re
 import random
-from typing import List, Callable, Awaitable, Tuple, Optional, Union, Any
+from typing import List, Callable, Awaitable, Tuple, Optional, Union, Any, TYPE_CHECKING
 
 from evdev.ecodes import (
     ecodes,
@@ -53,6 +53,8 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
     REL_WHEEL,
     REL_HWHEEL,
+    LED_NUML,
+    LED_CAPSL,
 )
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
@@ -64,6 +66,9 @@ from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.logging.logger import logger
 
+if TYPE_CHECKING:
+    from inputremapper.injection.context import Context
+
 Handler = Callable[[Tuple[int, int, int]], None]
 MacroTask = Callable[[Handler], Awaitable]
 
@@ -73,7 +78,7 @@ macro_variables = SharedDict()
 class Variable:
     """Can be used as function parameter in the various add_... functions.
 
-    Parsed from strings like `$foo` in `repeat($foo, k(KEY_A))`
+    Parsed from strings like `$foo` in `repeat($foo, key(KEY_A))`
 
     Its value is unknown during construction and needs to be set using the `set` macro
     during runtime.
@@ -118,7 +123,7 @@ class Macro:
     def __init__(
         self,
         code: Optional[str],
-        context=None,
+        context: Optional[Context] = None,
         mapping=None,
     ):
         """Create a macro instance that can be populated with tasks.
@@ -573,6 +578,35 @@ class Macro:
             self.child_macros.append(else_)
 
         self.tasks.append(task)
+
+    def _add_if_led(self, code: int, then: Optional[Macro], else_: Optional[Macro]):
+        async def task(handler: Callable):
+            # self.context is only None when the frontend is parsing the macro
+            assert self.context is not None
+            is_numlock_on = code in self.context.get_leds()
+
+            if is_numlock_on:
+                if then is not None:
+                    await then.run(handler)
+            elif else_ is not None:
+                await else_.run(handler)
+
+        if isinstance(then, Macro):
+            self.child_macros.append(then)
+        if isinstance(else_, Macro):
+            self.child_macros.append(else_)
+
+        self.tasks.append(task)
+
+    def add_if_numlock(self, then=None, else_=None):
+        self._type_check(then, [Macro, None], "if_numlock", 1)
+        self._type_check(else_, [Macro, None], "if_numlock", 2)
+        self._add_if_led(LED_NUML, then, else_)
+
+    def add_if_capslock(self, then=None, else_=None):
+        self._type_check(then, [Macro, None], "if_capslock", 1)
+        self._type_check(else_, [Macro, None], "if_capslock", 2)
+        self._add_if_led(LED_CAPSL, then, else_)
 
     def add_if_tap(self, then=None, else_=None, timeout=300):
         """If a key was pressed quickly.

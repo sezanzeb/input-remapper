@@ -24,6 +24,7 @@ from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, NewTy
 
 from evdev import ecodes
 
+from inputremapper.configs.paths import PathUtils
 from inputremapper.input_event import InputEvent
 
 try:
@@ -422,6 +423,14 @@ class InputCombination(Tuple[InputConfig, ...]):
         """
         if len(self) <= 2:
             return [self]
+
+        if len(self) > 6:
+            logger.warning(
+                "Your input combination has a length of %d. Long combinations might "
+                'freeze the process. Edit the configuration files in "%s" to fix it.',
+                len(self),
+                PathUtils.get_config_path(),
+            )
 
         permutations = []
         for permutation in itertools.permutations(self[:-1]):
