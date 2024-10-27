@@ -25,9 +25,12 @@ import atexit
 import os
 import signal
 import sys
+import time
 from argparse import ArgumentParser
 
+from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.groups import _Groups
+from inputremapper.gui.reader_service import ReaderService
 from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.logging.logger import logger
 
@@ -47,8 +50,19 @@ def main() -> None:
 
     logger.update_verbosity(options.debug)
 
-    # import input-remapper stuff after setting the log verbosity
-    from inputremapper.gui.reader_service import ReaderService
+    if ProcessUtils.count_python_processes("input-remapper-reader-service") >= 2:
+        logger.warning(
+            "Another input-remapper-reader-service process is already running. "
+            "This can cause problems while recording keys"
+        )
+
+    if os.getuid() != 0:
+        logger.warning("The reader-service usually needs elevated privileges")
+
+    if not ReaderService.pipes_exist():
+        while not ReaderService.pipes_exist():
+            time.sleep(1)
+            logger.debug("Waiting for pipes to be created")
 
     def on_exit():
         """Don't remain idle and alive when the GUI exits via ctrl+c."""

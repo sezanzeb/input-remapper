@@ -29,6 +29,8 @@ from typing import Tuple
 
 import gi
 
+from inputremapper.bin.process_utils import ProcessUtils
+
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
@@ -108,6 +110,12 @@ def main() -> Tuple[
     # privileged service creates and owns those pipes, and then they cannot be accessed
     # by the user.
     reader_client = ReaderClient(message_broker, _Groups())
+
+    if ProcessUtils.count_python_processes("input-remapper-gtk") >= 2:
+        logger.warning(
+            "Another input-remapper GUI is already running. "
+            "This can cause problems while recording keys"
+        )
 
     if not options.without_reader_service:
         try:

@@ -45,7 +45,6 @@ from inputremapper.gui.reader_service import (
     CMD_TERMINATE,
     CMD_REFRESH_GROUPS,
     CMD_STOP_READING,
-    get_pipe_paths,
     ReaderService,
 )
 from inputremapper.gui.utils import CTX_ERROR
@@ -120,8 +119,8 @@ class ReaderClient:
 
     def connect(self):
         """Connect to the reader-service."""
-        results_pipe = Pipe(get_pipe_paths()[0])
-        commands_pipe = Pipe(get_pipe_paths()[1])
+        results_pipe = Pipe(ReaderService.get_pipe_paths()[0])
+        commands_pipe = Pipe(ReaderService.get_pipe_paths()[1])
         return results_pipe, commands_pipe
 
     def attach_to_events(self):
