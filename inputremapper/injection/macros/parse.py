@@ -55,6 +55,8 @@ TASK_FACTORIES = {
     "mouse": Macro.add_mouse,
     "wheel": Macro.add_wheel,
     "if_eq": Macro.add_if_eq,
+    "if_numlock": Macro.add_if_numlock,
+    "if_capslock": Macro.add_if_capslock,
     "set": Macro.add_set,
     "if_tap": Macro.add_if_tap,
     "if_single": Macro.add_if_single,

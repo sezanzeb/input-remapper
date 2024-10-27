@@ -25,6 +25,7 @@ import re
 import time
 import unittest
 from unittest import mock
+from unittest.mock import patch
 
 from evdev.ecodes import (
     EV_REL,
@@ -37,7 +38,12 @@ from evdev.ecodes import (
     KEY_B,
     KEY_C,
     KEY_E,
+    KEY_1,
+    KEY_2,
+    LED_CAPSL,
+    LED_NUML,
 )
+from more_itertools.more import side_effect
 
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.keyboard_layout import keyboard_layout
@@ -67,7 +73,9 @@ from inputremapper.injection.macros.parse import (
 )
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
+from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
+from tests.lib.patches import InputDevice
 from tests.lib.test_setup import test_setup
 
 
@@ -89,9 +97,11 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
+        self.source_device = InputDevice(fixtures.bar_device.path)
+
         self.context = Context(
             Preset(),
-            source_devices={},
+            source_devices={fixtures.bar_device.get_device_hash(): self.source_device},
             forward_devices={},
             mapping_parser=self.mapping_parser,
         )
@@ -589,6 +599,15 @@ class TestMacros(MacroTestBase):
 
         parse("add(a, 1)", self.context)  # no error
         self.assertRaises(MacroParsingError, parse, "add(a, b)", self.context)
+
+        parse("if_capslock(else=key(KEY_A))", self.context)  # no error
+        parse("if_capslock(key(KEY_A), None)", self.context)  # no error
+        parse("if_capslock(key(KEY_A))", self.context)  # no error
+        parse("if_capslock(then=key(KEY_A))", self.context)  # no error
+        parse("if_numlock(else=key(KEY_A))", self.context)  # no error
+        parse("if_numlock(key(KEY_A), None)", self.context)  # no error
+        parse("if_numlock(key(KEY_A))", self.context)  # no error
+        parse("if_numlock(then=key(KEY_A))", self.context)  # no error
 
         # wrong target for BTN_A
         self.assertRaises(
@@ -1189,6 +1208,81 @@ class TestMacros(MacroTestBase):
                 (EV_KEY, KEY_E, 0),
             ],
         )
+
+
+@test_setup
+class TestLeds(MacroTestBase):
+    async def test_if_capslock(self):
+        macro = parse(
+            "if_capslock(key(KEY_1), key(KEY_2))",
+            self.context,
+            DummyMapping,
+            True,
+        )
+        self.assertEqual(len(macro.child_macros), 2)
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_NUML]):
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [(EV_KEY, KEY_2, 1), (EV_KEY, KEY_2, 0)])
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_CAPSL]):
+            self.result = []
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [(EV_KEY, KEY_1, 1), (EV_KEY, KEY_1, 0)])
+
+    async def test_if_numlock(self):
+        macro = parse(
+            "if_numlock(key(KEY_1), key(KEY_2))",
+            self.context,
+            DummyMapping,
+            True,
+        )
+        self.assertEqual(len(macro.child_macros), 2)
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_NUML]):
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [(EV_KEY, KEY_1, 1), (EV_KEY, KEY_1, 0)])
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_CAPSL]):
+            self.result = []
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [(EV_KEY, KEY_2, 1), (EV_KEY, KEY_2, 0)])
+
+    async def test_if_numlock_no_else(self):
+        macro = parse(
+            "if_numlock(key(KEY_1))",
+            self.context,
+            DummyMapping,
+            True,
+        )
+        self.assertEqual(len(macro.child_macros), 1)
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_CAPSL]):
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [])
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_NUML]):
+            self.result = []
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [(EV_KEY, KEY_1, 1), (EV_KEY, KEY_1, 0)])
+
+    async def test_if_capslock_no_then(self):
+        macro = parse(
+            "if_capslock(None, key(KEY_1))",
+            self.context,
+            DummyMapping,
+            True,
+        )
+        self.assertEqual(len(macro.child_macros), 1)
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_CAPSL]):
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [])
+
+        with patch.object(self.source_device, "leds", side_effect=lambda: [LED_NUML]):
+            self.result = []
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, [(EV_KEY, KEY_1, 1), (EV_KEY, KEY_1, 0)])
 
 
 @test_setup
