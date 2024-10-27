@@ -18,8 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Starts the root reader-service."""
+
 import asyncio
 import atexit
 import os
@@ -59,9 +59,11 @@ def main() -> None:
     if os.getuid() != 0:
         logger.warning("The reader-service usually needs elevated privileges")
 
-    while not ReaderService.pipes_exist():
-        time.sleep(1)
-        logger.debug("Waiting for pipes to be created")
+    if not ReaderService.pipes_exist():
+        logger.info("Waiting for pipes to be created by the GUI")
+        while not ReaderService.pipes_exist():
+            time.sleep(0.5)
+            logger.debug("Waiting...")
 
     def on_exit():
         """Don't remain idle and alive when the GUI exits via ctrl+c."""

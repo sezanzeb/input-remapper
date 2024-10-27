@@ -63,6 +63,18 @@ def stop(daemon, controller):
     controller.close()
 
 
+def start_reader_service():
+    if ProcessUtils.count_python_processes("input-remapper-reader-service") >= 1:
+        logger.info("Found an input-remapper-reader-service to already be running")
+        return
+
+    try:
+        ReaderService.pkexec_reader_service()
+    except Exception as e:
+        logger.error(e)
+        sys.exit(11)
+
+
 def main() -> Tuple[
     UserInterface,
     Controller,
@@ -78,17 +90,6 @@ def main() -> Tuple[
         action="store_true",
         dest="debug",
         help=_("Displays additional debug information"),
-        default=False,
-    )
-    parser.add_argument(
-        "--without-reader-service",
-        action="store_true",
-        dest="without_reader_service",
-        help=_(
-            "Don't attempt to start input-remapper-reader-service automatically via "
-            "pkexec. You need to start it with elevated privileges yourself "
-            "afterwards, and restart it if it times out."
-        ),
         default=False,
     )
 
@@ -117,12 +118,7 @@ def main() -> Tuple[
             "This can cause problems while recording keys"
         )
 
-    if not options.without_reader_service:
-        try:
-            ReaderService.pkexec_reader_service()
-        except Exception as e:
-            logger.error(e)
-            sys.exit(11)
+    start_reader_service()
 
     daemon = Daemon.connect()
 
