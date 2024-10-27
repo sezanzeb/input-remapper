@@ -59,10 +59,9 @@ def main() -> None:
     if os.getuid() != 0:
         logger.warning("The reader-service usually needs elevated privileges")
 
-    if not ReaderService.pipes_exist():
-        while not ReaderService.pipes_exist():
-            time.sleep(1)
-            logger.debug("Waiting for pipes to be created")
+    while not ReaderService.pipes_exist():
+        time.sleep(1)
+        logger.debug("Waiting for pipes to be created")
 
     def on_exit():
         """Don't remain idle and alive when the GUI exits via ctrl+c."""
