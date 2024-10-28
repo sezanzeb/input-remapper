@@ -20,7 +20,9 @@
 
 """Starts the root reader-service."""
 
-from inputremapper.bin.input_remapper_reader_service import main
+from inputremapper.bin.input_remapper_reader_service import (
+    InputRemapperReaderServiceBin,
+)
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    InputRemapperReaderServiceBin.main()

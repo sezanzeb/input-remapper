@@ -46,7 +46,7 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
-from typing import Set, List
+from typing import Set, List, Tuple
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
@@ -80,14 +80,6 @@ MSG_EVENT = "event"
 MSG_STATUS = "status"
 
 
-def get_pipe_paths():
-    """Get the path where the pipe can be found."""
-    return (
-        f"/tmp/input-remapper-{UserUtils.home}/reader-results",
-        f"/tmp/input-remapper-{UserUtils.home}/reader-commands",
-    )
-
-
 class ReaderService:
     """Service that only reads events and is supposed to run as root.
 
@@ -114,13 +106,13 @@ class ReaderService:
     _maximum_lifetime: int = 60 * 15
     _timeout_tolerance: int = 60
 
-    def __init__(self, groups: _Groups, global_uinputs: GlobalUInputs):
+    def __init__(self, groups: _Groups, global_uinputs: GlobalUInputs) -> None:
         """Construct the reader-service and initialize its communication pipes."""
         self._start_time = time.time()
         self.groups = groups
         self.global_uinputs = global_uinputs
-        self._results_pipe = Pipe(get_pipe_paths()[0])
-        self._commands_pipe = Pipe(get_pipe_paths()[1])
+        self._results_pipe = Pipe(self.get_pipe_paths()[0])
+        self._commands_pipe = Pipe(self.get_pipe_paths()[1])
         self._pipe = multiprocessing.Pipe()
 
         self._tasks: Set[asyncio.Task] = set()
@@ -129,7 +121,24 @@ class ReaderService:
         self._results_pipe.send({"type": MSG_STATUS, "message": "ready"})
 
     @staticmethod
-    def is_running():
+    def get_pipe_paths() -> Tuple[str, str]:
+        """Get the path where the pipe can be found."""
+        return (
+            f"/tmp/input-remapper-{UserUtils.home}/reader-results",
+            f"/tmp/input-remapper-{UserUtils.home}/reader-commands",
+        )
+
+    @staticmethod
+    def pipes_exist() -> bool:
+        # Just checking for one of the 4 files (results, commands both read and write)
+        # should be enough I guess.
+        path = f"{ReaderService.get_pipe_paths()[0]}r"
+        # Use os.path.exists, not lexists or islink, because broken links are bad.
+        # New pipes and symlinks need to be made.
+        return os.path.exists(path)
+
+    @staticmethod
+    def is_running() -> bool:
         """Check if the reader-service is running."""
         try:
             subprocess.check_output(["pgrep", "-f", "input-remapper-reader-service"])

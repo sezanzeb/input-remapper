@@ -31,38 +31,40 @@ from inputremapper.injection.mapping_handlers.mapping_parser import MappingParse
 from inputremapper.logging.logger import logger
 
 
-def main() -> None:
-    parser = ArgumentParser()
-    parser.add_argument(
-        "-d",
-        "--debug",
-        action="store_true",
-        dest="debug",
-        help="Displays additional debug information",
-        default=False,
-    )
-    parser.add_argument(
-        "--hide-info",
-        action="store_true",
-        dest="hide_info",
-        help="Don't display version information",
-        default=False,
-    )
+class InputRemapperServiceBin:
+    @staticmethod
+    def main() -> None:
+        parser = ArgumentParser()
+        parser.add_argument(
+            "-d",
+            "--debug",
+            action="store_true",
+            dest="debug",
+            help="Displays additional debug information",
+            default=False,
+        )
+        parser.add_argument(
+            "--hide-info",
+            action="store_true",
+            dest="hide_info",
+            help="Don't display version information",
+            default=False,
+        )
 
-    options = parser.parse_args(sys.argv[1:])
+        options = parser.parse_args(sys.argv[1:])
 
-    logger.update_verbosity(options.debug)
+        logger.update_verbosity(options.debug)
 
-    # import input-remapper stuff after setting the log verbosity
-    from inputremapper.daemon import Daemon
+        # import input-remapper stuff after setting the log verbosity
+        from inputremapper.daemon import Daemon
 
-    if not options.hide_info:
-        logger.log_info("input-remapper-service")
+        if not options.hide_info:
+            logger.log_info("input-remapper-service")
 
-    global_config = GlobalConfig()
-    global_uinputs = GlobalUInputs(UInput)
-    mapping_parser = MappingParser(global_uinputs)
+        global_config = GlobalConfig()
+        global_uinputs = GlobalUInputs(UInput)
+        mapping_parser = MappingParser(global_uinputs)
 
-    daemon = Daemon(global_config, global_uinputs, mapping_parser)
-    daemon.publish()
-    daemon.run()
+        daemon = Daemon(global_config, global_uinputs, mapping_parser)
+        daemon.publish()
+        daemon.run()

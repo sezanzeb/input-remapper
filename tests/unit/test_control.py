@@ -26,7 +26,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from inputremapper.bin.input_remapper_control import InputRemapperControl
+from inputremapper.bin.input_remapper_control import InputRemapperControlBin
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
 from inputremapper.configs.paths import PathUtils
@@ -52,7 +52,7 @@ class TestControl(unittest.TestCase):
         self.global_uinputs = GlobalUInputs(FrontendUInput)
         self.migrations = Migrations(self.global_uinputs)
         self.mapping_parser = MappingParser(self.global_uinputs)
-        self.input_remapper_control = InputRemapperControl(
+        self.input_remapper_control = InputRemapperControlBin(
             self.global_config, self.migrations
         )
 

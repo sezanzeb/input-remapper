@@ -20,7 +20,7 @@
 
 """Starts injecting keycodes based on the configuration."""
 
-from inputremapper.bin.input_remapper_service import main
+from inputremapper.bin.input_remapper_service import InputRemapperServiceBin
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    InputRemapperServiceBin.main()

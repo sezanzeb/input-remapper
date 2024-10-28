@@ -18,47 +18,64 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Starts the root reader-service."""
+
 import asyncio
 import atexit
 import os
 import signal
 import sys
+import time
 from argparse import ArgumentParser
 
+from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.groups import _Groups
+from inputremapper.gui.reader_service import ReaderService
 from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.logging.logger import logger
 
 
-def main() -> None:
-    parser = ArgumentParser()
-    parser.add_argument(
-        "-d",
-        "--debug",
-        action="store_true",
-        dest="debug",
-        help="Displays additional debug information",
-        default=False,
-    )
+class InputRemapperReaderServiceBin:
+    @staticmethod
+    def main() -> None:
+        parser = ArgumentParser()
+        parser.add_argument(
+            "-d",
+            "--debug",
+            action="store_true",
+            dest="debug",
+            help="Displays additional debug information",
+            default=False,
+        )
 
-    options = parser.parse_args(sys.argv[1:])
+        options = parser.parse_args(sys.argv[1:])
 
-    logger.update_verbosity(options.debug)
+        logger.update_verbosity(options.debug)
 
-    # import input-remapper stuff after setting the log verbosity
-    from inputremapper.gui.reader_service import ReaderService
+        if ProcessUtils.count_python_processes("input-remapper-reader-service") >= 2:
+            logger.warning(
+                "Another input-remapper-reader-service process is already running. "
+                "This can cause problems while recording keys"
+            )
 
-    def on_exit():
-        """Don't remain idle and alive when the GUI exits via ctrl+c."""
-        # makes no sense to me, but after the keyboard interrupt it is still
-        # waiting for an event to complete (`S` in `ps ax`), even when using
-        # sys.exit
-        os.kill(os.getpid(), signal.SIGKILL)
+        if os.getuid() != 0:
+            logger.warning("The reader-service usually needs elevated privileges")
 
-    atexit.register(on_exit)
-    groups = _Groups()
-    global_uinputs = GlobalUInputs(FrontendUInput)
-    reader_service = ReaderService(groups, global_uinputs)
-    asyncio.run(reader_service.run())
+        if not ReaderService.pipes_exist():
+            logger.info("Waiting for pipes to be created by the GUI")
+            while not ReaderService.pipes_exist():
+                time.sleep(0.5)
+                logger.debug("Waiting...")
+
+        def on_exit():
+            """Don't remain idle and alive when the GUI exits via ctrl+c."""
+            # makes no sense to me, but after the keyboard interrupt it is still
+            # waiting for an event to complete (`S` in `ps ax`), even when using
+            # sys.exit
+            os.kill(os.getpid(), signal.SIGKILL)
+
+        atexit.register(on_exit)
+        groups = _Groups()
+        global_uinputs = GlobalUInputs(FrontendUInput)
+        reader_service = ReaderService(groups, global_uinputs)
+        asyncio.run(reader_service.run())
