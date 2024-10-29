@@ -19,8 +19,6 @@
   <img src="readme/screenshot_2.png" width="48%"/>
 </p>
 
-&nbsp;
-
 ## Installation
 
 #### Manjaro/Arch
@@ -31,7 +29,7 @@ sudo systemctl restart input-remapper
 sudo systemctl enable input-remapper
 ```
 
-&nbsp;
+<br/>
 
 #### Ubuntu/Debian
 
@@ -50,7 +48,7 @@ and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper).
 
 input-remapper ≥ 2.0 requires at least Ubuntu 22.04.
 
-&nbsp;
+<br/>
 
 #### Fedora
 
@@ -59,7 +57,7 @@ sudo dnf install input-remapper
 sudo systemctl enable --now input-remapper
 ```
 
-&nbsp;
+<br/>
 
 #### Manual
 
@@ -79,17 +77,3 @@ sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remappe
 sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
 ```
-
-&nbsp;
-
-## Migrating beta configs to version 2
-
-By default, Input Remapper will not migrate configurations from the beta.
-If you want to use those you will need to copy them manually.
-
-```bash
-rm ~/.config/input-remapper-2 -r
-cp ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2 -r
-```
-
-Then start input-remapper
