@@ -41,14 +41,14 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install -f ./dist/input-remapper-2.0.1.deb
 ```
 
-input-remapper is also available in the Repositories of [Debian](https://tracker.debian.org/pkg/input-remapper)
+Input Remapper is also available in the repositories of [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper) via
 
 ```bash
 sudo apt install input-remapper
 ```
 
-input-remapper ≥ 2.0 requires at least Ubuntu 22.04.
+Input Remapper ≥ 2.0 requires at least Ubuntu 22.04.
 
 <br/>
 
