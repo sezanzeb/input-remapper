@@ -23,7 +23,7 @@
 
 ## Installation
 
-#### Ubuntu/Debian
+### Ubuntu/Debian
 
 Either get a .deb file from the [latest release](https://github.com/sezanzeb/input-remapper/releases):
 
@@ -52,7 +52,7 @@ Input Remapper ≥ 2.0 requires at least Ubuntu 22.04.
 
 <br/>
 
-#### Fedora
+### Fedora
 
 ```bash
 sudo dnf install input-remapper
@@ -61,7 +61,7 @@ sudo systemctl enable --now input-remapper
 
 <br/>
 
-#### Manjaro/Arch
+### Manjaro/Arch
 
 ```bash
 yay -S input-remapper-git
@@ -71,7 +71,7 @@ sudo systemctl enable input-remapper
 
 <br/>
 
-#### Without distro package managers
+### Without distro package managers
 
 Figure out the packages providing those dependencies in your distro, and install them:
 `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`, `python3-psutil`
