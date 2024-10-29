@@ -23,16 +23,6 @@
 
 ## Installation
 
-#### Manjaro/Arch
-
-```bash
-yay -S input-remapper-git
-sudo systemctl restart input-remapper
-sudo systemctl enable input-remapper
-```
-
-<br/>
-
 #### Ubuntu/Debian
 
 Get a .deb file from the [release page](https://github.com/sezanzeb/input-remapper/releases)
@@ -57,6 +47,16 @@ input-remapper ≥ 2.0 requires at least Ubuntu 22.04.
 ```bash
 sudo dnf install input-remapper
 sudo systemctl enable --now input-remapper
+```
+
+<br/>
+
+#### Manjaro/Arch
+
+```bash
+yay -S input-remapper-git
+sudo systemctl restart input-remapper
+sudo systemctl enable input-remapper
 ```
 
 <br/>
