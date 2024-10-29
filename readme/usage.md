@@ -334,3 +334,15 @@ sudo input-remapper-control --list-devices
 
 should print `Found "...", ...`. If anything looks wrong, feel free to [create
 an issue](https://github.com/sezanzeb/input-remapper/issues/new).
+
+## Migrating beta configs to version 2
+
+By default, Input Remapper will not migrate configurations from the beta.
+If you want to use those you will need to copy them manually.
+
+```bash
+rm ~/.config/input-remapper-2 -r
+cp ~/.config/input-remapper/beta_1.6.0-beta ~/.config/input-remapper-2 -r
+```
+
+Then start input-remapper

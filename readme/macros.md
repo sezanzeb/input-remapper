@@ -18,13 +18,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 >
 > You don't have to use quotes around the symbol constants.
 >
-> ```c#
+> ```ts
 > key(symbol: str)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > key(symbol=KEY_A)
 > key(b).key(space)
 > ```
@@ -33,14 +33,14 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Inject the press/down/1 and release/up/0 events individually with those macros.
 >
-> ```c#
+> ```ts
 > key_down(symbol: str)
 > key_up(symbol: str)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > key_down(KEY_A)
 > key_up(KEY_B)
 > ```
@@ -50,13 +50,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Waits in milliseconds before continuing the macro. If the max_time argument is
 > provided, it will randomize the time between time and max_time.
 > 
-> ```c#
+> ```ts
 > wait(time: int, max_time: int | None)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > wait(time=100)
 > wait(500)
 > wait(10, 1000)
@@ -66,13 +66,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Repeats the execution of the second parameter a few times
 >
-> ```c#
+> ```ts
 > repeat(repeats: int, macro: Macro)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > repeat(1, key(KEY_A))
 > repeat(repeats=2, key(space))
 > ```
@@ -81,28 +81,14 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Holds a modifier while executing the second parameter
 >
-> ```c#
+> ```ts
 > modify(modifier: str, macro: Macro)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > modify(Control_L, key(a).key(x))
-> ```
-
-### hold
-
-> Executes the child macro repeatedly as long as the key is pressed down.
->
-> ```c#
-> hold(macro: Macro)
-> ```
->
-> Examples:
->
-> ```c#
-> hold(key(space))
 > ```
 
 ### hold_keys
@@ -114,17 +100,31 @@ Bear in mind that anti-cheat software might detect macros in games.
 > 
 > When provided with a single key, it will behave just like a regular keyboard key.
 >
-> ```c#
+> ```ts
 > hold_keys(*symbols: str)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
+> hold_keys(KEY_B)
 > hold_keys(KEY_LEFTCTRL, KEY_A)
 > hold_keys(Control_L, Alt_L, Delete)
 > set(foo, KEY_A).hold_keys($foo)
-> hold_keys(KEY_B)
+> ```
+
+### hold
+
+> Executes the child macro repeatedly as long as the key is pressed down.
+>
+> ```ts
+> hold(macro: Macro)
+> ```
+>
+> Examples:
+>
+> ```ts
+> hold(key(space))
 > ```
 
 ### mouse
@@ -133,13 +133,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 > 
 > If `acceleration` is provided then the cursor will accelerate from zero to a maximum speed of `speed`. 
 >
-> ```c#
+> ```ts
 > mouse(direction: str, speed: int, acceleration: float | None)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > mouse(up, 1)
 > mouse(left, 2)
 > mouse(down, 10, 0.3)
@@ -149,13 +149,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Injects scroll wheel events
 >
-> ```c#
+> ```ts
 > wheel(direction: str, speed: int)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > mouse(up, 10)
 > mouse(left, 20)
 > ```
@@ -165,13 +165,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Writes an event. Examples for `type`, `code` and `value` can be found via the
 > `sudo evtest` command
 >
-> ```c#
+> ```ts
 > event(type: str | int, code: str | int, value: int)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > event(EV_KEY, KEY_A, 1)
 > event(2, 8, 1)
 > ```
@@ -188,13 +188,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 > interact with each other. In other words, using `set` on a keyboard and `if_eq` with
 > the previously used variable name on a mouse will work.
 >
-> ```c#
+> ```ts
 > set(variable: str, value: str | int)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > set(foo, 1)
 > set(foo, "qux")
 > ```
@@ -203,13 +203,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Adds a number fo a variable.
 >
-> ```c#
+> ```ts
 > add(variable: str, value: int)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > set(a, 1).add(a, 2).if_eq($a, 3, key(x), key(y))
 > ```
 
@@ -217,13 +217,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Compare two values and run different macros depending on the outcome.
 >
-> ```c#
+> ```ts
 > if_eq(value_1: str | int, value_2: str | int, then: Macro | None, else: Macro | None)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > set(a, 1).if_eq($a, 1, key(KEY_A), key(KEY_B))
 > set(a, 1).set(b, 1).if_eq($a, $b, else=key(KEY_B).key(KEY_C))
 > set(a, "foo").if_eq("foo", $a, key(KEY_A))
@@ -234,13 +234,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Run the first macro if your capslock is on, otherwise the second.
 >
-> ```c#
+> ```ts
 > if_capslock(then: Macro | None, else: Macro | None)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > if_capslock(
 >     then=hold_keys(KEY_3),
 >     else=hold_keys(KEY_4)
@@ -251,13 +251,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Run the first macro if your numlock is on, otherwise the second.
 >
-> ```c#
+> ```ts
 > if_numlock(then: Macro | None, else: Macro | None)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > if_numlock(hold_keys(KEY_3), hold_keys(KEY_4))
 > ```
 
@@ -267,13 +267,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 > second. The third param is the optional time in milliseconds and defaults to
 > 300ms
 >
-> ```c#
+> ```ts
 > if_tap(then: Macro | None, else: Macro | None, timeout: int)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > if_tap(key(KEY_A), key(KEY_B), timeout=500)
 > if_tap(then=key(KEY_A), else=key(KEY_B))
 > ```
@@ -287,13 +287,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 > If a timeout number is provided, the macro will run `else` if no event arrives for
 > more than the configured number in milliseconds.
 >
-> ```c#
+> ```ts
 > if_single(then: Macro | None, else: Macro | None, timeout: int | None)
 > ```
 >
 > Examples:
 >
-> ```c#
+> ```ts
 > if_single(key(KEY_A), key(KEY_B))
 > if_single(None, key(KEY_B))
 > if_single(then=key(KEY_A), else=key(KEY_B))
