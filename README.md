@@ -19,6 +19,8 @@
   <img src="readme/screenshot_2.png" width="48%"/>
 </p>
 
+<br/>
+
 ## Installation
 
 #### Manjaro/Arch
