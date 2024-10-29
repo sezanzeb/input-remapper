@@ -3,7 +3,7 @@
 <h1 align="center">Input Remapper</h1>
 
 <p align="center">
-  An easy to use tool to change the behaviour of your input devices.<br/>
+  An easy to use tool for Linux to change the behaviour of your input devices.<br/>
   Supports X11, Wayland, combinations, programmable macros, joysticks, wheels,<br/>
   triggers, keys, mouse-movements and more. Maps any input to any other input.
 </p>
@@ -19,9 +19,11 @@
   <img src="readme/screenshot_2.png" width="48%"/>
 </p>
 
+&nbsp;
+
 ## Installation
 
-##### Manjaro/Arch
+#### Manjaro/Arch
 
 ```bash
 yay -S input-remapper-git
@@ -29,7 +31,9 @@ sudo systemctl restart input-remapper
 sudo systemctl enable input-remapper
 ```
 
-##### Ubuntu/Debian
+&nbsp;
+
+#### Ubuntu/Debian
 
 Get a .deb file from the [release page](https://github.com/sezanzeb/input-remapper/releases)
 or install the latest changes via:
@@ -46,14 +50,18 @@ and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper).
 
 input-remapper ≥ 2.0 requires at least Ubuntu 22.04.
 
-##### Fedora
+&nbsp;
+
+#### Fedora
 
 ```bash
 sudo dnf install input-remapper
 sudo systemctl enable --now input-remapper
 ```
 
-##### Manual
+&nbsp;
+
+#### Manual
 
 Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`,
 `python3-psutil`
@@ -71,6 +79,8 @@ sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remappe
 sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
 ```
+
+&nbsp;
 
 ## Migrating beta configs to version 2
 
