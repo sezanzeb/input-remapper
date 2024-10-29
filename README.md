@@ -71,7 +71,7 @@ sudo systemctl enable input-remapper
 
 <br/>
 
-#### Manual
+#### Without distro package managers
 
 Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`,
 `python3-psutil`
