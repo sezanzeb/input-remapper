@@ -73,8 +73,8 @@ sudo systemctl enable input-remapper
 
 #### Without distro package managers
 
-Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`,
-`python3-psutil`
+Figure out the packages providing those dependencies in your distro, and install them:
+`python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`, `python3-psutil`
 
 Python packages need to be installed globally for the service to be able to import them. Don't use `--user`
 
