@@ -25,9 +25,14 @@
 
 #### Ubuntu/Debian
 
-Get a .deb file from the [release page](https://github.com/sezanzeb/input-remapper/releases) and install it with `sudo apt install -f ./input-remapper-2.0.1.deb`
+Either get a .deb file from the [latest release](https://github.com/sezanzeb/input-remapper/releases):
 
-Or install the latest changes via:
+```bash
+wget https://github.com/sezanzeb/input-remapper/releases/download/2.0.1/input-remapper-2.0.1.deb
+sudo apt install -f ./input-remapper-2.0.1.deb
+```
+
+Or install the very latest changes via:
 
 ```bash
 sudo apt install git python3-setuptools gettext
@@ -37,7 +42,11 @@ sudo apt install -f ./dist/input-remapper-2.0.1.deb
 ```
 
 input-remapper is also available in the Repositories of [Debian](https://tracker.debian.org/pkg/input-remapper)
-and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper) via `sudo apt install input-remapper`.
+and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper) via
+
+```bash
+sudo apt install input-remapper
+```
 
 input-remapper ≥ 2.0 requires at least Ubuntu 22.04.
 
