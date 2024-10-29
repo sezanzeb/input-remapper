@@ -25,7 +25,7 @@
 
 ### Ubuntu/Debian
 
-Either get a .deb file from the [latest release](https://github.com/sezanzeb/input-remapper/releases):
+Either download an installable .deb file from the [latest release](https://github.com/sezanzeb/input-remapper/releases):
 
 ```bash
 wget https://github.com/sezanzeb/input-remapper/releases/download/2.0.1/input-remapper-2.0.1.deb
