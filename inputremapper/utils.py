@@ -35,10 +35,12 @@ def is_service() -> bool:
 
 
 def get_device_hash(device: evdev.InputDevice) -> DeviceHash:
-    """get a unique hash for the given device"""
-    # the builtin hash() function can not be used because it is randomly
+    """get a unique hash for the given device."""
+    # The builtin hash() function can not be used because it is randomly
     # seeded at python startup.
-    # a non-cryptographic hash would be faster but there is none in the standard lib
+    # A non-cryptographic hash would be faster but there is none in the standard lib
+    # This hash needs to stay the same across reboots, and even stay the same when
+    # moving the config to a new computer.
     s = str(device.capabilities(absinfo=False)) + device.name
     return md5(s.encode()).hexdigest().lower()
 

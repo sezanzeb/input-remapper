@@ -569,9 +569,9 @@ class Macro:
         async def task(handler: Callable):
             # self.context is only None when the frontend is parsing the macro
             assert self.context is not None
-            is_numlock_on = code in self.context.get_leds()
+            led_on = code in self.context.get_leds()
 
-            if is_numlock_on:
+            if led_on:
                 if then is not None:
                     await then.run(handler)
             elif else_ is not None:
