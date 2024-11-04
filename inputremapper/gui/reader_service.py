@@ -165,7 +165,11 @@ class ReaderService:
         logger.debug("Discovering initial groups")
         self.groups.refresh()
         self._send_groups()
-        await asyncio.gather(self._read_commands(), self._timeout())
+        await asyncio.gather(
+            self._read_commands(),
+            self._timeout(),
+            self._stop_if_pipes_broken(),
+        )
 
     def _send_groups(self):
         """Send the groups to the gui."""
@@ -231,6 +235,17 @@ class ReaderService:
                 continue
 
             logger.error('Received unknown command "%s"', cmd)
+
+    async def _stop_if_pipes_broken(self):
+        # The GUI probably exited, and failed to tell the reader-service to stop.
+        # Pipes are owned by the GUI process, because the non-privileged GUI process
+        # needs to be able to read them. Therefore, they are gone.
+        while True:
+            await asyncio.sleep(1)
+            if not self.pipes_exist():
+                await self._stop_reading()
+                logger.debug("Pipes broken, exiting")
+                sys.exit(13)
 
     def _is_reading(self) -> bool:
         """Check if the ReaderService is currently sending events to the GUI."""
