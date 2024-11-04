@@ -1015,6 +1015,28 @@ class TestReaderMultiprocessing(unittest.TestCase):
                 # now it stopped, even though the reader is still reading
                 self.assertFalse(self.reader_service_process.is_alive())
 
+    def test_reader_service_stops_with_broken_pipes(self):
+        with patch.object(ReaderService, "pipes_exist", side_effect=lambda: False):
+            self.create_reader_service()
+            self.assertTrue(self.reader_service_process.is_alive())
+
+            time.sleep(0.5)
+            # still alive
+            self.assertTrue(self.reader_service_process.is_alive())
+
+            time.sleep(1)
+            # now it stopped
+            self.assertFalse(self.reader_service_process.is_alive())
+
+        # It will not stop if pipes are ok
+        with patch.object(ReaderService, "pipes_exist", side_effect=lambda: True):
+            self.create_reader_service()
+            self.assertTrue(self.reader_service_process.is_alive())
+
+            time.sleep(1.5)
+            # still alive
+            self.assertTrue(self.reader_service_process.is_alive())
+
 
 if __name__ == "__main__":
     unittest.main()
