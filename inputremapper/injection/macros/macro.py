@@ -145,17 +145,21 @@ class Macro:
         # This is the compiled code
         self.tasks: List[MacroTask] = []
 
-        # can be used to wait for the release of the event
-        self._trigger_release_event = asyncio.Event()
-        self._trigger_press_event = asyncio.Event()
-        # released by default
-        self._trigger_release_event.set()
-        self._trigger_press_event.clear()
+        self._setup_asyncio_events()
 
         self.running = False
 
         self.child_macros: List[Macro] = []
         self.keystroke_sleep_ms = None
+
+    def _setup_asyncio_events(self):
+        # Can be used to wait for the press and release of the input event/key, that is
+        # configured as the trigger of the macro, via asyncio.
+        self._trigger_release_event = asyncio.Event()
+        self._trigger_press_event = asyncio.Event()
+        # released by default
+        self._trigger_release_event.set()
+        self._trigger_press_event.clear()
 
     def is_holding(self):
         """Check if the macro is waiting for a key to be released."""
@@ -642,24 +646,27 @@ class Macro:
             self.child_macros.append(else_)
 
         async def task(handler: Callable):
-            listener_done = asyncio.Event()
+            another_key_pressed_event = asyncio.Event()
 
             async def listener(event):
                 if event.type != EV_KEY:
-                    # ignore anything that is not a key
+                    # Ignore anything that is not a key
                     return
 
                 if event.value == 1:
-                    # another key was pressed, trigger else
-                    listener_done.set()
+                    # Another key was pressed, trigger `else`
+                    another_key_pressed_event.set()
                     return
 
             self.context.listeners.add(listener)
 
             resolved_timeout = Macro._resolve(timeout, allowed_types=[int, float, None])
+
+            # Wait for anything of importance to happen, that would determine the
+            # outcome of the if_single macro.
             await asyncio.wait(
                 [
-                    asyncio.Task(listener_done.wait()),
+                    asyncio.Task(another_key_pressed_event.wait()),
                     asyncio.Task(self._trigger_release_event.wait()),
                 ],
                 timeout=resolved_timeout / 1000 if resolved_timeout else None,
@@ -668,10 +675,13 @@ class Macro:
 
             self.context.listeners.remove(listener)
 
-            if not listener_done.is_set() and self._trigger_release_event.is_set():
+            if self._trigger_release_event.is_set():
                 if then:
-                    await then.run(handler)  # was trigger release
+                    await then.run(handler)
             else:
+                # If the trigger has not been released, then `await asyncio.wait` above
+                # could only have finished waiting due to a timeout, or because another
+                # key was pressed.
                 if else_:
                     await else_.run(handler)
 
