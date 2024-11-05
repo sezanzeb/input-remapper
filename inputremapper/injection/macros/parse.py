@@ -60,6 +60,7 @@ TASK_FACTORIES = {
     "set": Macro.add_set,
     "if_tap": Macro.add_if_tap,
     "if_single": Macro.add_if_single,
+    "mod_tap": Macro.add_mod_tap,
     "add": Macro.add_add,
     # Those are only kept for backwards compatibility with old macros. The space for
     # writing macro was very constrained in the past, so shorthands were introduced:

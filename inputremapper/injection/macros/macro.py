@@ -654,7 +654,7 @@ class Macro:
                     return
 
                 if event.value == 1:
-                    # Another key was pressed, trigger `else`
+                    # Another key was pressed
                     another_key_pressed_event.set()
                     return
 
@@ -684,6 +684,64 @@ class Macro:
                 # key was pressed.
                 if else_:
                     await else_.run(handler)
+
+        self.tasks.append(task)
+
+    def add_mod_tap(self, default, modifier, timeout=None):
+        """To make home-row-modifiers."""
+        # - Press and release quickly: default
+        # - Press, and press another key shortly afterward: default (should be injected
+        # before that other key)
+        # - Press and hold: modifier
+
+        self._type_check(default, [str], "mod_tap", 1)
+        self._type_check(modifier, [str], "mod_tap", 2)
+        self._type_check(timeout, [int, float, None], "mod_tap", 3)
+
+        async def task(handler: Callable):
+            another_key_pressed_event = asyncio.Event()
+
+            async def listener(event):
+                if event.type == EV_KEY and event.value == 1:
+                    # Ignore anything that is not a key
+                    # Another key was pressed
+                    another_key_pressed_event.set()
+                    return
+
+            self.context.listeners.add(listener)
+
+            resolved_timeout = Macro._resolve(timeout, allowed_types=[int, float, None])
+            resolved_timeout = resolved_timeout / 1000 if resolved_timeout else 0.1
+
+            # Wait for any of these three to complete
+            timeout_task = asyncio.create_task(asyncio.sleep(resolved_timeout))
+            tasks = [
+                timeout_task,
+                asyncio.Task(another_key_pressed_event.wait()),
+                asyncio.Task(self._trigger_release_event.wait()),
+            ]
+            await asyncio.wait(
+                tasks,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            if timeout_task.done():
+                # Timeout, modify the next key.
+                resolved_modifier = self._resolve(modifier, [str])
+                code = self._type_check_symbol(resolved_modifier)
+            else:
+                resolved_default = self._resolve(default, [str])
+                # It did not time out, because the user is pressing keys quickly.
+                code = self._type_check_symbol(resolved_default)
+
+            for task in tasks:
+                task.cancel()
+
+            self.context.listeners.remove(listener)
+            handler(EV_KEY, code, 1)
+            await self._trigger_release_event.wait()
+            handler(EV_KEY, code, 0)
+            await self._keycode_pause()
 
         self.tasks.append(task)
 
