@@ -25,7 +25,6 @@ from typing import Tuple, Optional, Hashable, Literal
 
 import evdev
 from evdev import ecodes
-
 from inputremapper.utils import get_evdev_constant_name
 
 
@@ -42,7 +41,7 @@ class EventActions(enum.Enum):
 
 
 # Todo: add slots=True as soon as python 3.10 is in common distros
-@dataclass(frozen=True)
+@dataclass()
 class InputEvent:
     """Events that are generated during runtime.
 
@@ -57,6 +56,11 @@ class InputEvent:
     actions: Tuple[EventActions, ...] = ()
     origin_hash: Optional[str] = None
     forward_to: Optional[evdev.UInput] = None
+
+    # TODO move to mod_tap2 branch
+    # TODO freeze all except `inject`
+    # To allow or disallow injection into evdev
+    inject: bool = True
 
     def __eq__(self, other: InputEvent | evdev.InputEvent | Tuple[int, int, int]):
         # useful in tests

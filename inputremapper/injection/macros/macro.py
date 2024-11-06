@@ -41,6 +41,7 @@ import copy
 import math
 import re
 import random
+import time
 from typing import List, Callable, Awaitable, Tuple, Optional, Union, Any, TYPE_CHECKING
 
 from evdev.ecodes import (
@@ -63,6 +64,7 @@ from inputremapper.configs.validation_errors import (
     MacroParsingError,
 )
 from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.input_event import InputEvent
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.logging.logger import logger
 
@@ -227,6 +229,10 @@ class Macro:
         return f'<Macro "{self.code}" at {hex(id(self))}>'
 
     """Functions that prepare the macro."""
+
+    def add_task(self, task):
+        # TODO append the whole task object
+        self.tasks.append(task.run)
 
     def add_key(self, symbol: str):
         """Write the symbol."""
@@ -675,7 +681,7 @@ class Macro:
 
             self.context.listeners.remove(listener)
 
-            if self._trigger_release_event.is_set():
+            if not self.is_holding():
                 if then:
                     await then.run(handler)
             else:
@@ -687,58 +693,66 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_mod_tap(self, default, modifier, timeout=None):
+    def add_mod_tap(self, default, modifier, tapping_term=None):
         """To make home-row-modifiers."""
-        # - Press and release quickly: default
-        # - Press, and press another key shortly afterward: default (should be injected
-        # before that other key)
-        # - Press and hold: modifier
-
+        # Works similar to the default of
+        # https://github.com/qmk/qmk_firmware/blob/78a0adfbb4d2c4e12f93f2a62ded0020d406243e/docs/tap_hold.md#comparison-comparison
         self._type_check(default, [str], "mod_tap", 1)
         self._type_check(modifier, [str], "mod_tap", 2)
-        self._type_check(timeout, [int, float, None], "mod_tap", 3)
+        self._type_check(tapping_term, [int, float, None], "mod_tap", 3)
 
         async def task(handler: Callable):
-            another_key_pressed_event = asyncio.Event()
+            key_event_codes = []
 
-            async def listener(event):
+            async def listener(event: InputEvent):
+                nonlocal key_event_codes
                 if event.type == EV_KEY and event.value == 1:
-                    # Ignore anything that is not a key
-                    # Another key was pressed
-                    another_key_pressed_event.set()
+                    key_event_codes.append(event.code)
+                    event.inject = False
                     return
 
             self.context.listeners.add(listener)
 
-            resolved_timeout = Macro._resolve(timeout, allowed_types=[int, float, None])
-            resolved_timeout = resolved_timeout / 1000 if resolved_timeout else 0.1
-
-            # Wait for any of these three to complete
-            timeout_task = asyncio.create_task(asyncio.sleep(resolved_timeout))
-            tasks = [
-                timeout_task,
-                asyncio.Task(another_key_pressed_event.wait()),
-                asyncio.Task(self._trigger_release_event.wait()),
-            ]
-            await asyncio.wait(
-                tasks,
-                return_when=asyncio.FIRST_COMPLETED,
+            resolved_tapping_term = Macro._resolve(
+                tapping_term,
+                allowed_types=[int, float, None],
+            )
+            resolved_tapping_term = (
+                resolved_tapping_term / 1000 if resolved_tapping_term else 0.2
             )
 
-            if timeout_task.done():
-                # Timeout, modify the next key.
-                resolved_modifier = self._resolve(modifier, [str])
-                code = self._type_check_symbol(resolved_modifier)
-            else:
-                resolved_default = self._resolve(default, [str])
-                # It did not time out, because the user is pressing keys quickly.
-                code = self._type_check_symbol(resolved_default)
-
-            for task in tasks:
-                task.cancel()
+            timeout = asyncio.Task(asyncio.sleep(resolved_tapping_term))
+            await asyncio.wait(
+                [asyncio.Task(self._trigger_release_event.wait()), timeout],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            has_timed_out = timeout.done()
 
             self.context.listeners.remove(listener)
+
+            async def replay():
+                for key_event_code in key_event_codes:
+                    logger.debug("Replaying code %s", key_event_code)
+                    handler(EV_KEY, key_event_code, 1)
+                    await self._keycode_pause()
+                    handler(EV_KEY, key_event_code, 0)
+                    await self._keycode_pause()
+
+            if has_timed_out:
+                # The timeout happened before the trigger got released.
+                # We therefore modify stuff.
+                resolved = self._resolve(modifier, [str])
+                logger.debug("Modifying with %s", resolved)
+            else:
+                # The trigger got released before the timeout.
+                # We therefore do not modify stuff.
+                resolved = self._resolve(default, [str])
+                logger.debug("Writing default %s", resolved)
+
+            code = self._type_check_symbol(resolved)
             handler(EV_KEY, code, 1)
+            await self._keycode_pause()
+            await replay()
             await self._trigger_release_event.wait()
             handler(EV_KEY, code, 0)
             await self._keycode_pause()

@@ -26,7 +26,6 @@ import traceback
 from typing import AsyncIterator, Protocol, Set, List
 
 import evdev
-
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
     NotifyCallback,
@@ -159,6 +158,10 @@ class EventReader:
 
     def forward(self, event: InputEvent) -> None:
         """Forward an event, which injects it unmodified."""
+        if event.suppress:
+            logger.debug("event %s suppressed", event)
+            return
+
         forward_to = self.context.get_forward_uinput(self._device_hash)
 
         if event.type == evdev.ecodes.EV_KEY:
