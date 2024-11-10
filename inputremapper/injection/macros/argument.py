@@ -36,6 +36,7 @@ from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.variable import Variable
 
 if TYPE_CHECKING:
+    from inputremapper.injection.macros.raw_value import RawValue
     from inputremapper.configs.mapping import Mapping
 
 
@@ -134,36 +135,29 @@ class Argument(ArgumentConfig):
 
         self._variable.set_value(value)
 
-    def initialize_variable(self, variable: Variable) -> None:
-        """Validate and store the given Variable."""
-        if self.is_variable_name:
-            # This is weird, but when the parser sees `set(foo, 1)`, it inserts foo as a
-            # string, therefore `foo` is expected to be a constant at first. If you do
-            # `set($foo, 1)`, then it treats foo as a non-const variable. Theoretically
-            # you could insert a dynamic variable name there, but that sounds incredibly
-            # complicated for a macro, and there is a danger that people don't do it
-            # correctly when they just want `set(foo, 1)`. Therefore, we want to assert
-            # that it is "foo", not "$foo".
-            if not variable.const:
-                raise MacroError(
-                    'Use "foo", not "$foo" in your macro as variable-name.'
-                )
+    def type_error_factory(self, value):
+        return MacroError(
+            msg=(
+                f'Expected "{self.name}" to be one of {self.types}, but got '
+                f"{type(value)} {value}"
+            )
+        )
 
-            variable.validate_variable_name()
-            variable.const = False
+    def append_variable(self, raw_value: RawValue) -> None:
+        """Some Arguments are supposed to contain a list of Variables. Add one to it."""
+        assert self.is_spread()
+        variable = self._parse_raw_value(raw_value)
+        self._variables.append(variable)
 
-        if variable.const:
-            # Otherwise it will be validated in self.get_value/self.get_values
-            self._validate(variable.get_value())
-
+    def set_variable(self, raw_value: RawValue):
+        assert not self.is_spread()
+        variable = self._parse_raw_value(raw_value)
         self._variable = variable
 
-    def append_variable(self, variable: Variable) -> None:
-        """Some Arguments are supposed to contain a list of Variables. Add one to it."""
-        if variable.const:
-            self._validate(variable.get_value())
-
-        self._variables.append(variable)
+    def set_default(self):
+        assert not self.is_spread()
+        variable = Variable(value=self.default, const=True)
+        self._variable = variable
 
     def is_spread(self):
         """Does this Argument store all remaining Variables of a Task as a list?"""
@@ -183,6 +177,66 @@ class Argument(ArgumentConfig):
                 target, EV_KEY, code
             ):
                 raise SymbolNotAvailableInTargetError(symbol, target)
+
+    def _parse_raw_value(self, raw_value: RawValue) -> Variable:
+        """Validate and parse."""
+        value = raw_value.value
+
+        if isinstance(value, Macro):
+            return Variable(value=value, const=True)
+
+        if self.is_variable_name:
+            # Treat this as a non-constant variable,
+            # even without a `$` in front of its name
+            if value.startswith('"'):
+                # Remove quotes from the string
+                value = value[1:-1]
+            return Variable(value=value, const=False)
+
+        if (value == "" or value == "None") and None in self.types:
+            # I think "" is the deprecated alternative to "None"
+            return Variable(value=None, const=True)
+
+        if value.startswith('"') and str in self.types:
+            # Something with explicit quotes should never be parsed as a number.
+            # Remove quotes from the string
+            value = value[1:-1]
+            return Variable(value=value, const=True)
+
+        if value.startswith("$"):
+            # Will be resolved during the macros runtime
+            return Variable(value=value[1:], const=False)
+
+        if float in self.types:
+            try:
+                value = float(value)
+                return Variable(value=value, const=True)
+            except (ValueError, TypeError) as e:
+                pass
+
+        if int in self.types:
+            try:
+                value = int(value)
+                return Variable(value=value, const=True)
+            except (ValueError, TypeError) as e:
+                pass
+
+        if not value.startswith('"') and ("(" in value or ")" in value):
+            # Looks like something that should have been a macro. It is not explicitly
+            # wrapped in quotes. Most likely an error. If it was a valid macro, the
+            # parser would have parsed it as such.
+            raise MacroError(
+                msg=f"A broken macro was passed as parameter to {self.name}"
+            )
+
+        if self.is_symbol:
+            self.assert_is_symbol(value)
+
+        if str in self.types:
+            # Treat as a string. Something like KEY_A in key(KEY_A)
+            return Variable(value=value, const=True)
+
+        raise self.type_error_factory(value)
 
     def _validate(self, value: Any) -> Any:
         assert not isinstance(value, Variable)
@@ -212,19 +266,15 @@ class Argument(ArgumentConfig):
             # parsed as a number, but only strings are allowed, convert it back into
             # a string.
             # Example: key(KEY_A) works, key(b) works, therefore key(1) should also
-            # work. However, even though it was parsed as a number before validation,
-            # 1 is not a number in the technical sense. It is a symbol-name, and
-            # therefore a string.
+            # work. It is a symbol-name, and therefore a string.
             return str(value)
 
-        if self.name is not None and self.position is not None:
-            raise MacroError(
-                msg=(
-                    f'Expected "{self.name}" to be one of {self.types}, but got '
-                    f"{type(value)} {value}"
-                )
-            )
+        raise self.type_error_factory(value)
 
-        raise MacroError(
-            msg=f"Expected parameter to be one of {self.types}, but got {value}"
-        )
+    def _is_numeric_string(self, value: str) -> bool:
+        """Check if the value can be turned into a number."""
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False

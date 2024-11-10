@@ -23,9 +23,7 @@ from __future__ import annotations
 import asyncio
 
 from evdev._ecodes import REL_Y, REL_X
-from evdev.ecodes import (
-    EV_REL,
-)
+from evdev.ecodes import EV_REL
 
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task

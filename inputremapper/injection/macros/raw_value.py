@@ -18,32 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from evdev.ecodes import EV_KEY
-
-from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.injection.macros.argument import ArgumentConfig
-from inputremapper.injection.macros.task import Task
+from dataclasses import dataclass
 
 
-class KeyTask(Task):
-    """Write the symbol."""
-
-    argument_configs = [
-        ArgumentConfig(
-            name="symbol",
-            position=0,
-            types=[str],
-            is_symbol=True,
-        )
-    ]
-
-    async def run(self, handler) -> None:
-        symbol = self.get_argument("symbol").get_value()
-        code = keyboard_layout.get(symbol)
-
-        handler(EV_KEY, code, 1)
-        await self.keycode_pause()
-        handler(EV_KEY, code, 0)
-        await self.keycode_pause()
+@dataclass
+class RawValue:
+    value: str

@@ -28,6 +28,7 @@ from typing import Optional, Any, Type, TYPE_CHECKING, Dict, Union, Tuple
 from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.argument import ArgumentFlags
 from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.raw_value import RawValue
 from inputremapper.injection.macros.task import Task
 from inputremapper.injection.macros.tasks.add import AddTask
 from inputremapper.injection.macros.tasks.event import EventTask
@@ -47,7 +48,6 @@ from inputremapper.injection.macros.tasks.repeat import RepeatTask
 from inputremapper.injection.macros.tasks.set import SetTask
 from inputremapper.injection.macros.tasks.wait import WaitTask
 from inputremapper.injection.macros.tasks.wheel import WheelTask
-from inputremapper.injection.macros.variable import Variable
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
@@ -200,15 +200,6 @@ def _split_keyword_arg(param):
     return None, param
 
 
-def _is_number(value):
-    """Check if the value can be turned into a number."""
-    try:
-        float(value)
-        return True
-    except ValueError:
-        return False
-
-
 def check_for_unknown_keyword_arguments(
     keyword_args: Dict[str, Any],
     task_factory: Type[Task],
@@ -228,7 +219,7 @@ def _parse_recurse(
     verbose: bool,
     macro_instance: Optional[Macro] = None,
     depth: int = 0,
-) -> Variable:
+) -> RawValue:
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Not using eval for security reasons.
@@ -257,31 +248,6 @@ def _parse_recurse(
     space = "  " * depth
 
     code = code.strip()
-
-    if code == "" or code == "None":
-        # A function parameter probably
-        # I think "" is the deprecated alternative to "None"
-        return Variable(None, const=True)
-
-    if code.startswith('"'):
-        # TODO and endswith check, if endswith fails throw error?
-        #  what is currently the error if only one quote is set?
-        # a string, don't parse. remove quotes
-        string = code[1:-1]
-        debug("%sstring %s", space, string)
-        return Variable(string, const=True)
-
-    if code.startswith("$"):
-        # will be resolved during the macros runtime
-        return Variable(code.split("$", 1)[1], const=False)
-
-    if _is_number(code):
-        if "." in code:
-            code = float(code)
-        else:
-            code = int(code)
-        debug("%snumber %s", space, code)
-        return Variable(code, const=True)
 
     # is it another macro?
     call_match = re.match(r"^(\w+)\(", code)
@@ -383,13 +349,14 @@ def _parse_recurse(
                     f"{code[:closing_bracket_position + 1]}",
                 )
 
-        return Variable(macro_instance, const=True)
+        return RawValue(value=macro_instance)
 
     # It is probably either a key name like KEY_A or a variable name as in `set(var,1)`,
     # both won't contain special characters that can break macro syntax so they don't
-    # have to be wrapped in quotes.
-    debug("%sstring %s", space, code)
-    return Variable(code, const=True)
+    # have to be wrapped in quotes. The argument configuration of the tasks will
+    # detemrine how to parse it.
+    debug("%svalue %s", space, code)
+    return RawValue(value=code)
 
 
 def handle_plus_syntax(macro):
@@ -476,7 +443,7 @@ def parse(macro: str, context=None, mapping=None, verbose: bool = True) -> Macro
     macro = clean(macro)
     macro = handle_plus_syntax(macro)
 
-    macro_obj = _parse_recurse(macro, context, mapping, verbose).get_value()
+    macro_obj = _parse_recurse(macro, context, mapping, verbose).value
     if not isinstance(macro_obj, Macro):
         raise MacroError(macro, "The provided code was not a macro")
 

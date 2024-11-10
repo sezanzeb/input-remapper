@@ -20,9 +20,7 @@
 
 from __future__ import annotations
 
-from evdev.ecodes import (
-    EV_KEY,
-)
+from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.macros.argument import ArgumentConfig

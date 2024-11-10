@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import asyncio
 from itertools import chain
-from typing import Callable, List, Dict, TYPE_CHECKING, Optional, Any
+from typing import Callable, List, Dict, TYPE_CHECKING, Optional
 
 from inputremapper.injection.macros.argument import (
     Argument,
@@ -30,10 +30,10 @@ from inputremapper.injection.macros.argument import (
     ArgumentFlags,
 )
 from inputremapper.injection.macros.macro import Macro
-from inputremapper.injection.macros.variable import Variable
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
+    from inputremapper.injection.macros.raw_value import RawValue
     from inputremapper.injection.context import Context
     from inputremapper.configs.mapping import Mapping
 
@@ -55,8 +55,8 @@ class Task:
 
     def __init__(
         self,
-        positional_args: List[Variable],
-        keyword_args: Dict[str, Variable],
+        positional_args: List[RawValue],
+        keyword_args: Dict[str, RawValue],
         context: Optional[Context],
         mapping: Mapping,
     ):
@@ -76,9 +76,9 @@ class Task:
 
         self._initialize_spread_arg(positional_args)
 
-        for variable in chain(keyword_args.values(), positional_args):
-            if isinstance(variable.value, Macro):
-                self.child_macros.append(variable.value)
+        for raw_value in chain(keyword_args.values(), positional_args):
+            if isinstance(raw_value.value, Macro):
+                self.child_macros.append(raw_value.value)
 
     async def run(self, handler: Callable) -> None:
         raise NotImplementedError()
@@ -123,7 +123,7 @@ class Task:
 
     def _initialize_spread_arg(
         self,
-        positional_args: List[Variable],
+        positional_args: List[RawValue],
     ) -> None:
         """Put all positional arguments that aren't used into the spread argument."""
         spread_argument = None
@@ -165,8 +165,8 @@ class Task:
     def _initialize_argument(
         self,
         argument: Argument,
-        keyword_args: Dict[str, Any],
-        positional_args: List[Any],
+        keyword_args: Dict[str, RawValue],
+        positional_args: List[RawValue],
     ) -> None:
         if argument.position == ArgumentFlags.spread:
             # Will get all the remaining positional arguments afterward.
@@ -174,14 +174,15 @@ class Task:
 
         for name, value in keyword_args.items():
             if argument.name == name:
-                argument.initialize_variable(value)
+                argument.set_variable(value)
                 return
 
         if argument.position < len(positional_args):
-            argument.initialize_variable(positional_args[argument.position])
+            argument.set_variable(positional_args[argument.position])
             return
 
         if not argument.is_required():
+            argument.set_default()
             return
 
         # This shouldn't be possible, the parser should have ensured things are valid
