@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import asyncio
+from itertools import chain
 from typing import Callable, List, Dict, TYPE_CHECKING, Optional, Any
 
 from inputremapper.injection.macros.argument import (
@@ -75,14 +76,9 @@ class Task:
 
         self._initialize_spread_arg(positional_args)
 
-        for argument in self.arguments.values():
-            if argument.is_spread():
-                for variable in argument.get_variables():
-                    if isinstance(variable.value, Macro):
-                        self.child_macros.append(argument.variable.value)
-            else:
-                if isinstance(argument.get_variable().value, Macro):
-                    self.child_macros.append(argument.variable.value)
+        for variable in chain(keyword_args.values(), positional_args):
+            if isinstance(variable.value, Macro):
+                self.child_macros.append(variable.value)
 
     async def run(self, handler: Callable) -> None:
         raise NotImplementedError()

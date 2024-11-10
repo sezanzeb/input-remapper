@@ -25,7 +25,7 @@ from __future__ import annotations
 import re
 from typing import Optional, Any, Type, TYPE_CHECKING, Dict, Union, Tuple
 
-from inputremapper.configs.validation_errors import MacroParsingError
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.argument import ArgumentFlags
 from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.task import Task
@@ -167,7 +167,7 @@ def _count_brackets(macro):
     openings = macro.count("(")
     closings = macro.count(")")
     if openings != closings:
-        raise MacroParsingError(
+        raise MacroError(
             macro, f"Found {openings} opening and {closings} closing brackets"
         )
 
@@ -218,7 +218,7 @@ def check_for_unknown_keyword_arguments(
             if argument.name == keyword_arg:
                 break
         else:
-            raise MacroParsingError("Unknown keyword argument {keyword_arg}")
+            raise MacroError("Unknown keyword argument {keyword_arg}")
 
 
 def _parse_recurse(
@@ -296,7 +296,7 @@ def _parse_recurse(
 
         task_factory = TASK_CLASSES.get(call)
         if task_factory is None:
-            raise MacroParsingError(code, f"Unknown function {call}")
+            raise MacroError(code, f"Unknown function {call}")
 
         # get all the stuff inbetween
         closing_bracket_position = _count_brackets(code) - 1
@@ -322,13 +322,11 @@ def _parse_recurse(
             if key is None:
                 if len(keyword_args) > 0:
                     msg = f'Positional argument "{key}" follows keyword argument'
-                    raise MacroParsingError(code, msg)
+                    raise MacroError(code, msg)
                 positional_args.append(parsed)
             else:
                 if key in keyword_args:
-                    raise MacroParsingError(
-                        code, f'The "{key}" argument was specified twice'
-                    )
+                    raise MacroError(code, f'The "{key}" argument was specified twice')
                 keyword_args[key] = parsed
 
         # TODO I think this is a new feature, test:
@@ -353,7 +351,7 @@ def _parse_recurse(
             else:
                 msg = f"{call} takes {min_args}, not {num_provided_args} parameters"
 
-            raise MacroParsingError(code, msg)
+            raise MacroError(code, msg)
 
         try:
             task = task_factory(
@@ -364,7 +362,7 @@ def _parse_recurse(
             )
             macro_instance.add_task(task)
         except TypeError as exception:
-            raise MacroParsingError(msg=str(exception)) from exception
+            raise MacroError(msg=str(exception)) from exception
 
         # is after this another call? Chain it to the macro_instance
         more_code_exists = len(code) > closing_bracket_position + 1
@@ -379,7 +377,7 @@ def _parse_recurse(
                 _parse_recurse(chain, context, mapping, verbose, macro_instance, depth)
             elif re.match(r"[a-zA-Z_]", next_char):
                 # something like foo()bar
-                raise MacroParsingError(
+                raise MacroError(
                     code,
                     f'Expected a "." to follow after '
                     f"{code[:closing_bracket_position + 1]}",
@@ -400,14 +398,12 @@ def handle_plus_syntax(macro):
         return macro
 
     if "(" in macro or ")" in macro:
-        raise MacroParsingError(
-            macro, f'Mixing "+" and macros is unsupported: "{ macro}"'
-        )
+        raise MacroError(macro, f'Mixing "+" and macros is unsupported: "{ macro}"')
 
     chunks = [chunk.strip() for chunk in macro.split("+")]
 
     if "" in chunks:
-        raise MacroParsingError(f'Invalid syntax for "{macro}"')
+        raise MacroError(f'Invalid syntax for "{macro}"')
 
     output = f"hold_keys({','.join(chunks)})"
 
@@ -482,6 +478,6 @@ def parse(macro: str, context=None, mapping=None, verbose: bool = True) -> Macro
 
     macro_obj = _parse_recurse(macro, context, mapping, verbose).get_value()
     if not isinstance(macro_obj, Macro):
-        raise MacroParsingError(macro, "The provided code was not a macro")
+        raise MacroError(macro, "The provided code was not a macro")
 
     return macro_obj

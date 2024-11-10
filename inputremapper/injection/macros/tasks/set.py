@@ -30,13 +30,13 @@ class SetTask(Task):
         ArgumentConfig(
             name="variable",
             position=0,
-            types=[str],
+            types=[str, float, int, None],
             is_variable_name=True,
         ),
         ArgumentConfig(
             name="value",
             position=1,
-            types=[str, int, float, None],
+            types=[str, float, int, None],
             default=None,
         ),
     ]

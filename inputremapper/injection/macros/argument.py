@@ -28,10 +28,11 @@ from evdev._ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.validation_errors import (
-    MacroParsingError,
+    MacroError,
     SymbolNotAvailableInTargetError,
 )
 from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.variable import Variable
 
 if TYPE_CHECKING:
@@ -55,7 +56,9 @@ class ArgumentConfig:
     default: Any = ArgumentFlags.required
 
     # If True, then the value (which should be a string), is the name of a non-constant
-    # variable. Tasks that overwrite their value need this, like `set`.
+    # variable. Tasks that overwrite their value need this, like `set`. The specified
+    # types are those that the current value of that variable may have. For `set` this
+    # doesn't matter, but something like `add` requires them to be numbers.
     is_variable_name: bool = False
 
     def is_required(self) -> bool:
@@ -65,14 +68,10 @@ class ArgumentConfig:
 class Argument(ArgumentConfig):
     """Definition and storage of argument-values for Tasks."""
 
-    # TODO Could I inherit from Argument for Variable and Constant?
-    #  class Variable(Argument) and class Constant(Argument)?
-    #  I suppose I'll first get it to work using composition.
-    #  Or rather, I want the constant and variable logic moved into this class.
-    variable: Optional[Variable] = None
+    _variable: Optional[Variable] = None
     _variables: List[Variable]
 
-    mapping: Optional[Mapping] = None
+    _mapping: Optional[Mapping] = None
 
     def __init__(self, argument_config: ArgumentConfig, mapping: Mapping):
         # If a default of None is specified, but None is not an allowed type, then
@@ -86,14 +85,15 @@ class Argument(ArgumentConfig):
         self.types = argument_config.types
         self.is_symbol = argument_config.is_symbol
         self.default = argument_config.default
-        self.mapping = mapping
-        self._variables = []
         self.is_variable_name = argument_config.is_variable_name
+
+        self._mapping = mapping
+        self._variables = []
 
         if not self.is_required():
             # Initialize default, might be overwritten later when going through the
             # user-defined stuff.
-            self.variable = Variable(self.default, const=True)
+            self._variable = Variable(self.default, const=True)
 
     def get_value(self) -> Any:
         """Get the primitive constant value, or whatever primitive the variable
@@ -101,9 +101,9 @@ class Argument(ArgumentConfig):
         assert not self.is_spread(), f"Use .{self.get_values.__name__}()"
         # If a user passed None as value, it should be a Variable(None, const=True) here.
         # If not, a test or input-remapper is broken.
-        assert self.variable is not None
+        assert self._variable is not None
 
-        value = self.variable.get_value()
+        value = self._variable.get_value()
         value = self._validate(value)
 
         # Otherwise, if it is a constant, it should have already been validated during
@@ -117,52 +117,39 @@ class Argument(ArgumentConfig):
         values = [self._validate(value.get_value()) for value in self._variables]
         return values
 
-    def get_variable(self) -> Variable:
-        assert not self.is_spread(), f"Use .{self.get_variables.__name__}()"
-        # If a user passed None as value, it should be a Variable(None, const=True) here.
-        # If not, a test or input-remapper is broken.
-        assert self.variable is not None
-        return self.variable
-
-    def get_variables(self) -> List[Variable]:
-        """If this argument shall take all remaining positional args, validate and
-        return them."""
-        assert self.is_spread(), f"Use .{self.get_variable.__name__}()"
-        return self._variables
+    def contains_macro(self) -> bool:
+        return isinstance(self._variable.get_value(), Macro)
 
     def set_value(self, value: Any) -> Any:
-        # TODO If I could initialize self.variable right away, it wouldn't be
-        #  possible for it to be None
-        assert self.variable is not None
-        if self.variable.const:
-            # TODO macroparsingerror? Does it bubble up and get wrapped?
+        assert self._variable is not None
+        if self._variable.const:
             raise Exception("Can't set value of a constant")
 
-        self.variable.set_value(value)
+        self._variable.set_value(value)
 
     def initialize_value(self, variable: Variable) -> None:
         """Take the value from the user-defined macro code, and insert it in self."""
-        if variable.const:
-            # Otherwise it will be validated in self.get_value/self.get_values
-            self._validate(variable.get_value())
-
-        self.variable = variable
-
         if self.is_variable_name:
             # This is weird, but when the parser sees `set(foo, 1)`, it inserts foo as a
             # string, therefore `foo` is expected to be a constant at first. If you do
-            # `set($foo, 1)`, then it treats foo as a non-const variable. Theoreically
+            # `set($foo, 1)`, then it treats foo as a non-const variable. Theoretically
             # you could insert a dynamic variable name there, but that sounds incredibly
             # complicated for a macro, and there is a danger that people don't do it
             # correctly when they just want `set(foo, 1)`. Therefore, we want to assert
             # that it is "foo", not "$foo".
-            if not self.variable.const:
-                raise MacroParsingError(
+            if not variable.const:
+                raise MacroError(
                     'Use "foo", not "$foo" in your macro as variable-name.'
                 )
 
-            self.variable.type_check_variablename()
-            self.variable.const = False
+            variable.type_check_variablename()
+            variable.const = False
+
+        if variable.const:
+            # Otherwise it will be validated in self.get_value/self.get_values
+            self._validate(variable.get_value())
+
+        self._variable = variable
 
     def append_variable(self, variable: Variable) -> None:
         if variable.const:
@@ -177,8 +164,6 @@ class Argument(ArgumentConfig):
         assert not isinstance(value, Variable)
         value = self.assert_type(value)
         if self.is_symbol:
-            # TODO argument will merge with constant and variable, no parameter required
-            #  here afterwards
             self.assert_is_symbol(value)
 
         return value
@@ -189,10 +174,10 @@ class Argument(ArgumentConfig):
         code = keyboard_layout.get(symbol)
 
         if code is None:
-            raise MacroParsingError(msg=f'Unknown key "{symbol}"')
+            raise MacroError(msg=f'Unknown key "{symbol}"')
 
-        if self.mapping is not None:
-            target = self.mapping.target_uinput
+        if self._mapping is not None:
+            target = self._mapping.target_uinput
             if target is not None and not GlobalUInputs.can_default_uinput_emit(
                 target, EV_KEY, code
             ):
@@ -208,7 +193,6 @@ class Argument(ArgumentConfig):
             if allowed_type is None:
                 if value is None:
                     return value
-
                 continue
 
             if isinstance(value, allowed_type):
@@ -224,13 +208,13 @@ class Argument(ArgumentConfig):
             return str(value)
 
         if self.name is not None and self.position is not None:
-            raise MacroParsingError(
+            raise MacroError(
                 msg=(
                     f'Expected "{self.name}" to be one of {self.types}, but got '
                     f"{type(value)} {value}"
                 )
             )
 
-        raise MacroParsingError(
+        raise MacroError(
             msg=f"Expected parameter to be one of {self.types}, but got {value}"
         )

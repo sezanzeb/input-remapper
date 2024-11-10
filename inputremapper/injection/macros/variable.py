@@ -21,7 +21,7 @@
 import re
 from typing import Any
 
-from inputremapper.configs.validation_errors import MacroParsingError
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.macro import macro_variables
 
 
@@ -38,7 +38,7 @@ class Variable:
 
     def __init__(self, value: Any, const: bool):
         if not const and not isinstance(value, str):
-            raise MacroParsingError(f"Variables require a string name, not {value}")
+            raise MacroError(f"Variables require a string name, not {value}")
 
         self.value = value
         self.const = const
@@ -75,7 +75,7 @@ class Variable:
         if not isinstance(self.value, str) or not re.match(
             r"^[A-Za-z_][A-Za-z_0-9]*$", self.value
         ):
-            raise MacroParsingError(msg=f'"{self.value}" is not a legit variable name')
+            raise MacroError(msg=f'"{self.value}" is not a legit variable name')
 
     def __repr__(self):
         return f'<Variable "{self.value}" const={self.const} at {hex(id(self))}>'

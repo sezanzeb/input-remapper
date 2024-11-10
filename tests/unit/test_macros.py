@@ -46,7 +46,7 @@ from evdev.ecodes import (
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.validation_errors import (
-    MacroParsingError,
+    MacroError,
     SymbolNotAvailableInTargetError,
 )
 from inputremapper.injection.context import Context
@@ -202,24 +202,24 @@ class TestArgument(MacroTestBase):
         self.assertEqual(test(1.2, [str], "foo", 2), "1.2")
 
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: test("1.2", [int], "foo", 3),
         )
-        self.assertRaises(MacroParsingError, lambda: test("a", [None], "foo", 0))
-        self.assertRaises(MacroParsingError, lambda: test("a", [int], "foo", 1))
+        self.assertRaises(MacroError, lambda: test("a", [None], "foo", 0))
+        self.assertRaises(MacroError, lambda: test("a", [int], "foo", 1))
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: test("a", [int, float], "foo", 2),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: test("a", [int, None], "foo", 3),
         )
         self.assertEqual(test("a", [int, float, None, str], "foo", 4), "a")
 
         # variables are expected to be of the Variable type here, not a $string
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: test("$a", [int], "foo", 4),
         )
 
@@ -227,71 +227,71 @@ class TestArgument(MacroTestBase):
         variable = Variable("a", const=False)
         variable.set_value("5")
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: test_variable(variable, [int], "foo", 4),
         )
 
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: test("a", [Macro], "foo", 0),
         )
-        self.assertRaises(MacroParsingError, lambda: test(1, [Macro], "foo", 0))
+        self.assertRaises(MacroError, lambda: test(1, [Macro], "foo", 0))
 
     def test_type_check_variablename(self):
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("1a", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("$a", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("a()", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("1", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("+", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("-", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("*", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("a,b", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("a,b", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable("#", const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable(1, const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable(None, const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable([], const=False).type_check_variablename(),
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             lambda: Variable((), const=False).type_check_variablename(),
         )
 
@@ -412,7 +412,7 @@ class TestParsing(MacroTestBase):
         # of this function to begin with.
         strings = ["+", "a+", "+b", "a\n+\n+\nb", "key(a + b)"]
         for string in strings:
-            with self.assertRaises(MacroParsingError):
+            with self.assertRaises(MacroError):
                 logger.info(f'testing "%s"', string)
                 handle_plus_syntax(string)
 
@@ -528,89 +528,89 @@ class TestParsing(MacroTestBase):
     async def test_raises_error(self):
         # passing a string parameter. This is not a macro, even though
         # it might look like it without the string quotes.
-        self.assertRaises(MacroParsingError, parse, '"modify(a, b)"', self.context)
+        self.assertRaises(MacroError, parse, '"modify(a, b)"', self.context)
         parse("k(1).h(k(a)).k(3)", self.context)  # No error
-        with self.assertRaises(MacroParsingError) as cm:
+        with self.assertRaises(MacroError) as cm:
             parse("k(1))", self.context)
         error = str(cm.exception)
         self.assertIn("bracket", error)
-        with self.assertRaises(MacroParsingError) as cm:
+        with self.assertRaises(MacroError) as cm:
             parse("key((1)", self.context)
         error = str(cm.exception)
         self.assertIn("bracket", error)
-        self.assertRaises(MacroParsingError, parse, "k((1).k)", self.context)
-        self.assertRaises(MacroParsingError, parse, "k()", self.context)
+        self.assertRaises(MacroError, parse, "k((1).k)", self.context)
+        self.assertRaises(MacroError, parse, "k()", self.context)
         parse("key(1)", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "k(1, 1)", self.context)
+        self.assertRaises(MacroError, parse, "k(1, 1)", self.context)
         parse("key($a)", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "h(1, 1)", self.context)
-        self.assertRaises(MacroParsingError, parse, "h(hold(h(1, 1)))", self.context)
-        self.assertRaises(MacroParsingError, parse, "r(1)", self.context)
-        self.assertRaises(MacroParsingError, parse, "repeat(a, k(1))", self.context)
+        self.assertRaises(MacroError, parse, "h(1, 1)", self.context)
+        self.assertRaises(MacroError, parse, "h(hold(h(1, 1)))", self.context)
+        self.assertRaises(MacroError, parse, "r(1)", self.context)
+        self.assertRaises(MacroError, parse, "repeat(a, k(1))", self.context)
         parse("repeat($a, k(1))", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "r(1, 1)", self.context)
-        self.assertRaises(MacroParsingError, parse, "r(k(1), 1)", self.context)
+        self.assertRaises(MacroError, parse, "r(1, 1)", self.context)
+        self.assertRaises(MacroError, parse, "r(k(1), 1)", self.context)
         parse("r(1, macro=k(1))", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "r(a=1, b=k(1))", self.context)
+        self.assertRaises(MacroError, parse, "r(a=1, b=k(1))", self.context)
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             parse,
             "r(repeats=1, macro=k(1), a=2)",
             self.context,
         )
         self.assertRaises(
-            MacroParsingError,
+            MacroError,
             parse,
             "r(repeats=1, macro=k(1), repeats=2)",
             self.context,
         )
-        self.assertRaises(MacroParsingError, parse, "modify(asdf, k(a))", self.context)
+        self.assertRaises(MacroError, parse, "modify(asdf, k(a))", self.context)
         parse("if_tap(, k(a), 1000)", self.context)  # no error
         parse("if_tap(, k(a), timeout=1000)", self.context)  # no error
         parse("if_tap(, k(a), $timeout)", self.context)  # no error
         parse("if_tap(, k(a), timeout=$t)", self.context)  # no error
         parse("if_tap(, key(a))", self.context)  # no error
         parse("if_tap(k(a),)", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "if_tap(k(a), b)", self.context)
+        self.assertRaises(MacroError, parse, "if_tap(k(a), b)", self.context)
         parse("if_single(k(a),)", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "if_single(1,)", self.context)
-        self.assertRaises(MacroParsingError, parse, "if_single(,1)", self.context)
+        self.assertRaises(MacroError, parse, "if_single(1,)", self.context)
+        self.assertRaises(MacroError, parse, "if_single(,1)", self.context)
         parse("mouse(up, 3)", self.context)  # no error
         parse("mouse(up, speed=$a)", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "mouse(3, up)", self.context)
+        self.assertRaises(MacroError, parse, "mouse(3, up)", self.context)
         parse("wheel(left, 3)", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "wheel(3, left)", self.context)
+        self.assertRaises(MacroError, parse, "wheel(3, left)", self.context)
         parse("w(2)", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "wait(a)", self.context)
+        self.assertRaises(MacroError, parse, "wait(a)", self.context)
         parse("ifeq(a, 2, k(a),)", self.context)  # no error
         parse("ifeq(a, 2, , k(a))", self.context)  # no error
         parse("ifeq(a, 2, None, k(a))", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "ifeq(a, 2, 1,)", self.context)
-        self.assertRaises(MacroParsingError, parse, "ifeq(a, 2, , 2)", self.context)
+        self.assertRaises(MacroError, parse, "ifeq(a, 2, 1,)", self.context)
+        self.assertRaises(MacroError, parse, "ifeq(a, 2, , 2)", self.context)
         parse("if_eq(2, $a, k(a),)", self.context)  # no error
         parse("if_eq(2, $a, , else=k(a))", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "if_eq(2, $a, 1,)", self.context)
-        self.assertRaises(MacroParsingError, parse, "if_eq(2, $a, , 2)", self.context)
-        with self.assertRaises(MacroParsingError) as cm:
+        self.assertRaises(MacroError, parse, "if_eq(2, $a, 1,)", self.context)
+        self.assertRaises(MacroError, parse, "if_eq(2, $a, , 2)", self.context)
+        with self.assertRaises(MacroError) as cm:
             parse("foo(a)", self.context)
         error = str(cm.exception)
         self.assertIn("unknown", error.lower())
         self.assertIn("foo", error)
 
-        self.assertRaises(MacroParsingError, parse, "set($a, 1)", self.context)
-        self.assertRaises(MacroParsingError, parse, "set(1, 2)", self.context)
-        self.assertRaises(MacroParsingError, parse, "set(+, 2)", self.context)
-        self.assertRaises(MacroParsingError, parse, "set(a(), 2)", self.context)
-        self.assertRaises(MacroParsingError, parse, "set('b,c', 2)", self.context)
-        self.assertRaises(MacroParsingError, parse, 'set("b,c", 2)', self.context)
+        self.assertRaises(MacroError, parse, "set($a, 1)", self.context)
+        self.assertRaises(MacroError, parse, "set(1, 2)", self.context)
+        self.assertRaises(MacroError, parse, "set(+, 2)", self.context)
+        self.assertRaises(MacroError, parse, "set(a(), 2)", self.context)
+        self.assertRaises(MacroError, parse, "set('b,c', 2)", self.context)
+        self.assertRaises(MacroError, parse, 'set("b,c", 2)', self.context)
         parse("set(A, 2)", self.context)  # no error
 
-        self.assertRaises(MacroParsingError, parse, "key(a)key(b)", self.context)
-        self.assertRaises(MacroParsingError, parse, "hold(key(a)key(b))", self.context)
+        self.assertRaises(MacroError, parse, "key(a)key(b)", self.context)
+        self.assertRaises(MacroError, parse, "hold(key(a)key(b))", self.context)
 
         parse("add(a, 1)", self.context)  # no error
-        self.assertRaises(MacroParsingError, parse, "add(a, b)", self.context)
-        self.assertRaises(MacroParsingError, parse, 'add(a, "1")', self.context)
+        self.assertRaises(MacroError, parse, "add(a, b)", self.context)
+        self.assertRaises(MacroError, parse, 'add(a, "1")', self.context)
 
         parse("if_capslock(else=key(KEY_A))", self.context)  # no error
         parse("if_capslock(key(KEY_A), None)", self.context)  # no error
@@ -655,6 +655,17 @@ class TestMacros(MacroTestBase):
         self.assertEqual(self.result[5], (EV_KEY, keyboard_layout.get("c"), 0))
         self.assertEqual(self.result[6], (EV_KEY, keyboard_layout.get("b"), 0))
         self.assertEqual(self.result[7], (EV_KEY, keyboard_layout.get("a"), 0))
+
+    async def test_child_macro_count(self):
+        # It correctly keeps track of child-macros for both positional and keyword-args
+        macro = parse(
+            "hold(macro=hold(hold())).repeat(1, macro=repeat(1, hold()))",
+            self.context,
+            DummyMapping,
+            True,
+        )
+        self.assertEqual(self.count_child_macros(macro), 4)
+        self.assertEqual(self.count_tasks(macro), 6)
 
     async def test_0(self):
         macro = parse("key(1)", self.context, DummyMapping, True)
@@ -1217,7 +1228,7 @@ class TestMacros(MacroTestBase):
 
         try:
             await macro.run(self.handler)
-        except MacroParsingError as e:
+        except MacroError as e:
             self.assertIn("foo", str(e))
 
         self.assertFalse(macro.running)

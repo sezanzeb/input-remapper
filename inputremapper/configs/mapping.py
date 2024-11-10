@@ -381,7 +381,7 @@ class Mapping(UIMapping):
 
         if is_this_a_macro(symbol):
             mapping_mock = namedtuple("Mapping", values.keys())(**values)
-            # raises MacroParsingError
+            # raises MacroError
             parse(symbol, mapping=mapping_mock, verbose=False)
             return values
 

@@ -20,9 +20,9 @@
 
 from __future__ import annotations
 
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task
-from inputremapper.injection.macros.variable import Variable
 from inputremapper.logging.logger import logger
 
 
@@ -33,7 +33,7 @@ class AddTask(Task):
         ArgumentConfig(
             name="variable",
             position=0,
-            types=[str],
+            types=[int, float, None],
             is_variable_name=True,
         ),
         ArgumentConfig(
@@ -44,14 +44,18 @@ class AddTask(Task):
     ]
 
     async def run(self, handler) -> None:
-        variable: Variable = self.get_argument("variable").variable
-        current = variable.get_value()
+        argument = self.get_argument("variable")
+        try:
+            current = argument.get_value()
+        except MacroError:
+            return
+
         if current is None:
             logger.debug(
                 '"%s" initialized with 0',
-                self.arguments["variable"].variable.get_name(),
+                self.arguments["variable"]._variable.get_name(),
             )
-            variable.set_value(0)
+            argument.set_value(0)
             current = 0
 
         addend = self.get_argument("value").get_value()
@@ -59,10 +63,10 @@ class AddTask(Task):
         if not isinstance(current, (int, float)):
             logger.error(
                 'Expected variable "%s" to contain a number, but got "%s"',
-                variable.get_value(),
+                argument.get_value(),
                 current,
             )
             return
 
-        logger.debug("%s = %s + %s", variable.get_name(), current, addend)
-        variable.set_value(current + addend)
+        logger.debug("%s += %s", current, addend)
+        argument.set_value(current + addend)
