@@ -49,6 +49,8 @@ class ArgumentFlags(Enum):
 
 @dataclass
 class ArgumentConfig:
+    """Definition what kind of arguments a task may take."""
+
     position: Union[int, Literal[ArgumentFlags.spread]]
     name: str
     types: List[Optional[Type]]
@@ -66,7 +68,7 @@ class ArgumentConfig:
 
 
 class Argument(ArgumentConfig):
-    """Definition and storage of argument-values for Tasks."""
+    """Validation of variables and access to their value for Tasks during runtime."""
 
     _variable: Optional[Variable] = None
 
@@ -99,7 +101,7 @@ class Argument(ArgumentConfig):
             self._variable = Variable(self.default, const=True)
 
     def get_value(self) -> Any:
-        """Get the primitive constant value, or whatever primitive the variable
+        """Get the primitive constant value, or whatever primitive the Variable
         currently stores."""
         assert not self.is_spread(), f"Use .{self.get_values.__name__}()"
         # If a user passed None as value, it should be a Variable(None, const=True) here.
@@ -114,24 +116,26 @@ class Argument(ArgumentConfig):
         return value
 
     def get_values(self) -> List[Any]:
-        """If this argument shall take all remaining positional args, validate and
+        """If this Argument shall take all remaining positional args, validate and
         return them."""
         assert self.is_spread(), f"Use .{self.get_value.__name__}()"
         values = [self._validate(value.get_value()) for value in self._variables]
         return values
 
     def contains_macro(self) -> bool:
+        """Does the underlying Variable contain another child-macro?"""
         return isinstance(self._variable.get_value(), Macro)
 
     def set_value(self, value: Any) -> Any:
+        """Set the value of the underlying Variable. Fails for constants."""
         assert self._variable is not None
         if self._variable.const:
             raise Exception("Can't set value of a constant")
 
         self._variable.set_value(value)
 
-    def initialize_value(self, variable: Variable) -> None:
-        """Take the value from the user-defined macro code, and insert it in self."""
+    def initialize_variable(self, variable: Variable) -> None:
+        """Validate and store the given Variable."""
         if self.is_variable_name:
             # This is weird, but when the parser sees `set(foo, 1)`, it inserts foo as a
             # string, therefore `foo` is expected to be a constant at first. If you do
@@ -155,21 +159,15 @@ class Argument(ArgumentConfig):
         self._variable = variable
 
     def append_variable(self, variable: Variable) -> None:
+        """Some Arguments are supposed to contain a list of Variables. Add one to it."""
         if variable.const:
             self._validate(variable.get_value())
 
         self._variables.append(variable)
 
     def is_spread(self):
+        """Does this Argument store all remaining Variables of a Task as a list?"""
         return self.position == ArgumentFlags.spread
-
-    def _validate(self, value: Any) -> Any:
-        assert not isinstance(value, Variable)
-        value = self.assert_type(value)
-        if self.is_symbol:
-            self.assert_is_symbol(value)
-
-        return value
 
     def assert_is_symbol(self, symbol: str) -> None:
         """Checks if the key/symbol-name is valid. Like "KEY_A" or "escape"."""
@@ -186,7 +184,15 @@ class Argument(ArgumentConfig):
             ):
                 raise SymbolNotAvailableInTargetError(symbol, target)
 
-    def assert_type(self, value: Any) -> Any:
+    def _validate(self, value: Any) -> Any:
+        assert not isinstance(value, Variable)
+        value = self._assert_type(value)
+        if self.is_symbol:
+            self.assert_is_symbol(value)
+
+        return value
+
+    def _assert_type(self, value: Any) -> Any:
         """Validate a parameter used in a macro.
 
         If the value is a Variable, it will be returned and should be resolved

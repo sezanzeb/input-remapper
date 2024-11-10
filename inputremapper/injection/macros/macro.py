@@ -17,20 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Executes more complex patterns of keystrokes.
-
-To keep it short on the UI, basic functions are one letter long.
-
-The outermost macro (in the examples below the one created by 'r',
-'r' and 'w') will be started, which triggers a chain reaction to execute
-all of the configured stuff.
-
-Examples
---------
-r(3, k(a).w(10)): a <10ms> a <10ms> a
-r(2, k(a).k(KEY_A)).k(b): a - a - b
-w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
-"""
+"""Executes more complex patterns of keystrokes."""
 
 from __future__ import annotations
 
@@ -51,29 +38,10 @@ macro_variables = SharedDict()
 
 
 class Macro:
-    """Supports chaining and preparing actions.
+    """Chains tasks (like `modify` or `repeat`).
 
-    Calling functions like keycode on Macro doesn't inject any events yet,
-    it means that once .run is used it will be executed along with all other
-    queued tasks.
-
-    Those functions need to construct an asyncio coroutine and append it to
-    self.tasks. This makes parameter checking during compile time possible, as long
-    as they are not variables that are resolved durig runtime. Coroutines receive a
-    handler as argument, which is a function that can be used to inject input events
-    into the system.
-
-    TODO docstring wrong:
-    1. A few parameters of any time are thrown into a macro function like `repeat`
-    2. `Macro.repeat` will verify the parameter types if possible using `_type_check`
-       (it can't for $variables). This helps debugging macros before the injection
-       starts, but is not mandatory to make things work.
-    3. `Macro.repeat`
-       - adds a task to self.tasks. This task resolves any variables with `_resolve`
-         and does what the macro is supposed to do once `macro.run` is called.
-       - also adds the child macro to self.child_macros.
-       - adds the used keys to the capabilities
-    4. `Macro.run` will run all tasks in self.tasks
+    Tasks may have child_macros. Running a Macro runs Tasks, which in turn may run
+    their child_macros based on certain conditions (depending on the Task).
     """
 
     def __init__(

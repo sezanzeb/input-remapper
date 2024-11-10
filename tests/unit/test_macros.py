@@ -182,7 +182,7 @@ class TestArgument(MacroTestBase):
                 DummyMapping(),
             )
             variable = Variable(value, const=True)
-            argument.initialize_value(variable)
+            argument.initialize_variable(variable)
             return argument.get_value()
 
         def test_variable(variable, types, name, position):
@@ -194,7 +194,7 @@ class TestArgument(MacroTestBase):
                 ),
                 DummyMapping(),
             )
-            argument.initialize_value(variable)
+            argument.initialize_variable(variable)
             return argument.get_value()
 
         # allows params that can be cast to the target type

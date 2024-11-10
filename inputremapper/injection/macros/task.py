@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 class Task:
     """Base Class for functions like `if_eq` or `key`
 
-    A macro like `key(a).key(b)` will have two instances of this class.
+    A macro like `key(a).key(b)` will contain two instances of this class.
     """
 
     argument_configs: List[ArgumentConfig]
@@ -86,6 +86,41 @@ class Task:
     def get_argument(self, argument_name) -> Argument:
         return self.arguments[argument_name]
 
+    def press_trigger(self) -> None:
+        """The user pressed the trigger key down."""
+        for macro in self.child_macros:
+            macro.press_trigger()
+
+        if self.is_holding():
+            logger.error("Already holding")
+            return
+
+        self._trigger_release_event.clear()
+        self._trigger_press_event.set()
+
+    def release_trigger(self) -> None:
+        """The user released the trigger key."""
+        if not self.is_holding():
+            return
+
+        self._trigger_release_event.set()
+        self._trigger_press_event.clear()
+
+        for macro in self.child_macros:
+            macro.release_trigger()
+
+    def is_holding(self) -> bool:
+        """Check if the macro is waiting for a key to be released."""
+        return not self._trigger_release_event.is_set()
+
+    async def keycode_pause(self, _=None) -> None:
+        """To add a pause between keystrokes.
+
+        This was needed at some point because it appeared that injecting keys too
+        fast will prevent them from working. It probably depends on the environment.
+        """
+        await asyncio.sleep(self.mapping.macro_key_sleep_ms / 1000)
+
     def _initialize_spread_arg(
         self,
         positional_args: List[Variable],
@@ -118,41 +153,6 @@ class Task:
 
         return None
 
-    def press_trigger(self) -> None:
-        """The user pressed the trigger key down."""
-        if self.is_holding():
-            logger.error("Already holding")
-            return
-
-        self._trigger_release_event.clear()
-        self._trigger_press_event.set()
-
-        for macro in self.child_macros:
-            macro.press_trigger()
-
-    def release_trigger(self) -> None:
-        """The user released the trigger key."""
-        if not self.is_holding():
-            return
-
-        self._trigger_release_event.set()
-        self._trigger_press_event.clear()
-
-        for macro in self.child_macros:
-            macro.release_trigger()
-
-    def is_holding(self) -> bool:
-        """Check if the macro is waiting for a key to be released."""
-        return not self._trigger_release_event.is_set()
-
-    async def keycode_pause(self, _=None) -> None:
-        """To add a pause between keystrokes.
-
-        This was needed at some point because it appeared that injecting keys too
-        fast will prevent them from working. It probably depends on the environment.
-        """
-        await asyncio.sleep(self.mapping.macro_key_sleep_ms / 1000)
-
     def _setup_asyncio_events(self) -> None:
         # Can be used to wait for the press and release of the input event/key, that is
         # configured as the trigger of the macro, via asyncio.
@@ -174,11 +174,11 @@ class Task:
 
         for name, value in keyword_args.items():
             if argument.name == name:
-                argument.initialize_value(value)
+                argument.initialize_variable(value)
                 return
 
         if argument.position < len(positional_args):
-            argument.initialize_value(positional_args[argument.position])
+            argument.initialize_variable(positional_args[argument.position])
             return
 
         if not argument.is_required():
