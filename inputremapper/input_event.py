@@ -56,7 +56,6 @@ class InputEvent:
     value: int
     actions: Tuple[EventActions, ...] = ()
     origin_hash: Optional[str] = None
-    forward_to: Optional[evdev.UInput] = None
 
     def __eq__(self, other: InputEvent | evdev.InputEvent | Tuple[int, int, int]):
         # useful in tests

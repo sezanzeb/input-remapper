@@ -27,22 +27,22 @@ from typing import Dict, Optional, List, Tuple
 from evdev.ecodes import EV_KEY
 from gi.repository import Gdk, Gtk, GLib, GObject
 
-from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
+from inputremapper.configs.mapping import MappingData
 from inputremapper.gui.components.editor import CodeEditor
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.messages.message_data import UInputsData
 from inputremapper.gui.utils import debounce
 from inputremapper.injection.macros.parse import (
-    TASK_FACTORIES,
-    get_macro_argument_names,
+    TASK_CLASSES,
     remove_comments,
+    get_macro_argument_names,
 )
 from inputremapper.logging.logger import logger
 
 # no deprecated shorthand function-names
-FUNCTION_NAMES = [name for name in TASK_FACTORIES.keys() if len(name) > 1]
+FUNCTION_NAMES = [name for name in TASK_CLASSES.keys() if len(name) > 1]
 # no deprecated functions
 FUNCTION_NAMES.remove("ifeq")
 
@@ -130,7 +130,7 @@ def propose_function_names(text_iter: Gtk.TextIter) -> List[Tuple[str, str]]:
     incomplete_name = incomplete_name.lower()
 
     return [
-        (name, f"{name}({', '.join(get_macro_argument_names(TASK_FACTORIES[name]))})")
+        (name, f"{name}({', '.join(get_macro_argument_names(TASK_CLASSES[name]))})")
         for name in FUNCTION_NAMES
         if incomplete_name in name.lower() and incomplete_name != name.lower()
     ]

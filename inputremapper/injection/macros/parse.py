@@ -20,14 +20,39 @@
 
 """Parse macro code"""
 
+from __future__ import annotations
 
-import inspect
 import re
-from typing import Optional, Any
+from typing import Optional, Any, Type, TYPE_CHECKING, Dict, Union, Tuple
 
 from inputremapper.configs.validation_errors import MacroParsingError
-from inputremapper.injection.macros.macro import Macro, Variable
+from inputremapper.injection.macros.argument import ArgumentFlags
+from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.task import Task
+from inputremapper.injection.macros.tasks.add import AddTask
+from inputremapper.injection.macros.tasks.event import EventTask
+from inputremapper.injection.macros.tasks.hold import HoldTask
+from inputremapper.injection.macros.tasks.hold_keys import HoldKeysTask
+from inputremapper.injection.macros.tasks.if_eq import IfEqTask
+from inputremapper.injection.macros.tasks.if_led import IfNumlockTask, IfCapslockTask
+from inputremapper.injection.macros.tasks.if_single import IfSingleTask
+from inputremapper.injection.macros.tasks.if_tap import IfTapTask
+from inputremapper.injection.macros.tasks.ifeq import DeprecatedIfEqTask
+from inputremapper.injection.macros.tasks.key import KeyTask
+from inputremapper.injection.macros.tasks.key_down import KeyDownTask
+from inputremapper.injection.macros.tasks.key_up import KeyUpTask
+from inputremapper.injection.macros.tasks.modify import ModifyTask
+from inputremapper.injection.macros.tasks.mouse import MouseTask
+from inputremapper.injection.macros.tasks.repeat import RepeatTask
+from inputremapper.injection.macros.tasks.set import SetTask
+from inputremapper.injection.macros.tasks.wait import WaitTask
+from inputremapper.injection.macros.tasks.wheel import WheelTask
+from inputremapper.injection.macros.variable import Variable
 from inputremapper.logging.logger import logger
+
+if TYPE_CHECKING:
+    from inputremapper.injection.context import Context
+    from inputremapper.configs.mapping import Mapping
 
 
 def is_this_a_macro(output: Any):
@@ -42,85 +67,57 @@ def is_this_a_macro(output: Any):
     return "(" in output and ")" in output and len(output) >= 4
 
 
-TASK_FACTORIES = {
-    "modify": Macro.add_modify,
-    "repeat": Macro.add_repeat,
-    "key": Macro.add_key,
-    "key_down": Macro.add_key_down,
-    "key_up": Macro.add_key_up,
-    "event": Macro.add_event,
-    "wait": Macro.add_wait,
-    "hold": Macro.add_hold,
-    "hold_keys": Macro.add_hold_keys,
-    "mouse": Macro.add_mouse,
-    "wheel": Macro.add_wheel,
-    "if_eq": Macro.add_if_eq,
-    "if_numlock": Macro.add_if_numlock,
-    "if_capslock": Macro.add_if_capslock,
-    "set": Macro.add_set,
-    "if_tap": Macro.add_if_tap,
-    "if_single": Macro.add_if_single,
-    "add": Macro.add_add,
+TASK_CLASSES: dict[str, type[Task]] = {
+    "modify": ModifyTask,
+    "repeat": RepeatTask,
+    "key": KeyTask,
+    "key_down": KeyDownTask,
+    "key_up": KeyUpTask,
+    "event": EventTask,
+    "wait": WaitTask,
+    "hold": HoldTask,
+    "hold_keys": HoldKeysTask,
+    "mouse": MouseTask,
+    "wheel": WheelTask,
+    "if_eq": IfEqTask,
+    "if_numlock": IfNumlockTask,
+    "if_capslock": IfCapslockTask,
+    "set": SetTask,
+    "if_tap": IfTapTask,
+    "if_single": IfSingleTask,
+    "add": AddTask,
     # Those are only kept for backwards compatibility with old macros. The space for
     # writing macro was very constrained in the past, so shorthands were introduced:
-    "m": Macro.add_modify,
-    "r": Macro.add_repeat,
-    "k": Macro.add_key,
-    "e": Macro.add_event,
-    "w": Macro.add_wait,
-    "h": Macro.add_hold,
+    "m": ModifyTask,
+    "r": RepeatTask,
+    "k": KeyTask,
+    "e": EventTask,
+    "w": WaitTask,
+    "h": HoldTask,
     # It was not possible to adjust ifeq to support variables without breaking old
     # macros, so this function is deprecated and if_eq introduced. Kept for backwards
     # compatibility:
-    "ifeq": Macro.add_ifeq,
+    "ifeq": DeprecatedIfEqTask,
 }
 
 
-def use_safe_argument_names(keyword_args):
-    """Certain names cannot be used internally as parameters, Add a trailing "_".
-
-    This is the PEP 8 compliant way of avoiding conflicts with built-ins:
-    https://www.python.org/dev/peps/pep-0008/#descriptive-naming-styles
-
-    For example the macro `if_eq(1, 1, else=k(b))` uses the else_ parameter of
-    `def add_if_eq` to work.
-    """
-    # extend this list with parameter names that cannot be used in python, but should
-    # be used in macro code.
-    built_ins = ["else", "type"]
-
-    keys = keyword_args.keys()
-    for built_in in built_ins:
-        if built_in in keys:
-            keyword_args[f"{built_in}_"] = keyword_args[built_in]
-            del keyword_args[built_in]
+def get_macro_argument_names(task_class: Type[Task]):
+    return [argument_config.name for argument_config in task_class.argument_configs]
 
 
-def get_macro_argument_names(function):
-    """Certain names, like "else" or "type" cannot be used as parameters in python.
-
-    Removes the trailing "_" for displaying them correctly.
-    """
-    args = inspect.getfullargspec(function).args[1:]  # don't include "self"
-    arg_names = [name[:-1] if name.endswith("_") else name for name in args]
-
-    varargs = inspect.getfullargspec(function).varargs
-    if varargs:
-        arg_names.append(f"*{varargs}")
-
-    return arg_names
-
-
-def get_num_parameters(function):
+def get_num_parameters(task_class: type[Task]) -> Tuple[int, Union[int, float]]:
     """Get the number of required parameters and the maximum number of parameters."""
-    fullargspec = inspect.getfullargspec(function)
-    num_args = len(fullargspec.args) - 1  # one of them is `self`
-    min_num_args = num_args - len(fullargspec.defaults or ())
+    min_num_args = 0
+    argument_configs = task_class.argument_configs
+    max_num_args: Union[int, float] = len(argument_configs)
+    for argument_config in argument_configs:
+        if argument_config.position == ArgumentFlags.spread:
+            # 0 or more
+            max_num_args = float("inf")
+            continue
 
-    if fullargspec.varargs is not None:
-        max_num_args = float("inf")
-    else:
-        max_num_args = num_args
+        if argument_config.is_required():
+            min_num_args += 1
 
     return min_num_args, max_num_args
 
@@ -212,14 +209,26 @@ def _is_number(value):
         return False
 
 
+def check_for_unknown_keyword_arguments(
+    keyword_args: Dict[str, Any],
+    task_factory: Type[Task],
+) -> None:
+    for keyword_arg in keyword_args:
+        for argument in task_factory.argument_configs:
+            if argument.name == keyword_arg:
+                break
+        else:
+            raise MacroParsingError("Unknown keyword argument {keyword_arg}")
+
+
 def _parse_recurse(
     code: str,
-    context,
-    mapping,
+    context: Optional[Context],
+    mapping: Mapping,
     verbose: bool,
     macro_instance: Optional[Macro] = None,
     depth: int = 0,
-):
+) -> Variable:
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Not using eval for security reasons.
@@ -252,7 +261,7 @@ def _parse_recurse(
     if code == "" or code == "None":
         # A function parameter probably
         # I think "" is the deprecated alternative to "None"
-        return None
+        return Variable(None, const=True)
 
     if code.startswith('"'):
         # TODO and endswith check, if endswith fails throw error?
@@ -260,11 +269,11 @@ def _parse_recurse(
         # a string, don't parse. remove quotes
         string = code[1:-1]
         debug("%sstring %s", space, string)
-        return string
+        return Variable(string, const=True)
 
     if code.startswith("$"):
         # will be resolved during the macros runtime
-        return Variable(code.split("$", 1)[1])
+        return Variable(code.split("$", 1)[1], const=False)
 
     if _is_number(code):
         if "." in code:
@@ -272,7 +281,7 @@ def _parse_recurse(
         else:
             code = int(code)
         debug("%snumber %s", space, code)
-        return code
+        return Variable(code, const=True)
 
     # is it another macro?
     call_match = re.match(r"^(\w+)\(", code)
@@ -285,7 +294,7 @@ def _parse_recurse(
             # chain this call to the existing instance
             assert isinstance(macro_instance, Macro)
 
-        task_factory = TASK_FACTORIES.get(call)
+        task_factory = TASK_CLASSES.get(call)
         if task_factory is None:
             raise MacroParsingError(code, f"Unknown function {call}")
 
@@ -303,7 +312,12 @@ def _parse_recurse(
         for param in raw_string_args:
             key, value = _split_keyword_arg(param)
             parsed = _parse_recurse(
-                value.strip(), context, mapping, verbose, None, depth + 1
+                value.strip(),
+                context,
+                mapping,
+                verbose,
+                None,
+                depth + 1,
             )
             if key is None:
                 if len(keyword_args) > 0:
@@ -316,6 +330,9 @@ def _parse_recurse(
                         code, f'The "{key}" argument was specified twice'
                     )
                 keyword_args[key] = parsed
+
+        # TODO I think this is a new feature, test:
+        check_for_unknown_keyword_arguments(keyword_args, task_factory)
 
         debug(
             "%sadd call to %s with %s, %s",
@@ -338,10 +355,14 @@ def _parse_recurse(
 
             raise MacroParsingError(code, msg)
 
-        use_safe_argument_names(keyword_args)
-
         try:
-            task_factory(macro_instance, *positional_args, **keyword_args)
+            task = task_factory(
+                positional_args,
+                keyword_args,
+                context,
+                mapping,
+            )
+            macro_instance.add_task(task)
         except TypeError as exception:
             raise MacroParsingError(msg=str(exception)) from exception
 
@@ -364,13 +385,13 @@ def _parse_recurse(
                     f"{code[:closing_bracket_position + 1]}",
                 )
 
-        return macro_instance
+        return Variable(macro_instance, const=True)
 
     # It is probably either a key name like KEY_A or a variable name as in `set(var,1)`,
     # both won't contain special characters that can break macro syntax so they don't
     # have to be wrapped in quotes.
     debug("%sstring %s", space, code)
-    return code
+    return Variable(code, const=True)
 
 
 def handle_plus_syntax(macro):
@@ -439,7 +460,7 @@ def clean(code):
     return remove_whitespaces(remove_comments(code), '"')
 
 
-def parse(macro: str, context=None, mapping=None, verbose: bool = True):
+def parse(macro: str, context=None, mapping=None, verbose: bool = True) -> Macro:
     """Parse and generate a Macro that can be run as often as you want.
 
     Parameters
@@ -459,7 +480,7 @@ def parse(macro: str, context=None, mapping=None, verbose: bool = True):
     macro = clean(macro)
     macro = handle_plus_syntax(macro)
 
-    macro_obj = _parse_recurse(macro, context, mapping, verbose)
+    macro_obj = _parse_recurse(macro, context, mapping, verbose).get_value()
     if not isinstance(macro_obj, Macro):
         raise MacroParsingError(macro, "The provided code was not a macro")
 

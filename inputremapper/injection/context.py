@@ -85,10 +85,10 @@ class Context:
         mapping_parser: MappingParser,
     ):
         if len(forward_devices) == 0:
-            logger.warning("Not forward_devices set")
+            logger.warning("forward_devices not set")
 
         if len(source_devices) == 0:
-            logger.warning("Not source_devices set")
+            logger.warning("source_devices not set")
 
         self.listeners = set()
         self._source_devices = source_devices

@@ -29,14 +29,10 @@ from typing import (
     Tuple,
     Deque,
     Any,
-    TYPE_CHECKING,
 )
 
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logging.logger import logger
-
-if TYPE_CHECKING:
-    pass
 
 
 class Message(Protocol):

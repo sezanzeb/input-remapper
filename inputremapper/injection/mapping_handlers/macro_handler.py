@@ -18,7 +18,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-from typing import Dict, Callable, Set
+import traceback
+from typing import Dict, Callable
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
@@ -69,6 +70,7 @@ class MacroHandler(MappingHandler):
         try:
             await self._macro.run(handler)
         except Exception as exception:
+            traceback.print_exc()
             logger.error('Macro "%s" failed: %s', self._macro.code, exception)
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
@@ -88,15 +90,13 @@ class MacroHandler(MappingHandler):
             return True
         else:
             self._active = False
-            if self._macro.is_holding():
-                self._macro.release_trigger()
+            self._macro.release_trigger()
 
             return True
 
     def reset(self) -> None:
         self._active = False
-        if self._macro.is_holding():
-            self._macro.release_trigger()
+        self._macro.release_trigger()
 
     def needs_wrapping(self) -> bool:
         return True
