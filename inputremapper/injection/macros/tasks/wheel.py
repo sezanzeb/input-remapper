@@ -38,8 +38,6 @@ from inputremapper.injection.macros.task import Task
 class WheelTask(Task):
     """Move the scroll wheel."""
 
-    # TODO I might have forgotten to copy a few docstrings from the add_ methods
-
     argument_configs = [
         ArgumentConfig(
             name="direction",

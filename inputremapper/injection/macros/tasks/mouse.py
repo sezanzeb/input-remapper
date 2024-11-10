@@ -32,6 +32,8 @@ from inputremapper.injection.macros.task import Task
 
 
 class MouseTask(Task):
+    """Move the mouse cursor."""
+
     argument_configs = [
         ArgumentConfig(
             name="direction",

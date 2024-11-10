@@ -30,6 +30,8 @@ from inputremapper.injection.macros.task import Task
 
 
 class KeyTask(Task):
+    """Write the symbol."""
+
     argument_configs = [
         ArgumentConfig(
             name="symbol",

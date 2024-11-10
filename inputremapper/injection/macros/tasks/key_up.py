@@ -30,6 +30,8 @@ from inputremapper.injection.macros.task import Task
 
 
 class KeyUpTask(Task):
+    """Release the symbol."""
+
     argument_configs = [
         ArgumentConfig(
             name="symbol",

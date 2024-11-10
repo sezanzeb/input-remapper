@@ -28,6 +28,8 @@ from inputremapper.injection.macros.task import Task
 
 
 class WaitTask(Task):
+    """Wait time in milliseconds."""
+
     argument_configs = [
         ArgumentConfig(
             name="time",

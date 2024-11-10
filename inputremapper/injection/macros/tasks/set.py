@@ -26,6 +26,8 @@ from inputremapper.injection.macros.task import Task
 
 
 class SetTask(Task):
+    """Set a variable to a certain value."""
+
     argument_configs = [
         ArgumentConfig(
             name="variable",

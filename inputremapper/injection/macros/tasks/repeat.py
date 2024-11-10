@@ -26,6 +26,8 @@ from inputremapper.injection.macros.task import Task
 
 
 class RepeatTask(Task):
+    """Repeat macros."""
+
     argument_configs = [
         ArgumentConfig(
             name="repeats",

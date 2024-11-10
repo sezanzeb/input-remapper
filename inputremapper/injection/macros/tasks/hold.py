@@ -33,6 +33,8 @@ from inputremapper.injection.macros.task import Task
 
 
 class HoldTask(Task):
+    """Loop the macro until the trigger-key is released."""
+
     argument_configs = [
         ArgumentConfig(
             name="macro",
