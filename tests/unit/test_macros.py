@@ -532,6 +532,10 @@ class TestParsing(MacroTestBase):
             Variable(5, const=True),
         )
         self.assertEqual(
+            test("5", [float, int]),
+            Variable(5, const=True),
+        )
+        self.assertEqual(
             test("5.2", [int, float]),
             Variable(5.2, const=True),
         )

@@ -23,4 +23,6 @@ from dataclasses import dataclass
 
 @dataclass
 class RawValue:
+    """Store a value exactly as it is in the macro-code."""
+
     value: str

@@ -26,7 +26,10 @@ from inputremapper.injection.macros.macro import macro_variables
 
 
 class Variable:
-    """Something that the user passed into a macro function.
+    """Something that the user passed into a macro function as parameter.
+
+    The value should already be parsed and validated, if const=True, according to the
+    argument_configs of a given Task.
 
     Examples:
     - `KEY_A` in `key(KEY_A)` (const=True)

@@ -110,17 +110,27 @@ class Argument(ArgumentConfig):
         assert self._variable is not None
 
         value = self._variable.get_value()
-        value = self._validate(value)
 
-        # Otherwise, if it is a constant, it should have already been validated during
-        # parsing so we don't call _validate here redundantly.
+        if not self._variable.const:
+            # Dynamic value. Hasn't been validated yet
+            value = self._validate_dynamic_value(self._variable)
+
         return value
 
     def get_values(self) -> List[Any]:
         """If this Argument shall take all remaining positional args, validate and
         return them."""
         assert self.is_spread(), f"Use .{self.get_value.__name__}()"
-        values = [self._validate(value.get_value()) for value in self._variables]
+
+        values = []
+        for variable in self._variables:
+            if not variable.const:
+                values.append(self._validate_dynamic_value(variable))
+            else:
+                values.append(variable.get_value())
+
+        # TODO test hold_keys with both valid and invalid dynamic symbol-names.
+
         return values
 
     def contains_macro(self) -> bool:
@@ -238,20 +248,23 @@ class Argument(ArgumentConfig):
 
         raise self.type_error_factory(value)
 
-    def _validate(self, value: Any) -> Any:
-        assert not isinstance(value, Variable)
-        value = self._assert_type(value)
+    def _validate_dynamic_value(self, variable: Variable) -> Any:
+        assert isinstance(variable, Variable)
+        assert not variable.const
+
+        value = self._parse_dynamic_variable(variable)
         if self.is_symbol:
             self.assert_is_symbol(value)
 
         return value
 
-    def _assert_type(self, value: Any) -> Any:
-        """Validate a parameter used in a macro.
+    def _parse_dynamic_variable(self, variable: Variable) -> Any:
+        # Most of the stuff has already been taken care of when, for example,
+        # the "1" of set(foo, 1) was parsed the first time.
+        assert isinstance(variable, Variable)
+        assert not variable.const
 
-        If the value is a Variable, it will be returned and should be resolved
-        during runtime with _resolve.
-        """
+        value = variable.get_value()
         for allowed_type in self.types:
             if allowed_type is None:
                 if value is None:

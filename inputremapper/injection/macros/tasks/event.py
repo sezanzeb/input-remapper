@@ -20,9 +20,7 @@
 
 from __future__ import annotations
 
-from evdev.ecodes import (
-    ecodes,
-)
+from evdev.ecodes import ecodes
 
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task
@@ -31,13 +29,7 @@ from inputremapper.injection.macros.task import Task
 class EventTask(Task):
     """Write any event.
 
-    Parameters
-    ----------
-    type_
-        examples: 2, 'EV_KEY'
-    code
-        examples: 52, 'KEY_A'
-    value
+    For example event(EV_KEY, KEY_A, 1)
     """
 
     argument_configs = [
