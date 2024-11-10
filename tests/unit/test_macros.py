@@ -237,73 +237,73 @@ class TestArgument(MacroTestBase):
         )
         self.assertRaises(MacroError, lambda: test(1, [Macro], "foo", 0))
 
-    def test_type_check_variablename(self):
+    def test_validate_variable_name(self):
         self.assertRaises(
             MacroError,
-            lambda: Variable("1a", const=False).type_check_variablename(),
+            lambda: Variable("1a", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable("$a", const=False).type_check_variablename(),
+            lambda: Variable("$a", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable("a()", const=False).type_check_variablename(),
+            lambda: Variable("a()", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable("1", const=False).type_check_variablename(),
+            lambda: Variable("1", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable("+", const=False).type_check_variablename(),
+            lambda: Variable("+", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable("-", const=False).type_check_variablename(),
+            lambda: Variable("-", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable("*", const=False).type_check_variablename(),
+            lambda: Variable("*", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable("a,b", const=False).type_check_variablename(),
+            lambda: Variable("a,b", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable("a,b", const=False).type_check_variablename(),
+            lambda: Variable("a,b", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable("#", const=False).type_check_variablename(),
+            lambda: Variable("#", const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable(1, const=False).type_check_variablename(),
+            lambda: Variable(1, const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable(None, const=False).type_check_variablename(),
+            lambda: Variable(None, const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable([], const=False).type_check_variablename(),
+            lambda: Variable([], const=False).validate_variable_name(),
         )
         self.assertRaises(
             MacroError,
-            lambda: Variable((), const=False).type_check_variablename(),
+            lambda: Variable((), const=False).validate_variable_name(),
         )
 
         # doesn't raise
-        Variable("a", const=False).type_check_variablename()
-        Variable("_a", const=False).type_check_variablename()
-        Variable("_A", const=False).type_check_variablename()
-        Variable("A", const=False).type_check_variablename()
-        Variable("Abcd", const=False).type_check_variablename()
-        Variable("Abcd_", const=False).type_check_variablename()
-        Variable("Abcd_1234", const=False).type_check_variablename()
-        Variable("Abcd1234_", const=False).type_check_variablename()
+        Variable("a", const=False).validate_variable_name()
+        Variable("_a", const=False).validate_variable_name()
+        Variable("_A", const=False).validate_variable_name()
+        Variable("A", const=False).validate_variable_name()
+        Variable("Abcd", const=False).validate_variable_name()
+        Variable("Abcd_", const=False).validate_variable_name()
+        Variable("Abcd_1234", const=False).validate_variable_name()
+        Variable("Abcd1234_", const=False).validate_variable_name()
 
 
 @test_setup

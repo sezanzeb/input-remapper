@@ -44,7 +44,7 @@ class Variable:
         self.const = const
 
         if not const:
-            self.type_check_variablename()
+            self.validate_variable_name()
 
     def get_name(self) -> str:
         assert not self.const
@@ -63,7 +63,7 @@ class Variable:
         assert not self.const
         macro_variables[self.value] = value
 
-    def type_check_variablename(self):
+    def validate_variable_name(self):
         """Check if this is a legit variable name.
 
         Because they could clash with language features. If the macro can be

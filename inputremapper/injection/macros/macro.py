@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Executes more complex patterns of keystrokes.
 
 To keep it short on the UI, basic functions are one letter long.
@@ -33,7 +32,6 @@ r(2, k(a).k(KEY_A)).k(b): a - a - b
 w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -45,6 +43,7 @@ from inputremapper.logging.logger import logger
 if TYPE_CHECKING:
     from inputremapper.injection.macros.task import Task
     from inputremapper.injection.context import Context
+    from inputremapper.configs.mapping import Mapping
 
 Handler = Callable[[Tuple[int, int, int]], None]
 
@@ -81,7 +80,7 @@ class Macro:
         self,
         code: Optional[str],
         context: Optional[Context] = None,
-        mapping=None,
+        mapping: Mapping = None,
     ):
         """Create a macro instance that can be populated with tasks.
 
@@ -95,8 +94,6 @@ class Macro:
         self.code = code
         self.context = context
         self.mapping = mapping
-
-        # TODO check if mapping is ever none by throwing an error
 
         # List of coroutines that will be called sequentially.
         # This is the compiled code

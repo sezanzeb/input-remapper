@@ -69,6 +69,9 @@ class Argument(ArgumentConfig):
     """Definition and storage of argument-values for Tasks."""
 
     _variable: Optional[Variable] = None
+
+    # If the position is set to ArgumentFlags.spread, then _variables will be filled
+    # with all remaining positional arguments that were passed to a task.
     _variables: List[Variable]
 
     _mapping: Optional[Mapping] = None
@@ -142,7 +145,7 @@ class Argument(ArgumentConfig):
                     'Use "foo", not "$foo" in your macro as variable-name.'
                 )
 
-            variable.type_check_variablename()
+            variable.validate_variable_name()
             variable.const = False
 
         if variable.const:
@@ -203,8 +206,9 @@ class Argument(ArgumentConfig):
             # parsed as a number, but only strings are allowed, convert it back into
             # a string.
             # Example: key(KEY_A) works, key(b) works, therefore key(1) should also
-            # work. However, 1 is not a number in the technical sense, it is a
-            # symbol-name, and therefore a string.
+            # work. However, even though it was parsed as a number before validation,
+            # 1 is not a number in the technical sense. It is a symbol-name, and
+            # therefore a string.
             return str(value)
 
         if self.name is not None and self.position is not None:
