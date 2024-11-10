@@ -106,7 +106,6 @@ class SharedDict:
         return False
 
     def __setitem__(self, key: str, value: Any):
-        assert self.is_alive()
         self.pipe[1].send(("set", key, value))
 
     def __getitem__(self, key: str):
