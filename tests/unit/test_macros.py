@@ -298,19 +298,19 @@ class TestArgument(MacroTestBase):
 class TestParsing(MacroTestBase):
     def test_get_macro_argument_names(self):
         self.assertEqual(
-            Parser.get_macro_argument_names(IfTapTask),
+            IfTapTask.get_macro_argument_names(),
             ["then", "else", "timeout"],
         )
 
         self.assertEqual(
-            Parser.get_macro_argument_names(HoldKeysTask),
+            HoldKeysTask.get_macro_argument_names(),
             ["*symbols"],
         )
 
     def test_get_num_parameters(self):
-        self.assertEqual(Parser.get_num_parameters(IfTapTask), (0, 3))
-        self.assertEqual(Parser.get_num_parameters(KeyTask), (1, 1))
-        self.assertEqual(Parser.get_num_parameters(HoldKeysTask), (0, float("inf")))
+        self.assertEqual(IfTapTask.get_num_parameters(), (0, 3))
+        self.assertEqual(KeyTask.get_num_parameters(), (1, 1))
+        self.assertEqual(HoldKeysTask.get_num_parameters(), (0, float("inf")))
 
     def test_remove_whitespaces(self):
         self.assertEqual(Parser.remove_whitespaces('foo"bar"foo'), 'foo"bar"foo')

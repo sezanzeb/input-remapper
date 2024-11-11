@@ -23,10 +23,9 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, Any, Type, TYPE_CHECKING, Dict, Union, Tuple, List
+from typing import Optional, Any, Type, TYPE_CHECKING, Dict, List
 
 from inputremapper.configs.validation_errors import MacroError
-from inputremapper.injection.macros.argument import ArgumentFlags
 from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.raw_value import RawValue
 from inputremapper.injection.macros.task import Task
@@ -100,27 +99,6 @@ class Parser:
             return True
 
         return "(" in output and ")" in output and len(output) >= 4
-
-    @staticmethod
-    def get_macro_argument_names(task_class: Type[Task]):
-        return [argument_config.name for argument_config in task_class.argument_configs]
-
-    @staticmethod
-    def get_num_parameters(task_class: type[Task]) -> Tuple[int, Union[int, float]]:
-        """Get the number of required parameters and the maximum number of parameters."""
-        min_num_args = 0
-        argument_configs = task_class.argument_configs
-        max_num_args: Union[int, float] = len(argument_configs)
-        for argument_config in argument_configs:
-            if argument_config.position == ArgumentFlags.spread:
-                # 0 or more
-                max_num_args = float("inf")
-                continue
-
-            if argument_config.is_required():
-                min_num_args += 1
-
-        return min_num_args, max_num_args
 
     @staticmethod
     def _extract_args(inner: str):
@@ -309,7 +287,7 @@ class Parser:
                 keyword_args,
             )
 
-            min_args, max_args = Parser.get_num_parameters(task_factory)
+            min_args, max_args = task_factory.get_num_parameters()
             num_provided_args = len(raw_string_args)
             if num_provided_args < min_args or num_provided_args > max_args:
                 if min_args != max_args:

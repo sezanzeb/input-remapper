@@ -10,6 +10,15 @@ All pull requests will at some point require unittests (see below for more info)
 The code coverage may only be improved, not decreased. It also has to be mostly
 compliant with pylint.
 
+Running
+-------
+
+To quickly restart input-remapper without pkexec prompts, you can use
+
+```bash
+sudo pkill -f input-remapper && sudo input-remapper-reader-service -d & sudo input-remapper-service -d & input-remapper-gtk -d
+```
+
 Linting
 -------
 

@@ -34,15 +34,11 @@ from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.messages.message_data import UInputsData
 from inputremapper.gui.utils import debounce
-from inputremapper.injection.macros.parse import (
-    TASK_CLASSES,
-    remove_comments,
-    get_macro_argument_names,
-)
+from inputremapper.injection.macros.parse import Parser
 from inputremapper.logging.logger import logger
 
 # no deprecated shorthand function-names
-FUNCTION_NAMES = [name for name in TASK_CLASSES.keys() if len(name) > 1]
+FUNCTION_NAMES = [name for name in Parser.TASK_CLASSES.keys() if len(name) > 1]
 # no deprecated functions
 FUNCTION_NAMES.remove("ifeq")
 
@@ -52,7 +48,7 @@ Capabilities = Dict[int, List]
 def _get_left_text(iter_: Gtk.TextIter) -> str:
     buffer = iter_.get_buffer()
     result = buffer.get_text(buffer.get_start_iter(), iter_, True)
-    result = remove_comments(result)
+    result = Parser.remove_comments(result)
     result = result.replace("\n", " ")
     return result.lower()
 
@@ -130,7 +126,7 @@ def propose_function_names(text_iter: Gtk.TextIter) -> List[Tuple[str, str]]:
     incomplete_name = incomplete_name.lower()
 
     return [
-        (name, f"{name}({', '.join(get_macro_argument_names(TASK_CLASSES[name]))})")
+        (name, f"{name}({', '.join(Parser.TASK_CLASSES[name].get_macro_argument_names())})")
         for name in FUNCTION_NAMES
         if incomplete_name in name.lower() and incomplete_name != name.lower()
     ]

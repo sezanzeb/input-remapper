@@ -30,7 +30,6 @@ import os
 import re
 import shutil
 from pathlib import Path
-from packaging import version
 from typing import Iterator, Tuple, Dict, List, Optional, TypedDict
 
 from evdev.ecodes import (
@@ -46,14 +45,15 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
     REL_HWHEEL_HI_RES,
 )
+from packaging import version
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from inputremapper.injection.macros.parse import is_this_a_macro
+from inputremapper.injection.macros.parse import Parser
 from inputremapper.logging.logger import logger, VERSION
 from inputremapper.user import UserUtils
 
@@ -225,7 +225,7 @@ class Migrations:
         """Try to find a uinput with the required capabilities for the symbol."""
         capabilities = {EV_KEY: set(), EV_REL: set()}
 
-        if is_this_a_macro(symbol):
+        if Parser.is_this_a_macro(symbol):
             # deprecated mechanic, cannot figure this out anymore
             # capabilities = parse(symbol).get_capabilities()
             return None
@@ -294,7 +294,7 @@ class Migrations:
 
             changed = False
             for key, symbol in preset_structure["mapping"].copy().items():
-                if not is_this_a_macro(symbol[0]):
+                if not Parser.is_this_a_macro(symbol[0]):
                     continue
 
                 symbol_before = symbol[0]

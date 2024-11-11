@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import asyncio
 from itertools import chain
-from typing import List, Dict, TYPE_CHECKING, Optional
+from typing import List, Dict, TYPE_CHECKING, Optional, Tuple, Union
 
 from inputremapper.injection.macros.argument import (
     Argument,
@@ -86,6 +86,27 @@ class Task:
         Call the callback with the type, code and value that should be injected.
         """
         raise NotImplementedError()
+
+    @classmethod
+    def get_macro_argument_names(cls):
+        return [argument_config.name for argument_config in cls.argument_configs]
+
+    @classmethod
+    def get_num_parameters(cls) -> Tuple[int, Union[int, float]]:
+        """Get the number of required parameters and the maximum number of parameters."""
+        min_num_args = 0
+        argument_configs = cls.argument_configs
+        max_num_args: Union[int, float] = len(argument_configs)
+        for argument_config in argument_configs:
+            if argument_config.position == ArgumentFlags.spread:
+                # 0 or more
+                max_num_args = float("inf")
+                continue
+
+            if argument_config.is_required():
+                min_num_args += 1
+
+        return min_num_args, max_num_args
 
     def get_argument(self, argument_name) -> Argument:
         return self.arguments[argument_name]
