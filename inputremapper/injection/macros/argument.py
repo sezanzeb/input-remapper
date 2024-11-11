@@ -258,7 +258,6 @@ class Argument(ArgumentConfig):
     def _validate_dynamic_value(self, variable: Variable) -> Any:
         """To make sure the value of a non-const variable, asked for at runtime, is
         fitting for the given ArgumentConfig."""
-        assert isinstance(variable, Variable)
         assert not variable.const
 
         value = self._parse_dynamic_variable(variable)
@@ -269,8 +268,9 @@ class Argument(ArgumentConfig):
 
     def _parse_dynamic_variable(self, variable: Variable) -> Any:
         # Most of the stuff has already been taken care of when, for example,
-        # the "1" of set(foo, 1) was parsed the first time.
-        assert isinstance(variable, Variable)
+        # the "1" of set(foo, 1), or the '"bar"' or set(foo, "bar") was parsed the
+        # first time. In the first case we get a number 1, and in the second a string
+        # `bar` without quotes
         assert not variable.const
 
         value = variable.get_value()
@@ -283,12 +283,11 @@ class Argument(ArgumentConfig):
             if isinstance(value, allowed_type):
                 return value
 
-        if str in self.types:
-            # String quotes can be omitted in macros. For example If something was
-            # parsed as a number, but only strings are allowed, convert it back into
-            # a string.
-            # Example: key(KEY_A) works, key(b) works, therefore key(1) should also
-            # work. It is a symbol-name, and therefore a string.
+        # TODO test that a number actually ends up as a number, when both str and int
+        #  are allowed
+        if type(value) not in self.types and str in self.types:
+            # `set` cannot make predictions where the variable will be used. Make sure
+            # the type is compatible, and turn numbers back into strings if need be.
             return str(value)
 
         raise self._type_error_factory(value)
