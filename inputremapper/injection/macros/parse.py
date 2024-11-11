@@ -23,7 +23,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, Any, Type, TYPE_CHECKING, Dict, Union, Tuple
+from typing import Optional, Any, Type, TYPE_CHECKING, Dict, Union, Tuple, List
 
 from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.argument import ArgumentFlags
@@ -274,8 +274,8 @@ class Parser:
             raw_string_args = Parser._extract_args(inner)
 
             # parse and sort the params
-            positional_args = []
-            keyword_args = {}
+            positional_args: List[RawValue] = []
+            keyword_args: Dict[str, RawValue] = {}
             for param in raw_string_args:
                 key, value = Parser._split_keyword_arg(param)
                 parsed = Parser._parse_recurse(

@@ -19,10 +19,17 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
+from typing import Union
+
+from inputremapper.injection.macros.macro import Macro
 
 
 @dataclass
 class RawValue:
-    """Store a value exactly as it is in the macro-code."""
+    """Store a value exactly as it is in the macro-code. Values still have to be
+    validated according to the ArgumentConfig of the Tasks.
 
-    value: str
+    Child-macros are passed as Macro objects though.
+    """
+
+    value: Union[str, Macro]
