@@ -125,11 +125,19 @@ def propose_function_names(text_iter: Gtk.TextIter) -> List[Tuple[str, str]]:
 
     incomplete_name = incomplete_name.lower()
 
-    return [
-        (name, f"{name}({', '.join(Parser.TASK_CLASSES[name].get_macro_argument_names())})")
-        for name in FUNCTION_NAMES
-        if incomplete_name in name.lower() and incomplete_name != name.lower()
-    ]
+    # A list of
+    # - ("key", "key(symbol)")
+    # - ("repeat", "repeat(repeats, macro)")
+    # etc.
+    function_names: List[Tuple[str, str]] = []
+
+    for name in FUNCTION_NAMES:
+        if incomplete_name in name.lower() and incomplete_name != name.lower():
+            task_class = Parser.TASK_CLASSES[name]
+            argument_names = task_class.get_macro_argument_names()
+            function_names.append((name, f"{name}({', '.join(argument_names)})"))
+
+    return function_names
 
 
 class SuggestionLabel(Gtk.Label):
