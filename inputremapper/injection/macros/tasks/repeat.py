@@ -41,9 +41,9 @@ class RepeatTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         repeats = self.get_argument("repeats").get_value()
         macro = self.get_argument("macro").get_value()
 
         for _ in range(repeats):
-            await macro.run(handler)
+            await macro.run(callback)

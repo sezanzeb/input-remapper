@@ -39,7 +39,7 @@ class KeyUpTask(Task):
         )
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         symbol = self.get_argument("symbol").get_value()
         code = keyboard_layout.get(symbol)
-        handler(EV_KEY, code, 0)
+        callback(EV_KEY, code, 0)

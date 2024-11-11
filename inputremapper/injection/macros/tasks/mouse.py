@@ -51,7 +51,7 @@ class MouseTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         direction = self.get_argument("direction").get_value()
         speed = self.get_argument("speed").get_value()
         acceleration = self.get_argument("acceleration").get_value()
@@ -81,5 +81,5 @@ class MouseTask(Task):
                 displacement = int(displacement_accumulator)
                 displacement_accumulator -= displacement
 
-            handler(EV_REL, code, value * displacement)
+            callback(EV_REL, code, value * displacement)
             await asyncio.sleep(1 / self.mapping.rel_rate)

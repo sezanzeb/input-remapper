@@ -25,6 +25,7 @@ from enum import Enum
 from typing import Optional, Any, Union, List, Literal, Type, TYPE_CHECKING
 
 from evdev._ecodes import EV_KEY
+
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.validation_errors import (
     MacroError,
@@ -164,6 +165,7 @@ class Argument(ArgumentConfig):
 
     def contains_macro(self) -> bool:
         """Does the underlying Variable contain another child-macro?"""
+        assert self._variable is not None
         return isinstance(self._variable.get_value(), Macro)
 
     def set_value(self, value: Any) -> Any:
@@ -233,15 +235,13 @@ class Argument(ArgumentConfig):
 
         if float in self.types:
             try:
-                value = float(value)
-                return Variable(value=value, const=True)
+                return Variable(value=float(value), const=True)
             except (ValueError, TypeError) as e:
                 pass
 
         if int in self.types:
             try:
-                value = int(value)
-                return Variable(value=value, const=True)
+                return Variable(value=int(value), const=True)
             except (ValueError, TypeError) as e:
                 pass
 
@@ -262,30 +262,24 @@ class Argument(ArgumentConfig):
     def _validate_dynamic_value(self, variable: Variable) -> Any:
         """To make sure the value of a non-const variable, asked for at runtime, is
         fitting for the given ArgumentConfig."""
-        assert not variable.const
-
-        value = self._parse_dynamic_variable(variable)
-        if self.is_symbol:
-            self.assert_is_symbol(value)
-
-        return value
-
-    def _parse_dynamic_variable(self, variable: Variable) -> Any:
         # Most of the stuff has already been taken care of when, for example,
         # the "1" of set(foo, 1), or the '"bar"' or set(foo, "bar") was parsed the
         # first time. In the first case we get a number 1, and in the second a string
         # `bar` without quotes
         assert not variable.const
-
         value = variable.get_value()
-        for allowed_type in self.types:
-            if allowed_type is None:
-                if value is None:
-                    return value
-                continue
 
-            if isinstance(value, allowed_type):
-                return value
+        if self.is_symbol:
+            # value might be int `1`, which is a valid symbol for `key(1)`
+            value = str(value)
+            self.assert_is_symbol(value)
+            return value
+
+        if None in self.types and value is None:
+            return value
+
+        if type(value) in self.types:
+            return value
 
         # TODO test that a number actually ends up as a number, when both str and int
         #  are allowed
@@ -293,6 +287,10 @@ class Argument(ArgumentConfig):
             # `set` cannot make predictions where the variable will be used. Make sure
             # the type is compatible, and turn numbers back into strings if need be.
             return str(value)
+
+        # If the value is "1", we don't attempt to parse it as a number. This being a
+        # string means that something like `set(foo, "1")` was used, which enforces a
+        # string datatype. Otherwise, `set` would have already turned it into an int.
 
         raise self._type_error_factory(value)
 
@@ -304,7 +302,7 @@ class Argument(ArgumentConfig):
         except ValueError:
             return False
 
-    def _type_error_factory(self, value: Any) -> None:
+    def _type_error_factory(self, value: Any) -> MacroError:
         return MacroError(
             msg=(
                 f'Expected "{self.name}" to be one of {self.types}, but got '

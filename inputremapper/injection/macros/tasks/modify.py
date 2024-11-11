@@ -29,13 +29,7 @@ from inputremapper.injection.macros.task import Task
 
 
 class ModifyTask(Task):
-    """Do stuff while a modifier is activated.
-
-    Parameters
-    ----------
-    modifier
-    macro
-    """
+    """Do stuff while a modifier is activated."""
 
     argument_configs = [
         ArgumentConfig(
@@ -51,13 +45,13 @@ class ModifyTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         modifier = self.get_argument("modifier").get_value()
         code = keyboard_layout.get(modifier)
         macro = self.get_argument("macro").get_value()
 
-        handler(EV_KEY, code, 1)
+        callback(EV_KEY, code, 1)
         await self.keycode_pause()
-        await macro.run(handler)
-        handler(EV_KEY, code, 0)
+        await macro.run(callback)
+        callback(EV_KEY, code, 0)
         await self.keycode_pause()

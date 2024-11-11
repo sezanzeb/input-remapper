@@ -51,7 +51,7 @@ class WheelTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         direction = self.get_argument("direction").get_value()
 
         code, value = {
@@ -68,5 +68,5 @@ class WheelTask(Task):
                 float_value = value[i] * speed + remainder[i]
                 remainder[i] = math.fmod(float_value, 1)
                 if abs(float_value) >= 1:
-                    handler(EV_REL, code[i], int(float_value))
+                    callback(EV_REL, code[i], int(float_value))
             await asyncio.sleep(1 / self.mapping.rel_rate)

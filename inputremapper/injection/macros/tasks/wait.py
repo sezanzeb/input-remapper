@@ -44,7 +44,7 @@ class WaitTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         time = self.get_argument("time").get_value()
         max_time = self.get_argument("max_time").get_value()
 

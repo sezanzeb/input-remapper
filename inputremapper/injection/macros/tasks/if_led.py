@@ -48,7 +48,7 @@ class IfLedTask(Task):
 
     led_code = None
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         then = self.get_argument("then").get_value()
         else_ = self.get_argument("else").get_value()
 
@@ -58,9 +58,9 @@ class IfLedTask(Task):
 
         if led_on:
             if then is not None:
-                await then.run(handler)
+                await then.run(callback)
         elif else_ is not None:
-            await else_.run(handler)
+            await else_.run(callback)
 
 
 class IfNumlockTask(IfLedTask):

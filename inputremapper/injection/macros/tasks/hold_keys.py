@@ -39,17 +39,17 @@ class HoldKeysTask(Task):
         )
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         symbols = self.get_argument("*symbols").get_values()
 
         codes = [keyboard_layout.get(symbol) for symbol in symbols]
 
         for code in codes:
-            handler(EV_KEY, code, 1)
+            callback(EV_KEY, code, 1)
             await self.keycode_pause()
 
         await self._trigger_release_event.wait()
 
         for code in codes[::-1]:
-            handler(EV_KEY, code, 0)
+            callback(EV_KEY, code, 0)
             await self.keycode_pause()

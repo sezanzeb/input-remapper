@@ -51,7 +51,7 @@ class IfSingleTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         assert self.context is not None
         another_key_pressed_event = asyncio.Event()
         then = self.get_argument("then").get_value()
@@ -86,10 +86,10 @@ class IfSingleTask(Task):
 
         if not self.is_holding():
             if then:
-                await then.run(handler)
+                await then.run(callback)
         else:
             # If the trigger has not been released, then `await asyncio.wait` above
             # could only have finished waiting due to a timeout, or because another
             # key was pressed.
             if else_:
-                await else_.run(handler)
+                await else_.run(callback)

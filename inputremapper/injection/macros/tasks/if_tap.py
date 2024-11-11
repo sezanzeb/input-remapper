@@ -57,7 +57,7 @@ class IfTapTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         then = self.get_argument("then").get_value()
         else_ = self.get_argument("else").get_value()
         timeout = self.get_argument("timeout").get_value() / 1000
@@ -65,10 +65,10 @@ class IfTapTask(Task):
         try:
             await asyncio.wait_for(self._wait(), timeout)
             if then:
-                await then.run(handler)
+                await then.run(callback)
         except asyncio.TimeoutError:
             if else_:
-                await else_.run(handler)
+                await else_.run(callback)
 
     async def _wait(self):
         """Wait for a release, or if nothing pressed yet, a press and release."""

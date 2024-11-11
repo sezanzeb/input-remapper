@@ -51,7 +51,7 @@ class IfEqTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         value_1 = self.get_argument("value_1").get_value()
         value_2 = self.get_argument("value_2").get_value()
         then = self.get_argument("then").get_value()
@@ -59,6 +59,6 @@ class IfEqTask(Task):
 
         if value_1 == value_2:
             if then is not None:
-                await then.run(handler)
+                await then.run(callback)
         elif else_ is not None:
-            await else_.run(handler)
+            await else_.run(callback)

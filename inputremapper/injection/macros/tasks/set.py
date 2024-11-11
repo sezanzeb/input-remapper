@@ -43,7 +43,7 @@ class SetTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         value = self.get_argument("value").get_value()
         assert macro_variables.is_alive()
         self.arguments["variable"].set_value(value)

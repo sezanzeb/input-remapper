@@ -50,7 +50,7 @@ class EventTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         type_ = self.get_argument("type").get_value()
         code = self.get_argument("code").get_value()
         value = self.get_argument("value").get_value()
@@ -61,5 +61,5 @@ class EventTask(Task):
             self.get_argument("code").assert_is_symbol(code)
             code = ecodes[code.upper()]
 
-        handler(type_, code, value)
+        callback(type_, code, value)
         await self.keycode_pause()

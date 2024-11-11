@@ -22,7 +22,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List, Callable, Tuple, Optional, TYPE_CHECKING
+from typing import List, Callable, Optional, TYPE_CHECKING
 
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.logging.logger import logger
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from inputremapper.injection.context import Context
     from inputremapper.configs.mapping import Mapping
 
-Handler = Callable[[Tuple[int, int, int]], None]
+InjectEventCallback = Callable[[int, int, int], None]
 
 macro_variables = SharedDict()
 
@@ -71,15 +71,15 @@ class Macro:
 
         self.keystroke_sleep_ms = None
 
-    async def run(self, handler: Callable):
+    async def run(self, callback: InjectEventCallback):
         """Run the macro.
 
         Parameters
         ----------
-        handler
+        callback
             Will receive int type, code and value for an event to write
         """
-        if not callable(handler):
+        if not callable(callback):
             raise ValueError("handler is not callable")
 
         if self.running:
@@ -92,7 +92,7 @@ class Macro:
 
         try:
             for task in self.tasks:
-                coroutine = task.run(handler)
+                coroutine = task.run(callback)
                 if asyncio.iscoroutine(coroutine):
                     await coroutine
         except Exception:

@@ -22,14 +22,14 @@ from __future__ import annotations
 
 import asyncio
 from itertools import chain
-from typing import Callable, List, Dict, TYPE_CHECKING, Optional
+from typing import List, Dict, TYPE_CHECKING, Optional
 
 from inputremapper.injection.macros.argument import (
     Argument,
     ArgumentConfig,
     ArgumentFlags,
 )
-from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.macro import Macro, InjectEventCallback
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
@@ -80,7 +80,11 @@ class Task:
             if isinstance(raw_value.value, Macro):
                 self.child_macros.append(raw_value.value)
 
-    async def run(self, handler: Callable) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
+        """Macro logic goes here.
+
+        Call the callback with the type, code and value that should be injected.
+        """
         raise NotImplementedError()
 
     def get_argument(self, argument_name) -> Argument:

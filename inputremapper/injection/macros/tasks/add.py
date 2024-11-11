@@ -43,7 +43,7 @@ class AddTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         argument = self.get_argument("variable")
         try:
             current = argument.get_value()

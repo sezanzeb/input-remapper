@@ -57,7 +57,7 @@ class DeprecatedIfEqTask(Task):
         ),
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         actual_value = self.get_argument("variable").get_value()
         value = self.get_argument("value").get_value()
         then = self.get_argument("then").get_value()
@@ -67,6 +67,6 @@ class DeprecatedIfEqTask(Task):
         # I need to compare them as strings to keep this working.
         if str(actual_value) == str(value):
             if then is not None:
-                await then.run(handler)
+                await then.run(callback)
         elif else_ is not None:
-            await else_.run(handler)
+            await else_.run(callback)

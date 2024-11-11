@@ -41,7 +41,7 @@ class HoldTask(Task):
         )
     ]
 
-    async def run(self, handler) -> None:
+    async def run(self, callback) -> None:
         macro = self.get_argument("macro").get_value()
 
         if macro is None:
@@ -55,15 +55,15 @@ class HoldTask(Task):
             self.get_argument("macro").assert_is_symbol(symbol)
 
             code = keyboard_layout.get(symbol)
-            handler(EV_KEY, code, 1)
+            callback(EV_KEY, code, 1)
             await self._trigger_release_event.wait()
-            handler(EV_KEY, code, 0)
+            callback(EV_KEY, code, 0)
 
         if isinstance(macro, Macro):
             # repeat the macro forever while the key is held down
             while self.is_holding():
                 # run the child macro completely to avoid
                 # not-releasing any key
-                await macro.run(handler)
+                await macro.run(callback)
                 # give some other code a chance to run
                 await asyncio.sleep(1 / 1000)
