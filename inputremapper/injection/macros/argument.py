@@ -163,6 +163,10 @@ class Argument(ArgumentConfig):
 
         return values
 
+    def get_variable_name(self) -> str:
+        """If the variable is not const, return its name."""
+        return self._variable.get_name()
+
     def contains_macro(self) -> bool:
         """Does the underlying Variable contain another child-macro?"""
         assert self._variable is not None

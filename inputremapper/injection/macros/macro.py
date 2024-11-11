@@ -48,7 +48,7 @@ class Macro:
         self,
         code: Optional[str],
         context: Optional[Context] = None,
-        mapping: Mapping = None,
+        mapping: Optional[Mapping] = None,
     ):
         """Create a macro instance that can be populated with tasks.
 

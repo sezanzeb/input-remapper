@@ -53,7 +53,7 @@ class AddTask(Task):
         if current is None:
             logger.debug(
                 '"%s" initialized with 0',
-                self.arguments["variable"]._variable.get_name(),
+                self.arguments["variable"].get_variable_name(),
             )
             argument.set_value(0)
             current = 0

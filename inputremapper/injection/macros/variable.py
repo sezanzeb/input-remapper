@@ -49,6 +49,7 @@ class Variable:
             self.validate_variable_name()
 
     def get_name(self) -> str:
+        """If the variable is not const, return its name."""
         assert not self.const
         assert isinstance(self.value, str)
         return self.value
