@@ -126,7 +126,7 @@ class Task:
         positional_args: List[RawValue],
     ) -> None:
         """Put all positional arguments that aren't used into the spread argument."""
-        spread_argument = None
+        spread_argument: Optional[Argument] = None
         for argument in self.arguments.values():
             if argument.position == ArgumentFlags.spread:
                 spread_argument = argument
@@ -143,8 +143,7 @@ class Task:
             ):
                 del remaining_positional_args[argument.position]
 
-        for arg in remaining_positional_args:
-            spread_argument.append_variable(arg)
+        spread_argument.initialize_variables(remaining_positional_args)
 
     def _find_argument_by_position(self, position: int) -> Optional[Argument]:
         for argument in self.arguments.values():
@@ -174,15 +173,15 @@ class Task:
 
         for name, value in keyword_args.items():
             if argument.name == name:
-                argument.set_variable(value)
+                argument.initialize_variable(value)
                 return
 
         if argument.position < len(positional_args):
-            argument.set_variable(positional_args[argument.position])
+            argument.initialize_variable(positional_args[argument.position])
             return
 
         if not argument.is_required():
-            argument.set_default()
+            argument.initialize_default()
             return
 
         # This shouldn't be possible, the parser should have ensured things are valid

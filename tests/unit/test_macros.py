@@ -42,7 +42,6 @@ from evdev.ecodes import (
     LED_CAPSL,
     LED_NUML,
 )
-
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.validation_errors import (
@@ -181,7 +180,7 @@ class TestArgument(MacroTestBase):
                 ),
                 DummyMapping(),
             )
-            argument.set_variable(RawValue(value=value))
+            argument.initialize_variable(RawValue(value=value))
             return argument.get_value()
 
         def test_variable(variable, types, name, position):
@@ -471,7 +470,7 @@ class TestParsing(MacroTestBase):
                 ArgumentConfig(position=0, name="test", types=types),
                 DummyMapping,
             )
-            argument.set_variable(RawValue(value=value))
+            argument.initialize_variable(RawValue(value=value))
             return argument._variable
 
         self.assertEqual(
@@ -549,9 +548,6 @@ class TestParsing(MacroTestBase):
         )
 
     async def test_raises_error(self):
-        # passing a string parameter. This is not a macro, even though
-        # it might look like it without the string quotes.
-        self.assertRaises(MacroError, parse, '"modify(a, b)"', self.context)
         parse("k(1).h(k(a)).k(3)", self.context)  # No error
         with self.assertRaises(MacroError) as cm:
             parse("k(1))", self.context)
@@ -563,6 +559,8 @@ class TestParsing(MacroTestBase):
         self.assertIn("bracket", error)
         self.assertRaises(MacroError, parse, "k((1).k)", self.context)
         self.assertRaises(MacroError, parse, "k()", self.context)
+        self.assertRaises(MacroError, parse, "key(invalidkey)", self.context)
+        self.assertRaises(MacroError, parse, 'key("invalidkey")', self.context)
         parse("key(1)", self.context)  # no error
         self.assertRaises(MacroError, parse, "k(1, 1)", self.context)
         parse("key($a)", self.context)  # no error
@@ -571,6 +569,8 @@ class TestParsing(MacroTestBase):
         self.assertRaises(MacroError, parse, "r(1)", self.context)
         self.assertRaises(MacroError, parse, "repeat(a, k(1))", self.context)
         parse("repeat($a, k(1))", self.context)  # no error
+        parse("repeat(2, k(1))", self.context)  # no error
+        self.assertRaises(MacroError, parse, 'repeat("2", k(1))', self.context)
         self.assertRaises(MacroError, parse, "r(1, 1)", self.context)
         self.assertRaises(MacroError, parse, "r(k(1), 1)", self.context)
         parse("r(1, macro=k(1))", self.context)  # no error
@@ -652,6 +652,11 @@ class TestParsing(MacroTestBase):
             self.context,
             DummyMapping,
         )
+
+        # passing a string parameter. This is not a macro, even though
+        # it might look like it without the string quotes. Everything with
+        # explicit quotes around it has to be treated as a string.
+        self.assertRaises(MacroError, parse, '"modify(a, b)"', self.context)
 
 
 @test_setup

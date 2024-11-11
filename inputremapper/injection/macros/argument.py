@@ -25,7 +25,6 @@ from enum import Enum
 from typing import Optional, Any, Union, List, Literal, Type, TYPE_CHECKING
 
 from evdev._ecodes import EV_KEY
-
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.validation_errors import (
     MacroError,
@@ -67,6 +66,10 @@ class ArgumentConfig:
     def is_required(self) -> bool:
         return self.default == ArgumentFlags.required
 
+    def is_spread(self):
+        """Does this Argument store all remaining Variables of a Task as a list?"""
+        return self.position == ArgumentFlags.spread
+
 
 class Argument(ArgumentConfig):
     """Validation of variables and access to their value for Tasks during runtime."""
@@ -96,14 +99,37 @@ class Argument(ArgumentConfig):
         self._mapping = mapping
         self._variables = []
 
-        if not self.is_required():
-            # Initialize default, might be overwritten later when going through the
-            # user-defined stuff.
-            self._variable = Variable(self.default, const=True)
+    def initialize_variables(self, raw_values: List[RawValue]) -> None:
+        """If the macro is supposed to contain multiple variables, set them.
+        Should be done during parsing."""
+        assert len(self._variables) == 0
+        assert self._variable is None
+        assert self.is_spread()
+
+        for raw_value in raw_values:
+            variable = self._parse_raw_value(raw_value)
+            self._variables.append(variable)
+
+    def initialize_variable(self, raw_value: RawValue):
+        """Set the Arguments Variable. Done during parsing."""
+        assert len(self._variables) == 0
+        assert self._variable is None
+        assert not self.is_spread()
+
+        variable = self._parse_raw_value(raw_value)
+        self._variable = variable
+
+    def initialize_default(self):
+        """Set the Arguments to its default value. Done during parsing."""
+        assert len(self._variables) == 0
+        assert self._variable is None
+        assert not self.is_spread()
+
+        variable = Variable(value=self.default, const=True)
+        self._variable = variable
 
     def get_value(self) -> Any:
-        """Get the primitive constant value, or whatever primitive the Variable
-        currently stores."""
+        """To ask for the current value of the variable during runtime."""
         assert not self.is_spread(), f"Use .{self.get_values.__name__}()"
         # If a user passed None as value, it should be a Variable(None, const=True) here.
         # If not, a test or input-remapper is broken.
@@ -118,8 +144,7 @@ class Argument(ArgumentConfig):
         return value
 
     def get_values(self) -> List[Any]:
-        """If this Argument shall take all remaining positional args, validate and
-        return them."""
+        """To ask for the current values of the variables during runtime."""
         assert self.is_spread(), f"Use .{self.get_value.__name__}()"
 
         values = []
@@ -138,43 +163,20 @@ class Argument(ArgumentConfig):
         return isinstance(self._variable.get_value(), Macro)
 
     def set_value(self, value: Any) -> Any:
-        """Set the value of the underlying Variable. Fails for constants."""
+        """To set the value of the underlying Variable during runtime.
+        Fails for constants."""
         assert self._variable is not None
         if self._variable.const:
             raise Exception("Can't set value of a constant")
 
         self._variable.set_value(value)
 
-    def type_error_factory(self, value):
-        return MacroError(
-            msg=(
-                f'Expected "{self.name}" to be one of {self.types}, but got '
-                f"{type(value)} {value}"
-            )
-        )
-
-    def append_variable(self, raw_value: RawValue) -> None:
-        """Some Arguments are supposed to contain a list of Variables. Add one to it."""
-        assert self.is_spread()
-        variable = self._parse_raw_value(raw_value)
-        self._variables.append(variable)
-
-    def set_variable(self, raw_value: RawValue):
-        assert not self.is_spread()
-        variable = self._parse_raw_value(raw_value)
-        self._variable = variable
-
-    def set_default(self):
-        assert not self.is_spread()
-        variable = Variable(value=self.default, const=True)
-        self._variable = variable
-
-    def is_spread(self):
-        """Does this Argument store all remaining Variables of a Task as a list?"""
-        return self.position == ArgumentFlags.spread
-
     def assert_is_symbol(self, symbol: str) -> None:
-        """Checks if the key/symbol-name is valid. Like "KEY_A" or "escape"."""
+        """Checks if the key/symbol-name is valid. Like "KEY_A" or "escape".
+
+        Using `is_symbol` on the ArgumentConfig is prefered, which causes it to
+        automatically do this for you. But some macros may be a bit more flexible,
+        and there we want to assert this ourselves only in certain cases."""
         symbol = str(symbol)
         code = keyboard_layout.get(symbol)
 
@@ -192,6 +194,8 @@ class Argument(ArgumentConfig):
         """Validate and parse."""
         value = raw_value.value
 
+        # The order of steps below matters.
+
         if isinstance(value, Macro):
             return Variable(value=value, const=True)
 
@@ -203,19 +207,25 @@ class Argument(ArgumentConfig):
                 value = value[1:-1]
             return Variable(value=value, const=False)
 
+        if value.startswith("$"):
+            # Will be resolved during the macros runtime
+            return Variable(value=value[1:], const=False)
+
+        if self.is_symbol:
+            if value.startswith('"'):
+                value = value[1:-1]
+            self.assert_is_symbol(value)
+            return Variable(value=value, const=True)
+
         if (value == "" or value == "None") and None in self.types:
             # I think "" is the deprecated alternative to "None"
             return Variable(value=None, const=True)
 
         if value.startswith('"') and str in self.types:
             # Something with explicit quotes should never be parsed as a number.
-            # Remove quotes from the string
+            # Treat it as a string no matter the content.
             value = value[1:-1]
             return Variable(value=value, const=True)
-
-        if value.startswith("$"):
-            # Will be resolved during the macros runtime
-            return Variable(value=value[1:], const=False)
 
         if float in self.types:
             try:
@@ -239,16 +249,15 @@ class Argument(ArgumentConfig):
                 msg=f"A broken macro was passed as parameter to {self.name}"
             )
 
-        if self.is_symbol:
-            self.assert_is_symbol(value)
-
         if str in self.types:
             # Treat as a string. Something like KEY_A in key(KEY_A)
             return Variable(value=value, const=True)
 
-        raise self.type_error_factory(value)
+        raise self._type_error_factory(value)
 
     def _validate_dynamic_value(self, variable: Variable) -> Any:
+        """To make sure the value of a non-const variable, asked for at runtime, is
+        fitting for the given ArgumentConfig."""
         assert isinstance(variable, Variable)
         assert not variable.const
 
@@ -282,7 +291,7 @@ class Argument(ArgumentConfig):
             # work. It is a symbol-name, and therefore a string.
             return str(value)
 
-        raise self.type_error_factory(value)
+        raise self._type_error_factory(value)
 
     def _is_numeric_string(self, value: str) -> bool:
         """Check if the value can be turned into a number."""
@@ -291,3 +300,11 @@ class Argument(ArgumentConfig):
             return True
         except ValueError:
             return False
+
+    def _type_error_factory(self, value):
+        return MacroError(
+            msg=(
+                f'Expected "{self.name}" to be one of {self.types}, but got '
+                f"{type(value)} {value}"
+            )
+        )
