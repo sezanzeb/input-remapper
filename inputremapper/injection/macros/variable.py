@@ -38,7 +38,7 @@ class Variable:
     - const int 1 in `repeat(1, key(a))
     """
 
-    def __init__(self, value: Any, const: bool):
+    def __init__(self, value: Any, const: bool) -> None:
         if not const and not isinstance(value, str):
             raise MacroError(f"Variables require a string name, not {value}")
 
@@ -60,12 +60,12 @@ class Variable:
 
         return macro_variables.get(self.value)
 
-    def set_value(self, value: Any) -> Any:
+    def set_value(self, value: Any) -> None:
         """Set the variables value across all macros."""
         assert not self.const
         macro_variables[self.value] = value
 
-    def validate_variable_name(self):
+    def validate_variable_name(self) -> None:
         """Check if this is a legit variable name.
 
         Because they could clash with language features. If the macro can be
@@ -79,10 +79,10 @@ class Variable:
         ):
             raise MacroError(msg=f'"{self.value}" is not a legit variable name')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Variable "{self.value}" const={self.const} at {hex(id(self))}>'
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, Variable):
             return False
 

@@ -82,7 +82,11 @@ class Argument(ArgumentConfig):
 
     _mapping: Optional[Mapping] = None
 
-    def __init__(self, argument_config: ArgumentConfig, mapping: Mapping):
+    def __init__(
+        self,
+        argument_config: ArgumentConfig,
+        mapping: Mapping,
+    ) -> None:
         # If a default of None is specified, but None is not an allowed type, then
         # input-remapper has a bug here. Add "None" to your ArgumentConfig.types
         assert not (
@@ -110,7 +114,7 @@ class Argument(ArgumentConfig):
             variable = self._parse_raw_value(raw_value)
             self._variables.append(variable)
 
-    def initialize_variable(self, raw_value: RawValue):
+    def initialize_variable(self, raw_value: RawValue) -> None:
         """Set the Arguments Variable. Done during parsing."""
         assert len(self._variables) == 0
         assert self._variable is None
@@ -119,7 +123,7 @@ class Argument(ArgumentConfig):
         variable = self._parse_raw_value(raw_value)
         self._variable = variable
 
-    def initialize_default(self):
+    def initialize_default(self) -> None:
         """Set the Arguments to its default value. Done during parsing."""
         assert len(self._variables) == 0
         assert self._variable is None
@@ -300,7 +304,7 @@ class Argument(ArgumentConfig):
         except ValueError:
             return False
 
-    def _type_error_factory(self, value):
+    def _type_error_factory(self, value: Any) -> None:
         return MacroError(
             msg=(
                 f'Expected "{self.name}" to be one of {self.types}, but got '

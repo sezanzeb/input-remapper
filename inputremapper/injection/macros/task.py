@@ -59,7 +59,7 @@ class Task:
         keyword_args: Dict[str, RawValue],
         context: Optional[Context],
         mapping: Mapping,
-    ):
+    ) -> None:
         self.context = context
         self.mapping = mapping
         self.child_macros = []
