@@ -165,6 +165,7 @@ class Argument(ArgumentConfig):
 
     def get_variable_name(self) -> str:
         """If the variable is not const, return its name."""
+        assert self._variable is not None
         return self._variable.get_name()
 
     def contains_macro(self) -> bool:
