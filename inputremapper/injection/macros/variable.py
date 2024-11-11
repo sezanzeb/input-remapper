@@ -32,11 +32,10 @@ class Variable:
     argument_configs of a given Task.
 
     Examples:
-    - `KEY_A` in `key(KEY_A)` (const=True)
-    - `$foo` in `repeat($foo, key(KEY_A))` (const=False)
-
-    Its value is unknown during construction and needs to be set using the `set` macro
-    during runtime.
+    - const string "KEY_A" in `key(KEY_A)`
+    - non-const string "foo" in `repeat($foo, key(KEY_A))` (`value` is the name here)
+    - const Macro `key(a)` in `repeat(1, key(a))`
+    - const int 1 in `repeat(1, key(a))
     """
 
     def __init__(self, value: Any, const: bool):
