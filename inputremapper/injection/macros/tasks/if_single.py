@@ -66,6 +66,8 @@ class IfSingleTask(Task):
                 another_key_pressed_event.set()
                 return False
 
+            return False
+
         self.add_event_listener(listener)
 
         timeout = self.get_argument("timeout").get_value()
