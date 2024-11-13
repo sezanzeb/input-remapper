@@ -159,8 +159,6 @@ class Argument(ArgumentConfig):
             else:
                 values.append(variable.get_value())
 
-        # TODO test hold_keys with both valid and invalid dynamic symbol-names.
-
         return values
 
     def get_variable_name(self) -> str:
@@ -238,7 +236,7 @@ class Argument(ArgumentConfig):
             value = value[1:-1]
             return Variable(value=value, const=True)
 
-        if float in self.types:
+        if float in self.types and "." in value:
             try:
                 return Variable(value=float(value), const=True)
             except (ValueError, TypeError) as e:
@@ -286,8 +284,6 @@ class Argument(ArgumentConfig):
         if type(value) in self.types:
             return value
 
-        # TODO test that a number actually ends up as a number, when both str and int
-        #  are allowed
         if type(value) not in self.types and str in self.types:
             # `set` cannot make predictions where the variable will be used. Make sure
             # the type is compatible, and turn numbers back into strings if need be.

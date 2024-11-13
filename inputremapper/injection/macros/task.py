@@ -24,6 +24,7 @@ import asyncio
 from itertools import chain
 from typing import List, Dict, TYPE_CHECKING, Optional, Tuple, Union
 
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.argument import (
     Argument,
     ArgumentConfig,
@@ -211,4 +212,4 @@ class Task:
 
         # This shouldn't be possible, the parser should have ensured things are valid
         # already.
-        raise Exception(f"Could not initialize argument {argument.name}")
+        raise MacroError(f"Could not initialize argument {argument.name}")

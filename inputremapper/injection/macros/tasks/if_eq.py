@@ -43,11 +43,13 @@ class IfEqTask(Task):
             name="then",
             position=2,
             types=[Macro, None],
+            default=None,
         ),
         ArgumentConfig(
             name="else",
             position=3,
             types=[Macro, None],
+            default=None,
         ),
     ]
 

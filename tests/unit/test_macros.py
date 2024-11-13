@@ -55,6 +55,7 @@ from inputremapper.injection.macros.argument import Argument, ArgumentConfig
 from inputremapper.injection.macros.macro import Macro, macro_variables
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.injection.macros.raw_value import RawValue
+from inputremapper.injection.macros.task import Task
 from inputremapper.injection.macros.tasks.hold_keys import HoldKeysTask
 from inputremapper.injection.macros.tasks.if_tap import IfTapTask
 from inputremapper.injection.macros.tasks.key import KeyTask
@@ -544,16 +545,20 @@ class TestParsing(MacroTestBase):
         )
 
     async def test_raises_error(self):
+        def expect_string_in_error(string: str, macro: str):
+            with self.assertRaises(MacroError) as cm:
+                Parser.parse(macro, self.context)
+            error = str(cm.exception)
+            self.assertIn(string, error)
+
         Parser.parse("k(1).h(k(a)).k(3)", self.context)  # No error
-        with self.assertRaises(MacroError) as cm:
-            Parser.parse("k(1))", self.context)
-        error = str(cm.exception)
-        self.assertIn("bracket", error)
-        with self.assertRaises(MacroError) as cm:
-            Parser.parse("key((1)", self.context)
-        error = str(cm.exception)
-        self.assertIn("bracket", error)
+        expect_string_in_error("bracket", "key((1)")
+        expect_string_in_error("bracket", "k(1))")
         self.assertRaises(MacroError, Parser.parse, "k((1).k)", self.context)
+        self.assertRaises(MacroError, Parser.parse, "key(foo=a)", self.context)
+        self.assertRaises(
+            MacroError, Parser.parse, "key(symbol=a, foo=b)", self.context
+        )
         self.assertRaises(MacroError, Parser.parse, "k()", self.context)
         self.assertRaises(MacroError, Parser.parse, "key(invalidkey)", self.context)
         self.assertRaises(MacroError, Parser.parse, 'key("invalidkey")', self.context)
@@ -610,11 +615,10 @@ class TestParsing(MacroTestBase):
         Parser.parse("if_eq(2, $a, , else=k(a))", self.context)  # no error
         self.assertRaises(MacroError, Parser.parse, "if_eq(2, $a, 1,)", self.context)
         self.assertRaises(MacroError, Parser.parse, "if_eq(2, $a, , 2)", self.context)
-        with self.assertRaises(MacroError) as cm:
-            Parser.parse("foo(a)", self.context)
-        error = str(cm.exception)
-        self.assertIn("unknown", error.lower())
-        self.assertIn("foo", error)
+
+        expect_string_in_error("blub", "if_eq(2, $a, key(a), blub=a)")
+
+        expect_string_in_error("foo", "foo(a)")
 
         self.assertRaises(MacroError, Parser.parse, "set($a, 1)", self.context)
         self.assertRaises(MacroError, Parser.parse, "set(1, 2)", self.context)
@@ -626,6 +630,10 @@ class TestParsing(MacroTestBase):
 
         self.assertRaises(MacroError, Parser.parse, "key(a)key(b)", self.context)
         self.assertRaises(MacroError, Parser.parse, "hold(key(a)key(b))", self.context)
+
+        self.assertRaises(
+            MacroError, Parser.parse, "hold_keys(a, broken, b)", self.context
+        )
 
         Parser.parse("add(a, 1)", self.context)  # no error
         self.assertRaises(MacroError, Parser.parse, "add(a, b)", self.context)
@@ -835,6 +843,21 @@ class TestMacros(MacroTestBase):
                 (EV_KEY, code_a, 0),
             ],
         )
+
+    async def test_hold_keys_broken(self):
+        # Won't run any of the keys when one of them is invalid
+        macro = Parser.parse(
+            "set(foo, broken).hold_keys(a, $foo, c)", self.context, DummyMapping
+        )
+        # press first
+        macro.press_trigger()
+        # then run, just like how it is going to happen during runtime
+        asyncio.ensure_future(macro.run(self.handler))
+        await asyncio.sleep(0.2)
+        self.assertListEqual(self.result, [])
+        macro.release_trigger()
+        await asyncio.sleep(0.2)
+        self.assertListEqual(self.result, [])
 
     async def test_hold(self):
         # repeats key(a) as long as the key is held down
@@ -1344,6 +1367,119 @@ class TestMacros(MacroTestBase):
                 (EV_KEY, KEY_E, 1),
                 (EV_KEY, KEY_E, 0),
             ],
+        )
+
+
+class TestDynamicTypes(MacroTestBase):
+    # "Dynamic" meaning const=False
+    async def test_set_type_int(self):
+        await Parser.parse(
+            "set(a, 1)",
+            self.context,
+            DummyMapping,
+            True,
+        ).run(lambda *_, **__: None)
+        self.assertEqual(macro_variables.get("a"), 1)
+        # assertEqual(1.0, 1) passes, so check for the type to be sure:
+        self.assertIsInstance(macro_variables.get("a"), int)
+
+    async def test_set_type_float(self):
+        await Parser.parse(
+            "set(a, 2.2)",
+            self.context,
+            DummyMapping,
+            True,
+        ).run(lambda *_, **__: None)
+        self.assertEqual(macro_variables.get("a"), 2.2)
+
+    async def test_set_type_str(self):
+        await Parser.parse(
+            'set(a, "3")',
+            self.context,
+            DummyMapping,
+            True,
+        ).run(lambda *_, **__: None)
+        self.assertEqual(macro_variables.get("a"), "3")
+
+    def make_test_task(self, types):
+        # Make a new test task, with a different types array each time.
+        class TestTask(Task):
+            argument_configs = [
+                ArgumentConfig(
+                    name="testvalue",
+                    position=0,
+                    types=types,
+                )
+            ]
+
+        return TestTask(
+            [RawValue("$a")],
+            {},
+            self.context,
+            DummyMapping,
+        )
+
+    async def test_dynamic_int_parsing(self):
+        macro_variables["a"] = 4
+
+        test_task = self.make_test_task([str, int])
+        self.assertEqual(test_task.get_argument("testvalue").get_value(), 4)
+
+        test_task = self.make_test_task([int])
+        self.assertEqual(test_task.get_argument("testvalue").get_value(), 4)
+
+        # Now that ints are not allowed, it will be used as a string
+        test_task = self.make_test_task([str])
+        self.assertEqual(test_task.get_argument("testvalue").get_value(), "4")
+
+    async def test_dynamic_float_parsing(self):
+        macro_variables["a"] = 5.5
+
+        test_task = self.make_test_task([str, float])
+        self.assertEqual(test_task.get_argument("testvalue").get_value(), 5.5)
+
+        test_task = self.make_test_task([float])
+        self.assertEqual(test_task.get_argument("testvalue").get_value(), 5.5)
+
+        test_task = self.make_test_task([str])
+        self.assertEqual(test_task.get_argument("testvalue").get_value(), "5.5")
+
+    async def test_no_float_allowed(self):
+        macro_variables["a"] = 6.6
+
+        test_task = self.make_test_task([str, int])
+        self.assertEqual(test_task.get_argument("testvalue").get_value(), "6.6")
+
+        test_task = self.make_test_task([int])
+        self.assertRaises(
+            MacroError,
+            lambda: test_task.get_argument("testvalue").get_value(),
+        )
+
+    async def test_force_string_float(self):
+        # set(a, "7.7") was used.
+        macro_variables["a"] = "7.7"
+
+        test_task = self.make_test_task([str, float])
+        self.assertEqual(test_task.get_argument("testvalue").get_value(), "7.7")
+
+        test_task = self.make_test_task([float])
+        self.assertRaises(
+            MacroError,
+            lambda: test_task.get_argument("testvalue").get_value(),
+        )
+
+    async def test_force_string_int(self):
+        # set(a, "8") was used.
+        macro_variables["a"] = "8"
+
+        test_task = self.make_test_task([int, str])
+        self.assertEqual(test_task.get_argument("testvalue").get_value(), "8")
+
+        test_task = self.make_test_task([int])
+        self.assertRaises(
+            MacroError,
+            lambda: test_task.get_argument("testvalue").get_value(),
         )
 
 

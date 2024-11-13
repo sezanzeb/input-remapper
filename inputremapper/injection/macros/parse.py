@@ -181,14 +181,14 @@ class Parser:
     @staticmethod
     def check_for_unknown_keyword_arguments(
         keyword_args: Dict[str, Any],
-        task_factory: Type[Task],
+        task_class: Type[Task],
     ) -> None:
         for keyword_arg in keyword_args:
-            for argument in task_factory.argument_configs:
+            for argument in task_class.argument_configs:
                 if argument.name == keyword_arg:
                     break
             else:
-                raise MacroError("Unknown keyword argument {keyword_arg}")
+                raise MacroError(msg=f"Unknown keyword argument {keyword_arg}")
 
     @staticmethod
     def _parse_recurse(
@@ -239,8 +239,8 @@ class Parser:
                 # chain this call to the existing instance
                 assert isinstance(macro_instance, Macro)
 
-            task_factory = Parser.TASK_CLASSES.get(call)
-            if task_factory is None:
+            task_class = Parser.TASK_CLASSES.get(call)
+            if task_class is None:
                 raise MacroError(code, f"Unknown function {call}")
 
             # get all the stuff inbetween
@@ -276,8 +276,7 @@ class Parser:
                         )
                     keyword_args[key] = parsed
 
-            # TODO I think this is a new feature, test:
-            Parser.check_for_unknown_keyword_arguments(keyword_args, task_factory)
+            Parser.check_for_unknown_keyword_arguments(keyword_args, task_class)
 
             debug(
                 "%sadd call to %s with %s, %s",
@@ -287,7 +286,7 @@ class Parser:
                 keyword_args,
             )
 
-            min_args, max_args = task_factory.get_num_parameters()
+            min_args, max_args = task_class.get_num_parameters()
             num_provided_args = len(raw_string_args)
             if num_provided_args < min_args or num_provided_args > max_args:
                 if min_args != max_args:
@@ -301,7 +300,7 @@ class Parser:
                 raise MacroError(code, msg)
 
             try:
-                task = task_factory(
+                task = task_class(
                     positional_args,
                     keyword_args,
                     context,
