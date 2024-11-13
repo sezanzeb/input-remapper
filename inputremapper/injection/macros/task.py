@@ -97,6 +97,9 @@ class Task:
         If any listener returns True, then the event will not be visible to the user.
         If you were to always return True, then your keyboard keys would stop working.
 
+        Beware that if you return True, when the release event for the key that
+        triggered the macro arrives, then _trigger_release_event will not fire.
+
         Make sure to remove your event_listener once you are done.
         """
         # The context will be there when the macro is parsed by the service

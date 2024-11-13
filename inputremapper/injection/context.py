@@ -26,8 +26,6 @@ from collections import defaultdict
 from typing import List, Dict, Set, Hashable
 
 import evdev
-
-from inputremapper.configs.input_config import DeviceHash
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
@@ -39,6 +37,7 @@ from inputremapper.injection.mapping_handlers.mapping_parser import (
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
+from inputremapper.utils import DeviceHash
 
 
 class Context:

@@ -25,9 +25,9 @@ from hashlib import md5
 from typing import Optional
 
 import evdev
+from mypy.types import NewType
 
-
-DeviceHash = str
+DeviceHash = NewType("DeviceHash", str)
 
 
 def is_service() -> bool:

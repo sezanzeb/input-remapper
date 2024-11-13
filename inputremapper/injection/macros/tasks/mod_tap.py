@@ -21,9 +21,9 @@
 from __future__ import annotations
 
 import asyncio
+from typing import List
 
 from evdev.ecodes import EV_KEY
-
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task
@@ -64,18 +64,23 @@ class ModTapTask(Task):
     async def run(self, callback) -> None:
         tapping_term = self.get_argument("tapping_term").get_value() / 1000
 
-        recorded_key_event_codes = []
+        recorded_input_events: List[InputEvent] = []
 
         async def listener(event: InputEvent) -> bool:
-            nonlocal recorded_key_event_codes
-            if event.type == EV_KEY and event.value == 1:
-                # Remember all incoming key events while the trigger is being held
-                recorded_key_event_codes.append(event.code)
-                # and stop them from being injected/forwarded.
-                return True
+            if event.type_and_code == self.mapping.input_combination[-1].type_and_code:
+                # This event triggered the macro, we don't hide it. We need this to
+                # fire `_trigger_release_event`.
+                return False
 
-            # False = allow forwarding
-            return False
+            if event.type != EV_KEY:
+                # False = allow forwarding
+                return False
+
+            nonlocal recorded_input_events
+            # Remember all incoming key events while the trigger is being held
+            recorded_input_events.append(event)
+            # and stop them from being injected/forwarded.
+            return True
 
         self.add_event_listener(listener)
 
@@ -105,13 +110,22 @@ class ModTapTask(Task):
 
         # Now that we know if the key was pressed with the intention of modifying other
         # keys, we can replay all recorded keys.
-        for key_event_code in recorded_key_event_codes:
-            logger.debug("Replaying code %s", key_event_code)
-            callback(EV_KEY, key_event_code, 1)
-            await self.keycode_pause()
-            callback(EV_KEY, key_event_code, 0)
+        for event in recorded_input_events:
+            logger.debug("Replaying event %s", event)
+            # There is no guarantee that the target uinput of a given mapping has the
+            # necessary capability, so we use the forward_uinput instead of the
+            # callback.
+            assert event.origin_hash is not None
+            self.context.get_forward_uinput(event.origin_hash).write_event(event)
             await self.keycode_pause()
 
         await self._trigger_release_event.wait()
         callback(EV_KEY, code, 0)
         await self.keycode_pause()
+
+        # TODO test that
+        #  control-l-down a-down control-l-up a-up results in a regular ctrl+a
+        #  combination, if done quickly enough, by replaying the control-l-up as well.
+        #  And I wonder if the control-l-down and control-l-up also are required to
+        #  be in the same uinput. make sure the test also tests that both control
+        #  events are ending up in the correct forwarded uinput.
