@@ -78,7 +78,7 @@ class ModTapTask(Task):
             # False = allow forwarding
             return False
 
-        self.context.listeners.add(listener)
+        self.add_event_listener(listener)
 
         timeout = asyncio.Task(asyncio.sleep(tapping_term))
         await asyncio.wait(
@@ -87,7 +87,7 @@ class ModTapTask(Task):
         )
         has_timed_out = timeout.done()
 
-        self.context.listeners.remove(listener)
+        self.remove_event_listener(listener)
 
         if has_timed_out:
             # The timeout happened before the trigger got released.

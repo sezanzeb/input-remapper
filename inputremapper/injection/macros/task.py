@@ -34,6 +34,7 @@ from inputremapper.injection.macros.macro import Macro, InjectEventCallback
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
+    from inputremapper.injection.mapping_handlers.mapping_handler import EventListener
     from inputremapper.injection.macros.raw_value import RawValue
     from inputremapper.injection.context import Context
     from inputremapper.configs.mapping import Mapping
@@ -89,6 +90,22 @@ class Task:
         Call the callback with the type, code and value that should be injected.
         """
         raise NotImplementedError()
+
+    def add_event_listener(self, listener: EventListener):
+        """Listeners get each event from the source device.
+
+        If any listener returns True, then the event will not be visible to the user.
+        If you were to always return True, then your keyboard keys would stop working.
+
+        Make sure to remove your event_listener once you are done.
+        """
+        # The context will be there when the macro is parsed by the service
+        assert self.context is not None
+        self.context.listeners.add(listener)
+
+    def remove_event_listener(self, listener: EventListener):
+        assert self.context is not None
+        self.context.listeners.remove(listener)
 
     @classmethod
     def get_macro_argument_names(cls):

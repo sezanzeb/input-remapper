@@ -52,22 +52,21 @@ class IfSingleTask(Task):
     ]
 
     async def run(self, callback) -> None:
-        assert self.context is not None
         another_key_pressed_event = asyncio.Event()
         then = self.get_argument("then").get_value()
         else_ = self.get_argument("else").get_value()
 
-        async def listener(event):
+        async def listener(event) -> bool:
             if event.type != EV_KEY:
                 # Ignore anything that is not a key
-                return
+                return False
 
             if event.value == 1:
                 # Another key was pressed
                 another_key_pressed_event.set()
-                return
+                return False
 
-        self.context.listeners.add(listener)
+        self.add_event_listener(listener)
 
         timeout = self.get_argument("timeout").get_value()
 
@@ -82,7 +81,7 @@ class IfSingleTask(Task):
             return_when=asyncio.FIRST_COMPLETED,
         )
 
-        self.context.listeners.remove(listener)
+        self.remove_event_listener(listener)
 
         if not self.is_holding():
             if then:
