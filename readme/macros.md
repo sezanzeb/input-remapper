@@ -91,6 +91,26 @@ Bear in mind that anti-cheat software might detect macros in games.
 > modify(Control_L, key(a).key(x))
 > ```
 
+### mod_tap
+
+> If an input is held down long enough, then it turns into a modifier for all keys
+> that came and come afterwards.
+> 
+> You can use this to create home row mods for example.
+> 
+> Behaves similar to the Mod-Tap feature of QMK.
+>
+> ```ts
+> mod_tap(default: str, modifier: str, tapping_term: int)
+> ```
+>
+> Examples:
+>
+> ```ts
+> mod_tap(a, Shift_L)
+> mod_tap(s, Control_L, 300)
+> ```
+
 ### hold_keys
 
 > Holds down all the provided symbols like a combination, and releases them when the

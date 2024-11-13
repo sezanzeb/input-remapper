@@ -57,7 +57,6 @@ class ModTapTask(Task):
             name="tapping_term",
             position=2,
             types=[int, float],
-            is_symbol=True,
             default=200,
         ),
     ]
