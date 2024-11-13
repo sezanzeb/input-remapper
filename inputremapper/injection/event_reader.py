@@ -156,8 +156,8 @@ class EventReader:
             for _ in range(5):
                 await asyncio.sleep(0)
 
-        # If this is True, then similar to handlers, a listener took care of the event
-        # and we do not with to forward it.
+        # If this is True, then similar to handlers, a listener took care of the event,
+        # and we do not want to forward it.
         return handled
 
     def forward(self, event: InputEvent) -> None:
