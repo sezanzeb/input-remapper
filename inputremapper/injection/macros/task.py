@@ -65,6 +65,8 @@ class Task:
         self.mapping = mapping
         self.child_macros = []
 
+        self._validate_argument_configs()
+
         self.arguments = {
             argument_config.name: Argument(argument_config, mapping)
             for argument_config in self.argument_configs
@@ -213,3 +215,18 @@ class Task:
         # This shouldn't be possible, the parser should have ensured things are valid
         # already.
         raise MacroError(f"Could not initialize argument {argument.name}")
+
+    def _validate_argument_configs(self):
+        # Might help during development
+        positions = set()
+        names = set()
+        for argument_config in self.argument_configs:
+            position = argument_config.position
+            if position in positions:
+                raise MacroError(f"Duplicate position {positions} in ArgumentConfig")
+            positions.add(position)
+
+            name = argument_config.name
+            if name in names:
+                raise MacroError(f"Duplicate name {name} in ArgumentConfig")
+            names.add(name)

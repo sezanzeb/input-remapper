@@ -74,7 +74,7 @@ from inputremapper.logging.logger import logger
 
 
 class EventListener(Protocol):
-    async def __call__(self, event: evdev.InputEvent) -> None: ...
+    async def __call__(self, event: evdev.InputEvent) -> bool: ...
 
 
 class ContextProtocol(Protocol):

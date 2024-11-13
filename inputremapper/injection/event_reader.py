@@ -129,20 +129,19 @@ class EventReader:
 
         return handled
 
-    async def send_to_listeners(self, event: InputEvent) -> None:
+    async def send_to_listeners(self, event: InputEvent) -> bool:
         """Send the event to listeners."""
         if event.type == evdev.ecodes.EV_MSC:
-            return
+            return False
 
         if event.type == evdev.ecodes.EV_SYN:
-            return
+            return False
 
+        handled = False
         for listener in self.context.listeners.copy():
             # use a copy, since the listeners might remove themselves form the set
 
-            # fire and forget, run them in parallel and don't wait for them, since
-            # a listener might be blocking forever while waiting for more events.
-            asyncio.ensure_future(listener(event))
+            handled = await listener(event) | handled
 
             # Running macros have priority, give them a head-start for processing the
             # event.  If if_single injects a modifier, this modifier should be active
@@ -156,6 +155,10 @@ class EventReader:
             # So make sure to call the listeners before notifying the handlers.
             for _ in range(5):
                 await asyncio.sleep(0)
+
+        # If this is True, then similar to handlers, a listener took care of the event
+        # and we do not with to forward it.
+        return handled
 
     def forward(self, event: InputEvent) -> None:
         """Forward an event, which injects it unmodified."""
@@ -173,11 +176,14 @@ class EventReader:
             # won't appear, no need to forward or map them.
             return
 
-        await self.send_to_listeners(event)
+        if await self.send_to_listeners(event):
+            return
 
-        if not self.send_to_handlers(event):
-            # no handler took care of it, forward it
-            self.forward(event)
+        if self.send_to_handlers(event):
+            return
+
+        # no handler took care of it, forward it
+        self.forward(event)
 
     async def run(self):
         """Start doing things.

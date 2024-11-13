@@ -41,6 +41,7 @@ from inputremapper.injection.macros.tasks.ifeq import DeprecatedIfEqTask
 from inputremapper.injection.macros.tasks.key import KeyTask
 from inputremapper.injection.macros.tasks.key_down import KeyDownTask
 from inputremapper.injection.macros.tasks.key_up import KeyUpTask
+from inputremapper.injection.macros.tasks.mod_tap import ModTapTask
 from inputremapper.injection.macros.tasks.modify import ModifyTask
 from inputremapper.injection.macros.tasks.mouse import MouseTask
 from inputremapper.injection.macros.tasks.repeat import RepeatTask
@@ -74,6 +75,7 @@ class Parser:
         "if_tap": IfTapTask,
         "if_single": IfSingleTask,
         "add": AddTask,
+        "mod_tap": ModTapTask,
         # Those are only kept for backwards compatibility with old macros. The space for
         # writing macro was very constrained in the past, so shorthands were introduced:
         "m": ModifyTask,
