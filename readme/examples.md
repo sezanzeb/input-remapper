@@ -154,9 +154,9 @@ modify(Alt_L, key(tab))
 See https://precondition.github.io/home-row-mods#home-row-mods-order
 
 - a: `mod_tap(a, Super_L)`
-- s: `mod_tap(a, Alt_L)`
-- d: `mod_tap(a, Shift_L)`
-- f: `mod_tap(a, Control_L)`
+- s: `mod_tap(s, Alt_L)`
+- d: `mod_tap(d, Shift_L)`
+- f: `mod_tap(f, Control_L)`
 
 ## Emitting Unavailable Symbols
 
