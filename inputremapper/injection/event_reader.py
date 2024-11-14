@@ -176,14 +176,12 @@ class EventReader:
             # won't appear, no need to forward or map them.
             return
 
-        if await self.send_to_listeners(event):
-            return
+        handled = await self.send_to_listeners(event)
+        handled = self.send_to_handlers(event) | handled
 
-        if self.send_to_handlers(event):
-            return
-
-        # no handler took care of it, forward it
-        self.forward(event)
+        if not handled:
+            # no handler took care of it, forward it
+            self.forward(event)
 
     async def run(self):
         """Start doing things.
