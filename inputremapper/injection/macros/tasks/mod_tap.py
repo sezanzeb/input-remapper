@@ -24,6 +24,7 @@ import asyncio
 from typing import List
 
 from evdev.ecodes import EV_KEY
+
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task
@@ -68,8 +69,6 @@ class ModTapTask(Task):
 
         async def listener(event: InputEvent) -> bool:
             if event.type_and_code == self.mapping.input_combination[-1].type_and_code:
-                # This event triggered the macro, we don't hide it. We need this to
-                # fire `_trigger_release_event`.
                 return False
 
             if event.type != EV_KEY:
@@ -112,15 +111,15 @@ class ModTapTask(Task):
         # keys, we can replay all recorded keys.
         for event in recorded_input_events:
             logger.debug("Replaying event %s", event)
-            # There is no guarantee that the target uinput of a given mapping has the
-            # necessary capability, so we use the forward_uinput instead of the
-            # callback.
             assert event.origin_hash is not None
+            assert self.context is not None
             self.context.get_forward_uinput(event.origin_hash).write_event(event)
             await self.keycode_pause()
 
+        # Keep the modifier pressed until the input/trigger is released
         await self._trigger_release_event.wait()
         callback(EV_KEY, code, 0)
+
         await self.keycode_pause()
 
         # TODO test that
