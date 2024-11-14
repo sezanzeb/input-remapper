@@ -33,7 +33,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import evdev
 
-from inputremapper.configs.input_config import InputCombination, InputConfig, DeviceHash
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.preset import Preset
 from inputremapper.groups import (
     _Group,
@@ -46,7 +46,7 @@ from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from inputremapper.logging.logger import logger
-from inputremapper.utils import get_device_hash
+from inputremapper.utils import get_device_hash, DeviceHash
 
 CapabilitiesDict = Dict[int, List[int]]
 

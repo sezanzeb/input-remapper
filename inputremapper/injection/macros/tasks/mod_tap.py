@@ -73,7 +73,7 @@ class ModTapTask(Task):
                 return False
 
             if event.type != EV_KEY:
-                # False = allow forwarding
+                # False = allow forwarding right away
                 return False
 
             nonlocal recorded_input_events
