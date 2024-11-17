@@ -22,12 +22,12 @@ from tests.lib.test_setup import test_setup
 class TestModMap(unittest.IsolatedAsyncioTestCase):
     # Testcases are from https://github.com/qmk/qmk_firmware/blob/78a0adfbb4d2c4e12f93f2a62ded0020d406243e/docs/tap_hold.md#nested-tap-abba-nested-tap
     # This test-setup is a bit more involved, because I want to also properly test the forwarding based on the
-    # return-valueof the listener.
+    # return-value of the listener.
 
     def setUp(self):
-        bar_device = fixtures.bar_device
+        self.origin_hash = fixtures.bar_device.get_device_hash()
         self.forward_uinput = evdev.UInput(name="test-forward-uinput")
-        self.source_device = InputDevice(bar_device.path)
+        self.source_device = InputDevice(fixtures.bar_device.path)
         self.stop_event = asyncio.Event()
         self.global_uinputs = GlobalUInputs(UInput)
         self.global_uinputs.prepare_all()
@@ -35,26 +35,26 @@ class TestModMap(unittest.IsolatedAsyncioTestCase):
         self.mapping_parser = MappingParser(self.global_uinputs)
 
         preset = Preset()
-        input_cfg = InputCombination(
+        input_config = InputCombination(
             [
                 InputConfig(
                     type=EV_KEY,
                     code=KEY_A,
-                    origin_hash=bar_device.get_device_hash(),
+                    origin_hash=self.origin_hash,
                 )
             ]
         ).to_config()
         preset.add(
             Mapping.from_combination(
-                input_combination=input_cfg,
+                input_combination=input_config,
                 output_symbol="mod_tap(a, Shift_L)",
             ),
         )
 
         self.context = Context(
             preset,
-            source_devices={bar_device.get_device_hash(): self.source_device},
-            forward_devices={bar_device.get_device_hash(): self.forward_uinput},
+            source_devices={self.origin_hash: self.source_device},
+            forward_devices={self.origin_hash: self.forward_uinput},
             mapping_parser=self.mapping_parser,
         )
 
@@ -78,7 +78,7 @@ class TestModMap(unittest.IsolatedAsyncioTestCase):
                     code,
                     value,
                 ),
-                origin_hash=fixtures.bar_device.get_device_hash(),
+                origin_hash=self.origin_hash,
             )
         )
 
