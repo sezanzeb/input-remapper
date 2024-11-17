@@ -59,7 +59,7 @@ class EventReader:
     needs to be created multiple times.
     """
 
-    panic_word = "inputremapperpanicstop"
+    panic_word = "inputremapperpanicquit"
 
     def __init__(
         self,

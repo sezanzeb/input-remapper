@@ -33,7 +33,7 @@ a problematic macro (like `key_down(Shift_L))`), and you want to stop everything
 regain control of your system, you can type
 
 ```
-inputremapperpanicstop
+inputremapperpanicquit
 ```
 
 on your keyboard, killing the input-remapper-service process. This will remove the

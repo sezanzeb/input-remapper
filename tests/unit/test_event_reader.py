@@ -38,7 +38,7 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
     REL_WHEEL_HI_RES,
     ecodes,
-    KEY_P,
+    KEY_T,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
@@ -268,7 +268,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         context, _ = await self.setup(keyboard_source, self.preset)
 
         # typo
-        for letter in "inputremapperpanicstoa":
+        for letter in "inputremapperpanicquia":
             keyboard_source.push_events(
                 [InputEvent.key(ecodes[f"KEY_{letter.upper()}"], 1)]
             )
@@ -276,13 +276,13 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         system.assert_not_called()
 
-        keyboard_source.push_events([InputEvent.key(KEY_P, 1)])
+        keyboard_source.push_events([InputEvent.key(KEY_T, 1)])
         await asyncio.sleep(0.01)
 
         # need to start over
         system.assert_not_called()
 
-        for letter in "inputremapperpanicsto":
+        for letter in "inputremapperpanicqui":
             keyboard_source.push_events(
                 [InputEvent.key(ecodes[f"KEY_{letter.upper()}"], 1)]
             )
@@ -292,7 +292,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         system.assert_not_called()
 
         # now it should stop
-        keyboard_source.push_events([InputEvent.key(KEY_P, 1)])
+        keyboard_source.push_events([InputEvent.key(KEY_T, 1)])
         await asyncio.sleep(0.01)
 
         system.assert_called_once_with("input-remapper-control --command quit &")
