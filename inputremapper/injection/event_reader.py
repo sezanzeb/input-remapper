@@ -241,7 +241,8 @@ class EventReader:
                 # Give the daemon some time to exit gracefully.
                 await asyncio.sleep(1)
 
-                # If we are still alive, then try to stop using pythons built-in methods.
+                # If we are still alive, then try to stop using SIGTERM via pythons
+                # built-in methods.
                 parent_process = multiprocessing.parent_process()
                 if parent_process is not None:
                     logger.error("Process is still running, trying to terminate")
