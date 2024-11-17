@@ -3,7 +3,7 @@ import multiprocessing
 import os
 from typing import List
 
-from evdev.ecodes import EV_KEY
+from evdev.ecodes import EV_KEY, ecodes
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.input_event import InputEvent
@@ -66,6 +66,6 @@ class PanicCounter:
         for letter in "inputremapperpanicquit":
             code = keyboard_layout.get(letter)
             if code is None:
-                code = keyboard_layout.get(f"KEY_{letter}")
+                code = ecodes[f"KEY_{letter.upper()}"]
             result.append(code)
         return result

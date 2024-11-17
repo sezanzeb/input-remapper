@@ -303,3 +303,22 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         # After another second it will resort to sending SIGKILL
         await asyncio.sleep(1)
         system.assert_called_with("pkill -f -9 input-remapper-service")
+
+    @patch.object(os, "system")
+    @patch.object(Context, "get_forward_uinput", new=MagicMock())
+    @patch.object(multiprocessing, "parent_process", new=MagicMock())
+    async def test_panic_only_linux_constants(self, system: MagicMock):
+        # remove the xmodmap mappings of i->23. It should fall back to KEY_I->23
+        keyboard_layout.clear()
+        keyboard_layout._use_linux_evdev_symbols()
+
+        keyboard_source = evdev.InputDevice(fixtures.bar_device.path)
+        context, _ = await self.setup(keyboard_source, self.preset)
+
+        for letter in "inputremapperpanicquit":
+            keyboard_source.push_events(
+                [InputEvent.key(ecodes[f"KEY_{letter.upper()}"], 1)]
+            )
+            await asyncio.sleep(0.01)
+
+        system.assert_called_once_with("input-remapper-control --command quit &")
