@@ -36,8 +36,8 @@ regain control of your system, you can type
 inputremapperpanicstop
 ```
 
-on your keyboard, making the input-remapper-service stop. This will remove the uinputs
-and thereby reset everything to normal (At least on Ubuntu/Plasma/Wayland).
+on your keyboard, killing the input-remapper-service process. This will remove the
+uinputs and thereby reset everything to normal (At least on Ubuntu/Plasma/Wayland).
 
 ## Troubleshooting
 
