@@ -140,6 +140,8 @@ class DaemonProxy(Protocol):  # pragma: no cover
 
     def hello(self, out: str) -> str: ...
 
+    def quit(self) -> None: ...
+
 
 class Daemon:
     """Starts injecting keycodes based on the configuration.
@@ -181,6 +183,8 @@ class Daemon:
                 <method name='hello'>
                     <arg type='s' name='out' direction='in'/>
                     <arg type='s' name='response' direction='out'/>
+                </method>
+                <method name='quit'>
                 </method>
             </interface>
         </node>
@@ -538,3 +542,9 @@ class Daemon:
         """Used for tests."""
         logger.info('Received "%s" from client', out)
         return out
+
+    def quit(self):
+        """Stop the process."""
+        # Beware, that stop_all will also be called via atexit.register(self.stop_all)
+        logger.info("Got command to stop the daemon process")
+        sys.exit(0)

@@ -19,6 +19,10 @@ To quickly restart input-remapper without pkexec prompts, you can use
 sudo pkill -f input-remapper && sudo input-remapper-reader-service -d & sudo input-remapper-service -d & input-remapper-gtk -d
 ```
 
+To stop an ongoing broken injection, you can try to type `inputremapperpanicstop` if
+you can't control your terminal
+anymore.
+
 Linting
 -------
 

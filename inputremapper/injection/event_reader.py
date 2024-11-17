@@ -21,8 +21,8 @@
 """Because multiple calls to async_read_loop won't work."""
 
 import asyncio
+import multiprocessing
 import os
-import sys
 import traceback
 from typing import AsyncIterator, Protocol, Set, List
 
@@ -197,7 +197,7 @@ class EventReader:
         )
 
         async for event in self.read_loop():
-            self.count_panic_up(event)
+            await self.count_panic_up(event)
             try:
                 # Fire and forget, so that handlers and listeners can take their time,
                 # if they want to wait for something special to happen.
@@ -213,7 +213,7 @@ class EventReader:
         self.context.reset()
         logger.info("read loop for %s stopped", self._source.path)
 
-    def count_panic_up(self, event):
+    async def count_panic_up(self, event: InputEvent) -> None:
         """Stop the input-remapper-service if the user types the codeword.
 
         This is useful if a macro, for whatever reason, did something like
@@ -230,6 +230,24 @@ class EventReader:
             self.panic_counter = 0
 
         if self.panic_counter == len(self.panic_word):
-            logger.info("Panic word detected, stopping process")
-            os.system("pkill -f -9 input-remapper-service")
-            sys.exit(14)
+            try:
+                logger.info("Panic word detected, stopping process")
+
+                # The event-reader is running in the injector, which is a separate process,
+                # so just doing sys.exit won't suffice. We need to tell the daemon
+                # parent-process to stop.
+                os.system("input-remapper-control --command quit &")
+
+                # Give the daemon some time to exit gracefully.
+                await asyncio.sleep(1)
+
+                # If we are still alive, then try to stop using pythons built-in methods.
+                parent_process = multiprocessing.parent_process()
+                if parent_process is not None:
+                    logger.error("Process is still running, trying to terminate")
+                    parent_process.terminate()
+                    await asyncio.sleep(1)
+            finally:
+                # Last resort
+                logger.error("Process is still running, sending SIGKILL")
+                os.system("pkill -f -9 input-remapper-service")

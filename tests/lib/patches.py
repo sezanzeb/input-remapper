@@ -340,6 +340,7 @@ class FakeDaemonProxy:
             "autoload": 0,
             "autoload_single": [],
             "hello": [],
+            "quit": 0,
         }
 
     def stop_injecting(self, group_key: str) -> None:
@@ -370,6 +371,9 @@ class FakeDaemonProxy:
     def hello(self, out: str) -> str:
         self.calls["hello"].append(out)
         return out
+
+    def quit(self):
+        self.calls["quit"] += 1
 
 
 def create_patches():

@@ -27,16 +27,16 @@ import sys
 from enum import Enum
 from typing import Optional
 
+import gi
+
+gi.require_version("GLib", "2.0")
+from gi.repository import GLib
+
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
 from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.logging.logger import logger
-
-
-# TODO this sounds like something DI would fix, making everything independent of
-#  input order:
-# import inputremapper modules as late as possible to make sure the correct
-# log level is applied before anything is logged
+from inputremapper.user import UserUtils
 
 
 class Commands(Enum):
@@ -45,6 +45,7 @@ class Commands(Enum):
     STOP = "stop"
     STOP_ALL = "stop-all"
     HELLO = "hello"
+    QUIT = "quit"
 
 
 class Internals(Enum):
@@ -91,8 +92,6 @@ class InputRemapperControlBin:
             return
 
         logger.debug('Call for "%s"', sys.argv)
-
-        from inputremapper.user import UserUtils
 
         boot_finished_ = input_remapper_control.boot_finished()
         is_root = UserUtils.user == "root"
@@ -181,6 +180,9 @@ class InputRemapperControlBin:
         if command == Commands.HELLO.value:
             self._hello()
 
+        if command == Commands.QUIT.value:
+            self._quit()
+
     def _hello(self):
         response = self.daemon.hello("hello")
         logger.info('Daemon answered with "%s"', response)
@@ -214,6 +216,16 @@ class InputRemapperControlBin:
     def _stop(self, device: str) -> None:
         group = self._require_group(device)
         self.daemon.stop_injecting(group.key)
+
+    def _quit(self) -> None:
+        try:
+            self.daemon.quit()
+        except GLib.GError as error:
+            if "NoReply" in str(error):
+                # The daemon is expected to terminate, so there won't be a reply.
+                return
+
+            raise
 
     def _start(self, device: str, preset: str) -> None:
         group = self._require_group(device)
