@@ -201,7 +201,7 @@ class EventReader:
                     InputEvent.from_event(event, origin_hash=self._device_hash)
                 )
             except Exception as e:
-                logger.error("Handling event %s failed: %s", event, e)
+                logger.error("Handling event %s failed with %s", event, type(e))
                 traceback.print_exception(e)
 
         self.context.reset()
