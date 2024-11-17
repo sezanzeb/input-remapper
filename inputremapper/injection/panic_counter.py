@@ -30,31 +30,35 @@ class PanicCounter:
         if self.panic_codes[self.panic_counter] == event.code:
             self.panic_counter += 1
         else:
+            # There was a typo, or maybe the user isn't typing the panic word
             self.panic_counter = 0
 
         if self.panic_counter == len(self.panic_codes):
-            try:
-                logger.info("Panic word detected, stopping process")
+            await self._quit()
 
-                # The event-reader is running in the injector, which is a separate process,
-                # so just doing sys.exit won't suffice. We need to tell the daemon
-                # parent-process to stop.
-                os.system("input-remapper-control --command quit &")
+    async def _quit(self):
+        try:
+            logger.info("Panic word detected, stopping process")
 
-                # Give the daemon some time to exit gracefully.
+            # The event-reader is running in the injector, which is a separate process,
+            # so just doing sys.exit won't suffice. We need to tell the daemon
+            # parent-process to stop.
+            os.system("input-remapper-control --command quit &")
+
+            # Give the daemon some time to exit gracefully.
+            await asyncio.sleep(1)
+
+            # If we are still alive, then try to stop using SIGTERM via pythons
+            # built-in methods.
+            parent_process = multiprocessing.parent_process()
+            if parent_process is not None:
+                logger.error("Process is still running, trying to terminate")
+                parent_process.terminate()
                 await asyncio.sleep(1)
-
-                # If we are still alive, then try to stop using SIGTERM via pythons
-                # built-in methods.
-                parent_process = multiprocessing.parent_process()
-                if parent_process is not None:
-                    logger.error("Process is still running, trying to terminate")
-                    parent_process.terminate()
-                    await asyncio.sleep(1)
-            finally:
-                # Last resort
-                logger.error("Process is still running, sending SIGKILL")
-                os.system("pkill -f -9 input-remapper-service")
+        finally:
+            # Last resort
+            logger.error("Process is still running, sending SIGKILL")
+            os.system("pkill -f -9 input-remapper-service")
 
     def _get_panic_word_codes(self) -> List[int]:
         # Optimization to avoid having to map codes to letters during runtime.
