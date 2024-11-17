@@ -264,37 +264,24 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
 
 @test_setup
 class TestModTapUnit(MacroTestBase):
-    async def test_tapping_term_configuration_default(self):
-        macro = Parser.parse("mod_tap(a, b)", self.context, DummyMapping, True)
+    async def wait_for_timeout(self, macro):
+        macro = Parser.parse(macro, self.context, DummyMapping, True)
 
-        # Awaiting the macro run will cause it to wait for the tapping_term
         start = time.time()
+        # Awaiting the macro run will cause it to wait for the tapping_term
         macro.press_trigger()
         await macro.run(lambda *_, **__: macro.release_trigger())
-        end = time.time()
-        # 3 times 10ms of keycode_pause
-        self.assertAlmostEqual(end - start, 0.23, delta=0.01)
+        return time.time() - start
+
+    async def test_tapping_term_configuration_default(self):
+        time_ = await self.wait_for_timeout("mod_tap(a, b)")
+        # + 3 times 10ms of keycode_pause
+        self.assertAlmostEqual(time_, 0.23, delta=0.01)
 
     async def test_tapping_term_configuration_100(self):
-        macro = Parser.parse("mod_tap(a, b, 100)", self.context, DummyMapping, True)
-
-        # Awaiting the macro run will cause it to wait for the tapping_term
-        start = time.time()
-        macro.press_trigger()
-        await macro.run(lambda *_, **__: macro.release_trigger())
-        end = time.time()
-        # 3 times 10ms of keycode_pause
-        self.assertAlmostEqual(end - start, 0.13, delta=0.01)
+        time_ = await self.wait_for_timeout("mod_tap(a, b, 100)")
+        self.assertAlmostEqual(time_, 0.13, delta=0.01)
 
     async def test_tapping_term_configuration_100_kwarg(self):
-        macro = Parser.parse(
-            "mod_tap(a, b, tapping_term=100)", self.context, DummyMapping, True
-        )
-
-        # Awaiting the macro run will cause it to wait for the tapping_term
-        start = time.time()
-        macro.press_trigger()
-        await macro.run(lambda *_, **__: macro.release_trigger())
-        end = time.time()
-        # 3 times 10ms of keycode_pause
-        self.assertAlmostEqual(end - start, 0.13, delta=0.01)
+        time_ = await self.wait_for_timeout("mod_tap(a, b, tapping_term=100)")
+        self.assertAlmostEqual(time_, 0.13, delta=0.01)
