@@ -1,6 +1,7 @@
 import asyncio
 import multiprocessing
 import os
+from typing import List
 
 from evdev.ecodes import EV_KEY
 
@@ -17,19 +18,10 @@ class PanicCounter:
     your system."""
 
     panic_counter = 0
+    panic_codes: List[int]
 
-    def __init__(self):
-        self.panic_codes = self.get_panic_word_codes()
-
-    def get_panic_word_codes(self):
-        # Optimization to avoid having to map codes to letters during runtime.
-        result = []
-        for letter in "inputremapperpanicquit":
-            code = keyboard_layout.get(letter)
-            if code is None:
-                code = keyboard_layout.get(f"KEY_{letter}")
-            result.append(code)
-        return result
+    def __init__(self) -> None:
+        self.panic_codes = self._get_panic_word_codes()
 
     async def track(self, event: InputEvent) -> None:
         if event.type != EV_KEY or event.value != 1:
@@ -63,3 +55,13 @@ class PanicCounter:
                 # Last resort
                 logger.error("Process is still running, sending SIGKILL")
                 os.system("pkill -f -9 input-remapper-service")
+
+    def _get_panic_word_codes(self) -> List[int]:
+        # Optimization to avoid having to map codes to letters during runtime.
+        result = []
+        for letter in "inputremapperpanicquit":
+            code = keyboard_layout.get(letter)
+            if code is None:
+                code = keyboard_layout.get(f"KEY_{letter}")
+            result.append(code)
+        return result
