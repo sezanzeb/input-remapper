@@ -26,6 +26,19 @@ If you later want to modify the Input of your mapping you need to use the
 "Stop" button, so that the application can read your original input. 
 It would otherwise be invisible since the daemon maps it independently of the GUI.
 
+## Panic
+
+If input-remapper injected key-down events that never got released because of a bug or
+a problematic macro (like `key_down(Shift_L))`), and you want to stop everything to
+regain control of your system, you can type
+
+```
+inputremapperpanicstop
+```
+
+on your keyboard, making the input-remapper-service stop. This will remove the uinputs
+and thereby reset everything to normal (At least on Ubuntu/Plasma/Wayland).
+
 ## Troubleshooting
 
 If stuff doesn't work, check the output of `input-remapper-gtk -d` and feel free

@@ -22,11 +22,13 @@
 
 import asyncio
 import os
+import sys
 import traceback
 from typing import AsyncIterator, Protocol, Set, List
 
 import evdev
 
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
     NotifyCallback,
@@ -57,6 +59,8 @@ class EventReader:
     needs to be created multiple times.
     """
 
+    panic_word = "inputremapperpanicstop"
+
     def __init__(
         self,
         context: Context,
@@ -74,6 +78,7 @@ class EventReader:
         self._source = source
         self.context = context
         self.stop_event = stop_event
+        self.panic_counter = 0
 
     def stop(self):
         """Stop the reader."""
@@ -192,6 +197,7 @@ class EventReader:
         )
 
         async for event in self.read_loop():
+            self.count_panic_up(event)
             try:
                 # Fire and forget, so that handlers and listeners can take their time,
                 # if they want to wait for something special to happen.
@@ -206,3 +212,24 @@ class EventReader:
 
         self.context.reset()
         logger.info("read loop for %s stopped", self._source.path)
+
+    def count_panic_up(self, event):
+        """Stop the input-remapper-service if the user types the codeword.
+
+        This is useful if a macro, for whatever reason, did something like
+        key_down(Shift_L) and you need to stop input-remapper to regain control of
+        your system."""
+        if event.value != 1:
+            return
+
+        name = keyboard_layout.get_name(event.code)
+        name = name.replace("KEY_", "").lower()
+        if self.panic_word[self.panic_counter] == name:
+            self.panic_counter += 1
+        else:
+            self.panic_counter = 0
+
+        if self.panic_counter == len(self.panic_word):
+            logger.info("Panic word detected, stopping process")
+            os.system("pkill -f -9 input-remapper-service")
+            sys.exit(14)
