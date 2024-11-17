@@ -1,4 +1,5 @@
 import asyncio
+import time
 import unittest
 
 import evdev
@@ -10,16 +11,18 @@ from inputremapper.configs.preset import Preset
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.macros.parse import Parser
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import fixtures
 from tests.lib.patches import InputDevice
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
+from tests.unit.test_macros import MacroTestBase, DummyMapping
 
 
 @test_setup
-class TestModMap(unittest.IsolatedAsyncioTestCase):
+class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
     # Testcases are from https://github.com/qmk/qmk_firmware/blob/78a0adfbb4d2c4e12f93f2a62ded0020d406243e/docs/tap_hold.md#nested-tap-abba-nested-tap
     # This test-setup is a bit more involved, because I want to also properly test the forwarding based on the
     # return-value of the listener.
@@ -257,3 +260,41 @@ class TestModMap(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple((EV_KEY, KEY_B, 0)),
             ],
         )
+
+
+@test_setup
+class TestModTapUnit(MacroTestBase):
+    async def test_tapping_term_configuration_default(self):
+        macro = Parser.parse("mod_tap(a, b)", self.context, DummyMapping, True)
+
+        # Awaiting the macro run will cause it to wait for the tapping_term
+        start = time.time()
+        macro.press_trigger()
+        await macro.run(lambda *_, **__: macro.release_trigger())
+        end = time.time()
+        # 3 times 10ms of keycode_pause
+        self.assertAlmostEqual(end - start, 0.23, delta=0.01)
+
+    async def test_tapping_term_configuration_100(self):
+        macro = Parser.parse("mod_tap(a, b, 100)", self.context, DummyMapping, True)
+
+        # Awaiting the macro run will cause it to wait for the tapping_term
+        start = time.time()
+        macro.press_trigger()
+        await macro.run(lambda *_, **__: macro.release_trigger())
+        end = time.time()
+        # 3 times 10ms of keycode_pause
+        self.assertAlmostEqual(end - start, 0.13, delta=0.01)
+
+    async def test_tapping_term_configuration_100_kwarg(self):
+        macro = Parser.parse(
+            "mod_tap(a, b, tapping_term=100)", self.context, DummyMapping, True
+        )
+
+        # Awaiting the macro run will cause it to wait for the tapping_term
+        start = time.time()
+        macro.press_trigger()
+        await macro.run(lambda *_, **__: macro.release_trigger())
+        end = time.time()
+        # 3 times 10ms of keycode_pause
+        self.assertAlmostEqual(end - start, 0.13, delta=0.01)
