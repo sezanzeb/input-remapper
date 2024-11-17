@@ -144,7 +144,7 @@ xgettext --keyword=_ -L Python --sort-output -jo po/input-remapper.pot inputrema
 
 This is the template file that you can copy to fill in the translations. Also create a
 corresponding symlink, like `ln -s it_IT.po it.po`, because some environments expect
-different names apparently. See https://github.com/sezanzeb/input-remapper/tree/main/po
+different names, apparently. See https://github.com/sezanzeb/input-remapper/tree/main/po
 for examples.
 
 Architecture
