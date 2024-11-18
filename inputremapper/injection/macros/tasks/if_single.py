@@ -56,17 +56,14 @@ class IfSingleTask(Task):
         then = self.get_argument("then").get_value()
         else_ = self.get_argument("else").get_value()
 
-        async def listener(event) -> bool:
+        async def listener(event) -> None:
             if event.type != EV_KEY:
                 # Ignore anything that is not a key
-                return False
+                return
 
             if event.value == 1:
                 # Another key was pressed
                 another_key_pressed_event.set()
-                return False
-
-            return False
 
         self.add_event_listener(listener)
 

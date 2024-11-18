@@ -129,13 +129,13 @@ class EventReader:
 
         return handled
 
-    async def send_to_listeners(self, event: InputEvent) -> bool:
+    async def send_to_listeners(self, event: InputEvent) -> None:
         """Send the event to listeners."""
         if event.type == evdev.ecodes.EV_MSC:
-            return False
+            return
 
         if event.type == evdev.ecodes.EV_SYN:
-            return False
+            return
 
         for listener in self.context.listeners.copy():
             # use a copy, since the listeners might remove themselves from the set

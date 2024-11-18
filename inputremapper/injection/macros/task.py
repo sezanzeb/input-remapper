@@ -91,7 +91,7 @@ class Task:
         """
         raise NotImplementedError()
 
-    def add_event_listener(self, listener: EventListener):
+    def add_event_listener(self, listener: EventListener) -> None:
         """Listeners get each event from the source device.
 
         If any listener returns True, then the event will not be visible to the user.
@@ -103,7 +103,7 @@ class Task:
         assert self.context is not None
         self.context.listeners.add(listener)
 
-    def remove_event_listener(self, listener: EventListener):
+    def remove_event_listener(self, listener: EventListener) -> None:
         assert self.context is not None
         self.context.listeners.remove(listener)
 
