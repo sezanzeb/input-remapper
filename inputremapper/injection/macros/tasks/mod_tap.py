@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List
 
 from evdev.ecodes import EV_KEY
 
@@ -64,22 +63,23 @@ class ModTapTask(Task):
 
     async def run(self, callback) -> None:
         tapping_term = self.get_argument("tapping_term").get_value() / 1000
+        jamming_asyncio_events = []
 
-        recorded_input_events: List[InputEvent] = []
+        async def listener(input_event: InputEvent) -> None:
+            trigger = self.mapping.input_combination[-1]
+            if input_event.type_and_code == trigger.type_and_code:
+                # We don't block the event that would set _trigger_release_event.
+                return
 
-        async def listener(event: InputEvent) -> bool:
-            if event.type_and_code == self.mapping.input_combination[-1].type_and_code:
-                return False
+            if input_event.type != EV_KEY:
+                return
 
-            if event.type != EV_KEY:
-                # False = allow forwarding right away
-                return False
-
-            nonlocal recorded_input_events
-            # Remember all incoming key events while the trigger is being held
-            recorded_input_events.append(event)
-            # and stop them from being injected/forwarded.
-            return True
+            asyncio_event = asyncio.Event()
+            jamming_asyncio_events.append(asyncio_event)
+            # Make the EventReader wait until the mod_tap macro allows it to continue
+            # processing the event. Because we want to wait until mod_tap injected the
+            # modifier.
+            await asyncio_event.wait()
 
         self.add_event_listener(listener)
 
@@ -108,23 +108,22 @@ class ModTapTask(Task):
         await self.keycode_pause()
 
         # Now that we know if the key was pressed with the intention of modifying other
-        # keys, we can replay all recorded keys.
-        for event in recorded_input_events:
-            logger.debug("Replaying event %s", event)
-            assert event.origin_hash is not None
-            assert self.context is not None
-            self.context.get_forward_uinput(event.origin_hash).write_event(event)
+        # keys, we can let the jammed keys go on their journey through the handlers.
+        # Maybe they will be mapped to other keys, so we can't just inject them into one
+        # of the forward-uinputs on our own.
+        for asyncio_event in jamming_asyncio_events:
+            asyncio_event.set()
             await self.keycode_pause()
+
+        # In case the keycode_pause ist set to 0ms, and in case the trigger is already
+        # released (therefore injecting the "default"), we need to give the event
+        # handlers a chance to inject the withheld events, before we release the
+        # `code` key event. This ensures correct order of injected events.
+        # 1.5ms can already be enough. Let's go with 10ms.
+        await asyncio.sleep(0.01)
 
         # Keep the modifier pressed until the input/trigger is released
         await self._trigger_release_event.wait()
         callback(EV_KEY, code, 0)
 
         await self.keycode_pause()
-
-        # TODO test that
-        #  control-l-down a-down control-l-up a-up results in a regular ctrl+a
-        #  combination, if done quickly enough, by replaying the control-l-up as well.
-        #  And I wonder if the control-l-down and control-l-up also are required to
-        #  be in the same uinput. make sure the test also tests that both control
-        #  events are ending up in the correct forwarded uinput.

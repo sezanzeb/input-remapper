@@ -1,11 +1,12 @@
 import asyncio
 import time
 import unittest
+from unittest.mock import patch
 
 import evdev
-from evdev.ecodes import KEY_A, EV_KEY, KEY_B, KEY_LEFTSHIFT
+from evdev.ecodes import KEY_A, EV_KEY, KEY_B, KEY_LEFTSHIFT, KEY_C
 
-from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.context import Context
@@ -37,25 +38,28 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
         self.target_uinput = self.global_uinputs.get_uinput("keyboard")
         self.mapping_parser = MappingParser(self.global_uinputs)
 
-        preset = Preset()
-        input_config = InputCombination(
-            [
-                InputConfig(
-                    type=EV_KEY,
-                    code=KEY_A,
-                    origin_hash=self.origin_hash,
-                )
-            ]
-        ).to_config()
-        preset.add(
+        self.preset = Preset()
+        self.preset.add(
             Mapping.from_combination(
-                input_combination=input_config,
+                input_combination=[
+                    InputConfig(
+                        type=EV_KEY,
+                        code=KEY_A,
+                        origin_hash=self.origin_hash,
+                    )
+                ],
                 output_symbol="mod_tap(a, Shift_L)",
             ),
         )
 
+        self.bootstrap_event_reader()
+
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    def bootstrap_event_reader(self):
         self.context = Context(
-            preset,
+            self.preset,
             source_devices={self.origin_hash: self.source_device},
             forward_devices={self.origin_hash: self.forward_uinput},
             mapping_parser=self.mapping_parser,
@@ -67,23 +71,24 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
             self.stop_event,
         )
 
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-
     def write(self, type_, code, value):
         self.target_uinput.write_event(InputEvent.from_tuple((type_, code, value)))
 
     async def input(self, type_, code, value):
-        await self.event_reader.handle(
-            InputEvent.from_tuple(
-                (
-                    type_,
-                    code,
-                    value,
-                ),
-                origin_hash=self.origin_hash,
+        asyncio.ensure_future(
+            self.event_reader.handle(
+                InputEvent.from_tuple(
+                    (
+                        type_,
+                        code,
+                        value,
+                    ),
+                    origin_hash=self.origin_hash,
+                )
             )
         )
+        # Make the main_loop iterate a bit for the event_reader to do its thing.
+        await asyncio.sleep(0)
 
     async def test_distinct_taps_1(self):
         await self.input(EV_KEY, KEY_A, 1)
@@ -120,7 +125,7 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
 
     async def test_distinct_taps_2(self):
         await self.input(EV_KEY, KEY_A, 1)
-        await asyncio.sleep(0.210)  # exceeds tapping_term here
+        await asyncio.sleep(0.220)  # exceeds tapping_term here
         await self.input(EV_KEY, KEY_A, 0)
         await asyncio.sleep(0.020)
         await self.input(EV_KEY, KEY_B, 1)
@@ -153,15 +158,15 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
 
     async def test_nested_tap_1(self):
         await self.input(EV_KEY, KEY_A, 1)
-        await asyncio.sleep(0.110)
+        await asyncio.sleep(0.100)
         self.assertEqual(uinput_write_history, [])
 
         await self.input(EV_KEY, KEY_B, 1)
-        await asyncio.sleep(0.010)
+        await asyncio.sleep(0.020)
         self.assertEqual(uinput_write_history, [])
 
         await self.input(EV_KEY, KEY_B, 0)
-        await asyncio.sleep(0.070)
+        await asyncio.sleep(0.050)
         self.assertEqual(uinput_write_history, [])
 
         await self.input(EV_KEY, KEY_A, 0)
@@ -181,9 +186,9 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
 
     async def test_nested_tap_2(self):
         await self.input(EV_KEY, KEY_A, 1)
-        await asyncio.sleep(0.110)
+        await asyncio.sleep(0.100)
         await self.input(EV_KEY, KEY_B, 1)
-        await asyncio.sleep(0.010)
+        await asyncio.sleep(0.020)
         await self.input(EV_KEY, KEY_B, 0)
         await asyncio.sleep(0.100)  # exceeds tapping_term here
         await self.input(EV_KEY, KEY_A, 0)
@@ -201,11 +206,11 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
 
     async def test_nested_tap_3(self):
         await self.input(EV_KEY, KEY_A, 1)
-        await asyncio.sleep(0.210)  # exceeds tapping_term here
+        await asyncio.sleep(0.220)  # exceeds tapping_term here
         await self.input(EV_KEY, KEY_B, 1)
-        await asyncio.sleep(0.010)
+        await asyncio.sleep(0.020)
         await self.input(EV_KEY, KEY_B, 0)
-        await asyncio.sleep(0.010)
+        await asyncio.sleep(0.020)
         await self.input(EV_KEY, KEY_A, 0)
 
         await asyncio.sleep(0.020)
@@ -221,11 +226,11 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
 
     async def test_rolling_keys_1(self):
         await self.input(EV_KEY, KEY_A, 1)
-        await asyncio.sleep(0.110)
+        await asyncio.sleep(0.100)
         await self.input(EV_KEY, KEY_B, 1)
-        await asyncio.sleep(0.010)
+        await asyncio.sleep(0.020)
         await self.input(EV_KEY, KEY_A, 0)
-        await asyncio.sleep(0.010)
+        await asyncio.sleep(0.020)
         await self.input(EV_KEY, KEY_B, 0)
 
         # everything happened within the tapping_term, so the modifier is not activated.
@@ -243,11 +248,11 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
 
     async def test_rolling_keys_2(self):
         await self.input(EV_KEY, KEY_A, 1)
-        await asyncio.sleep(0.110)
+        await asyncio.sleep(0.100)
         await self.input(EV_KEY, KEY_B, 1)
         await asyncio.sleep(0.100)  # exceeds tapping_term here
         await self.input(EV_KEY, KEY_A, 0)
-        await asyncio.sleep(0.010)
+        await asyncio.sleep(0.020)
         await self.input(EV_KEY, KEY_B, 0)
 
         await asyncio.sleep(0.020)
@@ -260,6 +265,57 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple((EV_KEY, KEY_B, 0)),
             ],
         )
+
+    async def test_mapped_second_key(self):
+        # Map b to c.
+        # While mod_tap is waiting for the timeout to happen, press b.
+        # We expect c to be written, because b goes through the handlers and
+        # gets mapped.
+        # The event_reader has to wait for listeners to complete for mod_tap to work, so
+        # that it hands them over to the other handlers when the time comes.
+        # That means however, that the event_readers loop blocks. Therefore, it was turned
+        # into a fire-and-forget kind of thing. When an event arrives, it just schedules
+        # asyncio to do that stuff later, and continues reading.
+
+        self.preset.add(
+            Mapping.from_combination(
+                input_combination=[
+                    InputConfig(
+                        type=EV_KEY,
+                        code=KEY_B,
+                        origin_hash=self.origin_hash,
+                    )
+                ],
+                output_symbol="c",
+            ),
+        )
+
+        self.bootstrap_event_reader()
+
+        async def async_generator():
+            events = [
+                InputEvent(0, 0, EV_KEY, KEY_A, 1),
+                InputEvent(0, 0, EV_KEY, KEY_B, 1),
+                InputEvent(0, 0, EV_KEY, KEY_A, 0),
+                InputEvent(0, 0, EV_KEY, KEY_B, 0),
+            ]
+            for event in events:
+                yield event
+                # Wait a bit. During runtime, events don't come in that quickly
+                # and the mod_tap macro needs some loop iterations until it adds
+                # the listener to the context.
+                await asyncio.sleep(0.010)
+
+        with patch.object(self.event_reader, "read_loop", async_generator):
+            await self.event_reader.run()
+
+        await asyncio.sleep(0.020)
+        self.assertIn(InputEvent(0, 0, EV_KEY, KEY_C, 1), uinput_write_history)
+        self.assertIn(InputEvent(0, 0, EV_KEY, KEY_C, 0), uinput_write_history)
+        self.assertIn(InputEvent(0, 0, EV_KEY, KEY_A, 1), uinput_write_history)
+        self.assertIn(InputEvent(0, 0, EV_KEY, KEY_A, 0), uinput_write_history)
+        self.assertNotIn(InputEvent(0, 0, EV_KEY, KEY_B, 1), uinput_write_history)
+        self.assertNotIn(InputEvent(0, 0, EV_KEY, KEY_B, 0), uinput_write_history)
 
 
 @test_setup

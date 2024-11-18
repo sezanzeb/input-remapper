@@ -137,11 +137,10 @@ class EventReader:
         if event.type == evdev.ecodes.EV_SYN:
             return False
 
-        handled = False
         for listener in self.context.listeners.copy():
-            # use a copy, since the listeners might remove themselves form the set
+            # use a copy, since the listeners might remove themselves from the set
 
-            handled = await listener(event) | handled
+            await listener(event)
 
             # Running macros have priority, give them a head-start for processing the
             # event.  If if_single injects a modifier, this modifier should be active
@@ -155,10 +154,6 @@ class EventReader:
             # So make sure to call the listeners before notifying the handlers.
             for _ in range(5):
                 await asyncio.sleep(0)
-
-        # If this is True, then similar to handlers, a listener took care of the event,
-        # and we do not want to forward it.
-        return handled
 
     def forward(self, event: InputEvent) -> None:
         """Forward an event, which injects it unmodified."""
@@ -176,8 +171,9 @@ class EventReader:
             # won't appear, no need to forward or map them.
             return
 
-        handled = await self.send_to_listeners(event)
-        handled = self.send_to_handlers(event) | handled
+        await self.send_to_listeners(event)
+
+        handled = self.send_to_handlers(event)
 
         if not handled:
             # no handler took care of it, forward it
@@ -197,8 +193,12 @@ class EventReader:
 
         async for event in self.read_loop():
             try:
-                await self.handle(
-                    InputEvent.from_event(event, origin_hash=self._device_hash)
+                # Fire and forget, so that handlers and listeners can take their time,
+                # if they want to wait for something special to happen.
+                asyncio.ensure_future(
+                    self.handle(
+                        InputEvent.from_event(event, origin_hash=self._device_hash)
+                    )
                 )
             except Exception as e:
                 logger.error("Handling event %s failed with %s", event, type(e))

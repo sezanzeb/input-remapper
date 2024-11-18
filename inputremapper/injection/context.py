@@ -26,6 +26,7 @@ from collections import defaultdict
 from typing import List, Dict, Set, Hashable
 
 import evdev
+
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
