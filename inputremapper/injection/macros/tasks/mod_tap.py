@@ -65,13 +65,13 @@ class ModTapTask(Task):
         tapping_term = self.get_argument("tapping_term").get_value() / 1000
         jamming_asyncio_events = []
 
-        async def listener(input_event: InputEvent) -> None:
+        async def listener(event: InputEvent) -> None:
             trigger = self.mapping.input_combination[-1]
-            if input_event.type_and_code == trigger.type_and_code:
+            if event.type_and_code == trigger.type_and_code:
                 # We don't block the event that would set _trigger_release_event.
                 return
 
-            if input_event.type != EV_KEY:
+            if event.type != EV_KEY:
                 return
 
             asyncio_event = asyncio.Event()
@@ -109,17 +109,16 @@ class ModTapTask(Task):
 
         # Now that we know if the key was pressed with the intention of modifying other
         # keys, we can let the jammed keys go on their journey through the handlers.
-        # Maybe they will be mapped to other keys, so we can't just inject them into one
-        # of the forward-uinputs on our own.
+        # Those other handlers may map them to other keys and stuff.
         for asyncio_event in jamming_asyncio_events:
             asyncio_event.set()
             await self.keycode_pause()
 
         # In case the keycode_pause ist set to 0ms, and in case the trigger is already
         # released (therefore injecting the "default"), we need to give the event
-        # handlers a chance to inject the withheld events, before we release the
-        # `code` key event. This ensures correct order of injected events.
-        # 1.5ms can already be enough. Let's go with 10ms.
+        # handlers a chance to inject the withheld events, before we release the `code`
+        # key event. This ensures correct order of injected events. 1.5ms can already
+        # be enough. Let's go with 10ms.
         await asyncio.sleep(0.01)
 
         # Keep the modifier pressed until the input/trigger is released
