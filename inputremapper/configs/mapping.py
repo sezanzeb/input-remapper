@@ -345,7 +345,10 @@ class Mapping(UIMapping):
 
     @classmethod
     def from_combination(
-        cls, input_combination=None, target_uinput="keyboard", output_symbol="a"
+        cls,
+        input_combination=None,
+        target_uinput="keyboard",
+        output_symbol="a",
     ):
         """Convenient function to get a valid mapping."""
         if not input_combination:
