@@ -29,15 +29,17 @@ It would otherwise be invisible since the daemon maps it independently of the GU
 ## Panic
 
 If input-remapper injected key-down events that never got released because of a bug or
-a problematic macro (like `key_down(Shift_L))`), and you want to stop everything to
-regain control of your system, you can type
+a problematic macro (like `key_down(Shift_L))`), or you made a macro that somehow causes
+other sorts of troubles, and you want to stop everything to regain control of your
+system, you can type
 
 ```
 inputremapperpanicquit
 ```
 
-on your keyboard, killing the input-remapper-service process. This will remove the
+on your keyboard, which kills the input-remapper-service process. This will remove the
 uinputs and thereby reset everything to normal (At least on Ubuntu/Plasma/Wayland).
+You'll have to restart the gui after this.
 
 ## Troubleshooting
 
