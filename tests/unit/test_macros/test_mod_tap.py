@@ -25,8 +25,8 @@ from tests.unit.test_macros import MacroTestBase, DummyMapping
 @test_setup
 class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
     # Testcases are from https://github.com/qmk/qmk_firmware/blob/78a0adfbb4d2c4e12f93f2a62ded0020d406243e/docs/tap_hold.md#nested-tap-abba-nested-tap
-    # This test-setup is a bit more involved, because I want to also properly test the forwarding based on the
-    # return-value of the listener.
+    # This test-setup is a bit more involved, because I needed to modify the
+    # EventReader as well for this to work.
 
     def setUp(self):
         self.origin_hash = fixtures.bar_device.get_device_hash()
