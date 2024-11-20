@@ -365,20 +365,21 @@ class TestModTapUnit(MacroTestBase):
         macro = Parser.parse(macro, self.context, DummyMapping, True)
 
         start = time.time()
-        # Awaiting the macro run will cause it to wait for the tapping_term
+        # Awaiting macro.run will cause it to wait for the tapping_term.
+        # When it injects the modifier, release the trigger.
         macro.press_trigger()
         await macro.run(lambda *_, **__: macro.release_trigger())
         return time.time() - start
 
     async def test_tapping_term_configuration_default(self):
         time_ = await self.wait_for_timeout("mod_tap(a, b)")
-        # + 3 times 10ms of keycode_pause
-        self.assertAlmostEqual(time_, 0.23, delta=0.01)
+        # + 2 times 10ms of keycode_pause
+        self.assertAlmostEqual(time_, 0.22, delta=0.02)
 
     async def test_tapping_term_configuration_100(self):
         time_ = await self.wait_for_timeout("mod_tap(a, b, 100)")
-        self.assertAlmostEqual(time_, 0.13, delta=0.01)
+        self.assertAlmostEqual(time_, 0.12, delta=0.02)
 
     async def test_tapping_term_configuration_100_kwarg(self):
         time_ = await self.wait_for_timeout("mod_tap(a, b, tapping_term=100)")
-        self.assertAlmostEqual(time_, 0.13, delta=0.01)
+        self.assertAlmostEqual(time_, 0.12, delta=0.02)
