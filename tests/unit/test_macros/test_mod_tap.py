@@ -266,7 +266,8 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
-    async def test_many_keys_correct_order(self):
+    async def test_many_keys_correct_order_without_sleep(self):
+        self.mapping.macro_key_sleep_ms = 0
         await self.many_keys_correct_order()
 
     async def test_many_keys_correct_order_with_sleep(self):
