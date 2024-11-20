@@ -38,19 +38,19 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
         self.target_uinput = self.global_uinputs.get_uinput("keyboard")
         self.mapping_parser = MappingParser(self.global_uinputs)
 
-        self.preset = Preset()
-        self.preset.add(
-            Mapping.from_combination(
-                input_combination=[
-                    InputConfig(
-                        type=EV_KEY,
-                        code=KEY_A,
-                        origin_hash=self.origin_hash,
-                    )
-                ],
-                output_symbol="mod_tap(a, Shift_L)",
-            ),
+        self.mapping = Mapping.from_combination(
+            input_combination=[
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=self.origin_hash,
+                )
+            ],
+            output_symbol="mod_tap(a, Shift_L)",
         )
+
+        self.preset = Preset()
+        self.preset.add(self.mapping)
 
         self.bootstrap_event_reader()
 
@@ -173,7 +173,7 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
 
         # everything happened within the tapping_term, so the modifier is not activated.
         # "ab" should be written, in the exact order of the input.
-        await asyncio.sleep(0.020)
+        await asyncio.sleep(0.040)
         self.assertEqual(
             uinput_write_history,
             [
@@ -263,6 +263,46 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple((EV_KEY, KEY_B, 1)),
                 InputEvent.from_tuple((EV_KEY, KEY_LEFTSHIFT, 0)),
                 InputEvent.from_tuple((EV_KEY, KEY_B, 0)),
+            ],
+        )
+
+    async def test_many_keys_correct_order(self):
+        await self.many_keys_correct_order()
+
+    async def test_many_keys_correct_order_with_sleep(self):
+        self.mapping.macro_key_sleep_ms = 20
+        await self.many_keys_correct_order()
+
+    async def many_keys_correct_order(self):
+        await self.input(EV_KEY, KEY_A, 1)
+
+        # Send many events to the listener. It has to make all of them wait.
+        for i in range(30):
+            await self.input(EV_KEY, i, 1)
+
+        # exceed tapping_term. mod_tap will inject the modifier and replay all the
+        # previous events.
+        await asyncio.sleep(0.201)
+
+        # mod_tap is busy replaying events. While it does that, inject this
+        await self.input(EV_KEY, 100, 1)
+
+        start = time.time()
+        timeout = 2
+        while len(uinput_write_history) < 32 and (time.time() - start) < timeout:
+            # Wait for it to complete
+            await asyncio.sleep(0.1)
+
+        self.assertEqual(len(uinput_write_history), 32)
+
+        # Expect it to cleanly handle all events before injecting 100. Expect
+        # everything to be in the correct order.
+        self.assertEqual(
+            uinput_write_history,
+            [
+                InputEvent.from_tuple((EV_KEY, KEY_LEFTSHIFT, 1)),
+                *[InputEvent.from_tuple((EV_KEY, i, 1)) for i in range(30)],
+                InputEvent.from_tuple((EV_KEY, 100, 1)),
             ],
         )
 

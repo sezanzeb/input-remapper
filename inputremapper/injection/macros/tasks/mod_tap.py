@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 
 from evdev.ecodes import EV_KEY
 
@@ -63,7 +64,7 @@ class ModTapTask(Task):
 
     async def run(self, callback) -> None:
         tapping_term = self.get_argument("tapping_term").get_value() / 1000
-        jamming_asyncio_events = []
+        jamming_asyncio_events = deque()
 
         async def listener(event: InputEvent) -> None:
             trigger = self.mapping.input_combination[-1]
@@ -90,8 +91,6 @@ class ModTapTask(Task):
         )
         has_timed_out = timeout.done()
 
-        self.remove_event_listener(listener)
-
         if has_timed_out:
             # The timeout happened before the trigger got released.
             # We therefore modify stuff.
@@ -110,19 +109,28 @@ class ModTapTask(Task):
         # Now that we know if the key was pressed with the intention of modifying other
         # keys, we can let the jammed keys go on their journey through the handlers.
         # Those other handlers may map them to other keys and stuff.
-        for asyncio_event in jamming_asyncio_events:
+        while len(jamming_asyncio_events) > 0:
+            asyncio_event = jamming_asyncio_events.popleft()
             asyncio_event.set()
             await self.keycode_pause()
+            await self.throttle()
 
-        # In case the keycode_pause ist set to 0ms, and in case the trigger is already
-        # released (therefore injecting the "default"), we need to give the event
-        # handlers a chance to inject the withheld events, before we release the `code`
-        # key event. This ensures correct order of injected events. 1.5ms can already
-        # be enough. Let's go with 10ms.
-        await asyncio.sleep(0.01)
+        # We remove this as late as possible, because if more keys are pressed while
+        # jamming_asyncio_events is still being taken care of, they should wait until
+        # all is done.
+        self.remove_event_listener(listener)
 
         # Keep the modifier pressed until the input/trigger is released
         await self._trigger_release_event.wait()
         callback(EV_KEY, code, 0)
 
         await self.keycode_pause()
+
+    async def throttle(self) -> None:
+        # In case the keycode_pause ist set to 0ms, we need to give the event handlers
+        # a chance to inject the withheld events, before we go on. This ensures the
+        # correct order of injections. Since we are using asyncio, something like
+        # `callback(EV_KEY, code, 0)` might be faster than the event handlers, even if
+        # it is the last step of the macro.
+        if self.mapping.macro_key_sleep_ms == 0:
+            await asyncio.sleep(0.01)
