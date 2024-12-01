@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.macros.parse import Parser
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 
 try:
@@ -58,7 +59,6 @@ from inputremapper.injection.injector import (
     InjectorState,
     get_udev_name,
 )
-from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.input_event import InputEvent
 
@@ -625,7 +625,7 @@ class TestModifyCapabilities(unittest.TestCase):
         )
 
         macro_code = "r(2, m(sHiFt_l, r(2, k(1).k(2))))"
-        macro = parse(macro_code, preset)
+        macro = Parser.parse(macro_code, preset)
 
         preset.add(
             Mapping.from_combination(

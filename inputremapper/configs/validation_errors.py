@@ -111,7 +111,7 @@ class MissingOutputAxisError(ValueError):
         )
 
 
-class MacroParsingError(ValueError):
+class MacroError(ValueError):
     """Macro syntax errors."""
 
     def __init__(self, symbol: Optional[str] = None, msg="Error while parsing a macro"):

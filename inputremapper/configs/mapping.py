@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import enum
 from collections import namedtuple
-from packaging import version
 from typing import Optional, Callable, Tuple, TypeVar, Union, Any, Dict
 
 from evdev.ecodes import (
@@ -33,6 +32,7 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
     REL_WHEEL_HI_RES,
 )
+from packaging import version
 
 try:
     from pydantic.v1 import (
@@ -77,7 +77,7 @@ from inputremapper.configs.validation_errors import (
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from inputremapper.injection.macros.parse import is_this_a_macro, parse
+from inputremapper.injection.macros.parse import Parser
 from inputremapper.utils import get_evdev_constant_name
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
@@ -291,7 +291,7 @@ class UIMapping(BaseModel):
         """
         if self.output_code and self.output_type:
             return self.output_type, self.output_code
-        if self.output_symbol and not is_this_a_macro(self.output_symbol):
+        if self.output_symbol and not Parser.is_this_a_macro(self.output_symbol):
             return EV_KEY, keyboard_layout.get(self.output_symbol)
         return None
 
@@ -379,10 +379,10 @@ class Mapping(UIMapping):
         if symbol == DISABLE_NAME:
             return values
 
-        if is_this_a_macro(symbol):
+        if Parser.is_this_a_macro(symbol):
             mapping_mock = namedtuple("Mapping", values.keys())(**values)
-            # raises MacroParsingError
-            parse(symbol, mapping=mapping_mock, verbose=False)
+            # raises MacroError
+            Parser.parse(symbol, mapping=mapping_mock, verbose=False)
             return values
 
         code = keyboard_layout.get(symbol)
@@ -445,7 +445,7 @@ class Mapping(UIMapping):
             # we have a symbol: no type and code is fine
             return values
 
-        if is_this_a_macro(symbol):
+        if Parser.is_this_a_macro(symbol):
             # disallow output type and code for macros
             if type_ is not None or code is not None:
                 raise MacroButTypeOrCodeSetError()

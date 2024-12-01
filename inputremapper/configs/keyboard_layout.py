@@ -158,7 +158,7 @@ class KeyboardLayout:
         self._mapping[str(name)] = code
         self._case_insensitive_mapping[str(name).lower()] = name
 
-    def get(self, name: str) -> int:
+    def get(self, name: str) -> Optional[int]:
         """Return the code mapped to the key."""
         # the correct casing should be shown when asking the keyboard_layout
         # for stuff. indexing case insensitive to support old presets.

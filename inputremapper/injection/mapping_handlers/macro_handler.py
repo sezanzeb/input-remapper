@@ -18,13 +18,13 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-from typing import Dict, Callable, Set
+from typing import Dict, Callable
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.macro import Macro
-from inputremapper.injection.macros.parse import parse
+from inputremapper.injection.macros.parse import Parser
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     ContextProtocol,
     MappingHandler,
@@ -52,7 +52,7 @@ class MacroHandler(MappingHandler):
         super().__init__(combination, mapping, global_uinputs)
         self._active = False
         assert self.mapping.output_symbol is not None
-        self._macro = parse(self.mapping.output_symbol, context, mapping)
+        self._macro = Parser.parse(self.mapping.output_symbol, context, mapping)
 
     def __str__(self):
         return f"MacroHandler"
@@ -88,15 +88,13 @@ class MacroHandler(MappingHandler):
             return True
         else:
             self._active = False
-            if self._macro.is_holding():
-                self._macro.release_trigger()
+            self._macro.release_trigger()
 
             return True
 
     def reset(self) -> None:
         self._active = False
-        if self._macro.is_holding():
-            self._macro.release_trigger()
+        self._macro.release_trigger()
 
     def needs_wrapping(self) -> bool:
         return True
