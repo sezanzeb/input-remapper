@@ -52,6 +52,7 @@ class IfSingleTask(Task):
     ]
 
     async def run(self, callback) -> None:
+        assert self.context is not None
         another_key_pressed_event = asyncio.Event()
         then = self.get_argument("then").get_value()
         else_ = self.get_argument("else").get_value()
@@ -64,6 +65,7 @@ class IfSingleTask(Task):
             if event.value == 1:
                 # Another key was pressed
                 another_key_pressed_event.set()
+                return
 
         self.add_event_listener(listener)
 

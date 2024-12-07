@@ -94,8 +94,7 @@ class Task:
     def add_event_listener(self, listener: EventListener) -> None:
         """Listeners get each event from the source device.
 
-        If any listener returns True, then the event will not be visible to the user.
-        If you were to always return True, then your keyboard keys would stop working.
+        After all listeners are done, the event will go into the mapping handlers.
 
         Make sure to remove your event_listener once you are done.
         """

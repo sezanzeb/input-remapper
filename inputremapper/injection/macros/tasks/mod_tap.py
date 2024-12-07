@@ -115,10 +115,13 @@ class ModTapTask(Task):
             asyncio_event.set()
             await self.keycode_pause()
             await self.throttle()
+            # While we are emptying the queue, more events might still arrive and add
+            # to the queue.
 
         # We remove this as late as possible, because if more keys are pressed while
         # jamming_asyncio_events is still being taken care of, they should wait until
-        # all is done.
+        # all is done. This ensures the order of all events that are pressed, until
+        # mod_tap is completely finished.
         self.remove_event_listener(listener)
 
         # Keep the modifier pressed until the input/trigger is released
