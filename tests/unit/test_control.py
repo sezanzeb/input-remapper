@@ -292,6 +292,7 @@ class TestControl(unittest.TestCase):
     @patch.object(Daemon, "quit")
     def test_quit(self, quit_mock: MagicMock) -> None:
         group = groups.find(key="Foo Device 2")
+        assert group is not None
         preset = "preset9"
 
         daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
