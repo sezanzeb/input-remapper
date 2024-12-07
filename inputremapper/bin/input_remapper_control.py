@@ -348,8 +348,8 @@ class InputRemapperControlBin:
             action="store",
             dest="command",
             help=(
-                "Communicate with the daemon. Available commands are start, "
-                "stop, autoload, hello or stop-all"
+                "Communicate with the daemon. Available commands are "
+                f"{', '.join([command.value for command in Commands])}"
             ),
             default=None,
             metavar="NAME",
