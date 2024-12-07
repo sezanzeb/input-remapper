@@ -26,7 +26,7 @@ from typing import Tuple, Optional, Hashable, Literal
 import evdev
 from evdev import ecodes
 
-from inputremapper.utils import get_evdev_constant_name
+from inputremapper.utils import get_evdev_constant_name, DeviceHash
 
 
 class EventActions(enum.Enum):
@@ -55,7 +55,7 @@ class InputEvent:
     code: int
     value: int
     actions: Tuple[EventActions, ...] = ()
-    origin_hash: Optional[str] = None
+    origin_hash: Optional[DeviceHash] = None
 
     def __eq__(self, other: InputEvent | evdev.InputEvent | Tuple[int, int, int]):
         # useful in tests
@@ -89,7 +89,9 @@ class InputEvent:
 
     @classmethod
     def from_event(
-        cls, event: evdev.InputEvent, origin_hash: Optional[str] = None
+        cls,
+        event: evdev.InputEvent,
+        origin_hash: Optional[DeviceHash] = None,
     ) -> InputEvent:
         """Create a InputEvent from another InputEvent or evdev.InputEvent."""
         try:
@@ -108,7 +110,9 @@ class InputEvent:
 
     @classmethod
     def from_tuple(
-        cls, event_tuple: Tuple[int, int, int], origin_hash: Optional[str] = None
+        cls,
+        event_tuple: Tuple[int, int, int],
+        origin_hash: Optional[DeviceHash] = None,
     ) -> InputEvent:
         """Create a InputEvent from a (type, code, value) tuple."""
         # use this as rarely as possible. Construct objects early on and pass them
@@ -130,7 +134,7 @@ class InputEvent:
         )
 
     @classmethod
-    def abs(cls, code: int, value: int, origin_hash: Optional[str] = None):
+    def abs(cls, code: int, value: int, origin_hash: Optional[DeviceHash] = None):
         """Create an abs event, like joystick movements."""
         return cls.validate_event(
             cls(

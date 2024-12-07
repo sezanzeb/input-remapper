@@ -20,10 +20,9 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, NewType
+from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
 
 from evdev import ecodes
-
 from inputremapper.configs.paths import PathUtils
 from inputremapper.input_event import InputEvent
 
@@ -35,7 +34,7 @@ except ImportError:
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logging.logger import logger
-from inputremapper.utils import get_evdev_constant_name
+from inputremapper.utils import get_evdev_constant_name, DeviceHash
 
 # having shift in combinations modifies the configured output,
 # ctrl might not work at all
@@ -47,8 +46,6 @@ DIFFICULT_COMBINATIONS = [
     ecodes.KEY_LEFTALT,
     ecodes.KEY_RIGHTALT,
 ]
-
-DeviceHash = NewType("DeviceHash", str)
 
 EMPTY_TYPE = 99
 

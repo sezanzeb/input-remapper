@@ -138,11 +138,9 @@ class EventReader:
             return
 
         for listener in self.context.listeners.copy():
-            # use a copy, since the listeners might remove themselves form the set
+            # use a copy, since the listeners might remove themselves from the set
 
-            # fire and forget, run them in parallel and don't wait for them, since
-            # a listener might be blocking forever while waiting for more events.
-            asyncio.ensure_future(listener(event))
+            await listener(event)
 
             # Running macros have priority, give them a head-start for processing the
             # event.  If if_single injects a modifier, this modifier should be active
@@ -175,7 +173,9 @@ class EventReader:
 
         await self.send_to_listeners(event)
 
-        if not self.send_to_handlers(event):
+        handled = self.send_to_handlers(event)
+
+        if not handled:
             # no handler took care of it, forward it
             self.forward(event)
 
@@ -193,11 +193,15 @@ class EventReader:
 
         async for event in self.read_loop():
             try:
-                await self.handle(
-                    InputEvent.from_event(event, origin_hash=self._device_hash)
+                # Fire and forget, so that handlers and listeners can take their time,
+                # if they want to wait for something special to happen.
+                asyncio.ensure_future(
+                    self.handle(
+                        InputEvent.from_event(event, origin_hash=self._device_hash)
+                    )
                 )
             except Exception as e:
-                logger.error("Handling event %s failed: %s", event, e)
+                logger.error("Handling event %s failed with %s", event, type(e))
                 traceback.print_exception(e)
 
         self.context.reset()

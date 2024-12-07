@@ -22,12 +22,11 @@
 
 import sys
 from hashlib import md5
-from typing import Optional
+from typing import Optional, NewType
 
 import evdev
 
-
-DeviceHash = str
+DeviceHash = NewType("DeviceHash", str)
 
 
 def is_service() -> bool:
@@ -42,7 +41,7 @@ def get_device_hash(device: evdev.InputDevice) -> DeviceHash:
     # This hash needs to stay the same across reboots, and even stay the same when
     # moving the config to a new computer.
     s = str(device.capabilities(absinfo=False)) + device.name
-    return md5(s.encode()).hexdigest().lower()
+    return DeviceHash(md5(s.encode()).hexdigest().lower())
 
 
 def get_evdev_constant_name(type_: Optional[int], code: Optional[int], *_) -> str:

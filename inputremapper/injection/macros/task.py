@@ -34,6 +34,7 @@ from inputremapper.injection.macros.macro import Macro, InjectEventCallback
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
+    from inputremapper.injection.mapping_handlers.mapping_handler import EventListener
     from inputremapper.injection.macros.raw_value import RawValue
     from inputremapper.injection.context import Context
     from inputremapper.configs.mapping import Mapping
@@ -65,6 +66,8 @@ class Task:
         self.mapping = mapping
         self.child_macros = []
 
+        self._validate_argument_configs()
+
         self.arguments = {
             argument_config.name: Argument(argument_config, mapping)
             for argument_config in self.argument_configs
@@ -87,6 +90,21 @@ class Task:
         Call the callback with the type, code and value that should be injected.
         """
         raise NotImplementedError()
+
+    def add_event_listener(self, listener: EventListener) -> None:
+        """Listeners get each event from the source device.
+
+        After all listeners are done, the event will go into the mapping handlers.
+
+        Make sure to remove your event_listener once you are done.
+        """
+        # The context will be there when the macro is parsed by the service
+        assert self.context is not None
+        self.context.listeners.add(listener)
+
+    def remove_event_listener(self, listener: EventListener) -> None:
+        assert self.context is not None
+        self.context.listeners.remove(listener)
 
     @classmethod
     def get_macro_argument_names(cls):
@@ -213,3 +231,18 @@ class Task:
         # This shouldn't be possible, the parser should have ensured things are valid
         # already.
         raise MacroError(f"Could not initialize argument {argument.name}")
+
+    def _validate_argument_configs(self):
+        # Might help during development
+        positions = set()
+        names = set()
+        for argument_config in self.argument_configs:
+            position = argument_config.position
+            if position in positions:
+                raise MacroError(f"Duplicate position {positions} in ArgumentConfig")
+            positions.add(position)
+
+            name = argument_config.name
+            if name in names:
+                raise MacroError(f"Duplicate name {name} in ArgumentConfig")
+            names.add(name)

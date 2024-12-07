@@ -149,6 +149,15 @@ key(KP_Enter).key(key_UP).wait(150).
 modify(Alt_L, key(tab))
 ```
 
+## Home Row Mods
+
+See https://precondition.github.io/home-row-mods#home-row-mods-order
+
+- a: `mod_tap(a, Super_L)`
+- s: `mod_tap(s, Alt_L)`
+- d: `mod_tap(d, Shift_L)`
+- f: `mod_tap(f, Control_L)`
+
 ## Emitting Unavailable Symbols
 
 For example Japanese letters without overwriting any existing key
