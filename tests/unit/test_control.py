@@ -24,7 +24,7 @@ import collections
 import os
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from inputremapper.bin.input_remapper_control import InputRemapperControlBin
 from inputremapper.configs.global_config import GlobalConfig
@@ -37,7 +37,6 @@ from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp
-
 
 options = collections.namedtuple(
     "options",
@@ -289,6 +288,24 @@ class TestControl(unittest.TestCase):
         )
         self.assertEqual(len(stop_all_history), 1)
         self.assertEqual(stop_all_history[0], ())
+
+    @patch.object(Daemon, "quit")
+    def test_quit(self, quit_mock: MagicMock) -> None:
+        group = groups.find(key="Foo Device 2")
+        assert group is not None
+        preset = "preset9"
+
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
+        self.input_remapper_control.set_daemon(daemon)
+
+        self.input_remapper_control.communicate(
+            command="quit",
+            config_dir=None,
+            preset=preset,
+            device=group.paths[0],
+        )
+
+        quit_mock.assert_called_once()
 
     def test_config_not_found(self):
         key = "Foo Device 2"
