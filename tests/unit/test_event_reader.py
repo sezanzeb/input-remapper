@@ -19,7 +19,10 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+import multiprocessing
+import os
 import unittest
+from unittest.mock import patch, MagicMock
 
 import evdev
 from evdev.ecodes import (
@@ -34,12 +37,14 @@ from evdev.ecodes import (
     REL_Y,
     REL_HWHEEL_HI_RES,
     REL_WHEEL_HI_RES,
+    ecodes,
+    KEY_T,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
@@ -249,3 +254,71 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
                 (EV_KEY, code_a, 0),
             ],
         )
+
+    @patch.object(os, "system")
+    @patch.object(Context, "get_forward_uinput", new=MagicMock())
+    @patch.object(multiprocessing, "parent_process")
+    async def test_panic(
+        self,
+        parent_process: MagicMock,
+        system: MagicMock,
+    ):
+        """Triggers then because the joystick events value is too low."""
+        keyboard_source = evdev.InputDevice(fixtures.bar_device.path)
+        context, _ = await self.setup(keyboard_source, self.preset)
+
+        # typo
+        for letter in "inputremapperpanicquia":
+            keyboard_source.push_events(
+                [InputEvent.key(ecodes[f"KEY_{letter.upper()}"], 1)]
+            )
+            await asyncio.sleep(0.01)
+        system.assert_not_called()
+
+        # sending the correct key won't fix it, you'll need to start over
+        keyboard_source.push_events([InputEvent.key(KEY_T, 1)])
+        await asyncio.sleep(0.01)
+        system.assert_not_called()
+
+        # not complete
+        for letter in "inputremapperpanicqui":
+            keyboard_source.push_events(
+                [InputEvent.key(ecodes[f"KEY_{letter.upper()}"], 1)]
+            )
+            await asyncio.sleep(0.01)
+        system.assert_not_called()
+        # now it should stop
+        keyboard_source.push_events([InputEvent.key(KEY_T, 1)])
+        await asyncio.sleep(0.01)
+
+        system.assert_called_once_with("input-remapper-control --command quit &")
+        parent_process.assert_not_called()
+
+        # Since os.system is patched, it won't do anything. Therefore, after a second,
+        # it will try to terminate
+        await asyncio.sleep(1)
+        parent_process.assert_called_once()
+        parent_process().terminate.assert_called_once()
+
+        # After another second it will resort to sending SIGKILL
+        await asyncio.sleep(1)
+        system.assert_called_with("pkill -f -9 input-remapper-service")
+
+    @patch.object(os, "system")
+    @patch.object(Context, "get_forward_uinput", new=MagicMock())
+    @patch.object(multiprocessing, "parent_process", new=MagicMock())
+    async def test_panic_only_linux_constants(self, system: MagicMock):
+        # remove the xmodmap mappings of i->23. It should fall back to KEY_I->23
+        keyboard_layout.clear()
+        keyboard_layout._use_linux_evdev_symbols()
+
+        keyboard_source = evdev.InputDevice(fixtures.bar_device.path)
+        context, _ = await self.setup(keyboard_source, self.preset)
+
+        for letter in "inputremapperpanicquit":
+            keyboard_source.push_events(
+                [InputEvent.key(ecodes[f"KEY_{letter.upper()}"], 1)]
+            )
+            await asyncio.sleep(0.01)
+
+        system.assert_called_once_with("input-remapper-control --command quit &")

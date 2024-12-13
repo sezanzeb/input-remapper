@@ -19,6 +19,10 @@ To quickly restart input-remapper without pkexec prompts, you can use
 sudo pkill -f input-remapper && sudo input-remapper-reader-service -d & sudo input-remapper-service -d & input-remapper-gtk -d
 ```
 
+To stop an ongoing broken injection, you can try to type `inputremapperpanicquit` if
+you can't control your terminal
+anymore.
+
 Linting
 -------
 
@@ -140,7 +144,7 @@ xgettext --keyword=_ -L Python --sort-output -jo po/input-remapper.pot inputrema
 
 This is the template file that you can copy to fill in the translations. Also create a
 corresponding symlink, like `ln -s it_IT.po it.po`, because some environments expect
-different names apparently. See https://github.com/sezanzeb/input-remapper/tree/main/po
+different names, apparently. See https://github.com/sezanzeb/input-remapper/tree/main/po
 for examples.
 
 Architecture

@@ -95,6 +95,7 @@ class Parser:
         """Figure out if this is a macro."""
         if not isinstance(output, str):
             return False
+
         if "+" in output.strip():
             # for example "a + b"
             return True
