@@ -19,7 +19,7 @@ from tests.lib.fixtures import fixtures
 from tests.lib.patches import InputDevice
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
-from tests.unit.test_macros import MacroTestBase, DummyMapping
+from tests.unit.test_macros.macro_test_base import MacroTestBase, DummyMapping
 
 
 @test_setup
