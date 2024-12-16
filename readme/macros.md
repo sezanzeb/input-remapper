@@ -151,7 +151,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Moves the mouse cursor
 > 
-> If `acceleration` is provided then the cursor will accelerate from zero to a maximum speed of `speed`. 
+> If `acceleration` is provided then the cursor will accelerate from zero to a maximum speed of `speed`.
 >
 > ```ts
 > mouse(direction: str, speed: int, acceleration: float | None)
@@ -183,7 +183,9 @@ Bear in mind that anti-cheat software might detect macros in games.
 ### event
 
 > Writes an event. Examples for `type`, `code` and `value` can be found via the
-> `sudo evtest` command
+> `sudo evtest` command. Also check out [input-event-codes.h](https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h).
+> `EV_KEY` for keys, `EV_REL` for mouse movements, `EV_ABS` for gamepad events among
+> others.
 >
 > ```ts
 > event(type: str | int, code: str | int, value: int)
@@ -193,6 +195,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 >
 > ```ts
 > event(EV_KEY, KEY_A, 1)
+> event(EV_REL, REL_X, -10)
 > event(2, 8, 1)
 > ```
 
