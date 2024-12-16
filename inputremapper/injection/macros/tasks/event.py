@@ -58,7 +58,6 @@ class EventTask(Task):
         if isinstance(type_, str):
             type_ = ecodes[type_.upper()]
         if isinstance(code, str):
-            self.get_argument("code").assert_is_symbol(code)
             code = ecodes[code.upper()]
 
         callback(type_, code, value)

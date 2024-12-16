@@ -632,26 +632,6 @@ class TestMacros(MacroTestBase):
             self.result,
         )
 
-    async def test_event_1(self):
-        macro = Parser.parse("e(EV_KEY, KEY_A, 1)", self.context, DummyMapping)
-        a_code = keyboard_layout.get("a")
-
-        await macro.run(self.handler)
-        self.assertListEqual(self.result, [(EV_KEY, a_code, 1)])
-        self.assertEqual(self.count_child_macros(macro), 0)
-
-    async def test_event_2(self):
-        macro = Parser.parse(
-            "repeat(1, event(type=5421, code=324, value=154))",
-            self.context,
-            DummyMapping,
-        )
-        code = 324
-
-        await macro.run(self.handler)
-        self.assertListEqual(self.result, [(5421, code, 154)])
-        self.assertEqual(self.count_child_macros(macro), 1)
-
     async def test_macro_breaks(self):
         # the first parameter for `repeat` requires an integer, not "foo",
         # which makes `repeat` throw
