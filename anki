@@ -1,0 +1,11 @@
+8BitDo Zero 2	Initial Keybindings	Suggested Remapped Keys	Anki Function for Suggested Remap
+Up arrow	c	d	Decks
+Down arrow	d	a	Add
+Left arrow	e	s	Edit card
+Right arrow	f	KEY_SPACE	Show answer
+A	g	4	“Easy”
+X	h	1	“Again”
+Y	i	2	“Hard”
+B	j	3	“Good”
+L (back)	k	Shift_L+F	Open next AMBOSS pop-up
+R (back)	m	Shift_L+Escape	Close AMBOSS pop-up
