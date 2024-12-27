@@ -71,8 +71,9 @@ from inputremapper.configs.validation_errors import (
     OutputSymbolVariantError,
     MacroButTypeOrCodeSetError,
     SymbolAndCodeMismatchError,
-    WrongOutputTypeForButtonError,
+    WrongOutputTypeForKeyError,
     MissingOutputAxisError,
+    MissingMacroOrKeyError,
 )
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
@@ -323,10 +324,10 @@ class UIMapping(BaseModel):
         output_symbol = values.get("output_symbol")
 
         if output_type is not None and output_code is not None and not output_symbol:
-            values["mapping_type"] = "analog"
+            values["mapping_type"] = MappingType.ANALOG.value
 
         if output_type is None and output_code is None and output_symbol:
-            values["mapping_type"] = "key_macro"
+            values["mapping_type"] = MappingType.KEY_MACRO.value
 
         return values
 
@@ -467,10 +468,14 @@ class Mapping(UIMapping):
         use_as_analog = analog_input_config is not None
 
         output_type = values.get("output_type")
+        mapping_type = values.get("mapping_type")
         output_symbol = values.get("output_symbol")
 
-        if not use_as_analog and not output_symbol and output_type != EV_KEY:
-            raise WrongOutputTypeForButtonError()
+        if not use_as_analog and not mapping_type == MappingType.KEY_MACRO.value:
+            raise WrongOutputTypeForKeyError()
+
+        if not use_as_analog and not output_symbol:
+            raise MissingMacroOrKeyError()
 
         if (
             use_as_analog

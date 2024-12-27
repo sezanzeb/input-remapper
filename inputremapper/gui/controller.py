@@ -44,8 +44,9 @@ from inputremapper.configs.mapping import (
     MacroButTypeOrCodeSetError,
     SymbolAndCodeMismatchError,
     MissingOutputAxisError,
-    WrongOutputTypeForButtonError,
+    WrongOutputTypeForKeyError,
     OutputSymbolVariantError,
+    MappingType,
 )
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.validation_errors import pydantify
@@ -82,7 +83,11 @@ MAPPING_DEFAULTS = {"target_uinput": "keyboard"}
 class Controller:
     """Implements the behaviour of the gui."""
 
-    def __init__(self, message_broker: MessageBroker, data_manager: DataManager):
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        data_manager: DataManager,
+    ) -> None:
         self.message_broker = message_broker
         self.data_manager = data_manager
         self.gui: Optional[UserInterface] = None
@@ -164,7 +169,6 @@ class Controller:
 
             position = mapping.format_name()
             error_strings = self._get_ui_error_strings(mapping)
-            tooltip = ""
             if len(error_strings) == 0:
                 # shouldn't be possible to get to this point
                 logger.error("Expected an error")
@@ -179,18 +183,21 @@ class Controller:
                 msg = f'"{position}": {error_strings[0]}'
                 tooltip = error_strings[0]
 
-            return msg, tooltip
+            return msg.replace("\n", " "), tooltip
 
         return None
 
-    def _publish_mapping_errors_as_status_msg(self, *__):
+    def _publish_mapping_errors_as_status_msg(self, *__) -> None:
         """Send mapping ValidationErrors to the MessageBroker."""
-        msg, tooltip = self._format_status_bar_validation_errors()
+        validation_result = self._format_status_bar_validation_errors()
+
+        if validation_result is None:
+            return
 
         self.show_status(
             CTX_MAPPING,
-            msg.replace("\n", " "),
-            tooltip,
+            validation_result[0],
+            validation_result[1],
         )
 
     @staticmethod
@@ -233,7 +240,7 @@ class Controller:
                 )
             return error_message
 
-        if pydantify(WrongOutputTypeForButtonError) in error_type:
+        if pydantify(WrongOutputTypeForKeyError) in error_type:
             error_message = _(
                 "The input specifies a button, but the output type is not "
                 f'"{OutputTypeNames.key_or_macro}".'
@@ -776,7 +783,7 @@ class Controller:
         if changes["mapping_type"] == mapping.mapping_type:
             return changes
 
-        if changes["mapping_type"] == "analog":
+        if changes["mapping_type"] == MappingType.ANALOG.value:
             msg = _("You are about to change the mapping to analog.")
             if mapping.output_symbol:
                 msg += _('\nThis will remove "{}" ' "from the text input!").format(
@@ -818,7 +825,7 @@ class Controller:
             else:
                 return None
 
-        if changes["mapping_type"] == "key_macro":
+        if changes["mapping_type"] == MappingType.KEY_MACRO.value:
             try:
                 analog_input = tuple(
                     filter(lambda i: i.defines_analog_input, mapping.input_combination)

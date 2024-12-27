@@ -41,7 +41,7 @@ from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout, XKB_KEYCODE_OFFSET
-from inputremapper.configs.mapping import MappingData
+from inputremapper.configs.mapping import MappingData, MappingType
 from inputremapper.groups import DeviceType
 from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.controller import Controller
@@ -1037,7 +1037,7 @@ class KeyAxisStackSwitcher:
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
 
     def _set_active(self, mapping_type: Literal["key_macro", "analog"]):
-        if mapping_type == "analog":
+        if mapping_type == MappingType.ANALOG.value:
             self._stack.set_visible_child_name(OutputTypeNames.analog_axis)
             active = self._analog_toggle
             inactive = self._key_macro_toggle
@@ -1053,11 +1053,11 @@ class KeyAxisStackSwitcher:
 
     def _on_mapping_message(self, mapping: MappingData):
         # fist check the actual mapping
-        if mapping.mapping_type == "analog":
-            self._set_active("analog")
+        if mapping.mapping_type == MappingType.ANALOG.value:
+            self._set_active(MappingType.ANALOG.value)
 
-        if mapping.mapping_type == "key_macro":
-            self._set_active("key_macro")
+        if mapping.mapping_type == MappingType.KEY_MACRO.value:
+            self._set_active(MappingType.KEY_MACRO.value)
 
     def _on_gtk_toggle(self, btn: Gtk.ToggleButton):
         # get_active returns the new toggle state already
@@ -1070,9 +1070,9 @@ class KeyAxisStackSwitcher:
             return
 
         if btn is self._key_macro_toggle:
-            self._controller.update_mapping(mapping_type="key_macro")
+            self._controller.update_mapping(mapping_type=MappingType.KEY_MACRO.value)
         else:
-            self._controller.update_mapping(mapping_type="analog")
+            self._controller.update_mapping(mapping_type=MappingType.ANALOG.value)
 
 
 class TransformationDrawArea:
