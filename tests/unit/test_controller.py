@@ -999,7 +999,7 @@ class TestController(unittest.TestCase):
             calls[-1],
             StatusData(
                 CTX_APPLY,
-                _("Failed to apply preset %s") % self.data_manager.active_preset.name,
+                _('Failed to apply preset "%s"') % self.data_manager.active_preset.name,
             ),
         )
 
