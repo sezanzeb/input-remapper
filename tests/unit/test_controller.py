@@ -50,7 +50,7 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
-from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
+from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.configs.mapping import UIMapping, MappingData, Mapping
 from tests.lib.spy import spy
 from tests.lib.patches import FakeDaemonProxy
@@ -1048,17 +1048,17 @@ class TestController(unittest.TestCase):
 
         self.controller.start_injecting()
         gtk_iteration(50)
-        self.assertEqual(calls[-1].msg, _("Applied preset %s") % "preset2")
+        self.assertEqual(calls[-1].msg, _('Applied preset "%s"') % "preset2")
 
-        mock.return_value = InjectorState.FAILED
+        mock.return_value = InjectorState.ERROR
         self.controller.start_injecting()
         gtk_iteration(50)
-        self.assertEqual(calls[-1].msg, _("Failed to apply preset %s") % "preset2")
+        self.assertEqual(calls[-1].msg, _('Error applying preset "%s"') % "preset2")
 
         mock.return_value = InjectorState.NO_GRAB
         self.controller.start_injecting()
         gtk_iteration(50)
-        self.assertEqual(calls[-1].msg, "The device was not grabbed")
+        self.assertEqual(calls[-1].msg, _('Failed to apply preset "%s"') % "preset2")
 
         mock.return_value = InjectorState.UPGRADE_EVDEV
         self.controller.start_injecting()

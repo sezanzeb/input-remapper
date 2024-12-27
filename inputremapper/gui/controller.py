@@ -658,7 +658,7 @@ class Controller:
             self.message_broker.unsubscribe(self.show_injector_result)
             self.show_status(
                 CTX_APPLY,
-                _("Failed to apply preset %s") % self.data_manager.active_preset.name,
+                _('Failed to apply preset "%s"') % self.data_manager.active_preset.name,
             )
 
     def show_injector_result(self, msg: InjectorStateMessage):
@@ -667,7 +667,7 @@ class Controller:
         state = msg.state
 
         def running():
-            msg = _("Applied preset %s") % self.data_manager.active_preset.name
+            msg = _('Applied preset "%s"') % self.data_manager.active_preset.name
             if self.data_manager.active_preset.dangerously_mapped_btn_left():
                 msg += _(", CTRL + DEL to stop")
             self.show_status(CTX_APPLY, msg)
@@ -697,10 +697,10 @@ class Controller:
         assert self.data_manager.active_preset  # make mypy happy
         state_calls: Dict[InjectorState, Callable] = {
             InjectorState.RUNNING: running,
-            InjectorState.FAILED: partial(
+            InjectorState.ERROR: partial(
                 self.show_status,
                 CTX_ERROR,
-                _('Failed to apply preset "%s"') % self.data_manager.active_preset.name,
+                _('Error applying preset "%s"') % self.data_manager.active_preset.name,
             ),
             InjectorState.NO_GRAB: no_grab,
             InjectorState.UPGRADE_EVDEV: partial(
