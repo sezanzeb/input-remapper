@@ -242,7 +242,7 @@ class Controller:
 
         if pydantify(WrongMappingTypeForKeyError) in error_type:
             error_message = _(
-                "The input specifies a button, but the output type is not "
+                "The input specifies a key, but the output type is not "
                 f'"{OutputTypeNames.key_or_macro}".'
             )
 
