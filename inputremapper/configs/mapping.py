@@ -34,6 +34,8 @@ from evdev.ecodes import (
 )
 from packaging import version
 
+from inputremapper.logging.logger import logger
+
 try:
     from pydantic.v1 import (
         BaseModel,
@@ -71,7 +73,7 @@ from inputremapper.configs.validation_errors import (
     OutputSymbolVariantError,
     MacroButTypeOrCodeSetError,
     SymbolAndCodeMismatchError,
-    WrongOutputTypeForKeyError,
+    WrongMappingTypeForKeyError,
     MissingOutputAxisError,
     MissingMacroOrKeyError,
 )
@@ -153,7 +155,9 @@ class UIMapping(BaseModel):
     target_uinput: Optional[Union[str, KnownUinput]] = None
 
     # Either `output_symbol` or `output_type` and `output_code` is required
+    # Only set if output is "Key or Macro":
     output_symbol: Optional[str] = None  # The symbol or macro string if applicable
+    # "Analog Axis" or if preset edited manually to inject a code instead of a symbol:
     output_type: Optional[int] = None  # The event type of the mapped event
     output_code: Optional[int] = None  # The event code of the mapped event
 
@@ -323,10 +327,19 @@ class UIMapping(BaseModel):
         output_code = values.get("output_code")
         output_symbol = values.get("output_symbol")
 
-        if output_type is not None and output_code is not None and not output_symbol:
+        if output_type is not None and output_symbol is not None:
+            # This is currently only possible when someone edits the preset file by
+            # hand. A key-output mapping without an output_symbol, but type and code
+            # instead, is valid as well.
+            logger.debug("Both output_type and output_symbol are set")
+
+        if output_type != EV_KEY and output_code is not None and not output_symbol:
             values["mapping_type"] = MappingType.ANALOG.value
 
         if output_type is None and output_code is None and output_symbol:
+            values["mapping_type"] = MappingType.KEY_MACRO.value
+
+        if output_type == EV_KEY:
             values["mapping_type"] = MappingType.KEY_MACRO.value
 
         return values
@@ -464,21 +477,23 @@ class Mapping(UIMapping):
         And vice versa."""
         assert isinstance(values.get("input_combination"), InputCombination)
         combination: InputCombination = values["input_combination"]
-        analog_input_config = combination.find_analog_input_config()
-        use_as_analog = analog_input_config is not None
 
+        analog_input_config = combination.find_analog_input_config()
+        defines_analog_input = analog_input_config is not None
         output_type = values.get("output_type")
+        output_code = values.get("output_code")
         mapping_type = values.get("mapping_type")
         output_symbol = values.get("output_symbol")
+        output_key_set = output_symbol or (output_type == EV_KEY and output_code)
 
-        if not use_as_analog and not mapping_type == MappingType.KEY_MACRO.value:
-            raise WrongOutputTypeForKeyError()
+        if not defines_analog_input and mapping_type != MappingType.KEY_MACRO.value:
+            raise WrongMappingTypeForKeyError()
 
-        if not use_as_analog and not output_symbol:
+        if not defines_analog_input and not output_key_set:
             raise MissingMacroOrKeyError()
 
         if (
-            use_as_analog
+            defines_analog_input
             and output_type not in (EV_ABS, EV_REL)
             and output_symbol != DISABLE_NAME
         ):

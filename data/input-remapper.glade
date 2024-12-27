@@ -1798,7 +1798,7 @@ Macros allow multiple characters to be written with a single key-press. Informat
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Map this input to an Analog Axis</property>
+                <property name="tooltip-text" translatable="yes">Map this input to an Analog Axis. Only possible for analog inputs and mice.</property>
                 <property name="opacity">0.5</property>
                 <property name="margin-start">18</property>
                 <property name="hexpand">True</property>
