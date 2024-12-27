@@ -163,17 +163,27 @@ class Controller:
             self.message_broker.publish(StatusData(CTX_MAPPING))
             return None
 
-        for mapping in self.data_manager.active_preset:
-            if not mapping.get_error():
+        mappings = list(self.data_manager.active_preset)
+
+        # Move the selected (active) mapping to the front, so that it is checked first.
+        active_mapping = self.data_manager.active_mapping
+        if active_mapping is not None:
+            mappings.remove(active_mapping)
+            mappings.insert(0, active_mapping)
+
+        for mapping in mappings:
+            if not mapping.has_input_defined():
+                # Empty mapping, nothing recorded yet so nothing can be configured,
+                # therefore there isn't anything to validate.
                 continue
 
             position = mapping.format_name()
             error_strings = self._get_ui_error_strings(mapping)
+
             if len(error_strings) == 0:
-                # shouldn't be possible to get to this point
-                logger.error("Expected an error")
-                return None
-            elif len(error_strings) > 1:
+                continue
+
+            if len(error_strings) > 1:
                 msg = _('%d Mapping errors at "%s", hover for info') % (
                     len(error_strings),
                     position,
@@ -661,12 +671,12 @@ class Controller:
                 _('Failed to apply preset "%s"') % self.data_manager.active_preset.name,
             )
 
-    def show_injector_result(self, msg: InjectorStateMessage):
+    def show_injector_result(self, msg: InjectorStateMessage) -> None:
         """Show if the injection was successfully started."""
         self.message_broker.unsubscribe(self.show_injector_result)
         state = msg.state
 
-        def running():
+        def running() -> None:
             msg = _('Applied preset "%s"') % self.data_manager.active_preset.name
             if self.data_manager.active_preset.dangerously_mapped_btn_left():
                 msg += _(", CTRL + DEL to stop")
@@ -675,14 +685,13 @@ class Controller:
                 'Group "%s" is currently mapped', self.data_manager.active_group.key
             )
 
-        def no_grab():
+        def no_grab() -> None:
             msg = (
                 _('Failed to apply preset "%s"') % self.data_manager.active_preset.name
             )
             tooltip = (
-                "Your preset might contain errors, or "
-                "your preset doesn't contain anything that is sent by the "
-                "device or another device is already grabbing it",
+                "Maybe your preset doesn't contain anything that is sent by the "
+                "device or another device is already grabbing it"
             )
 
             # InjectorState.NO_GRAB also happens when all mappings have validation

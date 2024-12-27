@@ -486,6 +486,10 @@ class Mapping(UIMapping):
         output_symbol = values.get("output_symbol")
         output_key_set = output_symbol or (output_type == EV_KEY and output_code)
 
+        if mapping_type is None:
+            # Empty mapping most likely
+            return values
+
         if not defines_analog_input and mapping_type != MappingType.KEY_MACRO.value:
             raise WrongMappingTypeForKeyError()
 
