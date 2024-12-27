@@ -97,7 +97,7 @@ class SymbolAndCodeMismatchError(ValueError):
         )
 
 
-class MissingMacroOrKeyError(ValueError):
+class WrongOutputTypeForButtonError(ValueError):
     def __init__(self):
         super().__init__("missing macro or key")
 

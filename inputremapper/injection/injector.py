@@ -409,8 +409,8 @@ class Injector(multiprocessing.Process):
 
         self._devices = self.group.get_devices()
 
-        # InputConfigs may not contain the origin_hash information, this will try to make a
-        # good guess if the origin_hash information is missing or invalid.
+        # InputConfigs may not contain the origin_hash information, this will try to
+        # make a good guess if the origin_hash information is missing or invalid.
         self._update_preset()
 
         # grab devices as early as possible. If events appear that won't get

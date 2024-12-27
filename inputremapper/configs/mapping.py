@@ -71,7 +71,7 @@ from inputremapper.configs.validation_errors import (
     OutputSymbolVariantError,
     MacroButTypeOrCodeSetError,
     SymbolAndCodeMismatchError,
-    MissingMacroOrKeyError,
+    WrongOutputTypeForButtonError,
     MissingOutputAxisError,
 )
 from inputremapper.gui.gettext import _
@@ -470,7 +470,7 @@ class Mapping(UIMapping):
         output_symbol = values.get("output_symbol")
 
         if not use_as_analog and not output_symbol and output_type != EV_KEY:
-            raise MissingMacroOrKeyError()
+            raise WrongOutputTypeForButtonError()
 
         if (
             use_as_analog

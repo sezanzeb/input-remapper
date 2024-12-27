@@ -31,6 +31,7 @@ from typing import (
     Callable,
     List,
     Any,
+    Tuple,
 )
 
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
@@ -43,12 +44,13 @@ from inputremapper.configs.mapping import (
     MacroButTypeOrCodeSetError,
     SymbolAndCodeMismatchError,
     MissingOutputAxisError,
-    MissingMacroOrKeyError,
+    WrongOutputTypeForButtonError,
     OutputSymbolVariantError,
 )
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.validation_errors import pydantify
 from inputremapper.exceptions import DataManagementError
+from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
@@ -148,14 +150,13 @@ class Controller:
         combination = self._auto_use_as_analog(data.combination)
         self.update_combination(combination)
 
-    def _publish_mapping_errors_as_status_msg(self, *__):
-        """Send mapping ValidationErrors to the MessageBroker."""
+    def _format_status_bar_validation_errors(self) -> Optional[Tuple[str, str]]:
         if not self.data_manager.active_preset:
-            return
+            return None
 
         if self.data_manager.active_preset.is_valid():
             self.message_broker.publish(StatusData(CTX_MAPPING))
-            return
+            return None
 
         for mapping in self.data_manager.active_preset:
             if not mapping.get_error():
@@ -167,7 +168,7 @@ class Controller:
             if len(error_strings) == 0:
                 # shouldn't be possible to get to this point
                 logger.error("Expected an error")
-                return
+                return None
             elif len(error_strings) > 1:
                 msg = _('%d Mapping errors at "%s", hover for info') % (
                     len(error_strings),
@@ -178,11 +179,19 @@ class Controller:
                 msg = f'"{position}": {error_strings[0]}'
                 tooltip = error_strings[0]
 
-            self.show_status(
-                CTX_MAPPING,
-                msg.replace("\n", " "),
-                tooltip,
-            )
+            return msg, tooltip
+
+        return None
+
+    def _publish_mapping_errors_as_status_msg(self, *__):
+        """Send mapping ValidationErrors to the MessageBroker."""
+        msg, tooltip = self._format_status_bar_validation_errors()
+
+        self.show_status(
+            CTX_MAPPING,
+            msg.replace("\n", " "),
+            tooltip,
+        )
 
     @staticmethod
     def format_error_message(mapping, error_type, error_message: str) -> str:
@@ -224,19 +233,18 @@ class Controller:
                 )
             return error_message
 
-        if (
-            pydantify(MissingMacroOrKeyError) in error_type
-            and mapping.output_symbol is None
-        ):
+        if pydantify(WrongOutputTypeForButtonError) in error_type:
             error_message = _(
-                "The input specifies a key or macro input, but no macro or key is "
-                "programmed."
+                "The input specifies a button, but the output type is not "
+                f'"{OutputTypeNames.key_or_macro}".'
             )
+
             if mapping.output_type in (EV_ABS, EV_REL):
                 error_message += _(
                     "\nIf you mean to create an analog axis mapping go to the "
                     'advanced input configuration and set an input to "Use as Analog".'
                 )
+
             return error_message
 
         return error_message
@@ -660,22 +668,34 @@ class Controller:
                 'Group "%s" is currently mapped', self.data_manager.active_group.key
             )
 
+        def no_grab():
+            msg = (
+                _('Failed to apply preset "%s"') % self.data_manager.active_preset.name
+            )
+            tooltip = (
+                "Your preset might contain errors, or "
+                "your preset doesn't contain anything that is sent by the "
+                "device or another device is already grabbing it",
+            )
+
+            # InjectorState.NO_GRAB also happens when all mappings have validation
+            # errors. In that case, we can show something more useful.
+            validation_result = self._format_status_bar_validation_errors()
+            if validation_result is not None:
+                msg = f"{msg}. {validation_result[0]}"
+                tooltip = validation_result[1]
+
+            self.show_status(CTX_ERROR, msg, tooltip)
+
         assert self.data_manager.active_preset  # make mypy happy
         state_calls: Dict[InjectorState, Callable] = {
             InjectorState.RUNNING: running,
             InjectorState.FAILED: partial(
                 self.show_status,
                 CTX_ERROR,
-                _("Failed to apply preset %s") % self.data_manager.active_preset.name,
+                _('Failed to apply preset "%s"') % self.data_manager.active_preset.name,
             ),
-            InjectorState.NO_GRAB: partial(
-                self.show_status,
-                CTX_ERROR,
-                "The device was not grabbed",
-                "Either another application is already grabbing it, "
-                "your preset doesn't contain anything that is sent by the "
-                "device or your preset contains errors",
-            ),
+            InjectorState.NO_GRAB: no_grab,
             InjectorState.UPGRADE_EVDEV: partial(
                 self.show_status,
                 CTX_ERROR,
@@ -712,7 +732,10 @@ class Controller:
             self.message_broker.unsubscribe(show_result)
 
     def show_status(
-        self, ctx_id: int, msg: Optional[str] = None, tooltip: Optional[str] = None
+        self,
+        ctx_id: int,
+        msg: Optional[str] = None,
+        tooltip: Optional[str] = None,
     ):
         """Send a status message to the ui to show it in the status-bar."""
         self.message_broker.publish(StatusData(ctx_id, msg, tooltip))

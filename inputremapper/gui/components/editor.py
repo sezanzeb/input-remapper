@@ -37,12 +37,13 @@ from evdev.ecodes import (
     BTN_EXTRA,
     BTN_SIDE,
 )
-
 from gi.repository import Gtk, GtkSource, Gdk
 
-from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.keyboard_layout import keyboard_layout, XKB_KEYCODE_OFFSET
+from inputremapper.configs.mapping import MappingData
 from inputremapper.groups import DeviceType
+from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
@@ -57,7 +58,6 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
-from inputremapper.configs.keyboard_layout import keyboard_layout, XKB_KEYCODE_OFFSET
 from inputremapper.utils import get_evdev_constant_name
 
 Capabilities = Dict[int, List]
@@ -1038,11 +1038,11 @@ class KeyAxisStackSwitcher:
 
     def _set_active(self, mapping_type: Literal["key_macro", "analog"]):
         if mapping_type == "analog":
-            self._stack.set_visible_child_name("Analog Axis")
+            self._stack.set_visible_child_name(OutputTypeNames.analog_axis)
             active = self._analog_toggle
             inactive = self._key_macro_toggle
         else:
-            self._stack.set_visible_child_name("Key or Macro")
+            self._stack.set_visible_child_name(OutputTypeNames.key_or_macro)
             active = self._key_macro_toggle
             inactive = self._analog_toggle
 
