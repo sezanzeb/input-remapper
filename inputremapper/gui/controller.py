@@ -41,15 +41,18 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     MappingData,
     UIMapping,
+    MappingType,
+)
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.validation_errors import (
+    pydantify,
+    MissingMacroOrKeyError,
     MacroButTypeOrCodeSetError,
     SymbolAndCodeMismatchError,
     MissingOutputAxisError,
     WrongMappingTypeForKeyError,
     OutputSymbolVariantError,
-    MappingType,
 )
-from inputremapper.configs.paths import PathUtils
-from inputremapper.configs.validation_errors import pydantify
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
@@ -263,6 +266,9 @@ class Controller:
                 )
 
             return error_message
+
+        if pydantify(MissingMacroOrKeyError) in error_type:
+            return _("Missing macro or key")
 
         return error_message
 
