@@ -107,7 +107,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             time.sleep(0.2)
             self.assertIn(
                 self.injector.get_state(),
-                (InjectorState.STOPPED, InjectorState.FAILED, InjectorState.NO_GRAB),
+                (InjectorState.STOPPED, InjectorState.ERROR, InjectorState.NO_GRAB),
             )
             self.injector = None
         evdev.InputDevice.grab = self.grab

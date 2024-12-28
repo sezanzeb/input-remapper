@@ -97,9 +97,14 @@ class SymbolAndCodeMismatchError(ValueError):
         )
 
 
+class WrongMappingTypeForKeyError(ValueError):
+    def __init__(self):
+        super().__init__(f"Wrong mapping_type for key input")
+
+
 class MissingMacroOrKeyError(ValueError):
     def __init__(self):
-        super().__init__("missing macro or key")
+        super().__init__("Missing macro or key")
 
 
 class MissingOutputAxisError(ValueError):

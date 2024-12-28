@@ -905,11 +905,12 @@ class TestCodeEditor(ComponentBaseTest):
 
         def focus():
             self.gui.grab_focus()
-            gtk_iteration(5)
+            # Do as many iterations as needed to make it work.
+            gtk_iteration(15)
 
         def unfocus():
             window.set_focus(None)
-            gtk_iteration(5)
+            gtk_iteration(15)
 
         # clears the input when we enter the editor widget
         focus()

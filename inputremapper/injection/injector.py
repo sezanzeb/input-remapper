@@ -62,7 +62,7 @@ class InjectorCommand(str, enum.Enum):
 class InjectorState(str, enum.Enum):
     UNKNOWN = "UNKNOWN"
     STARTING = "STARTING"
-    FAILED = "FAILED"
+    ERROR = "FAILED"
     RUNNING = "RUNNING"
     STOPPED = "STOPPED"
     NO_GRAB = "NO_GRAB"
@@ -174,7 +174,7 @@ class Injector(multiprocessing.Process):
             if state in (InjectorState.STARTING, InjectorState.RUNNING) and not alive:
                 # we thought it is running (maybe it was when get_state was previously),
                 # but the process is not alive. It probably crashed
-                state = InjectorState.FAILED
+                state = InjectorState.ERROR
                 logger.error("Injector was unexpectedly found stopped")
 
         logger.debug(
@@ -409,8 +409,8 @@ class Injector(multiprocessing.Process):
 
         self._devices = self.group.get_devices()
 
-        # InputConfigs may not contain the origin_hash information, this will try to make a
-        # good guess if the origin_hash information is missing or invalid.
+        # InputConfigs may not contain the origin_hash information, this will try to
+        # make a good guess if the origin_hash information is missing or invalid.
         self._update_preset()
 
         # grab devices as early as possible. If events appear that won't get

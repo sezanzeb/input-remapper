@@ -29,6 +29,7 @@ from evdev.ecodes import (
     REL_WHEEL,
     REL_WHEEL_HI_RES,
     KEY_1,
+    KEY_ESC,
 )
 
 try:
@@ -36,7 +37,7 @@ try:
 except ImportError:
     from pydantic import ValidationError
 
-from inputremapper.configs.mapping import Mapping, UIMapping
+from inputremapper.configs.mapping import Mapping, UIMapping, MappingType
 from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.gui.messages.message_broker import MessageType
@@ -185,19 +186,20 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         # missing output symbol
         del cfg["output_symbol"]
         test(**cfg)
-        cfg["output_code"] = 1
+        cfg["output_code"] = KEY_ESC
         test(**cfg)
-        cfg["output_type"] = 1
+        cfg["output_type"] = EV_KEY
         Mapping(**cfg)
 
-        # matching type, code and symbol
+        # matching type, code and symbol. This cannot be done via the ui, and requires
+        # manual editing of the preset file.
         a = keyboard_layout.get("a")
         cfg["output_code"] = a
         cfg["output_symbol"] = "a"
         cfg["output_type"] = EV_KEY
         Mapping(**cfg)
 
-        # macro + type and code
+        # macro
         cfg["output_symbol"] = "key(a)"
         test(**cfg)
         cfg["output_symbol"] = "a"
@@ -329,6 +331,30 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         test(**cfg)
         cfg["input_combination"] = [{"type": 3, "code": 1, "analog_threshold": -1}]
         test(**cfg)
+
+    def test_automatically_detects_mapping_type(self):
+        cfg = {
+            "input_combination": [{"type": 1, "code": 2}],
+            "target_uinput": "keyboard",
+            "output_symbol": "a",
+        }
+        self.assertEqual(Mapping(**cfg).mapping_type, MappingType.KEY_MACRO.value)
+
+        cfg = {
+            "input_combination": [{"type": 1, "code": 2}],
+            "target_uinput": "keyboard",
+            "output_type": EV_KEY,
+            "output_code": KEY_ESC,
+        }
+        self.assertEqual(Mapping(**cfg).mapping_type, MappingType.KEY_MACRO.value)
+
+        cfg = {
+            "input_combination": [{"type": EV_REL, "code": REL_X}],
+            "target_uinput": "keyboard",
+            "output_type": EV_REL,
+            "output_code": REL_X,
+        }
+        self.assertEqual(Mapping(**cfg).mapping_type, MappingType.ANALOG.value)
 
     def test_revalidate_at_assignment(self):
         cfg = {

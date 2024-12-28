@@ -31,6 +31,7 @@ from typing import (
     Callable,
     List,
     Any,
+    Tuple,
 )
 
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
@@ -40,15 +41,20 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     MappingData,
     UIMapping,
+    MappingType,
+)
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.validation_errors import (
+    pydantify,
+    MissingMacroOrKeyError,
     MacroButTypeOrCodeSetError,
     SymbolAndCodeMismatchError,
     MissingOutputAxisError,
-    MissingMacroOrKeyError,
+    WrongMappingTypeForKeyError,
     OutputSymbolVariantError,
 )
-from inputremapper.configs.paths import PathUtils
-from inputremapper.configs.validation_errors import pydantify
 from inputremapper.exceptions import DataManagementError
+from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
@@ -80,7 +86,11 @@ MAPPING_DEFAULTS = {"target_uinput": "keyboard"}
 class Controller:
     """Implements the behaviour of the gui."""
 
-    def __init__(self, message_broker: MessageBroker, data_manager: DataManager):
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        data_manager: DataManager,
+    ) -> None:
         self.message_broker = message_broker
         self.data_manager = data_manager
         self.gui: Optional[UserInterface] = None
@@ -148,27 +158,35 @@ class Controller:
         combination = self._auto_use_as_analog(data.combination)
         self.update_combination(combination)
 
-    def _publish_mapping_errors_as_status_msg(self, *__):
-        """Send mapping ValidationErrors to the MessageBroker."""
+    def _format_status_bar_validation_errors(self) -> Optional[Tuple[str, str]]:
         if not self.data_manager.active_preset:
-            return
+            return None
 
         if self.data_manager.active_preset.is_valid():
             self.message_broker.publish(StatusData(CTX_MAPPING))
-            return
+            return None
 
-        for mapping in self.data_manager.active_preset:
-            if not mapping.get_error():
+        mappings = list(self.data_manager.active_preset)
+
+        # Move the selected (active) mapping to the front, so that it is checked first.
+        active_mapping = self.data_manager.active_mapping
+        if active_mapping is not None:
+            mappings.remove(active_mapping)
+            mappings.insert(0, active_mapping)
+
+        for mapping in mappings:
+            if not mapping.has_input_defined():
+                # Empty mapping, nothing recorded yet so nothing can be configured,
+                # therefore there isn't anything to validate.
                 continue
 
             position = mapping.format_name()
             error_strings = self._get_ui_error_strings(mapping)
-            tooltip = ""
+
             if len(error_strings) == 0:
-                # shouldn't be possible to get to this point
-                logger.error("Expected an error")
-                return
-            elif len(error_strings) > 1:
+                continue
+
+            if len(error_strings) > 1:
                 msg = _('%d Mapping errors at "%s", hover for info') % (
                     len(error_strings),
                     position,
@@ -178,11 +196,22 @@ class Controller:
                 msg = f'"{position}": {error_strings[0]}'
                 tooltip = error_strings[0]
 
-            self.show_status(
-                CTX_MAPPING,
-                msg.replace("\n", " "),
-                tooltip,
-            )
+            return msg.replace("\n", " "), tooltip
+
+        return None
+
+    def _publish_mapping_errors_as_status_msg(self, *__) -> None:
+        """Send mapping ValidationErrors to the MessageBroker."""
+        validation_result = self._format_status_bar_validation_errors()
+
+        if validation_result is None:
+            return
+
+        self.show_status(
+            CTX_MAPPING,
+            validation_result[0],
+            validation_result[1],
+        )
 
     @staticmethod
     def format_error_message(mapping, error_type, error_message: str) -> str:
@@ -224,20 +253,22 @@ class Controller:
                 )
             return error_message
 
-        if (
-            pydantify(MissingMacroOrKeyError) in error_type
-            and mapping.output_symbol is None
-        ):
+        if pydantify(WrongMappingTypeForKeyError) in error_type:
             error_message = _(
-                "The input specifies a key or macro input, but no macro or key is "
-                "programmed."
+                "The input specifies a key, but the output type is not "
+                f'"{OutputTypeNames.key_or_macro}".'
             )
+
             if mapping.output_type in (EV_ABS, EV_REL):
                 error_message += _(
                     "\nIf you mean to create an analog axis mapping go to the "
                     'advanced input configuration and set an input to "Use as Analog".'
                 )
+
             return error_message
+
+        if pydantify(MissingMacroOrKeyError) in error_type:
+            return _("Missing macro or key")
 
         return error_message
 
@@ -643,16 +674,17 @@ class Controller:
             self.message_broker.unsubscribe(self.show_injector_result)
             self.show_status(
                 CTX_APPLY,
-                _("Failed to apply preset %s") % self.data_manager.active_preset.name,
+                _('Failed to apply preset "%s"') % self.data_manager.active_preset.name,
             )
 
-    def show_injector_result(self, msg: InjectorStateMessage):
+    def show_injector_result(self, msg: InjectorStateMessage) -> None:
         """Show if the injection was successfully started."""
         self.message_broker.unsubscribe(self.show_injector_result)
         state = msg.state
 
-        def running():
-            msg = _("Applied preset %s") % self.data_manager.active_preset.name
+        def running() -> None:
+            assert self.data_manager.active_preset is not None
+            msg = _('Applied preset "%s"') % self.data_manager.active_preset.name
             if self.data_manager.active_preset.dangerously_mapped_btn_left():
                 msg += _(", CTRL + DEL to stop")
             self.show_status(CTX_APPLY, msg)
@@ -660,22 +692,34 @@ class Controller:
                 'Group "%s" is currently mapped', self.data_manager.active_group.key
             )
 
+        def no_grab() -> None:
+            assert self.data_manager.active_preset is not None
+            msg = (
+                _('Failed to apply preset "%s"') % self.data_manager.active_preset.name
+            )
+            tooltip = (
+                "Maybe your preset doesn't contain anything that is sent by the "
+                "device or another device is already grabbing it"
+            )
+
+            # InjectorState.NO_GRAB also happens when all mappings have validation
+            # errors. In that case, we can show something more useful.
+            validation_result = self._format_status_bar_validation_errors()
+            if validation_result is not None:
+                msg = f"{msg}. {validation_result[0]}"
+                tooltip = validation_result[1]
+
+            self.show_status(CTX_ERROR, msg, tooltip)
+
         assert self.data_manager.active_preset  # make mypy happy
         state_calls: Dict[InjectorState, Callable] = {
             InjectorState.RUNNING: running,
-            InjectorState.FAILED: partial(
+            InjectorState.ERROR: partial(
                 self.show_status,
                 CTX_ERROR,
-                _("Failed to apply preset %s") % self.data_manager.active_preset.name,
+                _('Error applying preset "%s"') % self.data_manager.active_preset.name,
             ),
-            InjectorState.NO_GRAB: partial(
-                self.show_status,
-                CTX_ERROR,
-                "The device was not grabbed",
-                "Either another application is already grabbing it, "
-                "your preset doesn't contain anything that is sent by the "
-                "device or your preset contains errors",
-            ),
+            InjectorState.NO_GRAB: no_grab,
             InjectorState.UPGRADE_EVDEV: partial(
                 self.show_status,
                 CTX_ERROR,
@@ -712,7 +756,10 @@ class Controller:
             self.message_broker.unsubscribe(show_result)
 
     def show_status(
-        self, ctx_id: int, msg: Optional[str] = None, tooltip: Optional[str] = None
+        self,
+        ctx_id: int,
+        msg: Optional[str] = None,
+        tooltip: Optional[str] = None,
     ):
         """Send a status message to the ui to show it in the status-bar."""
         self.message_broker.publish(StatusData(ctx_id, msg, tooltip))
@@ -753,7 +800,7 @@ class Controller:
         if changes["mapping_type"] == mapping.mapping_type:
             return changes
 
-        if changes["mapping_type"] == "analog":
+        if changes["mapping_type"] == MappingType.ANALOG.value:
             msg = _("You are about to change the mapping to analog.")
             if mapping.output_symbol:
                 msg += _('\nThis will remove "{}" ' "from the text input!").format(
@@ -795,7 +842,7 @@ class Controller:
             else:
                 return None
 
-        if changes["mapping_type"] == "key_macro":
+        if changes["mapping_type"] == MappingType.KEY_MACRO.value:
             try:
                 analog_input = tuple(
                     filter(lambda i: i.defines_analog_input, mapping.input_combination)

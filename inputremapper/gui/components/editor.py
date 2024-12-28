@@ -37,12 +37,13 @@ from evdev.ecodes import (
     BTN_EXTRA,
     BTN_SIDE,
 )
-
 from gi.repository import Gtk, GtkSource, Gdk
 
-from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.keyboard_layout import keyboard_layout, XKB_KEYCODE_OFFSET
+from inputremapper.configs.mapping import MappingData, MappingType
 from inputremapper.groups import DeviceType
+from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
@@ -57,7 +58,6 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
-from inputremapper.configs.keyboard_layout import keyboard_layout, XKB_KEYCODE_OFFSET
 from inputremapper.utils import get_evdev_constant_name
 
 Capabilities = Dict[int, List]
@@ -1037,12 +1037,12 @@ class KeyAxisStackSwitcher:
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
 
     def _set_active(self, mapping_type: Literal["key_macro", "analog"]):
-        if mapping_type == "analog":
-            self._stack.set_visible_child_name("Analog Axis")
+        if mapping_type == MappingType.ANALOG.value:
+            self._stack.set_visible_child_name(OutputTypeNames.analog_axis)
             active = self._analog_toggle
             inactive = self._key_macro_toggle
         else:
-            self._stack.set_visible_child_name("Key or Macro")
+            self._stack.set_visible_child_name(OutputTypeNames.key_or_macro)
             active = self._key_macro_toggle
             inactive = self._analog_toggle
 
@@ -1053,11 +1053,11 @@ class KeyAxisStackSwitcher:
 
     def _on_mapping_message(self, mapping: MappingData):
         # fist check the actual mapping
-        if mapping.mapping_type == "analog":
-            self._set_active("analog")
+        if mapping.mapping_type == MappingType.ANALOG.value:
+            self._set_active(MappingType.ANALOG.value)
 
-        if mapping.mapping_type == "key_macro":
-            self._set_active("key_macro")
+        if mapping.mapping_type == MappingType.KEY_MACRO.value:
+            self._set_active(MappingType.KEY_MACRO.value)
 
     def _on_gtk_toggle(self, btn: Gtk.ToggleButton):
         # get_active returns the new toggle state already
@@ -1070,9 +1070,9 @@ class KeyAxisStackSwitcher:
             return
 
         if btn is self._key_macro_toggle:
-            self._controller.update_mapping(mapping_type="key_macro")
+            self._controller.update_mapping(mapping_type=MappingType.KEY_MACRO.value)
         else:
-            self._controller.update_mapping(mapping_type="analog")
+            self._controller.update_mapping(mapping_type=MappingType.ANALOG.value)
 
 
 class TransformationDrawArea:

@@ -570,7 +570,7 @@ class DataManager:
             self.do_when_injector_state(
                 {
                     InjectorState.RUNNING,
-                    InjectorState.FAILED,
+                    InjectorState.ERROR,
                     InjectorState.NO_GRAB,
                     InjectorState.UPGRADE_EVDEV,
                 },

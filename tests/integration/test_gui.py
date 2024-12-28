@@ -1489,40 +1489,56 @@ class TestGui(GuiTestBase):
         self.assertFalse(os.path.exists(preset_path))
 
     def test_check_for_unknown_symbols(self):
+        first_input = InputCombination([InputConfig(type=1, code=1)])
+        second_input = InputCombination([InputConfig(type=1, code=2)])
         status = self.user_interface.get("status_bar")
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
 
         self.controller.load_preset("preset1")
         self.throttle(20)
-        self.controller.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
+
+        # Switch to the first mapping, and change it
+        self.controller.load_mapping(first_input)
         gtk_iteration()
         self.controller.update_mapping(output_symbol="foo")
         gtk_iteration()
-        self.controller.load_mapping(InputCombination([InputConfig(type=1, code=2)]))
+
+        # Switch to the second mapping, and change it
+        self.controller.load_mapping(second_input)
         gtk_iteration()
         self.controller.update_mapping(output_symbol="qux")
         gtk_iteration()
 
+        # The tooltip should show the error of the currently selected mapping
         tooltip = status.get_tooltip_text().lower()
         self.assertIn("qux", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        # it will still save it though
+        # So switching to the other mapping changes the tooltip
+        self.controller.load_mapping(first_input)
+        gtk_iteration()
+        tooltip = status.get_tooltip_text().lower()
+        self.assertIn("foo", tooltip)
+
+        # It will still save it though
         with open(PathUtils.get_preset_path("Foo Device", "preset1")) as f:
             content = f.read()
             self.assertIn("qux", content)
             self.assertIn("foo", content)
 
+        # Fix the current active mapping.
+        # It should show the error of the other mapping now.
         self.controller.update_mapping(output_symbol="a")
         gtk_iteration()
         tooltip = status.get_tooltip_text().lower()
-        self.assertIn("foo", tooltip)
+        self.assertIn("qux", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        self.controller.load_mapping(InputCombination([InputConfig(type=1, code=1)]))
+        # Fix the other mapping as well. No tooltip should be shown afterward.
+        self.controller.load_mapping(second_input)
         gtk_iteration()
         self.controller.update_mapping(output_symbol="b")
         gtk_iteration()
@@ -1530,6 +1546,18 @@ class TestGui(GuiTestBase):
         self.assertIsNone(tooltip)
         self.assertFalse(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
+
+    def test_no_validation_tooltip_for_empty_mappings(self):
+        self.controller.load_preset("preset1")
+        self.throttle(20)
+
+        status = self.user_interface.get("status_bar")
+        self.assertIsNone(status.get_tooltip_text())
+
+        self.controller.create_mapping()
+        gtk_iteration()
+        self.assertTrue(self.controller.is_empty_mapping())
+        self.assertIsNone(status.get_tooltip_text())
 
     def test_check_macro_syntax(self):
         status = self.status_bar
@@ -1702,7 +1730,7 @@ class TestGui(GuiTestBase):
             self.assertFalse(error_icon.get_visible())
             wait()
             text = self.get_status_text()
-            self.assertIn("not grabbed", text)
+            self.assertIn("Failed to apply preset", text)
             self.assertTrue(error_icon.get_visible())
             self.assertNotEqual(
                 self.daemon.get_state("Foo Device 2"), InjectorState.RUNNING
