@@ -683,6 +683,7 @@ class Controller:
         state = msg.state
 
         def running() -> None:
+            assert self.data_manager.active_preset is not None
             msg = _('Applied preset "%s"') % self.data_manager.active_preset.name
             if self.data_manager.active_preset.dangerously_mapped_btn_left():
                 msg += _(", CTRL + DEL to stop")
@@ -692,6 +693,7 @@ class Controller:
             )
 
         def no_grab() -> None:
+            assert self.data_manager.active_preset is not None
             msg = (
                 _('Failed to apply preset "%s"') % self.data_manager.active_preset.name
             )
