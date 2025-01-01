@@ -347,18 +347,24 @@ class Injector(multiprocessing.Process):
             await frame_available.wait()
             frame_available.clear()
             msg = self._msg_pipe[0].recv()
-            if msg == InjectorCommand.CLOSE:
-                logger.debug("Received close signal")
-                self._stop_event.set()
-                # give the event pipeline some time to reset devices
-                # before shutting the loop down
-                await asyncio.sleep(0.1)
 
-                # stop the event loop and cause the process to reach its end
-                # cleanly. Using .terminate prevents coverage from working.
-                loop.stop()
-                self._msg_pipe[0].send(InjectorState.STOPPED)
+            if msg == InjectorCommand.CLOSE:
+                await self._close()
                 return
+
+    async def _close(self):
+        logger.debug("Received close signal")
+        self._stop_event.set()
+        # give the event pipeline some time to reset devices
+        # before shutting the loop down
+        await asyncio.sleep(0.1)
+
+        # stop the event loop and cause the process to reach its end
+        # cleanly. Using .terminate prevents coverage from working.
+        loop = asyncio.get_event_loop()
+        loop.stop()
+
+        self._msg_pipe[0].send(InjectorState.STOPPED)
 
     def _create_forwarding_device(self, source: evdev.InputDevice) -> evdev.UInput:
         # copy as much information as possible, because libinput uses the extra
