@@ -84,7 +84,6 @@ def quick_cleanup(log=True):
     from inputremapper.injection.macros.macro import macro_variables
     from inputremapper.configs.keyboard_layout import keyboard_layout
     from inputremapper.gui.utils import debounce_manager
-    from inputremapper.injection.global_uinputs import GlobalUInputs
 
     if log:
         logger.info("Quick cleanup...")

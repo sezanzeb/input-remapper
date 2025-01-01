@@ -16,8 +16,6 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Acts like a pressed key. All names that are available in regular mappings can be used
 > here.
 >
-> You don't have to use quotes around the symbol constants.
->
 > ```ts
 > key(symbol: str)
 > ```
@@ -135,7 +133,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 ### hold
 
-> Executes the child macro repeatedly as long as the key is pressed down.
+> Runs the child macro repeatedly as long as the input is pressed.
 >
 > ```ts
 > hold(macro: Macro)

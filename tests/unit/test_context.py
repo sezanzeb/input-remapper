@@ -19,6 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import unittest
+from unittest.mock import patch
 
 from evdev.ecodes import (
     EV_REL,
@@ -34,6 +35,7 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.context import Context
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.test_setup import test_setup
@@ -59,7 +61,7 @@ class TestContext(unittest.TestCase):
 
         preset.add(
             Mapping.from_combination(
-                InputCombination.from_tuples((1, 31)), "keyboard", "k(a)"
+                InputCombination.from_tuples((1, 31)), "keyboard", "key(a)"
             )
         )
         preset.add(
@@ -113,6 +115,27 @@ class TestContext(unittest.TestCase):
 
         # 7 unique input events in the preset
         self.assertEqual(7, len(context._handlers))
+
+    def test_reset(self):
+        global_uinputs = GlobalUInputs(UInput)
+        mapping_parser = MappingParser(global_uinputs)
+
+        preset = Preset()
+        preset.add(
+            Mapping.from_combination(
+                InputCombination.from_tuples((1, 31)),
+                "keyboard",
+                "key(a)",
+            )
+        )
+
+        context = Context(preset, {}, {}, mapping_parser)
+
+        self.assertEqual(1, len(context._handlers))
+
+        with patch.object(MacroHandler, "reset") as reset_mock:
+            context.reset()
+            reset_mock.assert_called_once()
 
 
 if __name__ == "__main__":

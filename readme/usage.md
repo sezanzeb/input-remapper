@@ -26,22 +26,10 @@ If you later want to modify the Input of your mapping you need to use the
 "Stop" button, so that the application can read your original input. 
 It would otherwise be invisible since the daemon maps it independently of the GUI.
 
-## Panic
-
-If input-remapper injected key-down events that never got released because of a bug or
-a problematic macro (like `key_down(Shift_L))`), or you made a macro that somehow causes
-other sorts of troubles, and you want to stop everything to regain control of your
-system, you can type
-
-```
-inputremapperpanicquit
-```
-
-on your keyboard, which kills the input-remapper-service process. This will remove the
-uinputs and thereby reset everything to normal (At least on Ubuntu/Plasma/Wayland).
-You'll have to restart the gui after this.
-
 ## Troubleshooting
+
+If your key is hanging due to a macro, unplug your device, and then plug it back in.
+This should reset the key.
 
 If stuff doesn't work, check the output of `input-remapper-gtk -d` and feel free
 to [open up an issue here](https://github.com/sezanzeb/input-remapper/issues/new).

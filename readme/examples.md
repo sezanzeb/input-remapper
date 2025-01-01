@@ -8,13 +8,15 @@ Examples for particular devices and/or use cases:
 - Modifiers `Alt_L` `Control_L` `Control_R` `Shift_L` `Shift_R`
 - Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE` ...
 - Multimedia keys `KEY_NEXTSONG` `KEY_PLAYPAUSE` `XF86AudioMicMute` ...
-- Mouse scroll `wheel(down, 10)` `wheel(up, 10)`
-- Mouse move `mouse(left, 1)` `mouse(right, 1)` `mouse(up, 1)` `mouse(down, 1)`
 
-## Quick Overview of Macros
+Mouse movements have to be performed by macros. See below.
+
+## Short Macro Examples
 
 - `key(BTN_LEFT)` a single mouse-click
 - `key(1).key(2)` 1, 2
+- `wheel(down, 10)` `wheel(up, 10)` Scroll while the input is pressed.
+- `mouse(left, 5)` `mouse(right, 2)` `mouse(up, 1)` `mouse(down, 3)` Move the cursor while the input is pressed.
 - `repeat(3, key(a).w(500))` a, a, a with 500ms pause
 - `modify(Control_L, key(a).key(x))` CTRL + a, CTRL + x
 - `key(1).hold(key(2)).key(3)` writes 1 2 2 ... 2 2 3 while the key is pressed

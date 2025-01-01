@@ -19,7 +19,7 @@
 
 import asyncio
 import traceback
-from typing import Dict, Callable
+from typing import Dict, Callable, Tuple
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
@@ -51,6 +51,7 @@ class MacroHandler(MappingHandler):
         context: ContextProtocol,
     ):
         super().__init__(combination, mapping, global_uinputs)
+        self._pressed_keys: Dict[Tuple[int, int], int] = {}
         self._active = False
         assert self.mapping.output_symbol is not None
         self._macro = Parser.parse(self.mapping.output_symbol, context, mapping)
@@ -82,8 +83,11 @@ class MacroHandler(MappingHandler):
 
             def handler(type_, code, value) -> None:
                 """Handler for macros."""
+                self._remember_pressed_keys((type_, code, value))
+
                 self.global_uinputs.write(
-                    (type_, code, value), self.mapping.target_uinput
+                    (type_, code, value),
+                    self.mapping.target_uinput,
                 )
 
             asyncio.ensure_future(self.run_macro(handler))
@@ -96,10 +100,23 @@ class MacroHandler(MappingHandler):
 
     def reset(self) -> None:
         self._active = False
-        self._macro.release_trigger()
+
+        # To avoid a key hanging forever. Can be pretty annoying, especially if it is
+        # a modifier that makes you unable to interact with your system.
+        for (type, code), value in self._pressed_keys.items():
+            if value == 1:
+                logger.debug("Releasing key %s", (type, code, value))
+                self.global_uinputs.write(
+                    (type, code, 0),
+                    self.mapping.target_uinput,
+                )
 
     def needs_wrapping(self) -> bool:
         return True
 
     def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         return {InputCombination(self.input_configs): HandlerEnums.combination}
+
+    def _remember_pressed_keys(self, event: Tuple[int, int, int]) -> None:
+        type, code, value = event
+        self._pressed_keys[(type, code)] = value
