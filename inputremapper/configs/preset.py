@@ -20,7 +20,6 @@
 """Contains and manages mappings."""
 
 from __future__ import annotations
-from evdev import ecodes
 
 import json
 import os
@@ -35,6 +34,8 @@ from typing import (
     Generic,
     overload,
 )
+
+from evdev import ecodes
 
 try:
     from pydantic.v1 import ValidationError
@@ -291,7 +292,11 @@ class Preset(Generic[MappingModel]):
 
         for mapping_dict in preset_list:
             if not isinstance(mapping_dict, dict):
-                logger.error("Expected mapping to be a dict: %s", mapping_dict)
+                logger.error(
+                    "Expected mapping to be a dict: %s %s",
+                    type(mapping_dict),
+                    mapping_dict,
+                )
                 continue
 
             try:

@@ -44,6 +44,7 @@ from inputremapper.injection.macros.tasks.key_up import KeyUpTask
 from inputremapper.injection.macros.tasks.mod_tap import ModTapTask
 from inputremapper.injection.macros.tasks.modify import ModifyTask
 from inputremapper.injection.macros.tasks.mouse import MouseTask
+from inputremapper.injection.macros.tasks.mouse_xy import MouseXYTask
 from inputremapper.injection.macros.tasks.repeat import RepeatTask
 from inputremapper.injection.macros.tasks.set import SetTask
 from inputremapper.injection.macros.tasks.wait import WaitTask
@@ -67,6 +68,7 @@ class Parser:
         "hold": HoldTask,
         "hold_keys": HoldKeysTask,
         "mouse": MouseTask,
+        "mouse_xy": MouseXYTask,
         "wheel": WheelTask,
         "if_eq": IfEqTask,
         "if_numlock": IfNumlockTask,

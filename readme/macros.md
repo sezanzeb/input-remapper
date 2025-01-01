@@ -151,7 +151,8 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Moves the mouse cursor
 > 
-> If `acceleration` is provided then the cursor will accelerate from zero to a maximum speed of `speed`.
+> If `acceleration` is provided then the cursor will accelerate from zero to a maximum
+> speed of `speed`.
 >
 > ```ts
 > mouse(direction: str, speed: int, acceleration: float | None)
@@ -163,6 +164,24 @@ Bear in mind that anti-cheat software might detect macros in games.
 > mouse(up, 1)
 > mouse(left, 2)
 > mouse(down, 10, 0.3)
+> ```
+
+### mouse_xy
+
+> Moves the mouse cursor in both x and y direction.
+> 
+> If `acceleration` is provided then the cursor will accelerate from zero to the
+> maximum specified x and y speeds.
+>
+> ```ts
+> mouse(x: int | float, y: int | float, acceleration: float | None)
+> ```
+>
+> Examples:
+>
+> ```ts
+> mouse_xy(x=10, y=20)
+> mouse_xy(-5, -1, 0.01)
 > ```
 
 ### wheel
