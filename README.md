@@ -43,7 +43,7 @@ sudo apt install -f ./dist/input-remapper-2.0.1.deb
 ```
 
 Input Remapper is also available in the repositories of [Debian](https://tracker.debian.org/pkg/input-remapper)
-and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper) via
+and [Ubuntu](https://packages.ubuntu.com/oracular/input-remapper) via
 
 ```bash
 sudo apt install input-remapper
