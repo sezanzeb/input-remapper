@@ -74,7 +74,7 @@ class MouseXYTask(Task):
         current_speed = 0.0
         displacement_accumulator = 0.0
         displacement = 0
-        if not acceleration:
+        if acceleration <= 0:
             displacement = int(speed)
 
         while self.is_holding():
