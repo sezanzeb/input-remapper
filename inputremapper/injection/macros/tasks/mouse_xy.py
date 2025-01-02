@@ -75,7 +75,7 @@ class MouseXYTask(Task):
         displacement_accumulator = 0.0
         displacement = 0
         if not acceleration:
-            displacement = speed
+            displacement = int(speed)
 
         while self.is_holding():
             # Cursors can only move by integers. To get smooth acceleration for
