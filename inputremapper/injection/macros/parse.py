@@ -183,7 +183,7 @@ class Parser:
         return None, param
 
     @staticmethod
-    def check_for_unknown_keyword_arguments(
+    def _validate_keyword_argument_names(
         keyword_args: Dict[str, Any],
         task_class: Type[Task],
     ) -> None:
@@ -233,121 +233,138 @@ class Parser:
         code = code.strip()
 
         # is it another macro?
-        call_match = re.match(r"^(\w+)\(", code)
-        call = call_match[1] if call_match else None
-        if call is not None:
-            if macro_instance is None:
-                # start a new chain
-                macro_instance = Macro(code, context, mapping)
+        task_call_match = re.match(r"^(\w+)\(", code)
+        task_name = task_call_match[1] if task_call_match else None
+
+        if task_name is None:
+            # It is probably either a key name like KEY_A or a variable name as in `set(var,1)`,
+            # both won't contain special characters that can break macro syntax so they don't
+            # have to be wrapped in quotes. The argument configuration of the tasks will
+            # detemrine how to parse it.
+            debug("%svalue %s", space, code)
+            return RawValue(value=code)
+
+        if macro_instance is None:
+            # start a new chain
+            macro_instance = Macro(code, context, mapping)
+        else:
+            # chain this call to the existing instance
+            assert isinstance(macro_instance, Macro)
+
+        task_class = Parser.TASK_CLASSES.get(task_name)
+        if task_class is None:
+            raise MacroError(code, f"Unknown function {task_name}")
+
+        # get all the stuff inbetween
+        closing_bracket_position = Parser._count_brackets(code) - 1
+        inner = code[code.index("(") + 1 : closing_bracket_position]
+        debug("%scalls %s with %s", space, task_name, inner)
+
+        # split "3, foo=a(2, k(a).w(10))" into arguments
+        raw_string_args = Parser._extract_args(inner)
+
+        # parse and sort the params
+        positional_args: List[RawValue] = []
+        keyword_args: Dict[str, RawValue] = {}
+        for param in raw_string_args:
+            key, value = Parser._split_keyword_arg(param)
+            parsed = Parser._parse_recurse(
+                value.strip(),
+                context,
+                mapping,
+                verbose,
+                None,
+                depth + 1,
+            )
+            if key is None:
+                if len(keyword_args) > 0:
+                    msg = f'Positional argument "{key}" follows keyword argument'
+                    raise MacroError(code, msg)
+                positional_args.append(parsed)
             else:
-                # chain this call to the existing instance
-                assert isinstance(macro_instance, Macro)
+                if key in keyword_args:
+                    raise MacroError(code, f'The "{key}" argument was specified twice')
+                keyword_args[key] = parsed
 
-            task_class = Parser.TASK_CLASSES.get(call)
-            if task_class is None:
-                raise MacroError(code, f"Unknown function {call}")
+        debug(
+            "%sadd call to %s with %s, %s",
+            space,
+            task_name,
+            positional_args,
+            keyword_args,
+        )
 
-            # get all the stuff inbetween
-            closing_bracket_position = Parser._count_brackets(code) - 1
-            inner = code[code.index("(") + 1 : closing_bracket_position]
-            debug("%scalls %s with %s", space, call, inner)
+        Parser._validate_keyword_argument_names(
+            keyword_args,
+            task_class,
+        )
+        Parser._validate_num_args(
+            code,
+            task_name,
+            task_class,
+            raw_string_args,
+        )
 
-            # split "3, foo=a(2, k(a).w(10))" into arguments
-            raw_string_args = Parser._extract_args(inner)
+        try:
+            task = task_class(
+                positional_args,
+                keyword_args,
+                context,
+                mapping,
+            )
+            macro_instance.add_task(task)
+        except TypeError as exception:
+            raise MacroError(msg=str(exception)) from exception
 
-            # parse and sort the params
-            positional_args: List[RawValue] = []
-            keyword_args: Dict[str, RawValue] = {}
-            for param in raw_string_args:
-                key, value = Parser._split_keyword_arg(param)
-                parsed = Parser._parse_recurse(
-                    value.strip(),
+        # is after this another call? Chain it to the macro_instance
+        more_code_exists = len(code) > closing_bracket_position + 1
+        if more_code_exists:
+            next_char = code[closing_bracket_position + 1]
+            statement_closed = next_char == "."
+
+            if statement_closed:
+                # skip over the ")."
+                chain = code[closing_bracket_position + 2 :]
+                debug("%sfollowed by %s", space, chain)
+                Parser._parse_recurse(
+                    chain,
                     context,
                     mapping,
                     verbose,
-                    None,
-                    depth + 1,
+                    macro_instance,
+                    depth,
                 )
-                if key is None:
-                    if len(keyword_args) > 0:
-                        msg = f'Positional argument "{key}" follows keyword argument'
-                        raise MacroError(code, msg)
-                    positional_args.append(parsed)
-                else:
-                    if key in keyword_args:
-                        raise MacroError(
-                            code, f'The "{key}" argument was specified twice'
-                        )
-                    keyword_args[key] = parsed
-
-            Parser.check_for_unknown_keyword_arguments(keyword_args, task_class)
-
-            debug(
-                "%sadd call to %s with %s, %s",
-                space,
-                call,
-                positional_args,
-                keyword_args,
-            )
-
-            min_args, max_args = task_class.get_num_parameters()
-            num_provided_args = len(raw_string_args)
-            if num_provided_args < min_args or num_provided_args > max_args:
-                if min_args != max_args:
-                    msg = (
-                        f"{call} takes between {min_args} and {max_args}, "
-                        f"not {num_provided_args} parameters"
-                    )
-                else:
-                    msg = f"{call} takes {min_args}, not {num_provided_args} parameters"
-
-                raise MacroError(code, msg)
-
-            try:
-                task = task_class(
-                    positional_args,
-                    keyword_args,
-                    context,
-                    mapping,
+            elif re.match(r"[a-zA-Z_]", next_char):
+                # something like foo()bar
+                raise MacroError(
+                    code,
+                    f'Expected a "." to follow after '
+                    f"{code[:closing_bracket_position + 1]}",
                 )
-                macro_instance.add_task(task)
-            except TypeError as exception:
-                raise MacroError(msg=str(exception)) from exception
 
-            # is after this another call? Chain it to the macro_instance
-            more_code_exists = len(code) > closing_bracket_position + 1
-            if more_code_exists:
-                next_char = code[closing_bracket_position + 1]
-                statement_closed = next_char == "."
+        return RawValue(value=macro_instance)
 
-                if statement_closed:
-                    # skip over the ")."
-                    chain = code[closing_bracket_position + 2 :]
-                    debug("%sfollowed by %s", space, chain)
-                    Parser._parse_recurse(
-                        chain,
-                        context,
-                        mapping,
-                        verbose,
-                        macro_instance,
-                        depth,
-                    )
-                elif re.match(r"[a-zA-Z_]", next_char):
-                    # something like foo()bar
-                    raise MacroError(
-                        code,
-                        f'Expected a "." to follow after '
-                        f"{code[:closing_bracket_position + 1]}",
-                    )
+    @staticmethod
+    def _validate_num_args(
+        code: str,
+        task_name: str,
+        task_class: Type[Task],
+        raw_string_args: List[str],
+    ) -> None:
+        min_args, max_args = task_class.get_num_parameters()
+        num_provided_args = len(raw_string_args)
+        if num_provided_args < min_args or num_provided_args > max_args:
+            if min_args != max_args:
+                msg = (
+                    f"{task_name} takes between {min_args} and {max_args}, "
+                    f"not {num_provided_args} parameters"
+                )
+            else:
+                msg = (
+                    f"{task_name} takes {min_args}, not {num_provided_args} parameters"
+                )
 
-            return RawValue(value=macro_instance)
-
-        # It is probably either a key name like KEY_A or a variable name as in `set(var,1)`,
-        # both won't contain special characters that can break macro syntax so they don't
-        # have to be wrapped in quotes. The argument configuration of the tasks will
-        # detemrine how to parse it.
-        debug("%svalue %s", space, code)
-        return RawValue(value=code)
+            raise MacroError(code, msg)
 
     @staticmethod
     def handle_plus_syntax(macro):
