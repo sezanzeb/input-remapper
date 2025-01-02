@@ -304,9 +304,17 @@ class Argument(ArgumentConfig):
             return False
 
     def _type_error_factory(self, value: Any) -> MacroError:
+        formatted_types: List[str] = []
+
+        for type_ in self.types:
+            if type_ is None:
+                formatted_types.append("None")
+            else:
+                formatted_types.append(type_.__name__)
+
         return MacroError(
             msg=(
-                f'Expected "{self.name}" to be one of {self.types}, but got '
-                f"{type(value)} {value}"
+                f'Expected "{self.name}" to be one of {formatted_types}, but got '
+                f'{type(value).__name__} "{value}"'
             )
         )
