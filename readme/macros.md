@@ -379,6 +379,24 @@ Bear in mind that anti-cheat software might detect macros in games.
 > if_single(key(KEY_A), key(KEY_B), timeout=1000)
 > ```
 
+### parallel
+
+> Run all provided macros in parallel.
+>
+> ```ts
+> parallel(*macros: Macro)
+> ```
+>
+> Examples:
+>
+> ```ts
+> parallel(
+>   mouse(up, 10),
+>   hold_keys(a),
+>   wheel(down, 10)
+> )
+> ```
+
 ## Syntax
 
 Multiple functions are chained using `.`.

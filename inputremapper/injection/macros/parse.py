@@ -44,6 +44,7 @@ from inputremapper.injection.macros.tasks.key_up import KeyUpTask
 from inputremapper.injection.macros.tasks.mod_tap import ModTapTask
 from inputremapper.injection.macros.tasks.modify import ModifyTask
 from inputremapper.injection.macros.tasks.mouse import MouseTask
+from inputremapper.injection.macros.tasks.parallel import ParallelTask
 from inputremapper.injection.macros.tasks.mouse_xy import MouseXYTask
 from inputremapper.injection.macros.tasks.repeat import RepeatTask
 from inputremapper.injection.macros.tasks.set import SetTask
@@ -78,6 +79,7 @@ class Parser:
         "if_single": IfSingleTask,
         "add": AddTask,
         "mod_tap": ModTapTask,
+        "parallel": ParallelTask,
         # Those are only kept for backwards compatibility with old macros. The space for
         # writing macro was very constrained in the past, so shorthands were introduced:
         "m": ModifyTask,
@@ -212,8 +214,14 @@ class Parser:
         code
             Just like parse. A single parameter or the complete macro as string.
             Comments and redundant whitespace characters are expected to be removed already.
-            TODO add some examples.
-              Are all of "foo(1);bar(2)" "foo(1)" and "1" valid inputs?
+            Example:
+            - "parallel(key(a),key(b).key($foo))"
+            - "key(a)"
+            - "a"
+            - "key(b).key($foo)"
+            - "b"
+            - "key($foo)"
+            - "$foo"
         context : Context
         macro_instance
             A macro instance to add tasks to. This is the output of the parser, and is
