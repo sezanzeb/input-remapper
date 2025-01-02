@@ -19,15 +19,15 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-import multiprocessing
 import os
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import evdev
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
+    BTN_A,
     ABS_X,
     ABS_Y,
     ABS_RX,
@@ -37,8 +37,6 @@ from evdev.ecodes import (
     REL_Y,
     REL_HWHEEL_HI_RES,
     REL_WHEEL_HI_RES,
-    ecodes,
-    KEY_T,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
@@ -59,19 +57,30 @@ from tests.lib.test_setup import test_setup
 class TestEventReader(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.gamepad_source = evdev.InputDevice(fixtures.gamepad.path)
+        self.source_hash = fixtures.gamepad.get_device_hash()
         self.global_uinputs = GlobalUInputs(UInput)
         self.mapping_parser = MappingParser(self.global_uinputs)
         self.stop_event = asyncio.Event()
         self.preset = Preset()
+        self.forward_uinput = evdev.UInput(name="test-forward-uinput")
 
         self.global_uinputs.is_service = True
         self.global_uinputs.prepare_all()
 
-    async def setup(self, source, mapping):
+    async def setup(self, mapping):
         """Set a EventReader up for the test and run it in the background."""
-        context = Context(mapping, {}, {}, self.mapping_parser)
+        context = Context(
+            mapping,
+            {},
+            {self.source_hash: self.forward_uinput},
+            self.mapping_parser,
+        )
         context.uinput = evdev.UInput()
-        event_reader = EventReader(context, source, self.stop_event)
+        event_reader = EventReader(
+            context,
+            self.gamepad_source,
+            self.stop_event,
+        )
         asyncio.ensure_future(event_reader.run())
         await asyncio.sleep(0.1)
         return context, event_reader
@@ -164,7 +173,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         config["output_code"] = REL_WHEEL_HI_RES
         self.preset.add(Mapping(**config))
 
-        context, _ = await self.setup(self.gamepad_source, self.preset)
+        context, _ = await self.setup(self.preset)
 
         gamepad_hash = get_device_hash(self.gamepad_source)
         self.gamepad_source.push_events(
@@ -230,7 +239,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         # self.preset.set("gamepad.joystick.left_purpose", BUTTONS)
         # self.preset.set("gamepad.joystick.right_purpose", BUTTONS)
-        context, _ = await self.setup(self.gamepad_source, self.preset)
+        context, _ = await self.setup(self.preset)
 
         self.gamepad_source.push_events(
             [
@@ -255,70 +264,37 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
-    @patch.object(os, "system")
-    @patch.object(Context, "get_forward_uinput", new=MagicMock())
-    @patch.object(multiprocessing, "parent_process")
-    async def test_panic(
+    @patch.object(Context, "reset")
+    async def test_reset_handlers_on_stop(self, reset_mock: MagicMock) -> None:
+        await self.setup(self.preset)
+
+        self.stop_event.set()
+        await asyncio.sleep(0.1)
+
+        reset_mock.assert_called_once()
+
+    @patch.object(Context, "reset")
+    @patch.object(os, "stat")
+    async def test_reset_handlers_after_unplugging(
         self,
-        parent_process: MagicMock,
-        system: MagicMock,
-    ):
-        """Triggers then because the joystick events value is too low."""
-        keyboard_source = evdev.InputDevice(fixtures.bar_device.path)
-        context, _ = await self.setup(keyboard_source, self.preset)
+        stat_mock: MagicMock,
+        reset_mock: MagicMock,
+    ) -> None:
+        await self.setup(self.preset)
 
-        # typo
-        for letter in "inputremapperpanicquia":
-            keyboard_source.push_events(
-                [InputEvent.key(ecodes[f"KEY_{letter.upper()}"], 1)]
-            )
-            await asyncio.sleep(0.01)
-        system.assert_not_called()
+        self.gamepad_source.push_events([InputEvent.key(BTN_A, 1)])
+        await asyncio.sleep(0.1)
+        reset_mock.assert_not_called()
 
-        # sending the correct key won't fix it, you'll need to start over
-        keyboard_source.push_events([InputEvent.key(KEY_T, 1)])
-        await asyncio.sleep(0.01)
-        system.assert_not_called()
+        # unplug the device
+        stat_mock().st_nlink = 0
 
-        # not complete
-        for letter in "inputremapperpanicqui":
-            keyboard_source.push_events(
-                [InputEvent.key(ecodes[f"KEY_{letter.upper()}"], 1)]
-            )
-            await asyncio.sleep(0.01)
-        system.assert_not_called()
-        # now it should stop
-        keyboard_source.push_events([InputEvent.key(KEY_T, 1)])
-        await asyncio.sleep(0.01)
+        # It seems that once a device is unplugged, asyncio stops waiting for new input
+        # from _source.fileno() or something. I didn't manage to replicate this
+        # behavior in tests using the fd of pending_events[fixtures.gamepad][0].fileno()
+        # and/or pending_events[fixtures.gamepad][1].fileno(). So instead, I push
+        # another event, so that the EventReader makes another iteration.
+        self.gamepad_source.push_events([InputEvent.key(BTN_A, 1)])
+        await asyncio.sleep(0.1)
 
-        system.assert_called_once_with("input-remapper-control --command quit &")
-        parent_process.assert_not_called()
-
-        # Since os.system is patched, it won't do anything. Therefore, after a second,
-        # it will try to terminate
-        await asyncio.sleep(1)
-        parent_process.assert_called_once()
-        parent_process().terminate.assert_called_once()
-
-        # After another second it will resort to sending SIGKILL
-        await asyncio.sleep(1)
-        system.assert_called_with("pkill -f -9 input-remapper-service")
-
-    @patch.object(os, "system")
-    @patch.object(Context, "get_forward_uinput", new=MagicMock())
-    @patch.object(multiprocessing, "parent_process", new=MagicMock())
-    async def test_panic_only_linux_constants(self, system: MagicMock):
-        # remove the xmodmap mappings of i->23. It should fall back to KEY_I->23
-        keyboard_layout.clear()
-        keyboard_layout._use_linux_evdev_symbols()
-
-        keyboard_source = evdev.InputDevice(fixtures.bar_device.path)
-        context, _ = await self.setup(keyboard_source, self.preset)
-
-        for letter in "inputremapperpanicquit":
-            keyboard_source.push_events(
-                [InputEvent.key(ecodes[f"KEY_{letter.upper()}"], 1)]
-            )
-            await asyncio.sleep(0.01)
-
-        system.assert_called_once_with("input-remapper-control --command quit &")
+        reset_mock.assert_called_once()

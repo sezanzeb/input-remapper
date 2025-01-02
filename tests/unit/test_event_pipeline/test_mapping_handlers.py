@@ -39,21 +39,17 @@ from evdev.ecodes import (
     REL_WHEEL,
 )
 
-from inputremapper.injection.mapping_handlers.combination_handler import (
-    CombinationHandler,
-)
-
-from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
-
-from inputremapper.configs.mapping import Mapping, DEFAULT_REL_RATE
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import Mapping, DEFAULT_REL_RATE, KnownUinput
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
-from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.injection.mapping_handlers.axis_switch_handler import (
     AxisSwitchHandler,
+)
+from inputremapper.injection.mapping_handlers.combination_handler import (
+    CombinationHandler,
 )
 from inputremapper.injection.mapping_handlers.hierarchy_handler import HierarchyHandler
 from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
@@ -63,12 +59,13 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     InputEventHandler,
 )
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
+from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
+from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.input_event import InputEvent, EventActions
-
 from tests.lib.cleanup import cleanup
-from tests.lib.patches import InputDevice
 from tests.lib.constants import MAX_ABS
 from tests.lib.fixtures import fixtures
+from tests.lib.patches import InputDevice
 from tests.lib.test_setup import test_setup
 
 
@@ -464,7 +461,7 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 @test_setup
 class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        input_combination = InputCombination(
+        self.input_combination = InputCombination(
             (
                 InputConfig(type=2, code=0, analog_threshold=10),
                 InputConfig(type=1, code=3),
@@ -473,35 +470,62 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.context_mock = MagicMock()
         self.global_uinputs = GlobalUInputs(UInput)
         self.global_uinputs.prepare_all()
+        self.set_handler(KnownUinput.KEYBOARD, "key(a)")
+
+    def set_handler(self, target_uinput: KnownUinput, macro: str):
         self.handler = MacroHandler(
-            input_combination,
+            self.input_combination,
             Mapping(
-                input_combination=input_combination.to_config(),
-                target_uinput="mouse",
-                output_symbol="hold_keys(BTN_LEFT, BTN_RIGHT)",
+                input_combination=self.input_combination.to_config(),
+                target_uinput=target_uinput,
+                output_symbol=macro,
             ),
             context=self.context_mock,
             global_uinputs=self.global_uinputs,
         )
 
     async def test_reset(self):
+        self.set_handler(KnownUinput.MOUSE, "hold_keys(BTN_LEFT, BTN_RIGHT)")
+
         self.handler.notify(
             InputEvent(0, 0, EV_REL, REL_X, 1, actions=(EventActions.as_key,)),
             source=InputDevice("/dev/input/event11"),
         )
 
         await asyncio.sleep(0.1)
-        history = self.global_uinputs.get_uinput("mouse").write_history
+        history = self.global_uinputs.get_uinput(KnownUinput.MOUSE).write_history
         self.assertIn(InputEvent.key(BTN_LEFT, 1), history)
         self.assertIn(InputEvent.key(BTN_RIGHT, 1), history)
         self.assertEqual(len(history), 2)
 
         self.handler.reset()
         await asyncio.sleep(0.1)
-        history = self.global_uinputs.get_uinput("mouse").write_history
+        history = self.global_uinputs.get_uinput(KnownUinput.MOUSE).write_history
         self.assertIn(InputEvent.key(BTN_LEFT, 0), history[-2:])
         self.assertIn(InputEvent.key(BTN_RIGHT, 0), history[-2:])
         self.assertEqual(len(history), 4)
+
+    async def test_reset_output(self):
+        self.set_handler(KnownUinput.KEYBOARD, "key_down(a)")
+
+        history = self.global_uinputs.get_uinput(KnownUinput.KEYBOARD).write_history
+
+        self.handler.reset()
+        await asyncio.sleep(0.1)
+        self.assertEqual(len(history), 0)
+
+        self.handler.notify(
+            InputEvent(0, 0, EV_REL, REL_X, 1, actions=(EventActions.as_key,)),
+            source=InputDevice("/dev/input/event11"),
+        )
+        await asyncio.sleep(0.1)
+        self.assertEqual(len(history), 1)
+        self.assertIn(InputEvent.key(KEY_A, 1), history)
+
+        self.handler.reset()
+        await asyncio.sleep(0.1)
+        self.assertEqual(len(history), 2)
+        self.assertIn(InputEvent.key(KEY_A, 0), history)
 
 
 @test_setup

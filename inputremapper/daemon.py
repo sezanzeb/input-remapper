@@ -522,7 +522,11 @@ class Daemon:
             self.stop_injecting(group_key)
 
         try:
-            injector = Injector(group, preset, self.mapping_parser)
+            injector = Injector(
+                group,
+                preset,
+                self.mapping_parser,
+            )
             injector.start()
             self.injectors[group.key] = injector
         except OSError:

@@ -22,6 +22,8 @@
 import re
 import unittest
 
+from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C, KEY_E
+
 from inputremapper.configs.validation_errors import (
     MacroError,
     SymbolNotAvailableInTargetError,
@@ -404,6 +406,53 @@ class TestParsing(MacroTestBase):
         # it might look like it without the string quotes. Everything with
         # explicit quotes around it has to be treated as a string.
         self.assertRaises(MacroError, Parser.parse, '"modify(a, b)"', self.context)
+
+    async def test_multiline_macro_and_comments(self):
+        # the parser is not confused by the code in the comments and can use hashtags
+        # in strings in the actual code
+        comment = '# repeat(1,key(KEY_D)).set(a,"#b")'
+        macro = Parser.parse(
+            f"""
+            {comment}
+            key(KEY_A).{comment}
+            key(KEY_B). {comment}
+            repeat({comment}
+                1, {comment}
+                key(KEY_C){comment}
+            ). {comment}
+            {comment}
+            set(a, "#").{comment}
+            if_eq($a, "#", key(KEY_E), key(KEY_F)) {comment}
+            {comment}
+        """,
+            self.context,
+            DummyMapping,
+        )
+        await macro.run(self.handler)
+        self.assertListEqual(
+            self.result,
+            [
+                (EV_KEY, KEY_A, 1),
+                (EV_KEY, KEY_A, 0),
+                (EV_KEY, KEY_B, 1),
+                (EV_KEY, KEY_B, 0),
+                (EV_KEY, KEY_C, 1),
+                (EV_KEY, KEY_C, 0),
+                (EV_KEY, KEY_E, 1),
+                (EV_KEY, KEY_E, 0),
+            ],
+        )
+
+    async def test_child_macro_count(self):
+        # It correctly keeps track of child-macros for both positional and keyword-args
+        macro = Parser.parse(
+            "hold(macro=hold(hold())).repeat(1, macro=repeat(1, hold()))",
+            self.context,
+            DummyMapping,
+            True,
+        )
+        self.assertEqual(self.count_child_macros(macro), 4)
+        self.assertEqual(self.count_tasks(macro), 6)
 
 
 if __name__ == "__main__":

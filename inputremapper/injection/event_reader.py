@@ -31,7 +31,6 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
     NotifyCallback,
 )
-from inputremapper.injection.panic_counter import PanicCounter
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_device_hash, DeviceHash
@@ -75,7 +74,6 @@ class EventReader:
         self._source = source
         self.context = context
         self.stop_event = stop_event
-        self.panic_counter = PanicCounter()
 
     def stop(self):
         """Stop the reader."""
@@ -194,7 +192,6 @@ class EventReader:
         )
 
         async for event in self.read_loop():
-            await self.panic_counter.track(event)
             try:
                 # Fire and forget, so that handlers and listeners can take their time,
                 # if they want to wait for something special to happen.
