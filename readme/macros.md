@@ -99,7 +99,11 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Behaves similar to the Mod-Tap feature of QMK.
 >
 > ```ts
-> mod_tap(default: str, modifier: str, tapping_term: int)
+> mod_tap(
+>     default: str,
+>     modifier: str,
+>     tapping_term: int
+> )
 > ```
 >
 > Examples:
@@ -149,10 +153,15 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Moves the mouse cursor
 > 
-> If `acceleration` is provided then the cursor will accelerate from zero to a maximum speed of `speed`.
+> If the fractional `acceleration` value is provided then the cursor will accelerate
+> from zero to a maximum speed of `speed`.
 >
 > ```ts
-> mouse(direction: str, speed: int, acceleration: float | None)
+> mouse(
+>     direction: up | down | left | right,
+>     speed: int,
+>     acceleration: int | float
+> )
 > ```
 >
 > Examples:
@@ -160,7 +169,30 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```ts
 > mouse(up, 1)
 > mouse(left, 2)
-> mouse(down, 10, 0.3)
+> mouse(down, 10, 0.05)
+> ```
+
+### mouse_xy
+
+> Moves the mouse cursor in both x and y direction.
+> 
+> If the fractional `acceleration` value is provided then the cursor will accelerate
+> from zero to the maximum specified x and y speeds.
+>
+> ```ts
+> mouse(
+>     x: int | float,
+>     y: int | float,
+>     acceleration: int | float
+> )
+> ```
+>
+> Examples:
+>
+> ```ts
+> mouse_xy(x=10, y=20)
+> mouse_xy(-5, -1, 0.01)
+> mouse_xy(x=10, acceleration=0.05)
 > ```
 
 ### wheel
@@ -168,7 +200,10 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Injects scroll wheel events
 >
 > ```ts
-> wheel(direction: str, speed: int)
+> wheel(
+>     direction: up | down | left | right,
+>     speed: int
+> )
 > ```
 >
 > Examples:
@@ -186,7 +221,11 @@ Bear in mind that anti-cheat software might detect macros in games.
 > others.
 >
 > ```ts
-> event(type: str | int, code: str | int, value: int)
+> event(
+>     type: str | int,
+>     code: str | int,
+>     value: int
+> )
 > ```
 >
 > Examples:
@@ -239,7 +278,12 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Compare two values and run different macros depending on the outcome.
 >
 > ```ts
-> if_eq(value_1: str | int, value_2: str | int, then: Macro | None, else: Macro | None)
+> if_eq(
+>     value_1: str | int,
+>     value_2: str | int,
+>     then: Macro | None,
+>     else: Macro | None
+> )
 > ```
 >
 > Examples:
@@ -256,7 +300,10 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Run the first macro if your capslock is on, otherwise the second.
 >
 > ```ts
-> if_capslock(then: Macro | None, else: Macro | None)
+> if_capslock(
+>     then: Macro | None,
+>     else: Macro | None
+> )
 > ```
 >
 > Examples:
@@ -273,7 +320,10 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Run the first macro if your numlock is on, otherwise the second.
 >
 > ```ts
-> if_numlock(then: Macro | None, else: Macro | None)
+> if_numlock(
+>     then: Macro | None,
+>     else: Macro | None
+> )
 > ```
 >
 > Examples:
@@ -289,7 +339,11 @@ Bear in mind that anti-cheat software might detect macros in games.
 > 300ms
 >
 > ```ts
-> if_tap(then: Macro | None, else: Macro | None, timeout: int)
+> if_tap(
+>     then: Macro | None,
+>     else: Macro | None,
+>     timeout: int
+> )
 > ```
 >
 > Examples:
@@ -309,7 +363,11 @@ Bear in mind that anti-cheat software might detect macros in games.
 > more than the configured number in milliseconds.
 >
 > ```ts
-> if_single(then: Macro | None, else: Macro | None, timeout: int | None)
+> if_single(
+>     then: Macro | None,
+>     else: Macro | None,
+>     timeout: int | None
+> )
 > ```
 >
 > Examples:
@@ -339,5 +397,3 @@ Using `$` resolves a variable during runtime. For example `set(a, $1)` and
 `if_eq($a, 1, key(KEY_A), key(KEY_B))`.
 
 Comments can be written with '#', like `key(KEY_A) # write an "a"`
-
-
