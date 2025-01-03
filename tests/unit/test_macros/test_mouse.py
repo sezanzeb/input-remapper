@@ -43,7 +43,7 @@ class TestMouse(MacroTestBase):
     async def test_mouse_acceleration(self):
         # There is a tiny float-rounding error that can break the test, therefore I use
         # 0.09001 to make it more robust.
-        await self._run_mouse_macro("mouse(up, 10, 0.09001)", 0.1)
+        await self._run_macro("mouse(up, 10, 0.09001)", 0.1)
         self.assertEqual(
             [
                 (EV_REL, REL_Y, -2),
@@ -62,17 +62,17 @@ class TestMouse(MacroTestBase):
         speed = 1
         expected_movement = time * rel_rate * speed
 
-        await self._run_mouse_macro(f"mouse(down, {speed})", time, rel_rate)
+        await self._run_macro(f"mouse(down, {speed})", time, rel_rate)
         total_movement = sum(event[2] for event in self.result)
         self.assertAlmostEqual(float(total_movement), expected_movement, delta=1)
 
     async def test_slow_movement(self):
-        await self._run_mouse_macro(f"mouse(down, 0.1)", 0.2, 200)
+        await self._run_macro(f"mouse(down, 0.1)", 0.2, 200)
         total_movement = sum(event[2] for event in self.result)
         self.assertAlmostEqual(total_movement, 4, delta=1)
 
     async def test_mouse_xy_acceleration_1(self):
-        await self._run_mouse_macro("mouse_xy(2, -10, 0.09001)", 0.1)
+        await self._run_macro("mouse_xy(2, -10, 0.09001)", 0.1)
         self.assertEqual(
             [
                 (EV_REL, REL_Y, -2),
@@ -93,7 +93,7 @@ class TestMouse(MacroTestBase):
         )
 
     async def test_mouse_xy_acceleration_2(self):
-        await self._run_mouse_macro("mouse_xy(10, -2, 0.09001)", 0.1)
+        await self._run_macro("mouse_xy(10, -2, 0.09001)", 0.1)
         self.assertEqual(
             [
                 (EV_REL, REL_Y, -1),
@@ -114,7 +114,7 @@ class TestMouse(MacroTestBase):
         )
 
     async def test_mouse_xy_only_x(self):
-        await self._run_mouse_macro("mouse_xy(x=10, acceleration=1)", 0.1)
+        await self._run_macro("mouse_xy(x=10, acceleration=1)", 0.1)
         self.assertEqual([], self._get_y_movement())
         self.assertEqual(
             [
@@ -129,7 +129,7 @@ class TestMouse(MacroTestBase):
         )
 
     async def test_mouse_xy_only_y(self):
-        await self._run_mouse_macro("mouse_xy(y=10)", 0.1)
+        await self._run_macro("mouse_xy(y=10)", 0.1)
         self.assertEqual([], self._get_x_movement())
         self.assertEqual(
             [
@@ -146,7 +146,7 @@ class TestMouse(MacroTestBase):
     async def test_wheel_left(self):
         wheel_speed = 60
         sleep = 0.1
-        await self._run_mouse_macro(f"wheel(left, {wheel_speed})", sleep)
+        await self._run_macro(f"wheel(left, {wheel_speed})", sleep)
 
         self.assertIn((EV_REL, REL_HWHEEL, 1), self.result)
         self.assertIn((EV_REL, REL_HWHEEL_HI_RES, 60), self.result)
@@ -180,17 +180,17 @@ class TestMouse(MacroTestBase):
         )
 
     async def test_wheel_up(self):
-        await self._run_mouse_macro(f"wheel(up, 60)", 0.1)
+        await self._run_macro(f"wheel(up, 60)", 0.1)
         self.assertIn((EV_REL, REL_WHEEL, 1), self.result)
         self.assertIn((EV_REL, REL_WHEEL_HI_RES, 60), self.result)
 
     async def test_wheel_down(self):
-        await self._run_mouse_macro(f"wheel(down, 60)", 0.1)
+        await self._run_macro(f"wheel(down, 60)", 0.1)
         self.assertIn((EV_REL, REL_WHEEL, -1), self.result)
         self.assertIn((EV_REL, REL_WHEEL_HI_RES, -60), self.result)
 
     async def test_wheel_right(self):
-        await self._run_mouse_macro(f"wheel(right, 60)", 0.1)
+        await self._run_macro(f"wheel(right, 60)", 0.1)
         self.assertIn((EV_REL, REL_HWHEEL, -1), self.result)
         self.assertIn((EV_REL, REL_HWHEEL_HI_RES, -60), self.result)
 
@@ -200,7 +200,7 @@ class TestMouse(MacroTestBase):
     def _get_y_movement(self):
         return [event for event in self.result if event[1] == REL_Y]
 
-    async def _run_mouse_macro(
+    async def _run_macro(
         self,
         code: str,
         time: float,
@@ -221,17 +221,17 @@ class TestMouse(MacroTestBase):
         macro.release_trigger()
 
     async def test_mouse_releases(self):
-        await self._run_mouse_macro(f"mouse(down, 1).key(a)", 0.1)
+        await self._run_macro(f"mouse(down, 1).key(a)", 0.1)
         await asyncio.sleep(0.1)
         self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
 
     async def test_mouse_xy_releases(self):
-        await self._run_mouse_macro(f"mouse_xy(1, 1, 1).key(a)", 0.1)
+        await self._run_macro(f"mouse_xy(1, 1, 1).key(a)", 0.1)
         await asyncio.sleep(0.1)
         self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
 
     async def test_wheel_releases(self):
-        await self._run_mouse_macro(f"wheel(down, 1).key(a)", 0.1)
+        await self._run_macro(f"wheel(down, 1).key(a)", 0.1)
         await asyncio.sleep(0.1)
         self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
 
