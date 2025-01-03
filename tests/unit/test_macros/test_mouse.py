@@ -29,6 +29,8 @@ from evdev._ecodes import (
     REL_X,
     REL_WHEEL,
     REL_WHEEL_HI_RES,
+    KEY_A,
+    EV_KEY,
 )
 
 from inputremapper.injection.macros.parse import Parser
@@ -217,6 +219,21 @@ class TestMouse(MacroTestBase):
         await asyncio.sleep(time)
         self.assertTrue(macro.tasks[0].is_holding())
         macro.release_trigger()
+
+    async def test_mouse_releases(self):
+        await self._run_mouse_macro(f"mouse(down, 1).key(a)", 0.1)
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
+
+    async def test_mouse_xy_releases(self):
+        await self._run_mouse_macro(f"mouse_xy(1, 1, 1).key(a)", 0.1)
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
+
+    async def test_wheel_releases(self):
+        await self._run_mouse_macro(f"wheel(down, 1).key(a)", 0.1)
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
 
 
 if __name__ == "__main__":
