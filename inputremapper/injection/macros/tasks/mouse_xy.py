@@ -39,11 +39,13 @@ class MouseXYTask(Task):
             name="x",
             position=0,
             types=[int, float],
+            default=0,
         ),
         ArgumentConfig(
             name="y",
             position=1,
             types=[int, float],
+            default=0,
         ),
         ArgumentConfig(
             name="acceleration",
@@ -89,5 +91,7 @@ class MouseXYTask(Task):
                 displacement = int(displacement_accumulator)
                 displacement_accumulator -= displacement
 
-            callback(EV_REL, code, displacement)
+            if displacement != 0:
+                callback(EV_REL, code, displacement)
+
             await asyncio.sleep(1 / self.mapping.rel_rate)

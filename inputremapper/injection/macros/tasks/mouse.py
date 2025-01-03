@@ -54,16 +54,16 @@ class MouseTask(MouseXYTask):
         speed = self.get_argument("speed").get_value()
         acceleration = self.get_argument("acceleration").get_value()
 
-        code = {
-            "up": REL_Y,
-            "down": REL_Y,
-            "left": REL_X,
-            "right": REL_X,
+        code, direction = {
+            "up": (REL_Y, -1),
+            "down": (REL_Y, 1),
+            "left": (REL_X, -1),
+            "right": (REL_X, 1),
         }[direction.lower()]
 
         await self.axis(
             code,
-            speed,
+            direction * speed,
             acceleration,
             callback,
         )
