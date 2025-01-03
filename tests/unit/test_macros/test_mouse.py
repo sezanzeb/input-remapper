@@ -189,8 +189,8 @@ class TestMouse(MacroTestBase):
 
     async def test_wheel_right(self):
         await self._run_mouse_macro(f"wheel(right, 60)", 0.1)
-        self.assertIn((EV_REL, REL_WHEEL, -1), self.result)
-        self.assertIn((EV_REL, REL_WHEEL_HI_RES, -60), self.result)
+        self.assertIn((EV_REL, REL_HWHEEL, -1), self.result)
+        self.assertIn((EV_REL, REL_HWHEEL_HI_RES, -60), self.result)
 
     def _get_x_movement(self):
         return [event for event in self.result if event[1] == REL_X]
