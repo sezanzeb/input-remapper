@@ -33,7 +33,7 @@ async def precise_iteration_frequency(frequency: float) -> AsyncIterator[None]:
     """
     sleep = 1 / frequency
     corrected_sleep = sleep
-    error = 0
+    error = 0.0
 
     while True:
         start = time.time()

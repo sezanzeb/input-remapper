@@ -146,6 +146,9 @@ class TestMouse(MacroTestBase):
         sleep = 0.1
         await self._run_mouse_macro(f"wheel(left, {wheel_speed})", sleep)
 
+        self.assertIn((EV_REL, REL_HWHEEL, 1), self.result)
+        self.assertIn((EV_REL, REL_HWHEEL_HI_RES, 60), self.result)
+
         expected_num_hires_events = sleep * DummyMapping.rel_rate
         expected_num_wheel_events = int(expected_num_hires_events / 120 * wheel_speed)
         actual_num_wheel_events = self.result.count((EV_REL, REL_HWHEEL, 1))
@@ -175,16 +178,17 @@ class TestMouse(MacroTestBase):
         )
 
     async def test_wheel_up(self):
-        wheel_speed = 60
-        sleep = 0.1
-        await self._run_mouse_macro(f"wheel(up, {wheel_speed})", sleep)
+        await self._run_mouse_macro(f"wheel(up, 60)", 0.1)
         self.assertIn((EV_REL, REL_WHEEL, 1), self.result)
         self.assertIn((EV_REL, REL_WHEEL_HI_RES, 60), self.result)
 
     async def test_wheel_down(self):
-        wheel_speed = 60
-        sleep = 0.1
-        await self._run_mouse_macro(f"wheel(down, {wheel_speed})", sleep)
+        await self._run_mouse_macro(f"wheel(down, 60)", 0.1)
+        self.assertIn((EV_REL, REL_WHEEL, -1), self.result)
+        self.assertIn((EV_REL, REL_WHEEL_HI_RES, -60), self.result)
+
+    async def test_wheel_right(self):
+        await self._run_mouse_macro(f"wheel(right, 60)", 0.1)
         self.assertIn((EV_REL, REL_WHEEL, -1), self.result)
         self.assertIn((EV_REL, REL_WHEEL_HI_RES, -60), self.result)
 

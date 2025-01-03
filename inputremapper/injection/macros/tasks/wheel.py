@@ -54,6 +54,7 @@ class WheelTask(Task):
     async def run(self, callback) -> None:
         direction = self.get_argument("direction").get_value()
 
+        # 120, see https://www.kernel.org/doc/html/latest/input/event-codes.html#ev-rel
         code, value = {
             "up": ([REL_WHEEL, REL_WHEEL_HI_RES], [1 / 120, 1]),
             "down": ([REL_WHEEL, REL_WHEEL_HI_RES], [-1 / 120, -1]),
