@@ -43,7 +43,7 @@ sudo apt install -f ./dist/input-remapper-2.0.1.deb
 ```
 
 Input Remapper is also available in the repositories of [Debian](https://tracker.debian.org/pkg/input-remapper)
-and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper) via
+and [Ubuntu](https://packages.ubuntu.com/oracular/input-remapper) via
 
 ```bash
 sudo apt install input-remapper
@@ -74,17 +74,16 @@ sudo systemctl enable --now input-remapper
 ### Other Distros
 
 Figure out the packages providing those dependencies in your distro, and install them:
-`python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`, `python3-psutil`
+`python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`,
+`python3-pydbus`, `python3-psutil`
 
-Python packages need to be installed globally for the service to be able to import them. Don't use `--user`.
-Conda and such may also cause problems due to changed python paths and versions.
+You can also use pip to install some of them. Python packages need to be installed
+globally for the service to be able to import them. Don't use `--user`. Conda and such
+may also cause problems due to changed python paths and versions.
 
 ```bash
-sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remapper.git
-sudo systemctl enable --now input-remapper
+sudo pip install evdev pydantic pydbus PyGObject setuptools
 ```
-
-Or, if that doesn't install it correctly, try
 
 ```bash
 git clone https://github.com/sezanzeb/input-remapper.git
@@ -92,4 +91,3 @@ cd input-remapper
 sudo python3 setup.py install
 sudo systemctl enable --now input-remapper
 ```
-
