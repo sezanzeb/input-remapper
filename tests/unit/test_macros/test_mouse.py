@@ -21,7 +21,15 @@
 import asyncio
 import unittest
 
-from evdev._ecodes import REL_Y, EV_REL, REL_HWHEEL, REL_HWHEEL_HI_RES, REL_X
+from evdev._ecodes import (
+    REL_Y,
+    EV_REL,
+    REL_HWHEEL,
+    REL_HWHEEL_HI_RES,
+    REL_X,
+    REL_WHEEL,
+    REL_WHEEL_HI_RES,
+)
 
 from inputremapper.injection.macros.parse import Parser
 from tests.lib.test_setup import test_setup
@@ -133,47 +141,52 @@ class TestMouse(MacroTestBase):
             self._get_y_movement(),
         )
 
-    async def test_mouse_and_wheel(self):
+    async def test_wheel_left(self):
         wheel_speed = 60
-        macro_1 = Parser.parse("mouse(up, 4)", self.context, DummyMapping)
-        macro_2 = Parser.parse(
-            f"wheel(left, {wheel_speed})", self.context, DummyMapping
-        )
-        macro_1.press_trigger()
-        macro_2.press_trigger()
-        asyncio.ensure_future(macro_1.run(self.handler))
-        asyncio.ensure_future(macro_2.run(self.handler))
-
         sleep = 0.1
-        await asyncio.sleep(sleep)
-        self.assertTrue(macro_1.tasks[0].is_holding())
-        self.assertTrue(macro_2.tasks[0].is_holding())
-        macro_1.release_trigger()
-        macro_2.release_trigger()
+        await self._run_mouse_macro(f"wheel(left, {wheel_speed})", sleep)
 
-        self.assertIn((EV_REL, REL_Y, -4), self.result)
-        expected_wheel_hi_res_event_count = sleep * DummyMapping.rel_rate
-        expected_wheel_event_count = int(
-            expected_wheel_hi_res_event_count / 120 * wheel_speed
-        )
-        actual_wheel_event_count = self.result.count((EV_REL, REL_HWHEEL, 1))
-        actual_wheel_hi_res_event_count = self.result.count(
+        expected_num_hires_events = sleep * DummyMapping.rel_rate
+        expected_num_wheel_events = int(expected_num_hires_events / 120 * wheel_speed)
+        actual_num_wheel_events = self.result.count((EV_REL, REL_HWHEEL, 1))
+        actual_num_hires_events = self.result.count(
             (
                 EV_REL,
                 REL_HWHEEL_HI_RES,
                 wheel_speed,
             )
         )
-        # this seems to have a tendency of injecting less wheel events,
-        # especially if the sleep is short
-        self.assertGreater(actual_wheel_event_count, expected_wheel_event_count * 0.8)
-        self.assertLess(actual_wheel_event_count, expected_wheel_event_count * 1.1)
+
         self.assertGreater(
-            actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 0.8
+            actual_num_wheel_events,
+            expected_num_wheel_events * 0.9,
         )
         self.assertLess(
-            actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 1.1
+            actual_num_wheel_events,
+            expected_num_wheel_events * 1.1,
         )
+        self.assertGreater(
+            actual_num_hires_events,
+            expected_num_hires_events * 0.9,
+        )
+        self.assertLess(
+            actual_num_hires_events,
+            expected_num_hires_events * 1.1,
+        )
+
+    async def test_wheel_up(self):
+        wheel_speed = 60
+        sleep = 0.1
+        await self._run_mouse_macro(f"wheel(up, {wheel_speed})", sleep)
+        self.assertIn((EV_REL, REL_WHEEL, 1), self.result)
+        self.assertIn((EV_REL, REL_WHEEL_HI_RES, 60), self.result)
+
+    async def test_wheel_down(self):
+        wheel_speed = 60
+        sleep = 0.1
+        await self._run_mouse_macro(f"wheel(down, {wheel_speed})", sleep)
+        self.assertIn((EV_REL, REL_WHEEL, -1), self.result)
+        self.assertIn((EV_REL, REL_WHEEL_HI_RES, -60), self.result)
 
     def _get_x_movement(self):
         return [event for event in self.result if event[1] == REL_X]
@@ -189,16 +202,17 @@ class TestMouse(MacroTestBase):
     ):
         dummy_mapping = DummyMapping()
         dummy_mapping.rel_rate = rel_rate
-        macro_1 = Parser.parse(
+        macro = Parser.parse(
             code,
             self.context,
             dummy_mapping,
         )
-        macro_1.press_trigger()
-        asyncio.ensure_future(macro_1.run(self.handler))
+        macro.press_trigger()
+        asyncio.ensure_future(macro.run(self.handler))
 
         await asyncio.sleep(time)
-        macro_1.release_trigger()
+        self.assertTrue(macro.tasks[0].is_holding())
+        macro.release_trigger()
 
 
 if __name__ == "__main__":

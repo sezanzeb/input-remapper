@@ -20,7 +20,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import math
 
 from evdev.ecodes import (
@@ -33,6 +32,7 @@ from evdev.ecodes import (
 
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task
+from inputremapper.injection.macros.tasks.util import precise_iteration_frequency
 
 
 class WheelTask(Task):
@@ -63,10 +63,13 @@ class WheelTask(Task):
 
         speed = self.get_argument("speed").get_value()
         remainder = [0.0, 0.0]
-        while self.is_holding():
+
+        async for _ in precise_iteration_frequency(self.mapping.rel_rate):
+            if not self.is_holding():
+                return
+
             for i in range(0, 2):
                 float_value = value[i] * speed + remainder[i]
                 remainder[i] = math.fmod(float_value, 1)
                 if abs(float_value) >= 1:
                     callback(EV_REL, code[i], int(float_value))
-            await asyncio.sleep(1 / self.mapping.rel_rate)

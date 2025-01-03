@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from typing import Union
 
 from evdev._ecodes import REL_Y, REL_X
@@ -30,25 +29,7 @@ from evdev.ecodes import EV_REL
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
-
-
-async def precise_iteration_frequency(rate: float):
-    """asyncio.sleep might end up sleeping too long, for whatever reason. Maybe other
-    async function calls that take longer than expected in the background. This
-    generator can be used to achieve the proper iteration frequency.
-    """
-    sleep = 1 / rate
-    corrected_sleep = sleep
-    error = 0
-
-    while True:
-        start = time.time()
-
-        yield
-
-        corrected_sleep -= error
-        await asyncio.sleep(corrected_sleep)
-        error = (time.time() - start) - sleep
+from inputremapper.injection.macros.tasks.util import precise_iteration_frequency
 
 
 class MouseXYTask(Task):
