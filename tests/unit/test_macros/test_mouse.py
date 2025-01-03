@@ -194,6 +194,21 @@ class TestMouse(MacroTestBase):
         self.assertIn((EV_REL, REL_HWHEEL, -1), self.result)
         self.assertIn((EV_REL, REL_HWHEEL_HI_RES, -60), self.result)
 
+    async def test_mouse_releases(self):
+        await self._run_macro(f"mouse(down, 1).key(a)", 0.1)
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
+
+    async def test_mouse_xy_releases(self):
+        await self._run_macro(f"mouse_xy(1, 1, 1).key(a)", 0.1)
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
+
+    async def test_wheel_releases(self):
+        await self._run_macro(f"wheel(down, 1).key(a)", 0.1)
+        await asyncio.sleep(0.1)
+        self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
+
     def _get_x_movement(self):
         return [event for event in self.result if event[1] == REL_X]
 
@@ -219,21 +234,6 @@ class TestMouse(MacroTestBase):
         await asyncio.sleep(time)
         self.assertTrue(macro.tasks[0].is_holding())
         macro.release_trigger()
-
-    async def test_mouse_releases(self):
-        await self._run_macro(f"mouse(down, 1).key(a)", 0.1)
-        await asyncio.sleep(0.1)
-        self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
-
-    async def test_mouse_xy_releases(self):
-        await self._run_macro(f"mouse_xy(1, 1, 1).key(a)", 0.1)
-        await asyncio.sleep(0.1)
-        self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
-
-    async def test_wheel_releases(self):
-        await self._run_macro(f"wheel(down, 1).key(a)", 0.1)
-        await asyncio.sleep(0.1)
-        self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
 
 
 if __name__ == "__main__":
