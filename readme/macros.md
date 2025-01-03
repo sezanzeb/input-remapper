@@ -192,6 +192,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```ts
 > mouse_xy(x=10, y=20)
 > mouse_xy(-5, -1, 0.01)
+> mouse_xy(x=10, acceleration=0.05)
 > ```
 
 ### wheel
