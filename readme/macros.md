@@ -160,7 +160,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > mouse(
 >     direction: up | down | left | right,
 >     speed: int,
->     acceleration: float | None
+>     acceleration: int | float
 > )
 > ```
 >
@@ -183,7 +183,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > mouse(
 >     x: int | float,
 >     y: int | float,
->     acceleration: float | None
+>     acceleration: int | float
 > )
 > ```
 >

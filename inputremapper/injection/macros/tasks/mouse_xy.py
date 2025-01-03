@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Union
 
 from evdev._ecodes import REL_Y, REL_X
@@ -29,6 +30,25 @@ from evdev.ecodes import EV_REL
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
+
+
+async def precise_iteration_frequency(rate: float):
+    """asyncio.sleep might end up sleeping too long, for whatever reason. Maybe other
+    async function calls that take longer than expected in the background. This
+    generator can be used to achieve the proper iteration frequency.
+    """
+    sleep = 1 / rate
+    corrected_sleep = sleep
+    error = 0
+
+    while True:
+        start = time.time()
+
+        yield
+
+        corrected_sleep -= error
+        await asyncio.sleep(corrected_sleep)
+        error = (time.time() - start) - sleep
 
 
 class MouseXYTask(Task):
@@ -79,12 +99,15 @@ class MouseXYTask(Task):
         if acceleration <= 0:
             displacement = int(speed)
 
-        while self.is_holding():
+        async for _ in precise_iteration_frequency(self.mapping.rel_rate):
+            if not self.is_holding():
+                return
+
             # Cursors can only move by integers. To get smooth acceleration for
             # small acceleration values, the cursor needs to move by a pixel every
             # few iterations. This can be achieved by remembering the decimal
             # places that were cast away, and using them for the next iteration.
-            if acceleration and abs(current_speed) < abs(speed):
+            if acceleration:
                 current_speed += acceleration
                 current_speed = direction * min(abs(current_speed), abs(speed))
                 displacement_accumulator += current_speed
@@ -93,5 +116,3 @@ class MouseXYTask(Task):
 
             if displacement != 0:
                 callback(EV_REL, code, displacement)
-
-            await asyncio.sleep(1 / self.mapping.rel_rate)

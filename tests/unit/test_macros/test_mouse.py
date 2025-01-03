@@ -45,6 +45,22 @@ class TestMouse(MacroTestBase):
             self.result,
         )
 
+    async def test_rate(self):
+        # It should move 200 times per second by 1px, for 0.2 seconds.
+        rel_rate = 200
+        time = 0.2
+        speed = 1
+        expected_movement = time * rel_rate * speed
+
+        await self._run_mouse_macro(f"mouse(down, {speed})", time, rel_rate)
+        total_movement = sum(event[2] for event in self.result)
+        self.assertAlmostEqual(float(total_movement), expected_movement, delta=1)
+
+    async def test_slow_movement(self):
+        await self._run_mouse_macro(f"mouse(down, 0.1)", 0.2, 200)
+        total_movement = sum(event[2] for event in self.result)
+        self.assertAlmostEqual(total_movement, 4, delta=1)
+
     async def test_mouse_xy_acceleration_1(self):
         await self._run_mouse_macro("mouse_xy(2, -10, 0.09001)", 0.1)
         self.assertEqual(
@@ -165,11 +181,18 @@ class TestMouse(MacroTestBase):
     def _get_y_movement(self):
         return [event for event in self.result if event[1] == REL_Y]
 
-    async def _run_mouse_macro(self, code: str, time: float):
+    async def _run_mouse_macro(
+        self,
+        code: str,
+        time: float,
+        rel_rate: int = DummyMapping.rel_rate,
+    ):
+        dummy_mapping = DummyMapping()
+        dummy_mapping.rel_rate = rel_rate
         macro_1 = Parser.parse(
             code,
             self.context,
-            DummyMapping,
+            dummy_mapping,
         )
         macro_1.press_trigger()
         asyncio.ensure_future(macro_1.run(self.handler))
