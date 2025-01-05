@@ -20,6 +20,29 @@
 
 """Control the dbus service from the command line."""
 
+import os
+import sys
+
+
+def fix_import_path():
+    # Installations via `sudo python3 setup.py install` install into /usr/local/lib
+    # instead of /usr/local. sys.path is missing /usr/local/lib when udev is running
+    # its rules.
+    try:
+        import inputremapper
+    except ModuleNotFoundError:
+        python_folder = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        usr_local_lib = f"/usr/local/lib/{python_folder}/dist-packages"
+        if not os.path.exists(usr_local_lib):
+            return
+
+        print(f'Appending "{usr_local_lib}" to sys.path')
+        sys.path.append(usr_local_lib)
+
+
+fix_import_path()
+
+
 from inputremapper.bin.input_remapper_control import InputRemapperControlBin
 
 if __name__ == "__main__":
