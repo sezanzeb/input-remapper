@@ -20,16 +20,14 @@
 
 from __future__ import annotations
 
-import asyncio
-
 from evdev._ecodes import REL_Y, REL_X
-from evdev.ecodes import EV_REL
 
 from inputremapper.injection.macros.argument import ArgumentConfig
-from inputremapper.injection.macros.task import Task
+from inputremapper.injection.macros.macro import InjectEventCallback
+from inputremapper.injection.macros.tasks.mouse_xy import MouseXYTask
 
 
-class MouseTask(Task):
+class MouseTask(MouseXYTask):
     """Move the mouse cursor."""
 
     argument_configs = [
@@ -46,40 +44,26 @@ class MouseTask(Task):
         ArgumentConfig(
             name="acceleration",
             position=2,
-            types=[int, float, None],
-            default=None,
+            types=[int, float],
+            default=1,
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         direction = self.get_argument("direction").get_value()
         speed = self.get_argument("speed").get_value()
         acceleration = self.get_argument("acceleration").get_value()
 
-        code, value = {
+        code, direction = {
             "up": (REL_Y, -1),
             "down": (REL_Y, 1),
             "left": (REL_X, -1),
             "right": (REL_X, 1),
         }[direction.lower()]
 
-        current_speed = 0.0
-        displacement_accumulator = 0.0
-        displacement = 0
-        if not acceleration:
-            displacement = speed
-
-        while self.is_holding():
-            # Cursors can only move by integers. To get smooth acceleration for
-            # small acceleration values, the cursor needs to move by a pixel every
-            # few iterations. This can be achieved by remembering the decimal
-            # places that were cast away, and using them for the next iteration.
-            if acceleration and current_speed < speed:
-                current_speed += acceleration
-                current_speed = min(current_speed, speed)
-                displacement_accumulator += current_speed
-                displacement = int(displacement_accumulator)
-                displacement_accumulator -= displacement
-
-            callback(EV_REL, code, value * displacement)
-            await asyncio.sleep(1 / self.mapping.rel_rate)
+        await self.axis(
+            code,
+            direction * speed,
+            acceleration,
+            callback,
+        )

@@ -20,7 +20,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import math
 
 from evdev.ecodes import (
@@ -33,6 +32,7 @@ from evdev.ecodes import (
 
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task
+from inputremapper.injection.macros.tasks.util import precise_iteration_frequency
 
 
 class WheelTask(Task):
@@ -54,6 +54,7 @@ class WheelTask(Task):
     async def run(self, callback) -> None:
         direction = self.get_argument("direction").get_value()
 
+        # 120, see https://www.kernel.org/doc/html/latest/input/event-codes.html#ev-rel
         code, value = {
             "up": ([REL_WHEEL, REL_WHEEL_HI_RES], [1 / 120, 1]),
             "down": ([REL_WHEEL, REL_WHEEL_HI_RES], [-1 / 120, -1]),
@@ -63,10 +64,13 @@ class WheelTask(Task):
 
         speed = self.get_argument("speed").get_value()
         remainder = [0.0, 0.0]
-        while self.is_holding():
+
+        async for _ in precise_iteration_frequency(self.mapping.rel_rate):
+            if not self.is_holding():
+                return
+
             for i in range(0, 2):
                 float_value = value[i] * speed + remainder[i]
                 remainder[i] = math.fmod(float_value, 1)
                 if abs(float_value) >= 1:
                     callback(EV_REL, code[i], int(float_value))
-            await asyncio.sleep(1 / self.mapping.rel_rate)

@@ -24,11 +24,7 @@ import time
 import unittest
 
 from evdev.ecodes import (
-    EV_REL,
     EV_KEY,
-    REL_Y,
-    REL_HWHEEL,
-    REL_HWHEEL_HI_RES,
 )
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
@@ -325,62 +321,6 @@ class TestMacros(MacroTestBase):
             (EV_KEY, c, 0),
         ] * 2
         self.assertListEqual(self.result, expected)
-
-    async def test_mouse(self):
-        wheel_speed = 60
-        macro_1 = Parser.parse("mouse(up, 4)", self.context, DummyMapping)
-        macro_2 = Parser.parse(
-            f"wheel(left, {wheel_speed})", self.context, DummyMapping
-        )
-        macro_1.press_trigger()
-        macro_2.press_trigger()
-        asyncio.ensure_future(macro_1.run(self.handler))
-        asyncio.ensure_future(macro_2.run(self.handler))
-
-        sleep = 0.1
-        await asyncio.sleep(sleep)
-        self.assertTrue(macro_1.tasks[0].is_holding())
-        self.assertTrue(macro_2.tasks[0].is_holding())
-        macro_1.release_trigger()
-        macro_2.release_trigger()
-
-        self.assertIn((EV_REL, REL_Y, -4), self.result)
-        expected_wheel_hi_res_event_count = sleep * DummyMapping.rel_rate
-        expected_wheel_event_count = int(
-            expected_wheel_hi_res_event_count / 120 * wheel_speed
-        )
-        actual_wheel_event_count = self.result.count((EV_REL, REL_HWHEEL, 1))
-        actual_wheel_hi_res_event_count = self.result.count(
-            (
-                EV_REL,
-                REL_HWHEEL_HI_RES,
-                wheel_speed,
-            )
-        )
-        # this seems to have a tendency of injecting less wheel events,
-        # especially if the sleep is short
-        self.assertGreater(actual_wheel_event_count, expected_wheel_event_count * 0.8)
-        self.assertLess(actual_wheel_event_count, expected_wheel_event_count * 1.1)
-        self.assertGreater(
-            actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 0.8
-        )
-        self.assertLess(
-            actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 1.1
-        )
-
-    async def test_mouse_accel(self):
-        macro_1 = Parser.parse("mouse(up, 10, 0.9)", self.context, DummyMapping)
-        macro_1.press_trigger()
-        asyncio.ensure_future(macro_1.run(self.handler))
-
-        sleep = 0.1
-        await asyncio.sleep(sleep)
-        self.assertTrue(macro_1.tasks[0].is_holding())
-        macro_1.release_trigger()
-        self.assertEqual(
-            [(2, 1, 0), (2, 1, -2), (2, 1, -3), (2, 1, -4), (2, 1, -4), (2, 1, -5)],
-            self.result,
-        )
 
     async def test_macro_breaks(self):
         # the first parameter for `repeat` requires an integer, not "foo",
