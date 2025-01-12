@@ -28,6 +28,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.macros.parse import Parser
 from tests.lib.logger import logger
@@ -37,69 +38,6 @@ from tests.unit.test_macros.macro_test_base import DummyMapping, MacroTestBase
 
 @test_setup
 class TestIfEq(MacroTestBase):
-    async def test_ifeq_runs(self):
-        # deprecated ifeq function, but kept for compatibility reasons
-        macro = Parser.parse(
-            "set(foo, 2).ifeq(foo, 2, key(a), key(b))",
-            self.context,
-            DummyMapping,
-        )
-        code_a = keyboard_layout.get("a")
-        code_b = keyboard_layout.get("b")
-
-        await macro.run(self.handler)
-        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
-        self.assertEqual(self.count_child_macros(macro), 2)
-
-    async def test_ifeq_none(self):
-        code_a = keyboard_layout.get("a")
-
-        # first param None
-        macro = Parser.parse(
-            "set(foo, 2).ifeq(foo, 2, None, key(b))", self.context, DummyMapping
-        )
-        self.assertEqual(self.count_child_macros(macro), 1)
-        await macro.run(self.handler)
-        self.assertListEqual(self.result, [])
-
-        # second param None
-        self.result = []
-        macro = Parser.parse(
-            "set(foo, 2).ifeq(foo, 2, key(a), None)", self.context, DummyMapping
-        )
-        self.assertEqual(self.count_child_macros(macro), 1)
-        await macro.run(self.handler)
-        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
-
-        """Old syntax, use None instead"""
-
-        # first param ""
-        self.result = []
-        macro = Parser.parse(
-            "set(foo, 2).ifeq(foo, 2, , key(b))", self.context, DummyMapping
-        )
-        self.assertEqual(self.count_child_macros(macro), 1)
-        await macro.run(self.handler)
-        self.assertListEqual(self.result, [])
-
-        # second param ""
-        self.result = []
-        macro = Parser.parse(
-            "set(foo, 2).ifeq(foo, 2, key(a), )", self.context, DummyMapping
-        )
-        self.assertEqual(self.count_child_macros(macro), 1)
-        await macro.run(self.handler)
-        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
-
-    async def test_ifeq_unknown_key(self):
-        macro = Parser.parse("ifeq(qux, 2, key(a), key(b))", self.context, DummyMapping)
-        code_a = keyboard_layout.get("a")
-        code_b = keyboard_layout.get("b")
-
-        await macro.run(self.handler)
-        self.assertListEqual(self.result, [(EV_KEY, code_b, 1), (EV_KEY, code_b, 0)])
-        self.assertEqual(self.count_child_macros(macro), 2)
-
     async def test_if_eq(self):
         """new version of ifeq"""
         code_a = keyboard_layout.get("a")
@@ -192,6 +130,85 @@ class TestIfEq(MacroTestBase):
                 (EV_KEY, code_a, 0),
             ],
         )
+
+    async def test_raises_error(self):
+        Parser.parse("if_eq(2, $a, k(a),)", self.context)  # no error
+        Parser.parse("if_eq(2, $a, , else=k(a))", self.context)  # no error
+        self.assertRaises(MacroError, Parser.parse, "if_eq(2, $a, 1,)", self.context)
+        self.assertRaises(MacroError, Parser.parse, "if_eq(2, $a, , 2)", self.context)
+        self.expect_string_in_error("blub", "if_eq(2, $a, key(a), blub=a)")
+
+
+class TestIfEqDeprecated(MacroTestBase):
+    async def test_ifeq_runs(self):
+        # deprecated ifeq function, but kept for compatibility reasons
+        macro = Parser.parse(
+            "set(foo, 2).ifeq(foo, 2, key(a), key(b))",
+            self.context,
+            DummyMapping,
+        )
+        code_a = keyboard_layout.get("a")
+        code_b = keyboard_layout.get("b")
+
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
+        self.assertEqual(self.count_child_macros(macro), 2)
+
+    async def test_ifeq_none(self):
+        code_a = keyboard_layout.get("a")
+
+        # first param None
+        macro = Parser.parse(
+            "set(foo, 2).ifeq(foo, 2, None, key(b))", self.context, DummyMapping
+        )
+        self.assertEqual(self.count_child_macros(macro), 1)
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [])
+
+        # second param None
+        self.result = []
+        macro = Parser.parse(
+            "set(foo, 2).ifeq(foo, 2, key(a), None)", self.context, DummyMapping
+        )
+        self.assertEqual(self.count_child_macros(macro), 1)
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
+
+        """Old syntax, use None instead"""
+
+        # first param ""
+        self.result = []
+        macro = Parser.parse(
+            "set(foo, 2).ifeq(foo, 2, , key(b))", self.context, DummyMapping
+        )
+        self.assertEqual(self.count_child_macros(macro), 1)
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [])
+
+        # second param ""
+        self.result = []
+        macro = Parser.parse(
+            "set(foo, 2).ifeq(foo, 2, key(a), )", self.context, DummyMapping
+        )
+        self.assertEqual(self.count_child_macros(macro), 1)
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
+
+    async def test_ifeq_unknown_key(self):
+        macro = Parser.parse("ifeq(qux, 2, key(a), key(b))", self.context, DummyMapping)
+        code_a = keyboard_layout.get("a")
+        code_b = keyboard_layout.get("b")
+
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [(EV_KEY, code_b, 1), (EV_KEY, code_b, 0)])
+        self.assertEqual(self.count_child_macros(macro), 2)
+
+    async def test_raises_error(self):
+        Parser.parse("ifeq(a, 2, k(a),)", self.context)  # no error
+        Parser.parse("ifeq(a, 2, , k(a))", self.context)  # no error
+        Parser.parse("ifeq(a, 2, None, k(a))", self.context)  # no error
+        self.assertRaises(MacroError, Parser.parse, "ifeq(a, 2, 1,)", self.context)
+        self.assertRaises(MacroError, Parser.parse, "ifeq(a, 2, , 2)", self.context)
 
 
 if __name__ == "__main__":

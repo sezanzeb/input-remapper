@@ -33,6 +33,7 @@ from evdev._ecodes import (
     EV_KEY,
 )
 
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.parse import Parser
 from tests.lib.test_setup import test_setup
 from tests.unit.test_macros.macro_test_base import DummyMapping, MacroTestBase
@@ -205,6 +206,13 @@ class TestMouse(MacroTestBase):
     async def test_wheel_releases(self):
         await self._run_macro(f"wheel(down, 1).key(a)", 0.1)
         self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
+
+    async def test_raises_error(self):
+        Parser.parse("mouse(up, 3)", self.context)  # no error
+        Parser.parse("mouse(up, speed=$a)", self.context)  # no error
+        self.assertRaises(MacroError, Parser.parse, "mouse(3, up)", self.context)
+        Parser.parse("wheel(left, 3)", self.context)  # no error
+        self.assertRaises(MacroError, Parser.parse, "wheel(3, left)", self.context)
 
     def _get_x_movement(self):
         return [event for event in self.result if event[1] == REL_X]

@@ -109,6 +109,16 @@ class TestLeds(MacroTestBase):
             await macro.run(self.handler)
             self.assertListEqual(self.result, [(EV_KEY, KEY_1, 1), (EV_KEY, KEY_1, 0)])
 
+    async def test_raises_error(self):
+        Parser.parse("if_capslock(else=key(KEY_A))", self.context)  # no error
+        Parser.parse("if_capslock(key(KEY_A), None)", self.context)  # no error
+        Parser.parse("if_capslock(key(KEY_A))", self.context)  # no error
+        Parser.parse("if_capslock(then=key(KEY_A))", self.context)  # no error
+        Parser.parse("if_numlock(else=key(KEY_A))", self.context)  # no error
+        Parser.parse("if_numlock(key(KEY_A), None)", self.context)  # no error
+        Parser.parse("if_numlock(key(KEY_A))", self.context)  # no error
+        Parser.parse("if_numlock(then=key(KEY_A))", self.context)  # no error
+
 
 if __name__ == "__main__":
     unittest.main()

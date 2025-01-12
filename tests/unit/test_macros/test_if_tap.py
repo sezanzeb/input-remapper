@@ -29,6 +29,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.parse import Parser
 from tests.lib.test_setup import test_setup
 from tests.unit.test_macros.macro_test_base import DummyMapping, MacroTestBase
@@ -174,6 +175,15 @@ class TestIfTap(MacroTestBase):
 
         self.assertListEqual(self.result, [(EV_KEY, y, 1), (EV_KEY, y, 0)])
         self.assertFalse(macro.running)
+
+    async def test_raises_error(self):
+        Parser.parse("if_tap(, k(a), 1000)", self.context)  # no error
+        Parser.parse("if_tap(, k(a), timeout=1000)", self.context)  # no error
+        Parser.parse("if_tap(, k(a), $timeout)", self.context)  # no error
+        Parser.parse("if_tap(, k(a), timeout=$t)", self.context)  # no error
+        Parser.parse("if_tap(, key(a))", self.context)  # no error
+        Parser.parse("if_tap(k(a),)", self.context)  # no error
+        self.assertRaises(MacroError, Parser.parse, "if_tap(k(a), b)", self.context)
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@
 import time
 import unittest
 
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.parse import Parser
 from tests.lib.test_setup import test_setup
@@ -78,6 +79,10 @@ class TestWait(MacroTestBase):
             "set(a, 1).set(b, 100).wait($a, $b)", self.context, mapping, True
         )
         await self.assert_time_randomized(macro, 0.02, 0.08)
+
+    async def test_raises_error(self):
+        Parser.parse("w(2)", self.context)  # no error
+        self.assertRaises(MacroError, Parser.parse, "wait(a)", self.context)
 
 
 if __name__ == "__main__":

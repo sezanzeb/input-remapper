@@ -26,7 +26,6 @@ from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C, KEY_E
 
 from inputremapper.configs.validation_errors import (
     MacroError,
-    SymbolNotAvailableInTargetError,
 )
 from inputremapper.injection.macros.argument import Argument, ArgumentConfig
 from inputremapper.injection.macros.parse import Parser
@@ -289,119 +288,7 @@ class TestParsing(MacroTestBase):
             Variable("foo", const=False),
         )
 
-    async def test_raises_error(self):
-        def expect_string_in_error(string: str, macro: str):
-            with self.assertRaises(MacroError) as cm:
-                Parser.parse(macro, self.context)
-            error = str(cm.exception)
-            self.assertIn(string, error)
-
-        Parser.parse("k(1).h(k(a)).k(3)", self.context)  # No error
-        expect_string_in_error("bracket", "key((1)")
-        expect_string_in_error("bracket", "k(1))")
-        self.assertRaises(MacroError, Parser.parse, "k((1).k)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "key(foo=a)", self.context)
-        self.assertRaises(
-            MacroError, Parser.parse, "key(symbol=a, foo=b)", self.context
-        )
-        self.assertRaises(MacroError, Parser.parse, "k()", self.context)
-        self.assertRaises(MacroError, Parser.parse, "key(invalidkey)", self.context)
-        self.assertRaises(MacroError, Parser.parse, 'key("invalidkey")', self.context)
-        Parser.parse("key(1)", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "k(1, 1)", self.context)
-        Parser.parse("key($a)", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "h(1, 1)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "h(hold(h(1, 1)))", self.context)
-        self.assertRaises(MacroError, Parser.parse, "r(1)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "repeat(a, k(1))", self.context)
-        Parser.parse("repeat($a, k(1))", self.context)  # no error
-        Parser.parse("repeat(2, k(1))", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, 'repeat("2", k(1))', self.context)
-        self.assertRaises(MacroError, Parser.parse, "r(1, 1)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "r(k(1), 1)", self.context)
-        Parser.parse("r(1, macro=k(1))", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "r(a=1, b=k(1))", self.context)
-        self.assertRaises(
-            MacroError,
-            Parser.parse,
-            "r(repeats=1, macro=k(1), a=2)",
-            self.context,
-        )
-        self.assertRaises(
-            MacroError,
-            Parser.parse,
-            "r(repeats=1, macro=k(1), repeats=2)",
-            self.context,
-        )
-        self.assertRaises(MacroError, Parser.parse, "modify(asdf, k(a))", self.context)
-        Parser.parse("if_tap(, k(a), 1000)", self.context)  # no error
-        Parser.parse("if_tap(, k(a), timeout=1000)", self.context)  # no error
-        Parser.parse("if_tap(, k(a), $timeout)", self.context)  # no error
-        Parser.parse("if_tap(, k(a), timeout=$t)", self.context)  # no error
-        Parser.parse("if_tap(, key(a))", self.context)  # no error
-        Parser.parse("if_tap(k(a),)", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "if_tap(k(a), b)", self.context)
-        Parser.parse("if_single(k(a),)", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "if_single(1,)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "if_single(,1)", self.context)
-        Parser.parse("mouse(up, 3)", self.context)  # no error
-        Parser.parse("mouse(up, speed=$a)", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "mouse(3, up)", self.context)
-        Parser.parse("wheel(left, 3)", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "wheel(3, left)", self.context)
-        Parser.parse("w(2)", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "wait(a)", self.context)
-        Parser.parse("ifeq(a, 2, k(a),)", self.context)  # no error
-        Parser.parse("ifeq(a, 2, , k(a))", self.context)  # no error
-        Parser.parse("ifeq(a, 2, None, k(a))", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "ifeq(a, 2, 1,)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "ifeq(a, 2, , 2)", self.context)
-        Parser.parse("if_eq(2, $a, k(a),)", self.context)  # no error
-        Parser.parse("if_eq(2, $a, , else=k(a))", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "if_eq(2, $a, 1,)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "if_eq(2, $a, , 2)", self.context)
-
-        expect_string_in_error("blub", "if_eq(2, $a, key(a), blub=a)")
-
-        expect_string_in_error("foo", "foo(a)")
-
-        self.assertRaises(MacroError, Parser.parse, "set($a, 1)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "set(1, 2)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "set(+, 2)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "set(a(), 2)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "set('b,c', 2)", self.context)
-        self.assertRaises(MacroError, Parser.parse, 'set("b,c", 2)', self.context)
-        Parser.parse("set(A, 2)", self.context)  # no error
-
-        self.assertRaises(MacroError, Parser.parse, "key(a)key(b)", self.context)
-        self.assertRaises(MacroError, Parser.parse, "hold(key(a)key(b))", self.context)
-
-        self.assertRaises(
-            MacroError, Parser.parse, "hold_keys(a, broken, b)", self.context
-        )
-
-        Parser.parse("add(a, 1)", self.context)  # no error
-        self.assertRaises(MacroError, Parser.parse, "add(a, b)", self.context)
-        self.assertRaises(MacroError, Parser.parse, 'add(a, "1")', self.context)
-
-        Parser.parse("if_capslock(else=key(KEY_A))", self.context)  # no error
-        Parser.parse("if_capslock(key(KEY_A), None)", self.context)  # no error
-        Parser.parse("if_capslock(key(KEY_A))", self.context)  # no error
-        Parser.parse("if_capslock(then=key(KEY_A))", self.context)  # no error
-        Parser.parse("if_numlock(else=key(KEY_A))", self.context)  # no error
-        Parser.parse("if_numlock(key(KEY_A), None)", self.context)  # no error
-        Parser.parse("if_numlock(key(KEY_A))", self.context)  # no error
-        Parser.parse("if_numlock(then=key(KEY_A))", self.context)  # no error
-
-        # wrong target for BTN_A
-        self.assertRaises(
-            SymbolNotAvailableInTargetError,
-            Parser.parse,
-            "key(BTN_A)",
-            self.context,
-            DummyMapping,
-        )
-
+    async def test_string_not_a_macro(self):
         # passing a string parameter. This is not a macro, even though
         # it might look like it without the string quotes. Everything with
         # explicit quotes around it has to be treated as a string.

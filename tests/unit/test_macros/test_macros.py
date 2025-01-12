@@ -28,10 +28,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.validation_errors import (
-    MacroError,
-)
-from inputremapper.injection.macros.macro import Macro, macro_variables
+from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.parse import Parser
 from tests.lib.test_setup import test_setup
 from tests.unit.test_macros.macro_test_base import MacroTestBase, DummyMapping
@@ -39,164 +36,7 @@ from tests.unit.test_macros.macro_test_base import MacroTestBase, DummyMapping
 
 @test_setup
 class TestMacros(MacroTestBase):
-    async def test_0(self):
-        macro = Parser.parse("key(1)", self.context, DummyMapping, True)
-        one_code = keyboard_layout.get("1")
-
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
-        )
-        self.assertEqual(self.count_child_macros(macro), 0)
-
-    async def test_named_parameter(self):
-        macro = Parser.parse("key(symbol=1)", self.context, DummyMapping, True)
-        one_code = keyboard_layout.get("1")
-
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
-        )
-        self.assertEqual(self.count_child_macros(macro), 0)
-
-    async def test_1(self):
-        macro = Parser.parse('key(1).key("KEY_A").key(3)', self.context, DummyMapping)
-
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [
-                (EV_KEY, keyboard_layout.get("1"), 1),
-                (EV_KEY, keyboard_layout.get("1"), 0),
-                (EV_KEY, keyboard_layout.get("a"), 1),
-                (EV_KEY, keyboard_layout.get("a"), 0),
-                (EV_KEY, keyboard_layout.get("3"), 1),
-                (EV_KEY, keyboard_layout.get("3"), 0),
-            ],
-        )
-        self.assertEqual(self.count_child_macros(macro), 0)
-
-    async def test_key(self):
-        code_a = keyboard_layout.get("a")
-        code_b = keyboard_layout.get("b")
-        macro = Parser.parse("set(foo, b).key($foo).key(a)", self.context, DummyMapping)
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [
-                (EV_KEY, code_b, 1),
-                (EV_KEY, code_b, 0),
-                (EV_KEY, code_a, 1),
-                (EV_KEY, code_a, 0),
-            ],
-        )
-
-    async def test_key_down_up(self):
-        code_a = keyboard_layout.get("a")
-        code_b = keyboard_layout.get("b")
-        macro = Parser.parse(
-            "set(foo, b).key_down($foo).key_up($foo).key_up(a).key_down(a)",
-            self.context,
-            DummyMapping,
-        )
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [
-                (EV_KEY, code_b, 1),
-                (EV_KEY, code_b, 0),
-                (EV_KEY, code_a, 0),
-                (EV_KEY, code_a, 1),
-            ],
-        )
-
-    async def test_modify(self):
-        code_a = keyboard_layout.get("a")
-        code_b = keyboard_layout.get("b")
-        code_c = keyboard_layout.get("c")
-        macro = Parser.parse(
-            "set(foo, b).modify($foo, modify(a, key(c)))",
-            self.context,
-            DummyMapping,
-        )
-        await macro.run(self.handler)
-        self.assertListEqual(
-            self.result,
-            [
-                (EV_KEY, code_b, 1),
-                (EV_KEY, code_a, 1),
-                (EV_KEY, code_c, 1),
-                (EV_KEY, code_c, 0),
-                (EV_KEY, code_a, 0),
-                (EV_KEY, code_b, 0),
-            ],
-        )
-
-    async def test_2(self):
-        start = time.time()
-        repeats = 20
-
-        macro = Parser.parse(
-            f"repeat({repeats}, key(k)).repeat(1, key(k))",
-            self.context,
-            DummyMapping,
-        )
-        k_code = keyboard_layout.get("k")
-
-        await macro.run(self.handler)
-        keystroke_sleep = DummyMapping.macro_key_sleep_ms
-        sleep_time = 2 * repeats * keystroke_sleep / 1000
-        self.assertGreater(time.time() - start, sleep_time * 0.9)
-        self.assertLess(time.time() - start, sleep_time * 1.3)
-
-        self.assertListEqual(
-            self.result,
-            [(EV_KEY, k_code, 1), (EV_KEY, k_code, 0)] * (repeats + 1),
-        )
-
-        self.assertEqual(self.count_child_macros(macro), 2)
-
-        self.assertEqual(len(macro.tasks[0].child_macros), 1)
-        self.assertEqual(len(macro.tasks[0].child_macros[0].tasks), 1)
-        self.assertEqual(len(macro.tasks[0].child_macros[0].tasks[0].child_macros), 0)
-
-        self.assertEqual(len(macro.tasks[1].child_macros), 1)
-        self.assertEqual(len(macro.tasks[1].child_macros[0].tasks), 1)
-        self.assertEqual(len(macro.tasks[1].child_macros[0].tasks[0].child_macros), 0)
-
-    async def test_3(self):
-        start = time.time()
-        macro = Parser.parse("repeat(3, key(m).w(100))", self.context, DummyMapping)
-        m_code = keyboard_layout.get("m")
-        await macro.run(self.handler)
-
-        keystroke_time = 6 * DummyMapping.macro_key_sleep_ms
-        total_time = keystroke_time + 300
-        total_time /= 1000
-
-        self.assertGreater(time.time() - start, total_time * 0.9)
-        self.assertLess(time.time() - start, total_time * 1.2)
-        self.assertListEqual(
-            self.result,
-            [
-                (EV_KEY, m_code, 1),
-                (EV_KEY, m_code, 0),
-                (EV_KEY, m_code, 1),
-                (EV_KEY, m_code, 0),
-                (EV_KEY, m_code, 1),
-                (EV_KEY, m_code, 0),
-            ],
-        )
-        self.assertEqual(self.count_child_macros(macro), 1)
-        self.assertEqual(len(macro.tasks), 1)
-        self.assertEqual(len(macro.tasks[0].child_macros), 1)
-        self.assertEqual(len(macro.tasks[0].child_macros[0].tasks), 2)
-        self.assertEqual(len(macro.tasks[0].child_macros[0].tasks[0].child_macros), 0)
-        self.assertEqual(len(macro.tasks[0].child_macros[0].tasks[1].child_macros), 0)
-
-    async def test_4(self):
+    async def test_newlines(self):
         macro = Parser.parse(
             "  repeat(2,\nkey(\nr ).key(minus\n )).key(m)  ",
             self.context,
@@ -226,7 +66,7 @@ class TestMacros(MacroTestBase):
         self.assertEqual(self.count_child_macros(macro), 1)
         self.assertEqual(self.count_tasks(macro), 4)
 
-    async def test_5(self):
+    async def test_various(self):
         start = time.time()
         macro = Parser.parse(
             "w(200).repeat(2,modify(w,\nrepeat(2,\tkey(BtN_LeFt))).w(10).key(k))",
@@ -257,7 +97,7 @@ class TestMacros(MacroTestBase):
         expected *= 2
         self.assertListEqual(self.result, expected)
 
-    async def test_6(self):
+    async def test_not_run(self):
         # does nothing without .run
         macro = Parser.parse("key(a).repeat(3, key(b))", self.context)
         self.assertIsInstance(macro, Macro)
@@ -321,69 +161,6 @@ class TestMacros(MacroTestBase):
             (EV_KEY, c, 0),
         ] * 2
         self.assertListEqual(self.result, expected)
-
-    async def test_macro_breaks(self):
-        # the first parameter for `repeat` requires an integer, not "foo",
-        # which makes `repeat` throw
-        macro = Parser.parse(
-            'set(a, "foo").repeat($a, key(KEY_A)).key(KEY_B)',
-            self.context,
-            DummyMapping,
-        )
-
-        try:
-            await macro.run(self.handler)
-        except MacroError as e:
-            self.assertIn("foo", str(e))
-
-        self.assertFalse(macro.running)
-
-        # key(KEY_B) is not executed, the macro stops
-        self.assertListEqual(self.result, [])
-
-    async def test_set(self):
-        """await Parser.parse('set(a, "foo")', self.context, DummyMapping).run(self.handler)
-        self.assertEqual(macro_variables.get("a"), "foo")
-
-        await Parser.parse('set( \t"b" \n, "1")', self.context, DummyMapping).run(self.handler)
-        self.assertEqual(macro_variables.get("b"), "1")"""
-
-        await Parser.parse("set(a, 1)", self.context, DummyMapping).run(self.handler)
-        self.assertEqual(macro_variables.get("a"), 1)
-
-        """await Parser.parse("set(a, )", self.context, DummyMapping).run(self.handler)
-        self.assertEqual(macro_variables.get("a"), None)"""
-
-    async def test_add(self):
-        await Parser.parse("set(a, 1).add(a, 1)", self.context, DummyMapping).run(
-            self.handler
-        )
-        self.assertEqual(macro_variables.get("a"), 2)
-
-        await Parser.parse("set(b, 1).add(b, -1)", self.context, DummyMapping).run(
-            self.handler
-        )
-        self.assertEqual(macro_variables.get("b"), 0)
-
-        await Parser.parse("set(c, -1).add(c, 500)", self.context, DummyMapping).run(
-            self.handler
-        )
-        self.assertEqual(macro_variables.get("c"), 499)
-
-        await Parser.parse("add(d, 500)", self.context, DummyMapping).run(self.handler)
-        self.assertEqual(macro_variables.get("d"), 500)
-
-    async def test_add_invalid(self):
-        # For invalid input it should do nothing (except to log to the console)
-        await Parser.parse('set(e, "foo").add(e, 1)', self.context, DummyMapping).run(
-            self.handler
-        )
-        self.assertEqual(macro_variables.get("e"), "foo")
-
-        await Parser.parse('set(e, "2").add(e, 3)', self.context, DummyMapping).run(
-            self.handler
-        )
-        self.assertEqual(macro_variables.get("e"), "2")
 
 
 if __name__ == "__main__":

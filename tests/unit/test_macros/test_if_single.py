@@ -28,6 +28,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.input_event import InputEvent
 from tests.lib.test_setup import test_setup
@@ -180,6 +181,11 @@ class TestIfSingle(MacroTestBase):
         await asyncio.sleep(0.1)
         self.assertFalse(macro.running)
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
+
+    async def test_raises_error(self):
+        Parser.parse("if_single(k(a),)", self.context)  # no error
+        self.assertRaises(MacroError, Parser.parse, "if_single(1,)", self.context)
+        self.assertRaises(MacroError, Parser.parse, "if_single(,1)", self.context)
 
 
 if __name__ == "__main__":
