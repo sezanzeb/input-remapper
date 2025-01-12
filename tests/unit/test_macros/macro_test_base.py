@@ -23,9 +23,11 @@ import asyncio
 import unittest
 
 from inputremapper.configs.preset import Preset
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.context import Context
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.macros.macro import Macro, macro_variables
+from inputremapper.injection.macros.parse import Parser
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
@@ -100,6 +102,12 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
             for child_macro in task.child_macros:
                 count += self.count_tasks(child_macro)
         return count
+
+    def expect_string_in_error(self, string: str, macro: str):
+        with self.assertRaises(MacroError) as cm:
+            Parser.parse(macro, self.context)
+        error = str(cm.exception)
+        self.assertIn(string, error)
 
 
 class DummyMapping:

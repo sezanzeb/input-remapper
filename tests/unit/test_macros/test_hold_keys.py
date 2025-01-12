@@ -25,6 +25,7 @@ import unittest
 from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
+from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.parse import Parser
 from tests.lib.test_setup import test_setup
 from tests.unit.test_macros.macro_test_base import MacroTestBase, DummyMapping
@@ -118,6 +119,11 @@ class TestHoldKeys(MacroTestBase):
         self.assertEqual(self.result[5], (EV_KEY, keyboard_layout.get("c"), 0))
         self.assertEqual(self.result[6], (EV_KEY, keyboard_layout.get("b"), 0))
         self.assertEqual(self.result[7], (EV_KEY, keyboard_layout.get("a"), 0))
+
+    async def test_raises_error(self):
+        self.assertRaises(
+            MacroError, Parser.parse, "hold_keys(a, broken, b)", self.context
+        )
 
 
 if __name__ == "__main__":
