@@ -43,6 +43,16 @@ DEFAULT_UINPUTS = {
             *((i, evdev.AbsInfo(0, -1, 1, 0, 0, 0)) for i in range(0x10, 0x12)),
         ],  # 6-axis and 1 hat switch
     },
+     "gamepad-2": {
+        evdev.ecodes.EV_KEY: [*range(0x130, 0x13F)],  # BTN_SOUTH - BTN_THUMBR
+        evdev.ecodes.EV_ABS: [
+            *(
+                (i, evdev.AbsInfo(0, MIN_ABS, MAX_ABS, 0, 0, 0))
+                for i in range(0x00, 0x06)
+            ),
+            *((i, evdev.AbsInfo(0, -1, 1, 0, 0, 0)) for i in range(0x10, 0x12)),
+        ],  # 6-axis and 1 hat switch
+    },
     "mouse": {
         evdev.ecodes.EV_KEY: [*range(0x110, 0x118)],  # BTN_LEFT - BTN_TASK
         evdev.ecodes.EV_REL: [*range(0x00, 0x0D)],  # all REL axis
