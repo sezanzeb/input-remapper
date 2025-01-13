@@ -109,6 +109,7 @@ class KnownUinput(str, enum.Enum):
     KEYBOARD = "keyboard"
     MOUSE = "mouse"
     GAMEPAD = "gamepad"
+    GAMEPAD-2 = "gamepad-2"
     KEYBOARD_MOUSE = "keyboard + mouse"
 
 
