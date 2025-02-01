@@ -7,8 +7,7 @@ set -xeuo pipefail
 sudo apt-get install -y gettext python3-evdev python3-pydbus python3-pydantic python3-gi gir1.2-gtk-3.0 gir1.2-gtksource-4
 
 # ensure pip and setuptools/wheel up to date so can install all pip modules
-python -m pip install --upgrade pip
-python -m pip install --upgrade --force-reinstall wheel setuptools
+sudo apt-get install python3-pip python3-wheel python3-setuptools
 
 # install test deps which aren't in setup.py
 python -m pip install psutil pylint-pydantic
