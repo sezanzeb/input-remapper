@@ -205,7 +205,8 @@ class RelToAbsHandler(MappingHandler):
             await self._moving.wait()  # input moving started
             while (
                 await asyncio.wait(
-                    (self._moving.wait(),), timeout=self.mapping.release_timeout
+                    (asyncio.create_task(self._moving.wait()),),
+                    timeout=self.mapping.release_timeout,
                 )
             )[0]:
                 self._moving.clear()  # still moving
@@ -229,7 +230,8 @@ class RelToAbsHandler(MappingHandler):
         """Inject."""
         try:
             self.global_uinputs.write(
-                (*self._output_axis, value), self.mapping.target_uinput
+                (*self._output_axis, value),
+                self.mapping.target_uinput,
             )
         except OverflowError:
             # screwed up the calculation of the event value
