@@ -156,7 +156,11 @@ class CombinationHandler(MappingHandler):
         # Send key up events to the forwarded uinput if configured to do so.
         self._forward_release()
 
-        logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
+        logger.debug(
+            "Sending %s to sub-handler %s",
+            self.mapping.input_combination,
+            repr(self._sub_handler),
+        )
         self._output_previously_active = bool(event.value)
         sub_handler_result = self._sub_handler.notify(event, source, suppress)
 
@@ -176,7 +180,11 @@ class CombinationHandler(MappingHandler):
         # In the case of output axis, this will enable us to activate multiple
         # axis with the same button.
 
-        logger.debug("Sending %s to sub-handler", self.mapping.input_combination)
+        logger.debug(
+            "Sending %s to sub-handler %s",
+            self.mapping.input_combination,
+            repr(self._sub_handler),
+        )
         self._output_previously_active = bool(event.value)
         self._sub_handler.notify(event, source, suppress=False)
 

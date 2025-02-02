@@ -1239,6 +1239,80 @@ class TestCombination(EventPipelineTestBase):
             ],
         )
 
+    async def test_multiple_axis_in_hierarchy_handler(self):
+        preset = Preset()
+
+        # Add two mappings that map EV_REL to EV_ABS. We want to test that they don't
+        # suppress each other when they are part of a hierarchy handler. So having at
+        # least two of them is important for this test.
+        cutoff = 2
+        for in_, out in [(REL_X, ABS_X), (REL_Y, ABS_Y)]:
+            input_combination = InputCombination(
+                [
+                    InputConfig(type=EV_KEY, code=KEY_A),
+                    InputConfig(type=EV_REL, code=in_),
+                ]
+            )
+            mapping = Mapping(
+                input_combination=input_combination.to_config(),
+                target_uinput="gamepad",
+                output_type=EV_ABS,
+                output_code=out,
+                gain=0.5,
+                rel_to_abs_input_cutoff=cutoff,
+                release_timeout=0.1,
+                deadzone=0,
+            )
+            preset.add(mapping)
+
+        # Add a non-analog mapping, to make sure a HierarchyHandler exists
+        key_input = InputCombination(
+            (
+                InputConfig(type=EV_KEY, code=KEY_A),
+                InputConfig(type=EV_KEY, code=KEY_B),
+            )
+        )
+        key_mapping = Mapping(
+            input_combination=key_input.to_config(),
+            target_uinput="keyboard",
+            output_type=EV_KEY,
+            output_code=KEY_C,
+        )
+        preset.add(key_mapping)
+
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
+
+        # Trigger all of them at the same time
+        value = int(REL_XY_SCALING * cutoff)
+        await asyncio.sleep(0.1)
+        await self.send_events(
+            [
+                InputEvent(0, 0, EV_KEY, KEY_A, 1),
+                InputEvent(0, 0, EV_REL, REL_X, value),
+                InputEvent(0, 0, EV_REL, REL_Y, value),
+                InputEvent(0, 0, EV_KEY, KEY_B, 1),
+                InputEvent(0, 0, EV_KEY, KEY_B, 0),
+            ],
+            event_reader,
+        )
+
+        await asyncio.sleep(0.4)
+
+        # We expect all of it to be present. No mapping was suppressed.
+        # So we can trigger combinations that inject keys while a joystick is being
+        # simulated in multiple directions.
+        self.assertEqual(
+            uinput_write_history,
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS / 2)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS / 2)),
+                InputEvent.from_tuple((EV_KEY, KEY_C, 1)),
+                InputEvent.from_tuple((EV_KEY, KEY_C, 0)),
+                InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, 0)),
+            ],
+        )
+
 
 @test_setup
 class TestAbsToAbs(EventPipelineTestBase):

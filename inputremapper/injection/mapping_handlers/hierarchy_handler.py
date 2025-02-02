@@ -73,13 +73,21 @@ class HierarchyHandler(MappingHandler):
         if event.input_match_hash != self._input_config.input_match_hash:
             return False
 
-        success = False
+        handled = False
         for handler in self.handlers:
-            if not success:
-                success = handler.notify(event, source)
-            else:
-                handler.notify(event, source, suppress=True)
-        return success
+            if handled:
+                # To allow an arbitrary number of output axes to be activated at the
+                # same time, we don't suppress them.
+                handler.notify(
+                    event,
+                    source,
+                    suppress=not handler.mapping.input_combination.defines_analog_input,
+                )
+                continue
+
+            handled = handler.notify(event, source)
+
+        return handled
 
     def reset(self) -> None:
         for sub_handler in self.handlers:

@@ -294,10 +294,12 @@ class UIMapping(BaseModel):
         otherwise looks the output_symbol up in the keyboard_layout
         return None for unknown symbols and macros
         """
-        if self.output_code and self.output_type:
+        if self.output_code is not None and self.output_type is not None:
             return self.output_type, self.output_code
+
         if self.output_symbol and not Parser.is_this_a_macro(self.output_symbol):
             return EV_KEY, keyboard_layout.get(self.output_symbol)
+
         return None
 
     def get_output_name_constant(self) -> str:
