@@ -1243,8 +1243,8 @@ class TestCombination(EventPipelineTestBase):
         preset = Preset()
 
         # Add two mappings that map EV_REL to EV_ABS. We want to test that they don't
-        # suppress each other when they are part of a hierarchy handler. Having two
-        # of them is important for this test.
+        # suppress each other when they are part of a hierarchy handler. So having at
+        # least two of them is important for this test.
         cutoff = 2
         for in_, out in [(REL_X, ABS_X), (REL_Y, ABS_Y)]:
             input_combination = InputCombination(
