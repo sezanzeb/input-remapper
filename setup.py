@@ -23,9 +23,9 @@ import os
 import re
 import subprocess
 from os.path import basename, splitext, join
+
 from setuptools import setup
 from setuptools.command.install import install
-
 
 PO_FILES = "po/*.po"
 
@@ -114,6 +114,7 @@ setup(
         *lang_data,
         ("/usr/share/input-remapper/", glob.glob("data/*")),
         ("/usr/share/applications/", ["data/input-remapper-gtk.desktop"]),
+        ("/usr/share/applications/", ["data/input-remapper-stop-all.desktop"]),
         (
             "/usr/share/metainfo/",
             ["data/io.github.sezanzeb.input_remapper.metainfo.xml"],
