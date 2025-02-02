@@ -73,19 +73,22 @@ class HierarchyHandler(MappingHandler):
         if event.input_match_hash != self._input_config.input_match_hash:
             return False
 
-        success = False
+        handled = False
         for handler in self.handlers:
-            # We want to be able to map EV_REL to EV_ABS, and while moving the gamepad,
-            # still trigger keys using EV_REL and an analog_threshold. In this case, we
-            # have two combinations activated at the same time.
-            defines_analog_input = True in [
-                input_config.defines_analog_input
-                for input_config in handler.input_configs
-            ]
-            suppress = success and not defines_analog_input
-            success = handler.notify(event, source, suppress=suppress) or success
+            if handled:
+                # We want to be able to map EV_REL to EV_ABS, and while moving the
+                # gamepad, still trigger keys using EV_REL and an analog_threshold.
+                # In this case, we have two combinations activated at the same time.
+                defines_analog_input = True in [
+                    input_config.defines_analog_input
+                    for input_config in handler.input_configs
+                ]
+                handler.notify(event, source, suppress=not defines_analog_input)
+                continue
 
-        return success
+            handled = handler.notify(event, source)
+
+        return handled
 
     def reset(self) -> None:
         for sub_handler in self.handlers:
