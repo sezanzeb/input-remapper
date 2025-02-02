@@ -76,9 +76,8 @@ class HierarchyHandler(MappingHandler):
         handled = False
         for handler in self.handlers:
             if handled:
-                # We want to be able to map EV_REL to EV_ABS, and while moving the
-                # gamepad, still trigger keys using EV_REL and an analog_threshold.
-                # In this case, we have two combinations activated at the same time.
+                # To allow an arbitrary number of output axes to be activated at the
+                # same time, we don't suppress them.
                 handler.notify(
                     event,
                     source,

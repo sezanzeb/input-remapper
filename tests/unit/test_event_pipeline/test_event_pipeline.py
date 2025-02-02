@@ -1239,11 +1239,12 @@ class TestCombination(EventPipelineTestBase):
             ],
         )
 
-    async def test_key_during_abs_movement(self):
+    async def test_multiple_axis_in_hierarchy_handler(self):
         preset = Preset()
 
         # Add two mappings that map EV_REL to EV_ABS. We want to test that they don't
-        # suppress each other when they are part of a hierarchy handler.
+        # suppress each other when they are part of a hierarchy handler. Having two
+        # of them is important for this test.
         cutoff = 2
         for in_, out in [(REL_X, ABS_X), (REL_Y, ABS_Y)]:
             input_combination = InputCombination(
@@ -1299,7 +1300,7 @@ class TestCombination(EventPipelineTestBase):
 
         # We expect all of it to be present. No mapping was suppressed.
         # So we can trigger combinations that inject keys while a joystick is being
-        # simulated.
+        # simulated in multiple directions.
         self.assertEqual(
             uinput_write_history,
             [
