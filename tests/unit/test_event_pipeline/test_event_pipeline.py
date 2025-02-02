@@ -63,7 +63,7 @@ from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
-from tests.lib.cleanup import cleanup, clear_write_history
+from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
 from tests.lib.constants import MAX_ABS, MIN_ABS
 from tests.lib.fixtures import Fixture, fixtures
@@ -1424,7 +1424,10 @@ class TestRelToAbs(EventPipelineTestBase):
         )
 
     async def test_rel_to_abs_reset_multiple(self):
-        # Recenters correctly when triggering the mapping a second time
+        # Recenters correctly when triggering the mapping a second time.
+        # It appears in order to really properly retrigger, a key-input is needed
+        # that can be released and pressed again.
+
         # left mouse x to abs x
         gain = 0.5
         cutoff = 2
@@ -1453,14 +1456,8 @@ class TestRelToAbs(EventPipelineTestBase):
         for _ in range(3):
             next_time = self.next_usec_time()
             value = int(REL_XY_SCALING * cutoff)
-            await self.send_events(
-                [
-                    InputEvent(0, next_time, EV_KEY, KEY_A, 1),
-                    InputEvent(0, next_time, EV_REL, REL_X, value),
-                ],
-                event_reader,
-            )
-
+            await event_reader.handle(InputEvent(0, next_time, EV_KEY, KEY_A, 1))
+            await event_reader.handle(InputEvent(0, next_time, EV_REL, REL_X, value))
             await asyncio.sleep(0.2)
 
             history = self.global_uinputs.get_uinput("gamepad").write_history
@@ -1469,13 +1466,9 @@ class TestRelToAbs(EventPipelineTestBase):
                 history,
             )
 
-            await self.send_events(
-                [InputEvent(0, next_time, EV_KEY, KEY_A, 0)],
-                event_reader,
-            )
-            await asyncio.sleep(0.2)
+            await event_reader.handle(InputEvent(0, next_time, EV_KEY, KEY_A, 0))
+            await asyncio.sleep(0.1)
 
-            clear_write_history()
             self.global_uinputs.get_uinput("gamepad").write_history = []
 
     async def test_rel_to_abs_with_input_switch(self):
