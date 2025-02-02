@@ -1467,7 +1467,7 @@ class TestRelToAbs(EventPipelineTestBase):
             )
 
             await event_reader.handle(InputEvent(0, next_time, EV_KEY, KEY_A, 0))
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
 
             self.global_uinputs.get_uinput("gamepad").write_history = []
 
