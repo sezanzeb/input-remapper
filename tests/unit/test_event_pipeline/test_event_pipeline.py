@@ -1242,7 +1242,8 @@ class TestCombination(EventPipelineTestBase):
     async def test_key_during_abs_movement(self):
         preset = Preset()
 
-        # Add two mappings that map EV_REL to EV_ABS.
+        # Add two mappings that map EV_REL to EV_ABS. We want to test that they don't
+        # suppress each other when they are part of a hierarchy handler.
         cutoff = 2
         for in_, out in [(REL_X, ABS_X), (REL_Y, ABS_Y)]:
             input_combination = InputCombination(
