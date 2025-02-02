@@ -79,11 +79,11 @@ class HierarchyHandler(MappingHandler):
                 # We want to be able to map EV_REL to EV_ABS, and while moving the
                 # gamepad, still trigger keys using EV_REL and an analog_threshold.
                 # In this case, we have two combinations activated at the same time.
-                defines_analog_input = True in [
-                    input_config.defines_analog_input
-                    for input_config in handler.input_configs
-                ]
-                handler.notify(event, source, suppress=not defines_analog_input)
+                handler.notify(
+                    event,
+                    source,
+                    suppress=not handler.mapping.input_combination.defines_analog_input,
+                )
                 continue
 
             handled = handler.notify(event, source)
