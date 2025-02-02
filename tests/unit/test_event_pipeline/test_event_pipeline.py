@@ -1425,8 +1425,8 @@ class TestRelToAbs(EventPipelineTestBase):
 
     async def test_rel_to_abs_reset_multiple(self):
         # Recenters correctly when triggering the mapping a second time.
-        # It appears in order to really properly retrigger, a key-input is needed
-        # that can be released and pressed again.
+        # Could only be reproduced if a key input is part of the combination, that is
+        # released and pressed again.
 
         # left mouse x to abs x
         gain = 0.5
