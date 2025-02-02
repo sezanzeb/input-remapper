@@ -285,7 +285,7 @@ class MappingParser:
             )
             sub_handlers: List[MappingHandler] = []
             for combination in sorted_combinations:
-                sub_handlers.append(*handlers[combination])
+                sub_handlers.extend(handlers[combination])
 
             sorted_handlers.add(
                 HierarchyHandler(

@@ -75,10 +75,16 @@ class HierarchyHandler(MappingHandler):
 
         success = False
         for handler in self.handlers:
-            if not success:
-                success = handler.notify(event, source)
-            else:
-                handler.notify(event, source, suppress=True)
+            # We want to be able to map EV_REL to EV_ABS, and while moving the gamepad,
+            # still trigger keys using EV_REL and an analog_threshold. In this case, we
+            # have two combinations activated at the same time.
+            defines_analog_input = True in [
+                input_config.defines_analog_input
+                for input_config in handler.input_configs
+            ]
+            suppress = success and not defines_analog_input
+            success = handler.notify(event, source, suppress=suppress) or success
+
         return success
 
     def reset(self) -> None:
