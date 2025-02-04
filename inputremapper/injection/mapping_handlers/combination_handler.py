@@ -158,7 +158,7 @@ class CombinationHandler(MappingHandler):
 
         logger.debug(
             "Sending %s to sub-handler %s",
-            self.mapping.input_combination,
+            repr(event),
             repr(self._sub_handler),
         )
         self._output_previously_active = bool(event.value)
@@ -182,7 +182,7 @@ class CombinationHandler(MappingHandler):
 
         logger.debug(
             "Sending %s to sub-handler %s",
-            self.mapping.input_combination,
+            repr(event),
             repr(self._sub_handler),
         )
         self._output_previously_active = bool(event.value)
