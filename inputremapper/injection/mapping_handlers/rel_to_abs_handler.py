@@ -176,7 +176,7 @@ class RelToAbsHandler(MappingHandler):
             self._recenter()
             return True
 
-        if not self._recenter_loop:
+        if not self._recenter_loop or self._recenter_loop.cancelled():
             self._recenter_loop = asyncio.create_task(self._create_recenter_loop())
 
         self._moving.set()  # notify the _recenter_loop

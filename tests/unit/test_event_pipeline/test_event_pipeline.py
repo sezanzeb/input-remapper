@@ -1239,6 +1239,80 @@ class TestCombination(EventPipelineTestBase):
             ],
         )
 
+    async def test_multiple_axis_in_hierarchy_handler(self):
+        preset = Preset()
+
+        # Add two mappings that map EV_REL to EV_ABS. We want to test that they don't
+        # suppress each other when they are part of a hierarchy handler. So having at
+        # least two of them is important for this test.
+        cutoff = 2
+        for in_, out in [(REL_X, ABS_X), (REL_Y, ABS_Y)]:
+            input_combination = InputCombination(
+                [
+                    InputConfig(type=EV_KEY, code=KEY_A),
+                    InputConfig(type=EV_REL, code=in_),
+                ]
+            )
+            mapping = Mapping(
+                input_combination=input_combination.to_config(),
+                target_uinput="gamepad",
+                output_type=EV_ABS,
+                output_code=out,
+                gain=0.5,
+                rel_to_abs_input_cutoff=cutoff,
+                release_timeout=0.1,
+                deadzone=0,
+            )
+            preset.add(mapping)
+
+        # Add a non-analog mapping, to make sure a HierarchyHandler exists
+        key_input = InputCombination(
+            (
+                InputConfig(type=EV_KEY, code=KEY_A),
+                InputConfig(type=EV_KEY, code=KEY_B),
+            )
+        )
+        key_mapping = Mapping(
+            input_combination=key_input.to_config(),
+            target_uinput="keyboard",
+            output_type=EV_KEY,
+            output_code=KEY_C,
+        )
+        preset.add(key_mapping)
+
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
+
+        # Trigger all of them at the same time
+        value = int(REL_XY_SCALING * cutoff)
+        await asyncio.sleep(0.1)
+        await self.send_events(
+            [
+                InputEvent(0, 0, EV_KEY, KEY_A, 1),
+                InputEvent(0, 0, EV_REL, REL_X, value),
+                InputEvent(0, 0, EV_REL, REL_Y, value),
+                InputEvent(0, 0, EV_KEY, KEY_B, 1),
+                InputEvent(0, 0, EV_KEY, KEY_B, 0),
+            ],
+            event_reader,
+        )
+
+        await asyncio.sleep(0.4)
+
+        # We expect all of it to be present. No mapping was suppressed.
+        # So we can trigger combinations that inject keys while a joystick is being
+        # simulated in multiple directions.
+        self.assertEqual(
+            uinput_write_history,
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS / 2)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS / 2)),
+                InputEvent.from_tuple((EV_KEY, KEY_C, 1)),
+                InputEvent.from_tuple((EV_KEY, KEY_C, 0)),
+                InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, 0)),
+            ],
+        )
+
 
 @test_setup
 class TestAbsToAbs(EventPipelineTestBase):
@@ -1343,16 +1417,18 @@ class TestAbsToAbs(EventPipelineTestBase):
 
 @test_setup
 class TestRelToAbs(EventPipelineTestBase):
+    def setUp(self):
+        self.timestamp = 0
+        super().setUp()
+
+    def next_usec_time(self):
+        self.timestamp += 1000000 / DEFAULT_REL_RATE
+        return self.timestamp
+
     async def test_rel_to_abs(self):
-        timestamp = 0
-
-        def next_usec_time():
-            nonlocal timestamp
-            timestamp += 1000000 / DEFAULT_REL_RATE
-            return timestamp
-
-        gain = 0.5
+        # first mapping
         # left mouse x to abs x
+        gain = 0.5
         cutoff = 2
         input_combination = InputCombination([InputConfig(type=EV_REL, code=REL_X)])
         mapping_config = {
@@ -1368,6 +1444,8 @@ class TestRelToAbs(EventPipelineTestBase):
         mapping_1 = Mapping(**mapping_config)
         preset = Preset()
         preset.add(mapping_1)
+
+        # second mapping
         input_combination = InputCombination([InputConfig(type=EV_REL, code=REL_Y)])
         mapping_config["input_combination"] = input_combination.to_config()
         mapping_config["output_code"] = ABS_Y
@@ -1376,7 +1454,7 @@ class TestRelToAbs(EventPipelineTestBase):
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
-        next_time = next_usec_time()
+        next_time = self.next_usec_time()
         await self.send_events(
             [
                 InputEvent(0, next_time, EV_REL, REL_X, -int(REL_XY_SCALING * cutoff)),
@@ -1397,7 +1475,7 @@ class TestRelToAbs(EventPipelineTestBase):
         )
 
         # send more events, then wait until the release timeout
-        next_time = next_usec_time()
+        next_time = self.next_usec_time()
         await self.send_events(
             [
                 InputEvent(0, next_time, EV_REL, REL_X, -int(REL_XY_SCALING)),
@@ -1418,6 +1496,54 @@ class TestRelToAbs(EventPipelineTestBase):
                 InputEvent.from_tuple((3, 1, 0)),
             ],
         )
+
+    async def test_rel_to_abs_reset_multiple(self):
+        # Recenters correctly when triggering the mapping a second time.
+        # Could only be reproduced if a key input is part of the combination, that is
+        # released and pressed again.
+
+        # left mouse x to abs x
+        gain = 0.5
+        cutoff = 2
+        input_combination = InputCombination(
+            [
+                InputConfig(type=EV_KEY, code=KEY_A),
+                InputConfig(type=EV_REL, code=REL_X),
+            ]
+        )
+        mapping_config = {
+            "input_combination": input_combination.to_config(),
+            "target_uinput": "gamepad",
+            "output_type": EV_ABS,
+            "output_code": ABS_X,
+            "gain": gain,
+            "rel_to_abs_input_cutoff": cutoff,
+            "release_timeout": 0.1,
+            "deadzone": 0,
+        }
+        mapping_1 = Mapping(**mapping_config)
+        preset = Preset()
+        preset.add(mapping_1)
+
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
+
+        for _ in range(3):
+            next_time = self.next_usec_time()
+            value = int(REL_XY_SCALING * cutoff)
+            await event_reader.handle(InputEvent(0, next_time, EV_KEY, KEY_A, 1))
+            await event_reader.handle(InputEvent(0, next_time, EV_REL, REL_X, value))
+            await asyncio.sleep(0.2)
+
+            history = self.global_uinputs.get_uinput("gamepad").write_history
+            self.assertIn(
+                InputEvent.from_tuple((3, 0, 0)),
+                history,
+            )
+
+            await event_reader.handle(InputEvent(0, next_time, EV_KEY, KEY_A, 0))
+            await asyncio.sleep(0.05)
+
+            self.global_uinputs.get_uinput("gamepad").write_history = []
 
     async def test_rel_to_abs_with_input_switch(self):
         # use 0 everywhere, because that will cause the handler to not update the rate,
