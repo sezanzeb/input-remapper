@@ -63,7 +63,7 @@ sudo systemctl enable --now input-remapper
 
 <br/>
 
-### Manjaro/Arch
+### Arch
 
 ```bash
 yay -S input-remapper-git
