@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2024 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -23,9 +23,9 @@ import os
 import re
 import subprocess
 from os.path import basename, splitext, join
+
 from setuptools import setup
 from setuptools.command.install import install
-
 
 PO_FILES = "po/*.po"
 
@@ -101,7 +101,7 @@ for po_file in glob.glob(PO_FILES):
 
 setup(
     name="input-remapper",
-    version="2.0.1",
+    version="2.1.0",
     description="A tool to change the mapping of your input device buttons",
     author="Sezanzeb",
     author_email="proxima@sezanzeb.de",

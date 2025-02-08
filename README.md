@@ -28,8 +28,8 @@
 Either download an installable .deb file from the [latest release](https://github.com/sezanzeb/input-remapper/releases):
 
 ```bash
-wget https://github.com/sezanzeb/input-remapper/releases/download/2.0.1/input-remapper-2.0.1.deb
-sudo apt install -f ./input-remapper-2.0.1.deb
+wget https://github.com/sezanzeb/input-remapper/releases/download/2.1.0/input-remapper-2.1.0.deb
+sudo apt install -f ./input-remapper-2.1.0.deb
 ```
 
 Or install the very latest changes via:
@@ -39,7 +39,8 @@ sudo apt install git python3-setuptools gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
 ./scripts/build.sh
-sudo apt install -f ./dist/input-remapper-2.0.1.deb
+sudo apt remove input-remapper input-remapper-daemon input-remapper-gtk python3-inputremapper --purge
+sudo apt install -f ./dist/input-remapper-2.1.0.deb
 ```
 
 Input Remapper is also available in the repositories of [Debian](https://tracker.debian.org/pkg/input-remapper)
@@ -62,7 +63,7 @@ sudo systemctl enable --now input-remapper
 
 <br/>
 
-### Manjaro/Arch
+### Arch
 
 ```bash
 yay -S input-remapper-git
