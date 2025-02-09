@@ -5,6 +5,9 @@ if [ -d "/run/systemd/system/" ]; then
   systemctl disable key-mapper 2> /dev/null || true
   systemctl stop key-mapper 2> /dev/null || true
 
+  unlink /etc/systemd/system/input-remapper.service || true
+  unlink /etc/systemd/system/default.target.wants/input-remapper-daemon.service || true
+
   pkill -f input-remapper-service  # might have been started by the gui previously
   systemctl enable input-remapper
   systemctl start input-remapper
