@@ -184,17 +184,19 @@ class KeyboardLayout:
         # This is especially important for BTN_LEFT and such
         btn_name = evdev.ecodes.BTN.get(code, None)
         if btn_name is not None:
-            if type(btn_name) == list:
+            if type(btn_name) in [list, tuple]:
+                # python-evdev >= 1.8.0 uses tuples
                 return btn_name[0]
-            else:
-                return btn_name
+
+            return btn_name
 
         key_name = evdev.ecodes.KEY.get(code, None)
         if key_name is not None:
-            if type(key_name) == list:
+            if type(key_name) in [list, tuple]:
+                # python-evdev >= 1.8.0 uses tuples
                 return key_name[0]
-            else:
-                return key_name
+
+            return key_name
 
         return None
 

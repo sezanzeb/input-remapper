@@ -147,8 +147,6 @@ class InputConfig(BaseModel):
             # keyboard for example z and y are switched, which will therefore
             # cause the wrong letter to be displayed.
             key_name = get_evdev_constant_name(self.type, self.code)
-            if isinstance(key_name, list):
-                key_name = key_name[0]
 
         key_name = key_name.replace("ABS_Z", "Trigger Left")
         key_name = key_name.replace("ABS_RZ", "Trigger Right")
