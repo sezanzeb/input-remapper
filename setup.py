@@ -121,7 +121,7 @@ setup(
         ("/usr/share/icons/hicolor/scalable/apps/", ["data/input-remapper.svg"]),
         ("/usr/share/polkit-1/actions/", ["data/input-remapper.policy"]),
         ("/usr/lib/systemd/system", ["data/input-remapper.service"]),
-        ("/etc/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),
+        ("/usr/share/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),
         ("/etc/xdg/autostart/", ["data/input-remapper-autoload.desktop"]),
         ("/usr/lib/udev/rules.d", ["data/99-input-remapper.rules"]),
         ("/usr/bin/", ["bin/input-remapper-gtk"]),
