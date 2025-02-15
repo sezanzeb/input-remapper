@@ -98,11 +98,11 @@ class Logger(logging.Logger):
             indent += 1
         return lines_and_indent
 
-    def is_debug(self):
+    def is_debug(self) -> bool:
         """True, if the logger is currently in DEBUG mode."""
         return self.level <= logging.DEBUG
 
-    def log_info(self, name="input-remapper"):
+    def log_info(self, name: str = "input-remapper") -> None:
         """Log version and name to the console."""
         logger.info(
             "%s %s %s https://github.com/sezanzeb/input-remapper",
@@ -121,25 +121,10 @@ class Logger(logging.Logger):
                 "information with your device!"
             )
 
-    def update_verbosity(self, debug):
-        """Set the logging verbosity according to the settings object.
-
-        Also enable rich tracebacks in debug mode.
-        """
-        # pylint really doesn't like what I'm doing with rich.traceback here
-        # pylint: disable=broad-except,import-error,import-outside-toplevel
+    def update_verbosity(self, debug: bool) -> None:
+        """Set the logging verbosity according to the settings object."""
         if debug:
             self.setLevel(logging.DEBUG)
-
-            try:
-                from rich.traceback import install
-
-                install(show_locals=True)
-                self.debug("Using rich.traceback")
-            except Exception as error:
-                # since this is optional, just skip all exceptions
-                if not isinstance(error, ImportError):
-                    self.debug("Cannot use rich.traceback: %s", error)
         else:
             self.setLevel(logging.INFO)
 
