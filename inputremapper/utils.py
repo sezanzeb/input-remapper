@@ -53,7 +53,9 @@ def get_evdev_constant_name(type_: Optional[int], code: Optional[int], *_) -> st
     #   type_, code = event.type_and_code
     #   name = evdev.ecodes.bytype[type_][code]
     name = evdev.ecodes.bytype.get(type_, {}).get(code)
-    if isinstance(name, list):
+
+    if type(name) in [list, tuple]:
+        # python-evdev >= 1.8.0 uses tuples
         name = name[0]
 
     if name is None:
