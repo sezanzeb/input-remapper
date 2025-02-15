@@ -39,7 +39,7 @@ sudo apt install git python3-setuptools gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
 ./scripts/build.sh
-sudo apt remove input-remapper input-remapper-daemon input-remapper-gtk python3-inputremapper --purge
+sudo apt purge input-remapper input-remapper-daemon input-remapper-gtk python3-inputremapper
 sudo apt install -f ./dist/input-remapper-2.1.0.deb
 ```
 
