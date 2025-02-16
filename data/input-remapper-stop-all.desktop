@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Stop all input-remapper injections
+Icon=input-remapper
+Exec=input-remapper-control --command stop-all
+Terminal=false
+Categories=Settings
+Comment=Stop all input-remapper injections
