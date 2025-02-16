@@ -28,8 +28,8 @@
 Either download an installable .deb file from the [latest release](https://github.com/sezanzeb/input-remapper/releases):
 
 ```bash
-wget https://github.com/sezanzeb/input-remapper/releases/download/2.1.0/input-remapper-2.1.0.deb
-sudo apt install -f ./input-remapper-2.1.0.deb
+wget https://github.com/sezanzeb/input-remapper/releases/download/2.1.1/input-remapper-2.1.1.deb
+sudo apt install -f ./input-remapper-2.1.1.deb
 ```
 
 Or install the very latest changes via:
@@ -40,7 +40,7 @@ git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
 ./scripts/build.sh
 sudo apt purge input-remapper input-remapper-daemon input-remapper-gtk python3-inputremapper
-sudo apt install -f ./dist/input-remapper-2.1.0.deb
+sudo apt install -f ./dist/input-remapper-2.1.1.deb
 ```
 
 Input Remapper is also available in the repositories of [Debian](https://tracker.debian.org/pkg/input-remapper)
