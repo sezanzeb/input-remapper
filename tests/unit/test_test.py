@@ -23,11 +23,12 @@ import multiprocessing
 import os
 import time
 import unittest
+from unittest.mock import MagicMock
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_KEY
 
-from inputremapper.groups import groups, _Groups
+from inputremapper.groups import groups, Groups
 from inputremapper.gui.messages.message_broker import MessageBroker
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
@@ -95,7 +96,9 @@ class TestTest(unittest.TestCase):
                 # Create dependencies from scratch, because the reader-service runs
                 # in a different process
                 global_uinputs = GlobalUInputs(UInput)
-                reader_service = ReaderService(_Groups(), global_uinputs)
+                groups = Groups(MagicMock())
+                global_config = MagicMock()
+                reader_service = ReaderService(global_config, groups, global_uinputs)
                 loop = asyncio.new_event_loop()
                 loop.run_until_complete(reader_service.run())
 

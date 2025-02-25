@@ -102,7 +102,7 @@
   <object class="GtkWindow" id="window">
     <property name="width-request">1000</property>
     <property name="can-focus">False</property>
-    <property name="default-height">450</property>
+    <property name="default-height">636</property>
     <property name="icon">input-remapper.svg</property>
     <signal name="delete-event" handler="on_gtk_close" swapped="no"/>
     <child>
@@ -116,31 +116,99 @@
             <property name="can-focus">False</property>
             <property name="transition-type">crossfade</property>
             <child>
-              <object class="GtkScrolledWindow">
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkViewport">
+                  <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="shadow-type">none</property>
+                    <property name="halign">center</property>
+                    <property name="margin-left">18</property>
+                    <property name="margin-right">18</property>
+                    <property name="margin-start">18</property>
+                    <property name="margin-end">18</property>
+                    <property name="margin-top">27</property>
+                    <property name="margin-bottom">27</property>
+                    <property name="spacing">6</property>
                     <child>
-                      <object class="GtkFlowBox" id="device_selection">
+                      <object class="GtkSwitch" id="group_all">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="active">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="valign">start</property>
-                        <property name="margin-start">18</property>
-                        <property name="margin-end">18</property>
-                        <property name="margin-top">18</property>
-                        <property name="margin-bottom">18</property>
-                        <property name="homogeneous">True</property>
-                        <property name="column-spacing">18</property>
-                        <property name="row-spacing">18</property>
-                        <property name="max-children-per-line">99</property>
-                        <property name="selection-mode">none</property>
+                        <property name="tooltip-text" translatable="yes">Activate this to apply a different preset to each individual device.</property>
+                        <property name="opacity">0.5</property>
+                        <property name="label" translatable="yes">Map devices individually</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparator">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <child>
+                      <object class="GtkViewport">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkFlowBox" id="device_selection">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="valign">start</property>
+                            <property name="margin-start">18</property>
+                            <property name="margin-end">18</property>
+                            <property name="margin-top">18</property>
+                            <property name="margin-bottom">18</property>
+                            <property name="homogeneous">True</property>
+                            <property name="column-spacing">18</property>
+                            <property name="row-spacing">18</property>
+                            <property name="max-children-per-line">99</property>
+                            <property name="selection-mode">none</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
                 </child>
               </object>
               <packing>
