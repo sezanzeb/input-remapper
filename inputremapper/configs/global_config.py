@@ -39,6 +39,7 @@ INITIAL_CONFIG = {
     "autoload": {},
     "groups": {
         "map_individually": True,
+        # Mapping of name to unique group-key
         "custom_groups": {},
     },
 }

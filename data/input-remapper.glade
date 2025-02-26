@@ -131,7 +131,7 @@
                     <property name="margin-end">18</property>
                     <property name="margin-top">27</property>
                     <property name="margin-bottom">27</property>
-                    <property name="spacing">6</property>
+                    <property name="spacing">12</property>
                     <child>
                       <object class="GtkSwitch" id="group_all">
                         <property name="visible">True</property>

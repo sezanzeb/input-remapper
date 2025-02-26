@@ -263,6 +263,7 @@ class Group:
             changed over reboots, then autoloading would break.
         name
             The name of the whole group. Defaults to the shortest of names.
+            Used for the preset folder.
 
             The name should refer to a kind of device, not to a unique device.
             So two gamepads of the same make share the same preset folder.
@@ -437,8 +438,8 @@ class _FindGroups(threading.Thread):
         hardware device should return the same key via this function.
         """
         custom_groups = self.global_config.get(["groups", "custom_groups"])
-        if device.path in custom_groups:
-            return custom_groups[device.path]
+        if device.name in custom_groups:
+            return custom_groups[device.name]
 
         # Keys that should not be used:
         # - device.phys is empty sometimes and varies across virtual
