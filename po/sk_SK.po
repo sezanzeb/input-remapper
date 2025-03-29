@@ -1,14 +1,14 @@
 # Slovak translation of input-remapper.
 # Copyright (C) 2023.
 # This file is distributed under the same license as the input-remapper package.
-# Jose Riha <jose 1711 gmail com>, 2021.
+# Jose Riha <jose 1711 gmail com>, 2021, 2025.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-16 08:30-0300\n"
-"PO-Revision-Date: 2022-02-08 08:58+0100\n"
+"PO-Revision-Date: 2025-03-28 23:47+0100\n"
 "Last-Translator: Jose Riha <jose1711@gmail.com>\n"
 "Language-Team: \n"
 "Language: sk_SK\n"
@@ -24,6 +24,9 @@ msgid ""
 "If you mean to create a key or macro mapping go to the advanced input "
 "configuration and set a \"Trigger Threshold\" for "
 msgstr ""
+"\n"
+"Ak chcete vytvoriť mapovanie klávesu alebo makra, prejdite do pokročilej "
+"konfigurácie vstupu a nastavte „Prah aktivácie“ pre "
 
 #: inputremapper/gui/controller.py:239
 msgid ""
@@ -31,33 +34,42 @@ msgid ""
 "If you mean to create an analog axis mapping go to the advanced input "
 "configuration and set an input to \"Use as Analog\"."
 msgstr ""
+"\n"
+"Ak chcete vytvoriť mapovanie analógovej osi, prejdite do pokročilej "
+"konfigurácie vstupu a nastavte vstup na „Použiť ako analógový“."
 
 #: inputremapper/gui/controller.py:779
 msgid ""
 "\n"
 "The input \"{}\" will be used as analog input."
 msgstr ""
+"\n"
+"Vstup „{}“ sa použije ako analógový vstup."
 
 #: inputremapper/gui/controller.py:763
 msgid ""
 "\n"
 "This will remove \"{}\" from the text input!"
 msgstr ""
+"\n"
+"Toto odstráni „{}“ z textového vstupu!"
 
 #: inputremapper/gui/controller.py:784
 msgid ""
 "\n"
 "You need to record an analog input."
 msgstr ""
+"\n"
+"Analógový vstup musíte nahrať."
 
 #: data/input-remapper.glade:544
 msgid " (recording ...)"
-msgstr ""
+msgstr " (nahrávam…)"
 
 #: inputremapper/gui/controller.py:174
-#, fuzzy, python-format
+#, python-format
 msgid "%d Mapping errors at \"%s\", hover for info"
-msgstr "Chyba syntaxe na %s, prejdite myšou pre viac informácií"
+msgstr "%d chýb mapovania na „%s“, prejdite myšou pre viac informácií"
 
 #: inputremapper/gui/controller.py:661
 msgid ", CTRL + DEL to stop"
@@ -72,22 +84,24 @@ msgid ""
 "Activate this to load the preset next time the device connects, or when the "
 "user logs in"
 msgstr ""
+"Aktivujte túto možnosť pre načítanie prednastavenia pri ďalšom pripojení "
+"zariadenia alebo pri prihlásení používateľa"
 
 #: data/input-remapper.glade:575
 msgid "Add"
-msgstr ""
+msgstr "Pridať"
 
 #: inputremapper/gui/components/editor.py:554
 msgid "Add a mapping first"
-msgstr ""
+msgstr "Pridajte najprv mapovanie"
 
 #: data/input-remapper.glade:606 data/input-remapper.glade:1618
 msgid "Advanced"
-msgstr ""
+msgstr "Pokročilé"
 
 #: data/input-remapper.glade:773 data/input-remapper.glade:1118
 msgid "Analog Axis"
-msgstr ""
+msgstr "Analógová os"
 
 #: inputremapper/gui/controller.py:657
 #, python-format
@@ -99,12 +113,11 @@ msgid "Apply"
 msgstr "Použiť"
 
 #: inputremapper/gui/controller.py:522
-#, fuzzy, python-format
+#, python-format
 msgid "Are you sure you want to delete the preset \"%s\"?"
-msgstr "Naozaj chcete odstrániť prednastavenie %s?"
+msgstr "Naozaj chcete odstrániť prednastavenie „%s“?"
 
 #: inputremapper/gui/controller.py:567
-#, fuzzy
 msgid "Are you sure you want to delete this mapping?"
 msgstr "Naozaj chcete odstrániť toto mapovanie?"
 
@@ -114,15 +127,15 @@ msgstr "Automaticky načítať"
 
 #: data/input-remapper.glade:854
 msgid "Available output axes are affected by the Target setting."
-msgstr ""
+msgstr "Dostupné osy výstupu sú ovplyvnené nastavením cieľa."
 
 #: inputremapper/gui/controller.py:621
 msgid "Cannot apply empty preset file"
-msgstr "Nedá sa použiť prázdny súbor s prednastavením"
+msgstr "Nemôžete použiť prázdny súbor s prednastavením"
 
 #: inputremapper/gui/components/editor.py:238
 msgid "Change Mapping Name"
-msgstr ""
+msgstr "Zmeniť názov mapovania"
 
 #: data/input-remapper.glade:352
 msgid "Copy"
@@ -134,7 +147,7 @@ msgstr "Vytvoriť nové prednastavenie"
 
 #: data/input-remapper.glade:925
 msgid "Deadzone"
-msgstr ""
+msgstr "Mŕtva zóna"
 
 #: data/input-remapper.glade:368 data/input-remapper.glade:620
 msgid "Delete"
@@ -149,14 +162,12 @@ msgid "Delete this preset"
 msgstr "Odstrániť toto prednastavenie"
 
 #: data/input-remapper.glade:162
-#, fuzzy
 msgid "Device Name"
-msgstr "Zariadenie"
+msgstr "Názov zariadenia"
 
 #: data/input-remapper.glade:148
-#, fuzzy
 msgid "Devices"
-msgstr "Zariadenie"
+msgstr "Zariadenia"
 
 #: data/input-remapper.glade:356
 msgid "Duplicate this preset"
@@ -164,24 +175,23 @@ msgstr "Duplikovať toto prednastavenie"
 
 #: data/input-remapper.glade:1208
 msgid "Editor"
-msgstr ""
+msgstr "Editor"
 
 #: inputremapper/configs/mapping.py:77
-#, fuzzy
 msgid "Empty Mapping"
-msgstr "Mapovanie"
+msgstr "Prázdne mapovanie"
 
 #: inputremapper/gui/components/editor.py:404
 msgid "Enter your output here"
-msgstr ""
+msgstr "Sem zadajte vstup"
 
 #: data/input-remapper.glade:1762
 msgid "Event Specific"
-msgstr ""
+msgstr "Špecifické pre udalosť"
 
 #: data/input-remapper.glade:1009
 msgid "Expo"
-msgstr ""
+msgstr "Exponent"
 
 #: inputremapper/gui/controller.py:648 inputremapper/gui/controller.py:673
 #, python-format
@@ -190,11 +200,11 @@ msgstr "Nepodarilo sa načítať prednastavenie %s"
 
 #: data/input-remapper.glade:967
 msgid "Gain"
-msgstr ""
+msgstr "Zisk"
 
 #: data/input-remapper.glade:1736
 msgid "General"
-msgstr ""
+msgstr "Všeobecné"
 
 #: data/input-remapper.glade:1312
 msgid "Help"
@@ -202,7 +212,7 @@ msgstr "Pomocník"
 
 #: data/input-remapper.glade:510
 msgid "Input"
-msgstr ""
+msgstr "Vstup"
 
 #: data/input-remapper.glade:1296
 msgid "Input Remapper"
@@ -210,15 +220,15 @@ msgstr "Mapovač vstupu"
 
 #: data/input-remapper.glade:1087
 msgid "Input cutoff"
-msgstr ""
+msgstr "Orezanie vstupu"
 
 #: data/input-remapper.glade:760 data/input-remapper.glade:1180
 msgid "Key or Macro"
-msgstr ""
+msgstr "Kláves alebo makro"
 
 #: data/input-remapper.glade:1801
 msgid "Map this input to an Analog Axis"
-msgstr ""
+msgstr "Mapovať tento vstup na analógovú os"
 
 #: data/input-remapper.glade:185
 msgid "New"
@@ -226,33 +236,31 @@ msgstr "Nové"
 
 #: inputremapper/gui/components/editor.py:980
 msgid "No Axis"
-msgstr ""
+msgstr "Žiadna os"
 
 #: data/input-remapper.glade:721
 msgid "Output"
-msgstr ""
+msgstr "Výstup"
 
 #: data/input-remapper.glade:862
 msgid "Output axis"
-msgstr ""
+msgstr "Výstupná os"
 
 #: inputremapper/gui/controller.py:508 inputremapper/gui/controller.py:582
 msgid "Permission denied!"
 msgstr "Odopretý prístup!"
 
 #: data/input-remapper.glade:287
-#, fuzzy
 msgid "Preset Name"
-msgstr "Prednastavenie"
+msgstr "Názov prednastavenia"
 
 #: data/input-remapper.glade:272
-#, fuzzy
 msgid "Presets"
-msgstr "Prednastavenie"
+msgstr "Prednastavenia"
 
 #: data/input-remapper.glade:590
 msgid "Record"
-msgstr ""
+msgstr "Nahrať"
 
 #: data/input-remapper.glade:594
 msgid "Record a button of your device that should be remapped"
@@ -260,40 +268,42 @@ msgstr "Zaznamenajte tlačidlo zariadenia, ktoré sa má premapovať"
 
 #: inputremapper/gui/components/editor.py:563
 msgid "Record input first"
-msgstr ""
+msgstr "Najprv nahrajte vstup"
 
 #: inputremapper/gui/components/editor.py:65
-#, fuzzy
 msgid "Record the input first"
-msgstr "Najprv nastavte kláves"
+msgstr "Najprv nahrajte kláves"
 
 #: data/input-remapper.glade:1708
 msgid ""
 "Release all inputs which are part of the combination before the mapping is "
 "injected"
 msgstr ""
+"Uvoľniť všetky vstupy, ktoré sú súčasťou kombinácie pred tým, ako sa spustí "
+"injektáž"
 
 #: data/input-remapper.glade:1711
 msgid "Release input"
-msgstr ""
+msgstr "Uvoľniť vstup"
 
 #: data/input-remapper.glade:1683
 msgid "Release timeout"
-msgstr ""
+msgstr "Časový limit uvoľnenia"
 
 #: inputremapper/gui/controller.py:208
 msgid "Remove the Analog Output Axis when specifying a macro or key output"
-msgstr ""
+msgstr "Odstráňte výstupnú analógovú os pri definovaní výstupného makra alebo klávesu"
 
 #: inputremapper/gui/controller.py:199
 msgid ""
 "Remove the macro or key from the macro input field when specifying an analog "
 "output"
 msgstr ""
+"Odstráňte makro alebo kláves z poľa vstupu makra, ak definujete analógový výstup"
 
 #: data/input-remapper.glade:1776
 msgid "Remove this input"
-msgstr ""
+msgstr "Odstrániť tento vstup"
 
 #: data/input-remapper.glade:394
 msgid "Rename"
@@ -301,7 +311,7 @@ msgstr "Premenovať"
 
 #: data/input-remapper.glade:452
 msgid "Save the entered name"
-msgstr "Uložiť zadané meno"
+msgstr "Uložiť pod týmto názvom"
 
 #: data/input-remapper.glade:1449
 msgid ""
@@ -354,16 +364,15 @@ msgstr ""
 
 #: inputremapper/gui/controller.py:643
 msgid "Starting injection..."
-msgstr "Spúšťanie injektáže..."
+msgstr "Spúšťam injektáž…"
 
 #: data/input-remapper.glade:201 data/input-remapper.glade:334
 msgid "Stop"
 msgstr "Zastaviť injektáž"
 
 #: inputremapper/gui/controller.py:710
-#, fuzzy
 msgid "Stopped the injection"
-msgstr "zastaví injektáž"
+msgstr "Injektáž bola zastavená"
 
 #: data/input-remapper.glade:205 data/input-remapper.glade:338
 msgid ""
@@ -371,10 +380,13 @@ msgid ""
 "gives your keys their original function back\n"
 "Shortcut: ctrl + del"
 msgstr ""
+"Zastaví injektáž pre vybrané zariadenie,\n"
+"vráti klávesom ich pôvodnú funkciu\n"
+"Klávesová skratka: ctrl + del"
 
 #: data/input-remapper.glade:812
 msgid "Target"
-msgstr ""
+msgstr "Cieľ"
 
 #: data/input-remapper.glade:1078
 msgid ""
@@ -382,15 +394,20 @@ msgid ""
 "Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs "
 "(e.g. gamepad)"
 msgstr ""
+"Rýchlosť, pri ktorej sa vstup považuje byť na maxime.\n"
+"Má význam iba pri mapovaní relatívnych vstup (napr. myši) na absolútne výstupy "
+"(napr. gamepad)"
 
 #: inputremapper/gui/controller.py:234
 msgid ""
 "The input specifies a key or macro input, but no macro or key is programmed."
 msgstr ""
+"Vstup definuje vstup ako kláves alebo makro, ale žiaden kláves ani makro nie "
+"je naprogramované."
 
 #: inputremapper/gui/controller.py:213
 msgid "The input specifies an analog axis, but no output axis is selected."
-msgstr ""
+msgstr "Vstup definuje analógovú os, ale nevybrali ste výstupnú os."
 
 #: data/input-remapper.glade:803
 msgid "The type of device this mapping is emulating."
@@ -398,11 +415,11 @@ msgstr "Typ zariadenia, ktoré toto mapovanie emuluje."
 
 #: data/input-remapper.glade:1831
 msgid "Trigger threshold"
-msgstr ""
+msgstr "Prah aktivácie"
 
 #: data/input-remapper.glade:743
 msgid "Type"
-msgstr ""
+msgstr "Typ"
 
 #: data/input-remapper.glade:1473
 msgid "Usage"
@@ -410,11 +427,11 @@ msgstr "Použitie"
 
 #: inputremapper/gui/controller.py:593
 msgid "Use \"Stop\" to stop before editing"
-msgstr "Pred editovaním použite \"Zastaviť injektáž\""
+msgstr "Pred editovaním použite „Zastaviť injektáž“"
 
 #: data/input-remapper.glade:1805
 msgid "Use as analog"
-msgstr ""
+msgstr "Použiť ako analógový"
 
 #: data/input-remapper.glade:1366
 msgid "Version unknown"
@@ -422,15 +439,15 @@ msgstr "Neznáma verzia"
 
 #: data/input-remapper.glade:1134
 msgid "What should be written. For example KEY_A"
-msgstr ""
+msgstr "Čo by sa malo napísať. Napríklad KEY_A"
 
 #: inputremapper/gui/controller.py:761
 msgid "You are about to change the mapping to analog."
-msgstr ""
+msgstr "Chystáte sa zmeniť mapovanie na analógové."
 
 #: data/input-remapper.glade:1161
 msgid "You can copy this text into the output"
-msgstr ""
+msgstr "Tento text môžete skopírovať do výstupu"
 
 #: data/input-remapper.glade:1383
 msgid ""
@@ -443,16 +460,16 @@ msgstr ""
 "sezanzeb/input-remapper</a>"
 
 #: inputremapper/gui/controller.py:623
-#, fuzzy
 msgid "You need to add mappings first"
-msgstr "Musíte najprv pridať klávesy a uložiť ich"
+msgstr "Najprv musíte pridať mapovania"
 
 #: inputremapper/gui/controller.py:358
-#, fuzzy
 msgid ""
 "Your system might reinterpret combinations with those after they are "
 "injected, and by doing so break them."
-msgstr "kombinácie pôvodných a emulovaných kláves a takto "
+msgstr ""
+"Váš systém by mohol opätovne interpretovať kombinácie po tom, čo dôjde "
+"k ich injektáži, čo by mohlo mať nežiadúci efekt."
 
 #: data/input-remapper.glade:1524
 msgid "closes the application"
@@ -475,13 +492,12 @@ msgid "ctrl, alt and shift may not combine properly"
 msgstr "ctrl, alt a shift nemusia v kombinácii fungovať správne"
 
 #: inputremapper/gui/data_manager.py:56
-#, fuzzy
 msgid "new preset"
-msgstr "Vytvoriť nové prednastavenie"
+msgstr "nové prednastavenie"
 
 #: data/input-remapper.glade:531 inputremapper/gui/user_interface.py:385
 msgid "no input configured"
-msgstr ""
+msgstr "nie je nastavený žiaden vstup"
 
 #: data/input-remapper.glade:1560
 msgid "refreshes the device list"
