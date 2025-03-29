@@ -36,7 +36,7 @@ import evdev
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.preset import Preset
 from inputremapper.groups import (
-    _Group,
+    Group,
     classify,
     DeviceType,
 )
@@ -109,7 +109,7 @@ class Injector(multiprocessing.Process):
     hardware-device that is being mapped.
     """
 
-    group: _Group
+    group: Group
     preset: Preset
     context: Optional[Context]
     _devices: List[evdev.InputDevice]
@@ -122,7 +122,7 @@ class Injector(multiprocessing.Process):
 
     def __init__(
         self,
-        group: _Group,
+        group: Group,
         preset: Preset,
         mapping_parser: MappingParser,
     ) -> None:

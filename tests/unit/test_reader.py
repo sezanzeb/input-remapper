@@ -43,7 +43,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.groups import _Groups, DeviceType
+from inputremapper.groups import Groups, DeviceType
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     Signal,
@@ -94,7 +94,8 @@ def wait(func, timeout=1.0):
 class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.reader_service = None
-        self.groups = _Groups()
+        self.global_config = MagicMock()
+        self.groups = Groups(self.global_config)
         self.message_broker = MessageBroker()
         self.reader_client = ReaderClient(self.message_broker, self.groups)
 
@@ -104,7 +105,7 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
         except (BrokenPipeError, OSError):
             pass
 
-    async def create_reader_service(self, groups: Optional[_Groups] = None):
+    async def create_reader_service(self, groups: Optional[Groups] = None):
         # this will cause pending events to be copied over to the reader-service
         # process
         if not groups:
@@ -112,7 +113,7 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
 
         global_uinputs = GlobalUInputs(UInput)
         assert groups is not None
-        self.reader_service = ReaderService(groups, global_uinputs)
+        self.reader_service = ReaderService(self.global_config, groups, global_uinputs)
         asyncio.ensure_future(self.reader_service.run())
 
     async def test_should_forward_to_dummy(self):
@@ -165,7 +166,8 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
 class TestReaderMultiprocessing(unittest.TestCase):
     def setUp(self):
         self.reader_service_process = None
-        self.groups = _Groups()
+        self.global_config = MagicMock()
+        self.groups = Groups(self.global_config)
         self.message_broker = MessageBroker()
         self.global_uinputs = GlobalUInputs(UInput)
         self.reader_client = ReaderClient(self.message_broker, self.groups)
@@ -181,7 +183,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
             if self.reader_service_process.is_alive():
                 self.reader_service_process.terminate()
 
-    def create_reader_service(self, groups: Optional[_Groups] = None):
+    def create_reader_service(self, groups: Optional[Groups] = None):
         # this will cause pending events to be copied over to the reader-service
         # process
         if not groups:
@@ -194,7 +196,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
             asyncio.set_event_loop(loop)
             global_uinputs = GlobalUInputs(FrontendUInput)
             global_uinputs.reset()
-            reader_service = ReaderService(groups, global_uinputs)
+            reader_service = ReaderService(self.global_config, groups, global_uinputs)
             loop.run_until_complete(reader_service.run())
 
         self.reader_service_process = multiprocessing.Process(
@@ -644,7 +646,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
             # refresh was called as expected
             pipe[1].send("refreshed")
 
-        groups = _Groups()
+        groups = Groups(MagicMock())
         groups.refresh = refresh
         self.create_reader_service(groups)
 

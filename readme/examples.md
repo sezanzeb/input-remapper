@@ -58,6 +58,11 @@ if_tap(
 For regular combinations on only single devices it is not required to
 configure macros. See [readme/usage.md](usage.md#combinations).
 
+You can also disable the "Map devices individually" toggle and create one preset for
+all of your devices, which allows you to record input from all of your devices at once.
+
+However, if you don't want that, you can use variables:
+
 **Keyboard** `space` `set(foo, 1).hold_keys(space).set(foo, 0)`
 
 **Mouse** `middle` `if_eq($foo, 1, hold_keys(a), hold_keys(BTN_MIDDLE))`

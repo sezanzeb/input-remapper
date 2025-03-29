@@ -33,7 +33,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.keyboard_layout import KeyboardLayout
 from inputremapper.daemon import DaemonProxy
 from inputremapper.exceptions import DataManagementError
-from inputremapper.groups import _Group
+from inputremapper.groups import Group
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -157,7 +157,7 @@ class DataManager:
         self.message_broker.publish(InjectorStateMessage(self.get_state()))
 
     @property
-    def active_group(self) -> Optional[_Group]:
+    def active_group(self) -> Optional[Group]:
         """The currently loaded group."""
         return self._reader_client.group
 
@@ -227,6 +227,9 @@ class DataManager:
             self._config.set_autoload_preset(self.active_group.key, None)
 
         self.publish_preset()
+
+    def set_group_all(self, group_all: bool) -> None:
+        self._config.set_group_all(group_all)
 
     def get_newest_group_key(self) -> GroupKey:
         """group_key of the group with the most recently modified preset."""

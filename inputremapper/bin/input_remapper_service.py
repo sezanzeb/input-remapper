@@ -23,6 +23,7 @@ import sys
 from argparse import ArgumentParser
 
 from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.groups import Groups
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.logging.logger import logger
@@ -61,7 +62,13 @@ class InputRemapperServiceBin:
         global_config = GlobalConfig()
         global_uinputs = GlobalUInputs(UInput)
         mapping_parser = MappingParser(global_uinputs)
+        groups = Groups(global_config)
 
-        daemon = Daemon(global_config, global_uinputs, mapping_parser)
+        daemon = Daemon(
+            global_config,
+            global_uinputs,
+            mapping_parser,
+            groups,
+        )
         daemon.publish()
         daemon.run()

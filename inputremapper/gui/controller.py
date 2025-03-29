@@ -500,21 +500,25 @@ class Controller:
         self.data_manager.publish_mapping()
         self.data_manager.publish_event()
 
-    def load_groups(self):
+    def load_groups(self) -> None:
         """Refresh the groups."""
         self.data_manager.refresh_groups()
 
-    def load_group(self, group_key: str):
+    def load_group(self, group_key: str) -> None:
         """Load the group and then a preset of that group."""
         self.data_manager.load_group(group_key)
         self.load_preset(self.get_a_preset())
 
-    def load_preset(self, name: str):
+    def group_all(self, group_all: bool) -> None:
+        self.data_manager.set_group_all(group_all)
+        self.data_manager.refresh_groups()
+
+    def load_preset(self, name: str) -> None:
         """Load the preset."""
         self.data_manager.load_preset(name)
         # self.load_mapping(...) # not needed because we have on_preset_changed()
 
-    def rename_preset(self, new_name: str):
+    def rename_preset(self, new_name: str) -> None:
         """Rename the active_preset."""
         if (
             not self.data_manager.active_preset
@@ -527,7 +531,7 @@ class Controller:
         new_name = self.data_manager.get_available_preset_name(new_name)
         self.data_manager.rename_preset(new_name)
 
-    def add_preset(self, name: str = DEFAULT_PRESET_NAME):
+    def add_preset(self, name: str = DEFAULT_PRESET_NAME) -> None:
         """Create a new preset called `new preset n`, add it to the active_group."""
         name = self.data_manager.get_available_preset_name(name)
         try:
@@ -536,7 +540,7 @@ class Controller:
         except PermissionError as e:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
-    def delete_preset(self):
+    def delete_preset(self) -> None:
         """Delete the active_preset from the disc."""
 
         def f(answer: bool):
@@ -553,12 +557,12 @@ class Controller:
         )
         self.message_broker.publish(UserConfirmRequest(msg, f))
 
-    def load_mapping(self, input_combination: InputCombination):
+    def load_mapping(self, input_combination: InputCombination) -> None:
         """Load the mapping with the given input_combination form the active_preset."""
         self.data_manager.load_mapping(input_combination)
         self.load_input_config(input_combination[0])
 
-    def update_mapping(self, **changes):
+    def update_mapping(self, **changes) -> None:
         """Update the active_mapping with the given keywords and values."""
         if "mapping_type" in changes.keys():
             if not (changes := self._change_mapping_type(changes)):
@@ -570,7 +574,7 @@ class Controller:
         self.data_manager.update_mapping(**changes)
         self.save()
 
-    def create_mapping(self):
+    def create_mapping(self) -> None:
         """Create a new empty mapping in the active_preset."""
         try:
             self.data_manager.create_mapping()
@@ -581,7 +585,7 @@ class Controller:
         self.data_manager.load_mapping(combination=InputCombination.empty_combination())
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
-    def delete_mapping(self):
+    def delete_mapping(self) -> None:
         """Remove the active_mapping form the active_preset."""
 
         def get_answer(answer: bool):
@@ -598,19 +602,19 @@ class Controller:
             )
         )
 
-    def set_autoload(self, autoload: bool):
+    def set_autoload(self, autoload: bool) -> None:
         """Set the autoload state for the active_preset and active_group."""
         self.data_manager.set_autoload(autoload)
         self.data_manager.refresh_service_config_path()
 
-    def save(self):
+    def save(self) -> None:
         """Save all data to the disc."""
         try:
             self.data_manager.save()
         except PermissionError as e:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
-    def start_key_recording(self):
+    def start_key_recording(self) -> None:
         """Record the input of the active_group
 
         Updates the active_mapping.input_combination with the recorded events.
@@ -639,12 +643,12 @@ class Controller:
         )
         self.data_manager.start_combination_recording()
 
-    def stop_key_recording(self):
+    def stop_key_recording(self) -> None:
         """Stop recording the input."""
         logger.debug("Stopping Recording Keys")
         self.data_manager.stop_combination_recording()
 
-    def start_injecting(self):
+    def start_injecting(self) -> None:
         """Inject the active_preset for the active_group."""
         if len(self.data_manager.active_preset) == 0:
             logger.error(_("Cannot apply empty preset file"))
@@ -731,7 +735,7 @@ class Controller:
         if state in state_calls:
             state_calls[state]()
 
-    def stop_injecting(self):
+    def stop_injecting(self) -> None:
         """Stop injecting any preset for the active_group."""
 
         def show_result(msg: InjectorStateMessage):
@@ -760,7 +764,7 @@ class Controller:
         ctx_id: int,
         msg: Optional[str] = None,
         tooltip: Optional[str] = None,
-    ):
+    ) -> None:
         """Send a status message to the ui to show it in the status-bar."""
         self.message_broker.publish(StatusData(ctx_id, msg, tooltip))
 
@@ -771,14 +775,14 @@ class Controller:
             or self.data_manager.active_mapping is None
         )
 
-    def refresh_groups(self):
+    def refresh_groups(self) -> None:
         """Reload the connected devices and send them as a groups message.
 
         Runs asynchronously.
         """
         self.data_manager.refresh_groups()
 
-    def close(self):
+    def close(self) -> None:
         """Safely close the application."""
         logger.debug("Closing Application")
         self.save()
@@ -786,11 +790,11 @@ class Controller:
         logger.debug("Quitting")
         Gtk.main_quit()
 
-    def set_focus(self, component):
+    def set_focus(self, component) -> None:
         """Focus the given component."""
         self.gui.window.set_focus(component)
 
-    def _change_mapping_type(self, changes: Dict[str, Any]):
+    def _change_mapping_type(self, changes: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Query the user to update the mapping in order to change the mapping type."""
         mapping = self.data_manager.active_mapping
 

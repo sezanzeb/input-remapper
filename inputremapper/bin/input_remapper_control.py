@@ -29,6 +29,8 @@ from typing import Optional
 
 import gi
 
+from inputremapper.groups import Groups
+
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
@@ -70,7 +72,9 @@ class InputRemapperControlBin:
         self,
         global_config: GlobalConfig,
         migrations: Migrations,
+        groups: Groups,
     ):
+        self.groups = groups
         self.global_config = global_config
         self.migrations = migrations
 
@@ -79,9 +83,11 @@ class InputRemapperControlBin:
         global_config = GlobalConfig()
         global_uinputs = GlobalUInputs(FrontendUInput)
         migrations = Migrations(global_uinputs)
+        groups = Groups(global_config)
         input_remapper_control = InputRemapperControlBin(
             global_config,
             migrations,
+            groups,
         )
 
         if options.debug:
@@ -137,9 +143,8 @@ class InputRemapperControlBin:
 
     def list_devices(self):
         logger.setLevel(logging.ERROR)
-        from inputremapper.groups import groups
 
-        for group in groups:
+        for group in self.groups:
             print(group.key)
 
     def list_key_names(self):
@@ -239,19 +244,14 @@ class InputRemapperControlBin:
         self.daemon.start_injecting(group.key, preset)
 
     def _require_group(self, device: str):
-        # import stuff late to make sure the correct log level is applied
-        # before anything is logged
-        # TODO since imports shouldn't run any code, this is fixed by moving towards DI
-        from inputremapper.groups import groups
-
         if device is None:
             logger.error("--device missing")
             sys.exit(3)
 
         if device.startswith("/dev"):
-            group = groups.find(path=device)
+            group = self.groups.find(path=device)
         else:
-            group = groups.find(key=device)
+            group = self.groups.find(key=device)
 
         if group is None:
             logger.error(

@@ -45,7 +45,7 @@ from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.groups import groups
+from inputremapper.groups import Groups
 from inputremapper.configs.paths import PathUtils
 from inputremapper.user import UserUtils
 from inputremapper.injection.macros.macro import macro_variables
@@ -195,6 +195,7 @@ class Daemon:
         global_config: GlobalConfig,
         global_uinputs: GlobalUInputs,
         mapping_parser: MappingParser,
+        groups: Groups,
     ):
         """Constructs the daemon."""
         logger.debug("Creating daemon")
@@ -202,6 +203,7 @@ class Daemon:
         self.global_config = global_config
         self.global_uinputs = global_uinputs
         self.mapping_parser = mapping_parser
+        self.groups = groups
 
         self.injectors: Dict[str, Injector] = {}
 
@@ -303,14 +305,14 @@ class Daemon:
             logger.debug("Refreshing because last info is too old")
             # it may take a bit of time until devices are visible after changes
             time.sleep(0.1)
-            groups.refresh()
+            self.groups.refresh()
             self.refreshed_devices_at = now
             return
 
-        if not groups.find(key=group_key):
+        if not self.groups.find(key=group_key):
             logger.debug('Refreshing because "%s" is unknown', group_key)
             time.sleep(0.1)
-            groups.refresh()
+            self.groups.refresh()
             self.refreshed_devices_at = now
 
     def stop_injecting(self, group_key: str):
@@ -361,7 +363,7 @@ class Daemon:
         """
         self.refresh(group_key)
 
-        group = groups.find(key=group_key)
+        group = self.groups.find(key=group_key)
         if group is None:
             # even after groups.refresh, the device is unknown, so it's
             # either not relevant for input-remapper, or not connected yet
@@ -466,7 +468,7 @@ class Daemon:
             )
             return False
 
-        group = groups.find(key=group_key)
+        group = self.groups.find(key=group_key)
 
         if group is None:
             logger.error('Could not find group "%s"', group_key)

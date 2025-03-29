@@ -42,7 +42,7 @@ class PathUtils:
         return os.path.join(UserUtils.home, PathUtils.rel_path)
 
     @staticmethod
-    def chown(path):
+    def chown(path: str) -> None:
         """Set the owner of a path to the user."""
         try:
             logger.debug('Chown "%s", "%s"', path, UserUtils.user)
@@ -52,7 +52,7 @@ class PathUtils:
             shutil.chown(path, user=UserUtils.user)
 
     @staticmethod
-    def touch(path: Union[str, os.PathLike], log=True):
+    def touch(path: Union[str, os.PathLike], log=True) -> None:
         """Create an empty file and all its parent dirs, give it to the user."""
         if str(path).endswith("/"):
             raise ValueError(f"Expected path to not end with a slash: {path}")
@@ -69,7 +69,7 @@ class PathUtils:
         PathUtils.chown(path)
 
     @staticmethod
-    def mkdir(path, log=True):
+    def mkdir(path: Optional[str], log=True) -> None:
         """Create a folder, give it to the user."""
         if path == "" or path is None:
             return
@@ -107,7 +107,7 @@ class PathUtils:
         return parts
 
     @staticmethod
-    def remove(path):
+    def remove(path: str) -> None:
         """Remove whatever is at the path."""
         if not os.path.exists(path):
             return
@@ -129,14 +129,17 @@ class PathUtils:
         return group_name
 
     @staticmethod
-    def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = None):
+    def get_preset_path(
+        folder_name: Optional[str] = None,
+        preset: Optional[str] = None,
+    ) -> str:
         """Get a path to the stored preset, or to store a preset to."""
         presets_base = os.path.join(PathUtils.config_path(), "presets")
 
-        if group_name is None:
+        if folder_name is None:
             return presets_base
 
-        group_name = PathUtils.sanitize_path_component(group_name)
+        folder_name = PathUtils.sanitize_path_component(folder_name)
 
         if preset is not None:
             # the extension of the preset should not be shown in the ui.
@@ -146,9 +149,9 @@ class PathUtils:
                 preset = f"{preset}.json"
 
         if preset is None:
-            return os.path.join(presets_base, group_name)
+            return os.path.join(presets_base, folder_name)
 
-        return os.path.join(presets_base, group_name, preset)
+        return os.path.join(presets_base, folder_name, preset)
 
     @staticmethod
     def get_config_path(*paths) -> str:

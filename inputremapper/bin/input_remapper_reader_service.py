@@ -28,7 +28,8 @@ import time
 from argparse import ArgumentParser
 
 from inputremapper.bin.process_utils import ProcessUtils
-from inputremapper.groups import _Groups
+from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.groups import Groups
 from inputremapper.gui.reader_service import ReaderService
 from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.logging.logger import logger
@@ -74,7 +75,8 @@ class InputRemapperReaderServiceBin:
             os.kill(os.getpid(), signal.SIGKILL)
 
         atexit.register(on_exit)
-        groups = _Groups()
+        global_config = GlobalConfig()
+        groups = Groups(global_config)
         global_uinputs = GlobalUInputs(FrontendUInput)
-        reader_service = ReaderService(groups, global_uinputs)
+        reader_service = ReaderService(global_config, groups, global_uinputs)
         asyncio.run(reader_service.run())

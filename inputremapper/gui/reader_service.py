@@ -51,9 +51,10 @@ from typing import Set, List, Tuple
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
-from inputremapper.groups import _Groups, _Group
+from inputremapper.groups import Groups, Group
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
@@ -106,7 +107,12 @@ class ReaderService:
     _maximum_lifetime: int = 60 * 15
     _timeout_tolerance: int = 60
 
-    def __init__(self, groups: _Groups, global_uinputs: GlobalUInputs) -> None:
+    def __init__(
+        self,
+        global_config: GlobalConfig,
+        groups: Groups,
+        global_uinputs: GlobalUInputs,
+    ) -> None:
         """Construct the reader-service and initialize its communication pipes."""
         self._start_time = time.time()
         self.groups = groups
@@ -114,6 +120,7 @@ class ReaderService:
         self._results_pipe = Pipe(self.get_pipe_paths()[0])
         self._commands_pipe = Pipe(self.get_pipe_paths()[1])
         self._pipe = multiprocessing.Pipe()
+        self.global_config = global_config
 
         self._tasks: Set[asyncio.Task] = set()
         self._stop_event = asyncio.Event()
@@ -251,7 +258,7 @@ class ReaderService:
         """Check if the ReaderService is currently sending events to the GUI."""
         return len(self._tasks) > 0
 
-    def _start_reading(self, group: _Group):
+    def _start_reading(self, group: Group):
         """Find all devices of that group, filter interesting ones and send the events
         to the gui."""
         sources = []

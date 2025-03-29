@@ -65,7 +65,7 @@ from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.global_config import GlobalConfig
-from inputremapper.groups import _Groups
+from inputremapper.groups import Groups
 from inputremapper.gui.data_manager import DataManager
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -119,7 +119,9 @@ def launch() -> Tuple[
 def start_reader_service():
     def process():
         global_uinputs = GlobalUInputs(FrontendUInput)
-        reader_service = ReaderService(_Groups(), global_uinputs)
+        global_config = MagicMock()
+        groups = Groups(global_config)
+        reader_service = ReaderService(global_config, groups, global_uinputs)
         loop = asyncio.new_event_loop()
         loop.run_until_complete(reader_service.run())
 

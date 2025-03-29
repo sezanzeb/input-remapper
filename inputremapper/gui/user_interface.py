@@ -24,6 +24,7 @@ from typing import Dict, Callable
 from gi.repository import Gtk, GtkSource, Gdk, GObject
 
 from inputremapper.configs.data import get_data_path
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import MappingData
 from inputremapper.gui.autocompletion import Autocompletion
@@ -48,6 +49,7 @@ from inputremapper.gui.components.editor import (
     KeyAxisStackSwitcher,
     RequireActiveMapping,
     GdkEventRecorder,
+    GroupAllSwitch,
 )
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.presets import PresetSelection
@@ -81,9 +83,11 @@ class UserInterface:
 
     def __init__(
         self,
+        global_config: GlobalConfig,
         message_broker: MessageBroker,
         controller: Controller,
     ):
+        self.global_config = global_config
         self.message_broker = message_broker
         self.controller = controller
 
@@ -170,6 +174,7 @@ class UserInterface:
         )
         RecordingStatus(message_broker, self.get("recording_status"))
         AutoloadSwitch(message_broker, controller, self.get("preset_autoload_switch"))
+        GroupAllSwitch(self.global_config, controller, self.get("group_all"))
         ReleaseCombinationSwitch(
             message_broker, controller, self.get("release-combination-switch")
         )

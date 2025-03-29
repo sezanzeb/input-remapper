@@ -48,7 +48,7 @@ from inputremapper.gui.data_manager import DataManager
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.gui.controller import Controller
 from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
-from inputremapper.groups import _Groups
+from inputremapper.groups import Groups
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
@@ -88,10 +88,12 @@ class InputRemapperGtkBin:
 
         global_config = GlobalConfig()
 
+        groups = Groups(global_config)
+
         # Create the ReaderClient before we start the reader-service, otherwise the
         # privileged service creates and owns those pipes, and then they cannot be accessed
         # by the user.
-        reader_client = ReaderClient(message_broker, _Groups())
+        reader_client = ReaderClient(message_broker, groups)
 
         if ProcessUtils.count_python_processes("input-remapper-gtk") >= 2:
             logger.warning(
@@ -112,7 +114,7 @@ class InputRemapperGtkBin:
             keyboard_layout,
         )
         controller = Controller(message_broker, data_manager)
-        user_interface = UserInterface(message_broker, controller)
+        user_interface = UserInterface(global_config, message_broker, controller)
         controller.set_gui(user_interface)
 
         message_broker.signal(MessageType.init)

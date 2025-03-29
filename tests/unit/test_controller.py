@@ -33,7 +33,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.groups import _Groups
+from inputremapper.groups import Groups
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
@@ -73,7 +73,7 @@ class TestController(unittest.TestCase):
         self.data_manager = DataManager(
             self.message_broker,
             GlobalConfig(),
-            ReaderClient(self.message_broker, _Groups()),
+            ReaderClient(self.message_broker, Groups()),
             FakeDaemonProxy(),
             uinputs,
             keyboard_layout,

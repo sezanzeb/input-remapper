@@ -20,16 +20,11 @@
 from __future__ import annotations
 
 import copy
-from typing import Union, List, Optional, Callable, Any
+from typing import Union, List, Optional, Callable, Any, Dict
 
 from inputremapper.logging.logger import logger, VERSION
 
 NONE = "none"
-
-INITIAL_CONFIG = {
-    "version": VERSION,
-    "autoload": {},
-}
 
 
 class ConfigBase:
@@ -39,17 +34,10 @@ class ConfigBase:
     this base.
     """
 
-    def __init__(self, fallback: Optional[ConfigBase] = None):
-        """Set up the needed members to turn your object into a config.
-
-        Parameters
-        ----------
-        fallback: ConfigBase
-            a configuration that contains fallback default configs, if your
-            object doesn't configure a certain key.
-        """
+    def __init__(self, defaults: Optional[Dict] = None):
+        """Set up the needed members to turn your object into a config."""
         self._config = {}
-        self.fallback = fallback
+        self.defaults = defaults
 
     def _resolve(
         self,
@@ -134,11 +122,9 @@ class ConfigBase:
             return child
 
         resolved = self._resolve(path, callback)
-        if resolved is None and self.fallback is not None:
-            resolved = self.fallback._resolve(path, callback)
         if resolved is None:
             # don't create new empty stuff in INITIAL_CONFIG with _resolve
-            initial_copy = copy.deepcopy(INITIAL_CONFIG)
+            initial_copy = copy.deepcopy(self.defaults)
             resolved = self._resolve(path, callback, initial_copy)
 
         if resolved is None and log_unknown:
