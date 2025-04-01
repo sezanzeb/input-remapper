@@ -188,3 +188,41 @@ xmodmap keyboard_layout
 
 again for the injection to use that xmodmap as well. It should be possible
 to write "ヤ" now when pressing the key.
+
+## Implementing Layers
+
+We can implement layer functionality (similar to QMK) using the `set` and `if_eq` macros.
+
+- `A`: `set(foo, 0)`
+- `B`: `set(foo, 1)`
+- `X`: `if_eq(foo, 1, hold_keys(Y), hold_keys(X))`
+
+Pressing `A` sets `$foo=0`, pressing `B` sets `$foo=1`. `X` is `Y` if `$foo=1`, otherwise `X` is `X`. Pressing `A` > `X` > `B` > `X` will output `XY`.
+
+
+
+We can implement a single macro to toggle back and forth betwixt layers.
+
+- `A`:`if_eq(foo, 1, set(foo, 0), set(foo, 1))`
+- `X`:`if_eq(foo, 1, hold_keys(Y), hold_keys(X))`
+
+Pressing `A` toggles between `$foo=0` and `$foo=1`. So pressing `X` > `A` > `X` will output `XY` (or `YX` if you start from `$foo=1`).
+
+
+We can create layer-shift macros that will enable the layer only while being held.
+
+- `A`:`set(foo, 1).hold().set(foo, 0)`
+- `X`:`if_eq(foo, 1, hold_keys(Y), hold_keys(X))`
+
+This will set `$foo=1` only while `A` is held down. Pressing `X` will output `X` but holding `A` while pressing `X` will output `Y`. 
+
+We can extend this further to create second (and third, fourth, etc...) layer macros for the entire keyboard.
+
+For example creating a Vim HJKL movement layer when `left Alt` is held down.
+
+- `Alt_L`:`set(layer, 1).hold().set(layer, 0)`
+- `H`:`ifeq(layer, 1, hold_keys(Left), hold_keys(H))`
+- `J`:`ifeq(layer, 1, hold_keys(Down), hold_keys(J))`
+- `K`:`ifeq(layer, 1, hold_keys(Up), hold_keys(K))`
+- `L`:`ifeq(layer, 1, hold_keys(Right), hold_keys(L))`
+
