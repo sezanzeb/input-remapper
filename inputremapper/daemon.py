@@ -345,9 +345,11 @@ class Daemon:
         """
         config_path = PurePath(config_dir, "config.json")
         if not os.path.exists(config_path):
-            logger.error('"%s" does not exist', config_path)
+            if os.geteuid() == 0:
+                logger.info('Skipping missing config file "%s" (running as root)', config_path)
+            else:
+                logger.warning('Config file "%s" does not exist', config_path)
             return
-
         self.config_dir = config_dir
         self.global_config.load_config(str(config_path))
 
