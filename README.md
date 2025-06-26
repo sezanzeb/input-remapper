@@ -66,7 +66,7 @@ sudo systemctl enable --now input-remapper
 ### Arch
 
 ```bash
-yay -S input-remapper-git
+yay -S input-remapper-bin
 sudo systemctl enable --now input-remapper
 ```
 
