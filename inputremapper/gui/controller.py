@@ -615,12 +615,12 @@ class Controller:
 
         Updates the active_mapping.input_combination with the recorded events.
         """
+        previous_preset = ""
         state = self.data_manager.get_state()
+
         if state == InjectorState.RUNNING or state == InjectorState.STARTING:
-            self.data_manager.stop_combination_recording()
-            self.message_broker.signal(MessageType.recording_finished)
-            self.show_status(CTX_ERROR, _('Use "Stop" to stop before editing'))
-            return
+            previous_preset = self.data_manager.active_preset
+            self.data_manager.stop_injecting()
 
         logger.debug("Recording Keys")
 
@@ -628,6 +628,9 @@ class Controller:
             self.message_broker.unsubscribe(on_recording_finished)
             self.message_broker.unsubscribe(self._on_combination_recorded)
             self.gui.connect_shortcuts()
+            if previous_preset != "":
+                self.data_manager.start_injecting()
+
 
         self.gui.disconnect_shortcuts()
         self.message_broker.subscribe(
