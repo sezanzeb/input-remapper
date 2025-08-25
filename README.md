@@ -29,7 +29,7 @@ Either download an installable .deb file from the [latest release](https://githu
 
 ```bash
 wget https://github.com/sezanzeb/input-remapper/releases/download/2.1.1/input-remapper-2.1.1.deb
-sudo apt install -f ./input-remapper-2.1.1.deb
+sudo dpkg -i ./input-remapper-2.1.1.deb
 ```
 
 Or install the very latest changes via:

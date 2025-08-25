@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import itertools
 from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
+import math
 
 from evdev import ecodes
 from inputremapper.configs.paths import PathUtils
@@ -48,6 +49,9 @@ DIFFICULT_COMBINATIONS = [
 ]
 
 EMPTY_TYPE = 99
+
+# TODO why does it always save -1, 0 or 1 for analog_threshold. Can't this be
+#  something bigger?'
 
 
 class InputConfig(BaseModel):
@@ -77,6 +81,19 @@ class InputConfig(BaseModel):
             f"{self.origin_hash}, "
             f"at {hex(id(self))}>"
         )
+
+    @classmethod
+    def with_normalized_analog_threshold(cls, input_config: InputConfig):
+        if input_config.analog_threshold not in [0, None]:
+            return InputConfig(
+                message_type=input_config.message_type,
+                type=input_config.type,
+                code=input_config.code,
+                origin_hash=input_config.origin_hash,
+                analog_threshold=math.copysign(1, input_config.analog_threshold),
+            )
+
+        return input_config
 
     @property
     def input_match_hash(self) -> Hashable:

@@ -224,6 +224,11 @@ class UIMapping(BaseModel):
             ) from exception
 
         if new_combi == self.input_combination:
+            logger.error(
+                "New combination %s is the same as the old one %s",
+                new_combi,
+                self.input_combination,
+            )
             return
 
         # raises a keyError if the combination or a permutation is already mapped
@@ -312,10 +317,15 @@ class UIMapping(BaseModel):
 
     def get_error(self) -> Optional[ValidationError]:
         """The validation error or None."""
+        print("---- get_error")
         try:
+            print("---- get_error 1")
             Mapping(**self.dict())
+            print("---- get_error 2")
         except ValidationError as exception:
+            print("---- get_error ValidationError!", repr(exception))
             return exception
+        print("---- get_error 3")
         return None
 
     def get_bus_message(self) -> MappingData:

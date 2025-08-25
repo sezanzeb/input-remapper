@@ -93,6 +93,17 @@ class Preset(Generic[MappingModel]):
         """Check if there are unsaved changed."""
         return self._mappings != self._saved_mappings
 
+    def find_conflicting_permutation(
+        self,
+        combination: InputCombination,
+    ) -> Optional[InputCombination]:
+        """Find a permutation of the combination that conflicts with the preset."""
+        for permutation in combination.get_permutations():
+            permutation = InputCombination([InputConfig.with_normalized_analog_threshold(input_config) for input_config in permutation])
+            if permutation in self._mappings.keys():
+                print("JOOOOOOO")
+                return permutation
+
     def remove(self, combination: InputCombination) -> None:
         """Remove a mapping from the preset by providing the InputCombination."""
 
@@ -117,12 +128,11 @@ class Preset(Generic[MappingModel]):
 
     def add(self, mapping: MappingModel) -> None:
         """Add a mapping to the preset."""
-        for permutation in mapping.input_combination.get_permutations():
-            if permutation in self._mappings:
-                raise KeyError(
-                    "A mapping with this input_combination: "
-                    f"{permutation} already exists",
-                )
+        if self.find_conflicting_permutation(mapping.input_combination):
+            raise KeyError(
+                "A mapping with this input_combination: "
+                f"{permutation} already exists",
+            )
 
         mapping.set_combination_changed_callback(self._combination_changed_callback)
         self._mappings[mapping.input_combination] = mapping
@@ -217,7 +227,9 @@ class Preset(Generic[MappingModel]):
         self._saved_mappings = saved_mappings
 
     def is_valid(self) -> bool:
-        return False not in [mapping.is_valid() for mapping in self]
+        a = False not in [mapping.is_valid() for mapping in self]
+        print("## preset.is_valid()")
+        return a
 
     def get_mapping(
         self, combination: Optional[InputCombination]
@@ -231,10 +243,9 @@ class Preset(Generic[MappingModel]):
                 f"combination must by of type InputCombination, got {type(combination)}"
             )
 
-        for permutation in combination.get_permutations():
-            existing = self._mappings.get(permutation)
-            if existing is not None:
-                return existing
+        if (permutation := self.find_conflicting_permutation(combination)) is not None:
+            return self._mappings[permutation]
+
         return None
 
     def dangerously_mapped_btn_left(self) -> bool:
@@ -259,9 +270,18 @@ class Preset(Generic[MappingModel]):
     def _combination_changed_callback(
         self, new: InputCombination, old: InputCombination
     ) -> None:
-        for permutation in new.get_permutations():
-            if permutation in self._mappings.keys() and permutation != old:
+        permutation = self.find_conflicting_permutation(new)
+        # TODO Es muss eine stelle geben an der validiert wird,
+        #  und dann fehler geschmissen. Nicht callbacks über 3 dateien
+        #  chasen oder so.
+        #  - I think I want to have one single place for validation,
+        #    but I don't really remember it. Need to look into it again.
+        print('_combination_changed_callback', permutation)
+        if permutation is not None:
+            if permutation != old:
                 raise KeyError("combination already exists in the preset")
+            # TODO analog_threshold screws this up
+
         self._mappings[new] = self._mappings.pop(old)
 
     def _update_saved_mappings(self) -> None:

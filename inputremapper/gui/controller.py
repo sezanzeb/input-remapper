@@ -82,6 +82,7 @@ if TYPE_CHECKING:
 
 MAPPING_DEFAULTS = {"target_uinput": "keyboard"}
 
+print("hallo")
 
 class Controller:
     """Implements the behaviour of the gui."""
@@ -368,7 +369,6 @@ class Controller:
     def update_combination(self, combination: InputCombination):
         """Update the input_combination of the active mapping."""
         combination = self._auto_use_as_analog(combination)
-
         try:
             self.data_manager.update_mapping(input_combination=combination)
             self.save()
@@ -473,6 +473,10 @@ class Controller:
         assert self.data_manager.active_input_config is not None
         event = self.data_manager.active_input_config
 
+        print("set_event_as_analog", analog)
+        # TODO can be used to create duplicate key inputs of the same code,value
+        # TODO somehow use _is_mapped_multiple_times of Preset? in data_manager.update_input_config
+        # TODO there is  self.data_manager.active_preset.is_valid():
         if event.type != EV_KEY:
             if analog:
                 try:
@@ -573,12 +577,12 @@ class Controller:
     def create_mapping(self):
         """Create a new empty mapping in the active_preset."""
         try:
-            self.data_manager.create_mapping()
+            created = self.data_manager.create_mapping()
         except KeyError:
             # there is already an empty mapping
             return
 
-        self.data_manager.load_mapping(combination=InputCombination.empty_combination())
+        self.data_manager.load_mapping(combination=created.input_combination)
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
     def delete_mapping(self):

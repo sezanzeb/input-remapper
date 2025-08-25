@@ -457,6 +457,8 @@ class DataManager:
         if symbol := kwargs.get("output_symbol"):
             kwargs["output_symbol"] = self._keyboard_layout.correct_case(symbol)
 
+        # TODO validate mapping first?
+
         combination = self.active_mapping.input_combination
         for key, value in kwargs.items():
             setattr(self._active_mapping, key, value)
@@ -492,15 +494,18 @@ class DataManager:
         self._active_input_config = new_input_config
         self.publish_event()
 
-    def create_mapping(self):
+    def create_mapping(self) -> UIMapping:
         """Create empty mapping in the active preset.
 
         Will send "preset" message to the MessageBroker
         """
         if not self._active_preset:
             raise DataManagementError("Cannot create mapping: Preset is not set")
-        self._active_preset.add(UIMapping())
+
+        mapping = UIMapping()
+        self._active_preset.add(mapping)
         self.publish_preset()
+        return mapping
 
     def delete_mapping(self):
         """Delete the active mapping.
