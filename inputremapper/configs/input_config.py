@@ -124,10 +124,10 @@ class InputConfig(BaseModel):
             f"{self._get_direction() if not exclude_direction else ''} "
             f"{self._get_threshold_value() if not exclude_threshold else ''}".strip()
         )
-    
+
     def _get_mouse_button_name(self) -> Optional[str]:
         """Get a human-readable description of a mouse-button. Only the first 7
-        mouse buttons are in evdev and they often have misleading names there 
+        mouse buttons are in evdev and they often have misleading names there
         (eg it calls buttons 6 & 7 forward/back but usually that's buttons 5 & 4).
         Returns None if not a mouse button."""
 
@@ -135,13 +135,15 @@ class InputConfig(BaseModel):
             if ecodes.BTN_MOUSE <= self.code <= ecodes.BTN_MIDDLE:
                 # button is left/right/middle button
                 key_name: str = get_evdev_constant_name(self.type, self.code)
-                return key_name.replace("BTN_", "Mouse Button ") # eg "Mouse Button LEFT"
-            elif ecodes.BTN_MIDDLE < self.code < ecodes.BTN_JOYSTICK :
+                return key_name.replace(
+                    "BTN_", "Mouse Button "
+                )  # eg "Mouse Button LEFT"
+            elif ecodes.BTN_MIDDLE < self.code < ecodes.BTN_JOYSTICK:
                 # button is a higher-number mouse button like side-buttons.
                 # This calculation assumes left mouse button is button 1, so side buttons start at 4.
                 button_number: int = self.code - ecodes.BTN_MOUSE + 1
-                return f"Mouse Button {button_number}" # eg "Mouse Button 7"
-        
+                return f"Mouse Button {button_number}"  # eg "Mouse Button 7"
+
         return None
 
     def _get_name(self) -> Optional[str]:
