@@ -49,6 +49,11 @@ DIFFICULT_COMBINATIONS = [
 
 EMPTY_TYPE = 99
 
+# "Button 11" is the highest mouse button simulatable at time of writing
+# using Piper 0.8 and a Logi G502X.
+# please update if a way to simulate higher button-presses is found.
+MAX_BTN_MOUSE_ECODE = 0x18A
+
 
 class InputConfig(BaseModel):
     """Describes a single input within a combination, to configure mappings."""
@@ -138,7 +143,7 @@ class InputConfig(BaseModel):
                 return key_name.replace(
                     "BTN_", "Mouse Button "
                 )  # eg "Mouse Button LEFT"
-            elif ecodes.BTN_MIDDLE < self.code < ecodes.BTN_JOYSTICK:
+            elif ecodes.BTN_MIDDLE < self.code <= MAX_BTN_MOUSE_ECODE:
                 # button is a higher-number mouse button like side-buttons.
                 # This calculation assumes left mouse button is button 1, so side buttons start at 4.
                 button_number: int = self.code - ecodes.BTN_MOUSE + 1
