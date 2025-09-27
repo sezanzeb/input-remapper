@@ -216,6 +216,8 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
 
         self.name = name
         self.combination = combination
+        # add hotkey handler
+        self.connect("key-press-event", self._on_key_press)
 
         # Make the child label widget break lines, important for
         # long combinations
@@ -235,7 +237,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self.edit_btn.set_image(
             Gtk.Image.new_from_icon_name(Gtk.STOCK_EDIT, Gtk.IconSize.MENU)
         )
-        self.edit_btn.set_tooltip_text(_("Change Mapping Name"))
+        self.edit_btn.set_tooltip_text(_("Change Mapping Name") + " (F2)")
         self.edit_btn.set_margin_top(4)
         self.edit_btn.set_margin_bottom(4)
         self.edit_btn.connect("clicked", self._set_edit_mode)
@@ -284,6 +286,15 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self.label.hide()
         self.name_input.show()
         self._controller.set_focus(self.name_input)
+
+    def _on_key_press(self, widget, event):
+        """ "Mapping Selection Row Label key handler for hotkeys"""
+        if self.label.is_visible():
+            # hotkeys are only meaningful when not already in edit-mapping-name-mode
+            if event.keyval == Gdk.KEY_F2:
+                self._set_edit_mode()
+            elif event.keyval == Gdk.KEY_Delete:
+                self._controller.delete_mapping()
 
     def _on_mapping_changed(self, mapping: MappingData):
         if mapping.input_combination != self.combination:
