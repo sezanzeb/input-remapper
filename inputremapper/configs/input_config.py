@@ -49,7 +49,7 @@ DIFFICULT_COMBINATIONS = [
 
 EMPTY_TYPE = 99
 
-# "Button 11" (10 + 0x110 "BTN_LEFT") is the highest mouse button simulatable 
+# "Button 11" (10 + 0x110 "BTN_LEFT") is the highest mouse button simulatable
 # at time of writing using Piper 0.8 and a Logi G502X.
 # Please update if a way to simulate higher button-presses is found.
 MAX_BTN_MOUSE_ECODE = 0x11A
