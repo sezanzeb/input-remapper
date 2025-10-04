@@ -21,17 +21,28 @@
 import copy
 import json
 import os
-from typing import Optional
+from typing import Optional, Dict
 
-from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
+from inputremapper.configs.base_config import ConfigBase
 from inputremapper.configs.paths import PathUtils
-from inputremapper.logging.logger import logger
+from inputremapper.logging.logger import logger, VERSION
 from inputremapper.user import UserUtils
 
 MOUSE = "mouse"
 WHEEL = "wheel"
 BUTTONS = "buttons"
 NONE = "none"
+
+
+INITIAL_CONFIG = {
+    "version": VERSION,
+    "autoload": {},
+    "groups": {
+        "map_individually": True,
+        # Mapping of name to unique group-key
+        "custom_groups": {},
+    },
+}
 
 
 class GlobalConfig(ConfigBase):
@@ -44,6 +55,7 @@ class GlobalConfig(ConfigBase):
 
     def __init__(self):
         self.path = os.path.join(PathUtils.config_path(), "config.json")
+        self.defaults = INITIAL_CONFIG
         super().__init__()
 
     def get_dir(self) -> str:
@@ -67,6 +79,14 @@ class GlobalConfig(ConfigBase):
             logger.info('Not injecting for "%s" automatically anmore', group_key)
             self.remove(["autoload", group_key])
 
+        self._save_config()
+
+    def set_group_all(self, group_all: bool) -> None:
+        self.set(["groups", "map_individually"], group_all)
+        self._save_config()
+
+    def set_custom_groups(self, groups: Dict[str, str]) -> None:
+        self.set(["groups", "custom_groups"], groups)
         self._save_config()
 
     def iterate_autoload_presets(self):

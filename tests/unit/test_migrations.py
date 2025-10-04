@@ -16,6 +16,8 @@ import json
 import os
 import shutil
 import unittest
+from unittest.mock import MagicMock
+
 from packaging import version
 
 from evdev.ecodes import (

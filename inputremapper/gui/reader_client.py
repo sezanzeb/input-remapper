@@ -30,7 +30,7 @@ import evdev
 from gi.repository import GLib
 
 from inputremapper.configs.input_config import InputCombination
-from inputremapper.groups import _Groups, _Group
+from inputremapper.groups import Groups, Group
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import MessageBroker
 from inputremapper.gui.messages.message_data import (
@@ -69,11 +69,11 @@ class ReaderClient:
     # how long to wait for the reader-service at most
     _timeout: int = 5
 
-    def __init__(self, message_broker: MessageBroker, groups: _Groups):
+    def __init__(self, message_broker: MessageBroker, groups: Groups):
         self.groups = groups
         self.message_broker = message_broker
 
-        self.group: Optional[_Group] = None
+        self.group: Optional[Group] = None
 
         self._recording_generator: Optional[RecordingGenerator] = None
         self._results_pipe, self._commands_pipe = self.connect()
@@ -248,7 +248,7 @@ class ReaderClient:
                     )
                 )
 
-    def set_group(self, group: Optional[_Group]):
+    def set_group(self, group: Optional[Group]):
         """Set the group for which input events should be read later."""
         # TODO load the active_group from the controller instead?
         self.group = group

@@ -39,6 +39,7 @@ from evdev.ecodes import (
 )
 from gi.repository import Gtk, GtkSource, Gdk
 
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout, XKB_KEYCODE_OFFSET
 from inputremapper.configs.mapping import MappingData, MappingType
@@ -673,6 +674,27 @@ class AutoloadSwitch:
 
     def _on_gtk_toggle(self, *_):
         self._controller.set_autoload(self._gui.get_active())
+
+
+class GroupAllSwitch:
+    """Activate to group all devices into a single group."""
+
+    def __init__(
+        self,
+        global_config: GlobalConfig,
+        controller: Controller,
+        switch: Gtk.Switch,
+    ):
+        self._controller = controller
+        self._gui = switch
+
+        with HandlerDisabled(self._gui, self._on_gtk_toggle):
+            self._gui.set_active(global_config.get(["groups", "map_individually"]))
+
+        self._gui.connect("state-set", self._on_gtk_toggle)
+
+    def _on_gtk_toggle(self, *_):
+        self._controller.group_all(self._gui.get_active())
 
 
 class ReleaseCombinationSwitch:

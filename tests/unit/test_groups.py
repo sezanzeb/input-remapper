@@ -31,7 +31,7 @@ from inputremapper.groups import (
     groups,
     classify,
     DeviceType,
-    _Group,
+    Group,
 )
 from tests.lib.fixtures import fixtures, keyboard_keys
 from tests.lib.test_setup import test_setup
@@ -47,7 +47,7 @@ class FakePipe:
 @test_setup
 class TestGroups(unittest.TestCase):
     def test_group(self):
-        group = _Group(
+        group = Group(
             paths=["/dev/a", "/dev/b", "/dev/c"],
             names=["name_bar", "name_a", "name_foo"],
             types=[DeviceType.MOUSE, DeviceType.KEYBOARD, DeviceType.UNKNOWN],

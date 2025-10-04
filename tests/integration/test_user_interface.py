@@ -23,7 +23,10 @@ class TestUserInterface(unittest.TestCase):
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
         self.controller_mock = MagicMock()
-        self.user_interface = UserInterface(self.message_broker, self.controller_mock)
+        self.global_config = MagicMock()
+        self.user_interface = UserInterface(
+            self.global_config, self.message_broker, self.controller_mock
+        )
 
     def tearDown(self) -> None:
         super().tearDown()

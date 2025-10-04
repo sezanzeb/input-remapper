@@ -32,7 +32,7 @@ from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.exceptions import DataManagementError
-from inputremapper.groups import _Groups
+from inputremapper.groups import Groups
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -61,7 +61,7 @@ class Listener:
 class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
-        self.reader = ReaderClient(self.message_broker, _Groups())
+        self.reader = ReaderClient(self.message_broker, Groups())
         self.uinputs = GlobalUInputs(FrontendUInput)
         self.uinputs.prepare_all()
         self.global_config = GlobalConfig()
