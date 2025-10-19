@@ -75,6 +75,20 @@ Bear in mind that anti-cheat software might detect macros in games.
 > repeat(repeats=2, key(space))
 > ```
 
+### toggle
+
+> Repeats the execution of the parameter until activated again
+>
+> ```ts
+> toggle(macro: Macro)
+> ```
+>
+> Examples:
+>
+> ```ts
+> toggle(key(KEY_A))
+> ```
+
 ### modify
 
 > Holds a modifier while executing the second parameter
