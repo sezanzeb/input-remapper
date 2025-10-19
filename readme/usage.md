@@ -152,20 +152,16 @@ If you don't have a graphical user interface, you'll need to edit the
 configuration files. All configuration files need to be valid json files, otherwise the 
 parser refuses to work.
 
-Note for the Beta branch: All configuration files are copied to: 
-`~/.config/input-remapper/beta_VERSION/`
-
-The default configuration is stored at `~/.config/input-remapper/config.json`,
+The default configuration is stored at `~/.config/input-remapper-2/config.json`,
 which doesn't include any mappings, but rather other parameters that
-are interesting for injections. The current default configuration as of 1.6
-looks like, with  an example autoload entry:
+are interesting for injections. The config might look something like this:
 
 ```json
 {
+    "version": "2.1.1",
     "autoload": {
-        "Logitech USB Keyboard": "preset name"
-    }, 
-    "version": "1.6"
+        "USB Optical Mouse": "preset name"
+    }
 }
 ```
 
@@ -176,7 +172,7 @@ The device name can be found with `sudo input-remapper-control --list-devices`.
 
 The preset files are a collection of mappings.
 Here is an example configuration for preset "a" for the "gamepad" device:
-`~/.config/input-remapper/presets/gamepad/a.json`
+`~/.config/input-remapper-2/presets/gamepad/a.json`
 
 ```json
 [
@@ -207,6 +203,7 @@ Here is an example configuration for preset "a" for the "gamepad" device:
     }
 ]
 ```
+
 This preset consists of three mappings.
 
  * The first maps the key event with code 307 to a macro and sets the time between 
@@ -232,6 +229,7 @@ which is a list of input-configurations and the mapping parameters.
 ```
 
 #### Input Combination and Configuration
+
 The input-combination is a list of one or more input configurations. To trigger a 
 mapping, all input configurations must trigger.
 
@@ -245,15 +243,19 @@ A input configuration is a dictionary with some or all of the following paramete
 | analog_threshold | None    | int                    | The threshold above which a input axis triggers the mapping.        |
 
 ##### type, code
+
 The `type` and `code` parameters are always needed. Use the program `evtest` to find 
 Available types and codes. See also the [evdev documentation](https://www.kernel.org/doc/html/latest/input/event-codes.html#input-event-codes)
+
 ##### origin_hash
+
 The origin_hash is an internally computed hash. It is used associate the input with a 
 specific `/dev/input/eventXX` device. This is useful when a single pyhsical device 
 creates multiple `/dev/input/eventXX` devices wihth similar capabilities.
 See also: [Issue#435](https://github.com/sezanzeb/input-remapper/issues/435)
 
 ##### analog_threshold
+
 Setting the `analog_threshold` to zero or omitting it means that the input will be 
 mapped to an axis. There can only be one axis input with a threshold of 0 in a mapping. 
 If the `type` is 1 (EV_KEY) the `analog_threshold` has no effect. 
@@ -268,6 +270,7 @@ key or macro) the threshold can be anything. The mapping will be triggered once 
 speed and direction of the axis is higher than described by the threshold.
 
 #### Mapping Parameters
+
 The following table contains all possible parameters and their default values:
 
 | Parameter                | Default | Type            | Description                                                                                                             |

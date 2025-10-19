@@ -51,6 +51,8 @@ def test_setup(cls):
     patch_started = False
 
     def setUpClass():
+        nonlocal patch_started
+
         if is_service_running():
             # let tests control daemon existance
             raise Exception("Expected the service not to be running already.")
@@ -79,6 +81,8 @@ def test_setup(cls):
         cleanup()
 
     def setUp(self):
+        nonlocal patch_started
+
         for patch in patches:
             if not patch_started:
                 patch.start()
@@ -86,6 +90,8 @@ def test_setup(cls):
         original_setUp(self)
 
     def tearDown(self):
+        nonlocal patch_started
+
         original_tearDown(self)
 
         quick_cleanup()

@@ -18,14 +18,15 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """Store which presets should be enabled for which device on login."""
 
+from __future__ import annotations
+
 import copy
 import json
 import os
-from typing import Optional
+from typing import Union, List, Optional, Callable, Any
 
-from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
 from inputremapper.configs.paths import PathUtils
-from inputremapper.logging.logger import logger
+from inputremapper.logging.logger import logger, VERSION
 from inputremapper.user import UserUtils
 
 MOUSE = "mouse"
@@ -33,25 +34,31 @@ WHEEL = "wheel"
 BUTTONS = "buttons"
 NONE = "none"
 
+INITIAL_CONFIG = {
+    "version": VERSION,
+    "autoload": {},
+}
 
-class GlobalConfig(ConfigBase):
-    """Global default configuration, from which all presets inherit.
-    It can also contain some extra stuff not relevant for presets, like the
-    autoload stuff. If presets have a config key set, it will ignore
-    the default global configuration for that one. If none of the configs
-    have the key set, a hardcoded default value will be used.
-    """
+
+class GlobalConfig:
+    """Configures stuff like autoloading in ~/.config/input-remapper-2/config.json."""
 
     def __init__(self):
         self.path = os.path.join(PathUtils.config_path(), "config.json")
-        super().__init__()
+        self._config = copy.deepcopy(INITIAL_CONFIG)
 
     def get_dir(self) -> str:
         """The folder containing this config."""
         return os.path.split(self.path)[0]
 
+    def get_autoload_preset(self, group_key: str) -> Optional[str]:
+        # modifications are only allowed via the setter, because it needs to write
+        # the config file too. Therefore return a copy to prevent inconsistencies.
+        return copy.deepcopy(self._config["autoload"].get(group_key))
+
     def set_autoload_preset(self, group_key: str, preset: Optional[str]):
         """Set a preset to be automatically applied on start.
+
         Parameters
         ----------
         group_key
@@ -62,10 +69,10 @@ class GlobalConfig(ConfigBase):
             if None, don't autoload something for this device.
         """
         if preset is not None:
-            self.set(["autoload", group_key], preset)
+            self._config["autoload"][group_key] = preset
         else:
             logger.info('Not injecting for "%s" automatically anmore', group_key)
-            self.remove(["autoload", group_key])
+            del self._config["autoload"][group_key]
 
         self._save_config()
 
@@ -78,7 +85,7 @@ class GlobalConfig(ConfigBase):
         if group_key is None or preset is None:
             raise ValueError("Expected group_key and preset to not be None")
 
-        return self.get(["autoload", group_key], log_unknown=False) == preset
+        return self._config.get("autoload", {}).get(group_key) == preset
 
     def load_config(self, path: Optional[str] = None):
         """Load the config from the file system.
@@ -94,12 +101,12 @@ class GlobalConfig(ConfigBase):
 
             self.path = path
 
-        self.clear_config()
+        self._clear_config()
 
         if not os.path.exists(self.path):
             # treated like an empty config
             logger.debug('Config "%s" doesn\'t exist yet', self.path)
-            self.clear_config()
+            self._clear_config()
             self._config = copy.deepcopy(INITIAL_CONFIG)
             self._save_config()
             return
@@ -129,3 +136,7 @@ class GlobalConfig(ConfigBase):
             json.dump(self._config, file, indent=4)
             logger.info("Saved config to %s", self.path)
             file.write("\n")
+
+    def _clear_config(self):
+        """Remove all configurations in memory."""
+        self._config = {}
