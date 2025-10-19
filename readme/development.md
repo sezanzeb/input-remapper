@@ -40,17 +40,10 @@ But you can also run them from your console:
 
 ```bash
 pip install psutil  # https://github.com/giampaolo/psutil
-pip install -e .
 sudo pkill -f input-remapper
 python3 -m unittest discover -s ./tests/
-```
-
-This assumes you are using your system's `pip`. If you are in a virtual env,
-a `sudo pip install` is not recommended. See [Scripts](#scripts) for alternatives.
-
-```
-python -m unittest tests/unit/test_daemon.py
-python -m unittest tests.unit.test_ipc.TestPipe -k "test_pipe" -f
+python3 -m unittest tests/unit/test_daemon.py
+python3 -m unittest tests.unit.test_ipc.TestPipe -k "test_pipe" -f
 # See `python -m unittest -h` for more.
 ```
 
@@ -65,29 +58,27 @@ Writing Tests
 
 Tests are in https://github.com/sezanzeb/input-remapper/tree/main/tests
 
-https://github.com/sezanzeb/input-remapper/blob/main/tests/test.py patches some modules
-and runs tests. The tests need patches because every environment that runs them will be
-different. By using patches they all look the same to the individual tests. Some
-patches also allow to make some handy assertions, like the `write_history` of `UInput`.
+Make sure to use the `@test_setup` decorator. Look for other tests that did something
+vaguely similar for inspiration. For example, copy one of the macro test files
+and modify it if you write a new macro.
 
-Test files are usually named after the module they are in.
-
-In the tearDown functions, usually one of `quick_cleanup` or `cleanup` should be called.
-This avoids making a test fail that comes after your new test, because some state
-variables might still be modified by yours.
+If you have difficulty running your tests locally, github will run them for you when
+you create a new pull request.
 
 Scripts
 -------
+
 To automate some of the development tasks, you can use the
 [setup.sh](/scripts/setup.sh) script. The script avoids using `pip` for installation.
 Instead, it uses either your local `python3` in your virtual env, or using
 `/usr/bin/python3` explicitly. For more information run
+
 ```
 scripts/setup.sh help
 ```
 
-Advices
--------
+Advice
+------
 
 Do not use GTKs `foreach` methods, because when the function fails it just freezes up
 completely. Use `get_children()` and iterate over it with regular python `for` loops.

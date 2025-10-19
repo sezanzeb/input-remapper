@@ -20,6 +20,7 @@
 """Starts injecting keycodes based on the configuration."""
 
 import sys
+import multiprocessing
 from argparse import ArgumentParser
 
 from inputremapper.configs.global_config import GlobalConfig
@@ -49,6 +50,9 @@ class InputRemapperServiceBin:
         )
 
         options = parser.parse_args(sys.argv[1:])
+
+        # Python 3.14 compatibility
+        multiprocessing.set_start_method("fork")
 
         logger.update_verbosity(options.debug)
 

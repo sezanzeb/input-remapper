@@ -48,6 +48,8 @@ def test_setup(cls):
 
     patches = create_patches()
 
+    patch_started = False
+
     def setUpClass():
         if is_service_running():
             # let tests control daemon existance
@@ -61,6 +63,8 @@ def test_setup(cls):
         # stuff with the real evdev.
         for patch in patches:
             patch.start()
+
+        patch_started = True
 
         original_setUpClass()
 
@@ -76,7 +80,8 @@ def test_setup(cls):
 
     def setUp(self):
         for patch in patches:
-            patch.start()
+            if not patch_started:
+                patch.start()
 
         original_setUp(self)
 
@@ -87,6 +92,8 @@ def test_setup(cls):
 
         for patch in patches:
             patch.stop()
+
+        patch_started = False
 
     cls.setUp = setUp
     cls.tearDown = tearDown
