@@ -36,25 +36,34 @@ class TestToggle(MacroTestBase):
     async def test_toggle(self):
         # repeats key(a) as long as macro is toggled
         macro = Parser.parse("toggle(key(a))", self.context, DummyMapping)
-
-        macro.press_trigger()
-        macro.release_trigger()
-        asyncio.ensure_future(macro.run(self.handler))
-        await asyncio.sleep(0.2)
-        self.assertGreater(len(self.result), 2)
-
         code_a = keyboard_layout.get("a")
-        self.assertGreater(self.result.count((EV_KEY, code_a, 1)), 2)
 
         self.assertEqual(self.count_child_macros(macro), 1)
         self.assertEqual(self.count_tasks(macro), 2)
 
+        # Start
         macro.press_trigger()
         macro.release_trigger()
-        result_count = self.result.count((EV_KEY, code_a, 1))
-        await asyncio.sleep(0.2)
+        asyncio.ensure_future(macro.run(self.handler))
+
+        await asyncio.sleep(0.1)
+        count_1 = self.result.count((EV_KEY, code_a, 1))
+        self.assertGreater(count_1, 2)
+
+        # Keeps writing more
+        await asyncio.sleep(0.1)
+        count_2 = self.result.count((EV_KEY, code_a, 1))
+        self.assertGreater(count_2, count_1)
+
+        # Stop
+        macro.press_trigger()
+        macro.release_trigger()
+
+        count_3 = self.result.count((EV_KEY, code_a, 1))
+        await asyncio.sleep(0.1)
+        count_4 = self.result.count((EV_KEY, code_a, 1))
         # ensure that the macro has stopped
-        self.assertEqual(result_count, self.result.count((EV_KEY, code_a, 1)))
+        self.assertEqual(count_3, count_4)
 
 
 if __name__ == "__main__":
