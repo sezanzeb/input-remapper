@@ -30,6 +30,7 @@ from inputremapper.injection.macros.parse import Parser
 from tests.lib.test_setup import test_setup
 from tests.unit.test_macros.macro_test_base import MacroTestBase, DummyMapping
 
+
 @test_setup
 class TestHold(MacroTestBase):
     async def test_hold(self):
