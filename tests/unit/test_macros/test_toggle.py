@@ -47,7 +47,7 @@ class TestToggle(MacroTestBase):
         self.assertGreater(self.result.count((EV_KEY, code_a, 1)), 2)
 
         self.assertEqual(self.count_child_macros(macro), 1)
-        self.assertEqual(self.count_tasks(macro), 1)
+        self.assertEqual(self.count_tasks(macro), 2)
 
         macro.press_trigger()
         macro.release_trigger()
