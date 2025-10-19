@@ -146,10 +146,6 @@ class Injector(multiprocessing.Process):
 
         self._event_readers = []
 
-        # Python 3.14 compatibility.
-        # See https://github.com/sezanzeb/input-remapper/issues/1163
-        multiprocessing.set_start_method('fork')
-
         super().__init__(name=group.key)
 
     """Functions to interact with the running process."""
