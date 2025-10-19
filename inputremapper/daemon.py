@@ -209,7 +209,7 @@ class Daemon:
 
         if UserUtils.user != "root":
             # If started via sudo, UserUtils.user is the actual user, and the config
-            # path is valid. If running an a systemd service, it is root, and the path
+            # path is valid. If running as a systemd service, it is root, and the path
             # invalid.
             self.set_config_dir(PathUtils.get_config_path())
 
