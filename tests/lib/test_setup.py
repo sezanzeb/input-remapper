@@ -76,7 +76,8 @@ def test_setup(cls):
 
     def setUp(self):
         for patch in patches:
-            patch.start()
+            if not patch.is_started:
+                patch.start()
 
         original_setUp(self)
 
