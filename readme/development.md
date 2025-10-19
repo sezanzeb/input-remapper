@@ -59,7 +59,7 @@ Writing Tests
 Tests are in https://github.com/sezanzeb/input-remapper/tree/main/tests
 
 Make sure to use the `@test_setup` decorator. Look for other tests that did something
-vaguely similar for inspiration. For example, copy one of the macro test classes
+vaguely similar for inspiration. For example, copy one of the macro test files
 and modify it if you write a new macro.
 
 If you have difficulty running your tests locally, github will run them for you when
