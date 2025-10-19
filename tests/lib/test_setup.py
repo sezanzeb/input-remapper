@@ -58,7 +58,7 @@ def test_setup(cls):
             patch.start()
 
     def setUpClass():
-        logger.info('setUpClass %s', cls)
+        logger.info("setUpClass %s", cls)
 
         if is_service_running():
             # let tests control daemon existance
@@ -75,7 +75,7 @@ def test_setup(cls):
         original_setUpClass()
 
     def tearDownClass():
-        logger.info('tearDownClass %s', cls)
+        logger.info("tearDownClass %s", cls)
         original_tearDownClass()
 
         remove_fixture_pipes()
@@ -86,14 +86,14 @@ def test_setup(cls):
         cleanup()
 
     def setUp(self):
-        logger.info('setUp %s', cls)
+        logger.info("setUp %s", cls)
 
         resetPatches()
 
         original_setUp(self)
 
     def tearDown(self):
-        logger.info('tearDown %s', cls)
+        logger.info("tearDown %s", cls)
 
         original_tearDown(self)
 
