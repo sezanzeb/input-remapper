@@ -148,7 +148,7 @@ class Injector(multiprocessing.Process):
 
         # Python 3.14 compatibility.
         # See https://github.com/sezanzeb/input-remapper/issues/1163
-        multiprocessing.set_start_method('fork')
+        # multiprocessing.set_start_method('fork')
 
         super().__init__(name=group.key)
 
