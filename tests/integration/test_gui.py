@@ -30,6 +30,7 @@ from unittest.mock import patch, MagicMock, call
 
 import evdev
 import gi
+import sys
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -108,7 +109,9 @@ def launch() -> Tuple[
     GlobalConfig,
 ]:
     """Start input-remapper-gtk."""
-    return_ = InputRemapperGtkBin.main()
+    with patch.object(sys, "argv", ["/usr/bin/input-remapper-gtk", "-d"]):
+        return_ = InputRemapperGtkBin.main()
+
     gtk_iteration()
     # otherwise a new handler is added with each call to launch, which
     # spams tons of garbage when all tests finish

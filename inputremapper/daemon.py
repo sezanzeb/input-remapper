@@ -370,7 +370,7 @@ class Daemon:
             # either not relevant for input-remapper, or not connected yet
             return
 
-        preset = self.global_config.get(["autoload", group.key], log_unknown=False)
+        preset = self.global_config.get_autoload_preset(group.key)
 
         if preset is None:
             # no autoloading is configured for this device

@@ -26,7 +26,7 @@ import tracemalloc
 from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.fixture_pipes import create_fixture_pipes, remove_fixture_pipes
 from tests.lib.is_service_running import is_service_running
-from tests.lib.logger import update_inputremapper_verbosity
+from tests.lib.logger import update_inputremapper_verbosity, logger
 from tests.lib.patches import create_patches
 
 
@@ -48,9 +48,18 @@ def test_setup(cls):
 
     patches = create_patches()
 
-    patch_started = False
+    def resetPatches():
+        # In case some patches carry a state (I don't remember, idk), stop and start
+        # them from scratch
+        for patch in patches:
+            patch.stop()
+
+        for patch in patches:
+            patch.start()
 
     def setUpClass():
+        logger.info("setUpClass %s", cls)
+
         if is_service_running():
             # let tests control daemon existance
             raise Exception("Expected the service not to be running already.")
@@ -61,14 +70,12 @@ def test_setup(cls):
         # make sure the patches are started already when the class is set up, so that
         # an unpatched `prepare_all` doesn't take ages to finish, and doesn't do funky
         # stuff with the real evdev.
-        for patch in patches:
-            patch.start()
-
-        patch_started = True
+        resetPatches()
 
         original_setUpClass()
 
     def tearDownClass():
+        logger.info("tearDownClass %s", cls)
         original_tearDownClass()
 
         remove_fixture_pipes()
@@ -79,21 +86,20 @@ def test_setup(cls):
         cleanup()
 
     def setUp(self):
-        for patch in patches:
-            if not patch_started:
-                patch.start()
+        logger.info("setUp %s", cls)
+
+        resetPatches()
 
         original_setUp(self)
 
     def tearDown(self):
+        logger.info("tearDown %s", cls)
+
         original_tearDown(self)
 
         quick_cleanup()
 
-        for patch in patches:
-            patch.stop()
-
-        patch_started = False
+        resetPatches()
 
     cls.setUp = setUp
     cls.tearDown = tearDown
