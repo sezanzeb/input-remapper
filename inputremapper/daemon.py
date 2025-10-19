@@ -207,7 +207,10 @@ class Daemon:
 
         self.config_dir = None
 
-        if UserUtils.home != "root":
+        if UserUtils.user != "root":
+            # If started via sudo, UserUtils.user is the actual user, and the config
+            # path is valid. If running an a systemd service, it is root, and the path
+            # invalid.
             self.set_config_dir(PathUtils.get_config_path())
 
         # check privileges
@@ -268,7 +271,7 @@ class Daemon:
                 logger.error("Failed to connect to the service")
                 sys.exit(8)
 
-        if UserUtils.home != "root":
+        if UserUtils.user != "root":
             config_path = PathUtils.get_config_path()
             logger.debug('Telling service about "%s"', config_path)
             interface.set_config_dir(PathUtils.get_config_path(), timeout=2)
