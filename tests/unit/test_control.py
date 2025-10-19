@@ -346,21 +346,21 @@ class TestControl(unittest.TestCase):
         path = os.path.join(tmp, "foo")
         os.makedirs(path)
         with open(os.path.join(path, "config.json"), "w") as file:
-            file.write('{"foo":"bar"}')
+            file.write('{"autoload":{"foo": "bar"}}')
 
-        self.assertIsNone(self.global_config.get("foo"))
+        self.assertIsNone(self.global_config.get_autoload_preset("foo"))
         daemon.set_config_dir(path)
         # since daemon and this test share the same memory, the global_config
         # object that this test can access will be modified
-        self.assertEqual(self.global_config.get("foo"), "bar")
+        self.assertEqual(self.global_config.get_autoload_preset("foo"), "bar")
 
         # passing a path that doesn't exist or a path that doesn't contain
         # a config.json file won't do anything
         os.makedirs(os.path.join(tmp, "bar"))
         daemon.set_config_dir(os.path.join(tmp, "bar"))
-        self.assertEqual(self.global_config.get("foo"), "bar")
+        self.assertEqual(self.global_config.get_autoload_preset("foo"), "bar")
         daemon.set_config_dir(os.path.join(tmp, "qux"))
-        self.assertEqual(self.global_config.get("foo"), "bar")
+        self.assertEqual(self.global_config.get_autoload_preset("foo"), "bar")
 
     def test_internals_reader(self):
         with patch.object(os, "system") as os_system_patch:
