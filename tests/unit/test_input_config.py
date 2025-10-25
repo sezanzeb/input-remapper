@@ -28,7 +28,14 @@ from evdev.ecodes import (
     BTN_C,
     BTN_B,
     BTN_A,
+    BTN_LEFT,
     BTN_MIDDLE,
+    BTN_RIGHT,
+    BTN_SIDE,
+    BTN_EXTRA,
+    BTN_FORWARD,
+    BTN_BACK,
+    BTN_TASK,
     REL_X,
     REL_Y,
     REL_WHEEL,
@@ -462,78 +469,37 @@ class TestInputCombination(unittest.TestCase):
 
     def test_beautify(self):
         # not an integration test, but I have all the selection_label tests here already
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_KEY, KEY_A, 1))
-            ).beautify(),
-            "a",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_KEY, KEY_A, 1))
-            ).beautify(),
-            "a",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_ABS, ABS_HAT0Y, -1))
-            ).beautify(),
-            "DPad-Y Up",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_KEY, BTN_A, 1))
-            ).beautify(),
-            "Button A",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_KEY, 1234, 1))
-            ).beautify(),
-            "unknown (1, 1234)",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_ABS, ABS_HAT0X, -1))
-            ).beautify(),
-            "DPad-X Left",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_ABS, ABS_HAT0Y, -1))
-            ).beautify(),
-            "DPad-Y Up",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_KEY, BTN_A, 1))
-            ).beautify(),
-            "Button A",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_ABS, ABS_X, 1))
-            ).beautify(),
-            "Joystick-X Right",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_ABS, ABS_RY, 1))
-            ).beautify(),
-            "Joystick-RY Down",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_REL, REL_HWHEEL, 1))
-            ).beautify(),
-            "Wheel Right",
-        )
-        self.assertEqual(
-            InputCombination(
-                InputCombination.from_tuples((EV_REL, REL_WHEEL, -1))
-            ).beautify(),
-            "Wheel Down",
-        )
+        self.assert_beautify_single(EV_KEY, KEY_A, 1, "a")
+        self.assert_beautify_single(EV_KEY, KEY_A, 1, "a")
+        self.assert_beautify_single(EV_ABS, ABS_HAT0Y, -1, "DPad-Y Up")
+        self.assert_beautify_single(EV_KEY, BTN_A, 1, "Button A")
+        self.assert_beautify_single(EV_KEY, 1234, 1, "unknown (1, 1234)")
+        self.assert_beautify_single(EV_ABS, ABS_HAT0X, -1, "DPad-X Left")
+        self.assert_beautify_single(EV_ABS, ABS_HAT0Y, -1, "DPad-Y Up")
+        self.assert_beautify_single(EV_KEY, BTN_A, 1, "Button A")
+        self.assert_beautify_single(EV_ABS, ABS_X, 1, "Joystick-X Right")
+        self.assert_beautify_single(EV_ABS, ABS_RY, 1, "Joystick-RY Down")
+        self.assert_beautify_single(EV_REL, REL_HWHEEL, 1, "Wheel Right")
+        self.assert_beautify_single(EV_REL, REL_WHEEL, -1, "Wheel Down")
+
+        # region "mouse buttons"
+        self.assert_beautify_single(EV_KEY, BTN_LEFT, 1, "Mouse Button LEFT")
+        self.assert_beautify_single(EV_KEY, BTN_MIDDLE, 1, "Mouse Button MIDDLE")
+        self.assert_beautify_single(EV_KEY, BTN_RIGHT, 1, "Mouse Button RIGHT")
+        self.assert_beautify_single(EV_KEY, BTN_SIDE, 1, "Mouse Button 4")
+        self.assert_beautify_single(EV_KEY, BTN_EXTRA, 1, "Mouse Button 5")
+        self.assert_beautify_single(EV_KEY, BTN_FORWARD, 1, "Mouse Button 6")
+        self.assert_beautify_single(EV_KEY, BTN_BACK, 1, "Mouse Button 7")
+        self.assert_beautify_single(EV_KEY, BTN_TASK, 1, "Mouse Button 8")
+
+        # Mouse buttons 9+ do not have an evdev name, and so must be expressed
+        # as an offset from BTN_LEFT AKA "Button 1". Subtract 1 for base index
+        # so that `btn_mouse_base + 1` would be "Button 1".
+        btn_mouse_base: int = BTN_LEFT - 1
+
+        self.assert_beautify_single(EV_KEY, btn_mouse_base + 9, 1, "Mouse Button 9")
+        self.assert_beautify_single(EV_KEY, btn_mouse_base + 10, 1, "Mouse Button 10")
+        # endregion "mouse buttons"
 
         # combinations
         self.assertEqual(
@@ -572,6 +538,21 @@ class TestInputCombination(unittest.TestCase):
         self.assertIsNone(combination.find_analog_input_config(type_=EV_ABS))
         self.assertIsNone(combination.find_analog_input_config(type_=EV_REL))
         self.assertIsNone(combination.find_analog_input_config())
+
+    # region helper methods
+    def assert_beautify_single(self, type_, code, direction, expected_beautified_name):
+        """
+        Assert that the beautified name of the event tuple `(type_, code,
+        direction)` matches the `expected_beautified_name`.
+        """
+        self.assertEqual(
+            InputCombination(
+                InputCombination.from_tuples((type_, code, direction))
+            ).beautify(),
+            expected_beautified_name,
+        )
+
+    # endregion
 
 
 if __name__ == "__main__":

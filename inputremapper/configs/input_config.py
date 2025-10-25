@@ -49,6 +49,11 @@ DIFFICULT_COMBINATIONS = [
 
 EMPTY_TYPE = 99
 
+# "Button 11" (10 + 0x110 "BTN_LEFT") is the highest mouse button simulatable
+# at time of writing using Piper 0.8 and a Logi G502X.
+# Please update if a way to simulate higher button-presses is found.
+MAX_BTN_MOUSE_ECODE = 0x11A
+
 
 class InputConfig(BaseModel):
     """Describes a single input within a combination, to configure mappings."""
@@ -125,8 +130,40 @@ class InputConfig(BaseModel):
             f"{self._get_threshold_value() if not exclude_threshold else ''}".strip()
         )
 
+    def _get_mouse_button_name(self) -> Optional[str]:
+        """Get a human-readable description of a mouse-button. Only the first 7
+        mouse buttons are in evdev and they often have misleading names there
+        (eg it calls buttons 6 & 7 forward/back but usually that's buttons 5 & 4).
+        Returns None if not a mouse button."""
+
+        if self.type == ecodes.EV_KEY:
+            if ecodes.BTN_MOUSE <= self.code <= ecodes.BTN_MIDDLE:
+                # button is left/right/middle button
+                key_name: str = get_evdev_constant_name(self.type, self.code)
+                return key_name.replace(
+                    "BTN_", "Mouse Button "
+                )  # eg "Mouse Button LEFT"
+            elif ecodes.BTN_MIDDLE < self.code <= MAX_BTN_MOUSE_ECODE:
+                # button is a higher-number mouse button like side-buttons.
+                # This calculation assumes left mouse button is button 1, so side buttons start at 4.
+                button_number: int = self.code - ecodes.BTN_MOUSE + 1
+                return f"Mouse Button {button_number}"  # eg "Mouse Button 7"
+
+        return None
+
     def _get_name(self) -> Optional[str]:
         """Human-readable name (e.g. KEY_A) of the specified input event."""
+
+        # prevent logging warnings for new/empty configs
+        if self.is_empty:
+            return None
+
+        # must check if it's a mouse button *before* ecodes
+        # because not all mouse buttons are in ecodes.
+        mouse_button_name: Optional[str] = self._get_mouse_button_name()
+        if mouse_button_name != None:
+            return mouse_button_name
+
         if self.type not in ecodes.bytype:
             logger.warning("Unknown type for %s", self)
             return f"unknown {self.type, self.code}"
