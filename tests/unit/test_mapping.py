@@ -454,7 +454,11 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_updates_validation_error(self):
         mapping = UIMapping()
-        self.assertGreaterEqual(len(mapping.get_error().errors()), 2)
+        errors = mapping.get_error().errors()
+        # target_uinput: none is not an allowed value
+        # __root__: Missing Argument: Mapping must either contain `output_symbol` or
+        #   `output_type` and `output_code`
+        self.assertGreaterEqual(len(errors), 2)
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
         mapping.output_symbol = "a"
         self.assertIn(
