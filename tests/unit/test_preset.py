@@ -57,6 +57,23 @@ def find_differences(a: BaseModel, b: BaseModel):
     print(diffs)"""
 
 
+class TestEquality(unittest.TestCase):
+    def test_equality2(self):
+        input_config = InputConfig(type=EV_KEY, code=1, analog_threshold=111)
+        combination = InputCombination((input_config,))
+
+        preset = Preset(PathUtils.get_preset_path("foo", "bar2"))
+        preset.add(Mapping.from_combination(combination, "keyboard", "a"))
+
+        mapping_a = preset.get_mapping(combination)
+        mapping_b = Mapping.from_combination(combination, "keyboard", "a")
+        mapping_c = Mapping.from_combination(combination, "keyboard", "a")
+        self.assertEqual(mapping_a, mapping_b)
+        self.assertEqual(mapping_b, mapping_c)
+        self.assertEqual(mapping_a.dict(), mapping_b.dict())
+        self.assertEqual(mapping_b.dict(), mapping_c.dict())
+
+
 @test_setup
 class TestPreset(unittest.TestCase):
     def setUp(self):
@@ -263,32 +280,10 @@ class TestPreset(unittest.TestCase):
         combi_3 = InputCombination((ev_1, ev_2, ev_4))
 
         self.preset.add(Mapping.from_combination(combi_1, "keyboard", "a"))
-        print()
-        print("dsfhvs")
-        print()
-        a = self.preset.get_mapping(combi_1)
-        b = Mapping.from_combination(combi_1, "keyboard", "a")
-        print(a.dict())
-        print()
-        print()
-        print()
-        print(b.dict())
-        print()
-        print()
-
-        find_differences(a, b)
-
-        print("classis", a.__class__ is b.__class__)
-
-        print("==", a == b)
-        print("dict==", a.dict() == b.dict())
-
-        print("privates", a.__private_attributes__, b.__private_attributes__)
-        print("privates==", a.__private_attributes__ == b.__private_attributes__)
 
         self.assertEqual(
-            self.preset.get_mapping(combi_1).dict(),
-            Mapping.from_combination(combi_1, "keyboard", "a").dict(),
+            self.preset.get_mapping(combi_1),
+            Mapping.from_combination(combi_1, "keyboard", "a"),
         )
         self.assertEqual(
             self.preset.get_mapping(combi_2),

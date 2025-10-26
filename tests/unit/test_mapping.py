@@ -68,6 +68,18 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(m.rel_to_abs_input_cutoff, 2)
         self.assertEqual(m.release_timeout, 0.05)
 
+    def test_equality(self):
+        cfg = {
+            "input_combination": [{"type": 1, "code": 2}],
+            "target_uinput": "keyboard",
+            "output_symbol": "a",
+        }
+
+        a = Mapping(**cfg)
+        b = Mapping(**cfg)
+
+        self.assertEqual(a, b)
+
     def test_is_wheel_output(self):
         mapping = Mapping(
             input_combination=InputCombination([InputConfig(type=EV_REL, code=REL_X)]),
