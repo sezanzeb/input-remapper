@@ -89,7 +89,9 @@ class Preset(Generic[MappingModel]):
 
     def has_unsaved_changes(self) -> bool:
         """Check if there are unsaved changed."""
-        return self._mappings != self._saved_mappings
+        dumped_a = {k: v.model_dump() for k, v in self._mappings.items()}
+        dumped_b = {k: v.model_dump() for k, v in self._saved_mappings.items()}
+        return dumped_a != dumped_b
 
     def remove(self, combination: InputCombination) -> None:
         """Remove a mapping from the preset by providing the InputCombination."""

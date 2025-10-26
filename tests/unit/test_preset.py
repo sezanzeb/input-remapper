@@ -35,30 +35,13 @@ from tests.lib.test_setup import test_setup
 from pydantic import BaseModel
 
 
-def find_differences(a: BaseModel, b: BaseModel):
-    for k in dir(a):
-        if not k.startswith("__"):
-            val_a = getattr(a, k)
-            val_b = getattr(b, k)
-            if val_a != val_b:
-                print("NOTEQUAL", k, type(val_a))
+@test_setup
+class TestPreset(unittest.TestCase):
+    def setUp(self):
+        self.preset = Preset(PathUtils.get_preset_path("foo", "bar2"))
+        self.assertFalse(self.preset.has_unsaved_changes())
 
-    """diffs = {}
-    for key in a.model_fields:
-        val_a = getattr(a, key)
-        val_b = getattr(b, key)
-        if val_a != val_b:
-            diffs[key] = (val_a, val_b)
-    for key in b.model_fields:
-        val_a = getattr(a, key)
-        val_b = getattr(b, key)
-        if val_a != val_b:
-            diffs[key] = (val_a, val_b)
-    print(diffs)"""
-
-
-class TestEquality(unittest.TestCase):
-    def test_equality2(self):
+    def test_equality(self):
         input_config = InputConfig(type=EV_KEY, code=1, analog_threshold=111)
         combination = InputCombination((input_config,))
 
@@ -68,17 +51,16 @@ class TestEquality(unittest.TestCase):
         mapping_a = preset.get_mapping(combination)
         mapping_b = Mapping.from_combination(combination, "keyboard", "a")
         mapping_c = Mapping.from_combination(combination, "keyboard", "a")
+
+        # This is the reason why they are not equal, and this was not an issue with
+        # pydantic v1. v2 compares private attributes:
+        mapping_a.set_combination_changed_callback(None)
+        # TODO I don't know yet if this change in behaviour causes problems later.
+
         self.assertEqual(mapping_a, mapping_b)
         self.assertEqual(mapping_b, mapping_c)
-        self.assertEqual(mapping_a.dict(), mapping_b.dict())
-        self.assertEqual(mapping_b.dict(), mapping_c.dict())
-
-
-@test_setup
-class TestPreset(unittest.TestCase):
-    def setUp(self):
-        self.preset = Preset(PathUtils.get_preset_path("foo", "bar2"))
-        self.assertFalse(self.preset.has_unsaved_changes())
+        self.assertEqual(mapping_a.model_dump(), mapping_b.model_dump())
+        self.assertEqual(mapping_b.model_dump(), mapping_c.model_dump())
 
     def test_is_mapped_multiple_times(self):
         combination = InputCombination(
@@ -116,8 +98,8 @@ class TestPreset(unittest.TestCase):
         # load again from the disc
         self.preset.load()
         self.assertEqual(
-            self.preset.get_mapping(InputCombination.empty_combination()),
-            Mapping.from_combination(),
+            self.preset.get_mapping(InputCombination.empty_combination()).model_dump(),
+            Mapping.from_combination().model_dump(),
         )
         self.assertFalse(self.preset.has_unsaved_changes())
 
@@ -185,16 +167,22 @@ class TestPreset(unittest.TestCase):
         self.assertEqual(len(loaded), 3)
         self.assertRaises(TypeError, loaded.get_mapping, one)
         self.assertEqual(
-            loaded.get_mapping(InputCombination([one])),
-            Mapping.from_combination(InputCombination([one]), "keyboard", "1"),
+            loaded.get_mapping(InputCombination([one])).model_dump(),
+            Mapping.from_combination(
+                InputCombination([one]), "keyboard", "1"
+            ).model_dump(),
         )
         self.assertEqual(
-            loaded.get_mapping(InputCombination([two])),
-            Mapping.from_combination(InputCombination([two]), "keyboard", "2"),
+            loaded.get_mapping(InputCombination([two])).model_dump(),
+            Mapping.from_combination(
+                InputCombination([two]), "keyboard", "2"
+            ).model_dump(),
         )
         self.assertEqual(
-            loaded.get_mapping(InputCombination([two, three])),
-            Mapping.from_combination(InputCombination([two, three]), "keyboard", "3"),
+            loaded.get_mapping(InputCombination([two, three])).model_dump(),
+            Mapping.from_combination(
+                InputCombination([two, three]), "keyboard", "3"
+            ).model_dump(),
         )
 
         # load missing file
@@ -218,20 +206,20 @@ class TestPreset(unittest.TestCase):
         mapping.output_symbol = "b"
         self.assertIsNone(self.preset.get_mapping(ev_1))
         self.assertEqual(
-            self.preset.get_mapping(ev_3),
-            Mapping.from_combination(ev_3, "keyboard", "b"),
+            self.preset.get_mapping(ev_3).model_dump(),
+            Mapping.from_combination(ev_3, "keyboard", "b").model_dump(),
         )
         self.assertEqual(len(self.preset), 1)
 
         # add 4
         self.preset.add(Mapping.from_combination(ev_4, "keyboard", "c"))
         self.assertEqual(
-            self.preset.get_mapping(ev_3),
-            Mapping.from_combination(ev_3, "keyboard", "b"),
+            self.preset.get_mapping(ev_3).model_dump(),
+            Mapping.from_combination(ev_3, "keyboard", "b").model_dump(),
         )
         self.assertEqual(
-            self.preset.get_mapping(ev_4),
-            Mapping.from_combination(ev_4, "keyboard", "c"),
+            self.preset.get_mapping(ev_4).model_dump(),
+            Mapping.from_combination(ev_4, "keyboard", "c").model_dump(),
         )
         self.assertEqual(len(self.preset), 2)
 
@@ -239,8 +227,8 @@ class TestPreset(unittest.TestCase):
         mapping = self.preset.get_mapping(ev_4)
         mapping.output_symbol = "d"
         self.assertEqual(
-            self.preset.get_mapping(ev_4),
-            Mapping.from_combination(ev_4, "keyboard", "d"),
+            self.preset.get_mapping(ev_4).model_dump(),
+            Mapping.from_combination(ev_4, "keyboard", "d").model_dump(),
         )
         self.assertEqual(len(self.preset), 2)
 
@@ -250,12 +238,12 @@ class TestPreset(unittest.TestCase):
             mapping.input_combination = ev_3
 
         self.assertEqual(
-            self.preset.get_mapping(ev_3),
-            Mapping.from_combination(ev_3, "keyboard", "b"),
+            self.preset.get_mapping(ev_3).model_dump(),
+            Mapping.from_combination(ev_3, "keyboard", "b").model_dump(),
         )
         self.assertEqual(
-            self.preset.get_mapping(ev_4),
-            Mapping.from_combination(ev_4, "keyboard", "d"),
+            self.preset.get_mapping(ev_4).model_dump(),
+            Mapping.from_combination(ev_4, "keyboard", "d").model_dump(),
         )
         self.assertEqual(len(self.preset), 2)
 
@@ -282,12 +270,12 @@ class TestPreset(unittest.TestCase):
         self.preset.add(Mapping.from_combination(combi_1, "keyboard", "a"))
 
         self.assertEqual(
-            self.preset.get_mapping(combi_1),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            self.preset.get_mapping(combi_1).model_dump(),
+            Mapping.from_combination(combi_1, "keyboard", "a").model_dump(),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_2),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            self.preset.get_mapping(combi_2).model_dump(),
+            Mapping.from_combination(combi_1, "keyboard", "a").model_dump(),
         )
         # since combi_1 and combi_2 are equivalent, this raises a KeyError
         self.assertRaises(
@@ -296,26 +284,26 @@ class TestPreset(unittest.TestCase):
             Mapping.from_combination(combi_2, "keyboard", "b"),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_1),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            self.preset.get_mapping(combi_1).model_dump(),
+            Mapping.from_combination(combi_1, "keyboard", "a").model_dump(),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_2),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            self.preset.get_mapping(combi_2).model_dump(),
+            Mapping.from_combination(combi_1, "keyboard", "a").model_dump(),
         )
 
         self.preset.add(Mapping.from_combination(combi_3, "keyboard", "c"))
         self.assertEqual(
-            self.preset.get_mapping(combi_1),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            self.preset.get_mapping(combi_1).model_dump(),
+            Mapping.from_combination(combi_1, "keyboard", "a").model_dump(),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_2),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            self.preset.get_mapping(combi_2).model_dump(),
+            Mapping.from_combination(combi_1, "keyboard", "a").model_dump(),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_3),
-            Mapping.from_combination(combi_3, "keyboard", "c"),
+            self.preset.get_mapping(combi_3).model_dump(),
+            Mapping.from_combination(combi_3, "keyboard", "c").model_dump(),
         )
 
         mapping = self.preset.get_mapping(combi_1)
@@ -324,16 +312,16 @@ class TestPreset(unittest.TestCase):
             mapping.input_combination = combi_3
 
         self.assertEqual(
-            self.preset.get_mapping(combi_1),
-            Mapping.from_combination(combi_1, "keyboard", "c"),
+            self.preset.get_mapping(combi_1).model_dump(),
+            Mapping.from_combination(combi_1, "keyboard", "c").model_dump(),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_2),
-            Mapping.from_combination(combi_1, "keyboard", "c"),
+            self.preset.get_mapping(combi_2).model_dump(),
+            Mapping.from_combination(combi_1, "keyboard", "c").model_dump(),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_3),
-            Mapping.from_combination(combi_3, "keyboard", "c"),
+            self.preset.get_mapping(combi_3).model_dump(),
+            Mapping.from_combination(combi_3, "keyboard", "c").model_dump(),
         )
 
     def test_remove(self):
@@ -361,13 +349,13 @@ class TestPreset(unittest.TestCase):
         self.preset.remove(ev_3)
         self.assertEqual(len(self.preset), 2)
         self.assertEqual(
-            self.preset.get_mapping(ev_4),
-            Mapping.from_combination(ev_4, "keyboard", "KEY_KP1"),
+            self.preset.get_mapping(ev_4).model_dump(),
+            Mapping.from_combination(ev_4, "keyboard", "KEY_KP1").model_dump(),
         )
         self.assertIsNone(self.preset.get_mapping(ev_3))
         self.assertEqual(
-            self.preset.get_mapping(ev_2),
-            Mapping.from_combination(ev_2, "keyboard", "KEY_KP3"),
+            self.preset.get_mapping(ev_2).model_dump(),
+            Mapping.from_combination(ev_2, "keyboard", "KEY_KP3").model_dump(),
         )
 
     def test_empty(self):
@@ -503,8 +491,8 @@ class TestPreset(unittest.TestCase):
         preset.load()
         self.assertEqual(len(preset), 1)
 
-        a = preset.get_mapping(m.input_combination).dict()
-        b = m.dict()
+        a = preset.get_mapping(m.input_combination).model_dump()
+        b = m.model_dump()
         a.pop("mapping_type")
         b.pop("mapping_type")
         self.assertEqual(a, b)
@@ -516,13 +504,16 @@ class TestPreset(unittest.TestCase):
         ui_preset.load()
         self.assertEqual(len(ui_preset), 2)
 
-        a = ui_preset.get_mapping(m.input_combination).dict()
-        b = m.dict()
+        a = ui_preset.get_mapping(m.input_combination).model_dump()
+        b = m.model_dump()
         a.pop("mapping_type")
         b.pop("mapping_type")
         self.assertEqual(a, b)
         # self.assertEqual(ui_preset.get_mapping(m.input_combination), m)
-        self.assertEqual(ui_preset.get_mapping(m2.input_combination), m2)
+        self.assertEqual(
+            ui_preset.get_mapping(m2.input_combination).model_dump(),
+            m2.model_dump(),
+        )
 
 
 if __name__ == "__main__":

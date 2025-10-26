@@ -464,20 +464,30 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         mapping.target_uinput = "keyboard"
         self.assertTrue(mapping.is_valid())
 
-    def test_updates_validation_error(self):
+    def test_target_uinput_missing(self):
         mapping = UIMapping()
-        errors = mapping.get_error().errors()
-        # target_uinput: none is not an allowed value
-        # __root__: Missing Argument: Mapping must either contain `output_symbol` or
-        #   `output_type` and `output_code`
-        self.assertGreaterEqual(len(errors), 2)
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
         mapping.output_symbol = "a"
-        self.assertIn(
-            "1 validation error for Mapping\ntarget_uinput",
-            str(mapping.get_error()),
-        )
+
+        errors = mapping.get_error().errors()
+        self.assertEqual(len(errors), 1)
+        self.assertIn("target_uinput", str(mapping.get_error()))
+
+        # Fix it
         mapping.target_uinput = "keyboard"
+        self.assertTrue(mapping.is_valid())
+        self.assertIsNone(mapping.get_error())
+
+    def test_input_combination_missing(self):
+        mapping = UIMapping(target_uinput="keyboard")
+
+        errors = mapping.get_error().errors()
+        self.assertEqual(len(errors), 1)
+        self.assertIn("input_combination", str(mapping.get_error()))
+
+        # Fix it
+        mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
+        mapping.output_symbol = "a"
         self.assertTrue(mapping.is_valid())
         self.assertIsNone(mapping.get_error())
 
