@@ -17,14 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
-from inputremapper.injection.macros.parse import Parser
-from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
-
-try:
-    from pydantic.v1 import ValidationError
-except ImportError:
-    from pydantic import ValidationError
 
 import time
 import unittest
@@ -42,7 +34,11 @@ from evdev.ecodes import (
     ABS_X,
     ABS_VOLUME,
 )
+from pydantic import ValidationError
 
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
+from inputremapper.injection.macros.parse import Parser
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset

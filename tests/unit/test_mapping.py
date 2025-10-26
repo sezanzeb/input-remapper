@@ -31,16 +31,13 @@ from evdev.ecodes import (
     KEY_1,
     KEY_ESC,
 )
-
-try:
-    from pydantic.v1 import ValidationError
-except ImportError:
-    from pydantic import ValidationError
+from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping, MappingType
 from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.gui.messages.message_broker import MessageType
+
 from tests.lib.test_setup import test_setup
 
 

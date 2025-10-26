@@ -32,6 +32,31 @@ from inputremapper.configs.preset import Preset
 from tests.lib.test_setup import test_setup
 
 
+from pydantic import BaseModel
+
+
+def find_differences(a: BaseModel, b: BaseModel):
+    for k in dir(a):
+        if not k.startswith("__"):
+            val_a = getattr(a, k)
+            val_b = getattr(b, k)
+            if val_a != val_b:
+                print("NOTEQUAL", k, type(val_a))
+
+    """diffs = {}
+    for key in a.model_fields:
+        val_a = getattr(a, key)
+        val_b = getattr(b, key)
+        if val_a != val_b:
+            diffs[key] = (val_a, val_b)
+    for key in b.model_fields:
+        val_a = getattr(a, key)
+        val_b = getattr(b, key)
+        if val_a != val_b:
+            diffs[key] = (val_a, val_b)
+    print(diffs)"""
+
+
 @test_setup
 class TestPreset(unittest.TestCase):
     def setUp(self):
@@ -238,9 +263,32 @@ class TestPreset(unittest.TestCase):
         combi_3 = InputCombination((ev_1, ev_2, ev_4))
 
         self.preset.add(Mapping.from_combination(combi_1, "keyboard", "a"))
+        print()
+        print("dsfhvs")
+        print()
+        a = self.preset.get_mapping(combi_1)
+        b = Mapping.from_combination(combi_1, "keyboard", "a")
+        print(a.dict())
+        print()
+        print()
+        print()
+        print(b.dict())
+        print()
+        print()
+
+        find_differences(a, b)
+
+        print("classis", a.__class__ is b.__class__)
+
+        print("==", a == b)
+        print("dict==", a.dict() == b.dict())
+
+        print("privates", a.__private_attributes__, b.__private_attributes__)
+        print("privates==", a.__private_attributes__ == b.__private_attributes__)
+
         self.assertEqual(
-            self.preset.get_mapping(combi_1),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            self.preset.get_mapping(combi_1).dict(),
+            Mapping.from_combination(combi_1, "keyboard", "a").dict(),
         )
         self.assertEqual(
             self.preset.get_mapping(combi_2),

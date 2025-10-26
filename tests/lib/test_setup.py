@@ -30,6 +30,18 @@ from tests.lib.logger import update_inputremapper_verbosity, logger
 from tests.lib.patches import create_patches
 
 
+patches = create_patches()
+
+
+def resetPatches():
+    # Reset the list of calls and such, and make sure patches are started.
+    for patch in patches:
+        patch.stop()
+
+    for patch in patches:
+        patch.start()
+
+
 def test_setup(cls):
     """A class decorator to
     - apply the patches to all tests
@@ -45,17 +57,6 @@ def test_setup(cls):
     tracemalloc.start()
     os.environ["UNITTEST"] = "1"
     update_inputremapper_verbosity()
-
-    patches = create_patches()
-
-    def resetPatches():
-        # In case some patches carry a state (I don't remember, idk), stop and start
-        # them from scratch
-        for patch in patches:
-            patch.stop()
-
-        for patch in patches:
-            patch.start()
 
     def setUpClass():
         logger.info("setUpClass %s", cls)

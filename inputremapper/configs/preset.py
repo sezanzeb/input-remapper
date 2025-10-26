@@ -36,11 +36,7 @@ from typing import (
 )
 
 from evdev import ecodes
-
-try:
-    from pydantic.v1 import ValidationError
-except ImportError:
-    from pydantic import ValidationError
+from pydantic import ValidationError
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping

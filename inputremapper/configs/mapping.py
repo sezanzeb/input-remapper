@@ -22,6 +22,7 @@ from __future__ import annotations
 import enum
 from collections import namedtuple
 from typing import Optional, Callable, Tuple, TypeVar, Union, Any, Dict
+from packaging import version
 
 from evdev.ecodes import (
     EV_KEY,
@@ -32,37 +33,20 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
     REL_WHEEL_HI_RES,
 )
-from packaging import version
+from pydantic import (
+    BaseModel,
+    PositiveInt,
+    confloat,
+    conint,
+    model_validator,
+    validator,
+    ValidationError,
+    PositiveFloat,
+    BaseConfig,
+    ConfigDict,
+)
 
 from inputremapper.logging.logger import logger
-
-try:
-    from pydantic.v1 import (
-        BaseModel,
-        PositiveInt,
-        confloat,
-        conint,
-        root_validator,
-        validator,
-        ValidationError,
-        PositiveFloat,
-        VERSION,
-        BaseConfig,
-    )
-except ImportError:
-    from pydantic import (
-        BaseModel,
-        PositiveInt,
-        confloat,
-        conint,
-        root_validator,
-        validator,
-        ValidationError,
-        PositiveFloat,
-        VERSION,
-        BaseConfig,
-    )
-
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
 from inputremapper.configs.validation_errors import (
@@ -82,11 +66,6 @@ from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.utils import get_evdev_constant_name
-
-# TODO: remove pydantic VERSION check as soon as we no longer support
-#  Ubuntu 20.04 and with it the ancient pydantic 1.2
-
-needs_workaround = version.parse(str(VERSION)) < version.parse("1.7.1")
 
 
 EMPTY_MAPPING_NAME: str = _("Empty Mapping")
@@ -125,15 +104,18 @@ CombinationChangedCallback = Optional[
 MappingModel = TypeVar("MappingModel", bound="UIMapping")
 
 
-class Cfg(BaseConfig):
-    validate_assignment = True
-    use_enum_values = True
-    underscore_attrs_are_private = True
-    json_encoders = {InputCombination: lambda v: v.json_key()}
+Cfg = ConfigDict(
+    validate_assignment=True,
+    use_enum_values=True,
+    underscore_attrs_are_private=True,
+    json_encoders={InputCombination: lambda v: v.json_key()},
+)
 
 
-class ImmutableCfg(Cfg):
-    allow_mutation = False
+ImmutableCfg = ConfigDict(
+    **Cfg,
+    allow_mutation=False,
+)
 
 
 class UIMapping(BaseModel):
@@ -144,9 +126,6 @@ class UIMapping(BaseModel):
     This mapping does not validate the structure of the mapping or macros, only basic
     values. It is meant to be used in the GUI where invalid mappings are expected.
     """
-
-    if needs_workaround:
-        __slots__ = ("_combination_changed",)
 
     # Required attributes
     # The InputEvent or InputEvent combination which is mapped
@@ -194,24 +173,18 @@ class UIMapping(BaseModel):
     force_release_timeout: bool = False
 
     # callback which gets called if the input_combination is updated
-    if not needs_workaround:
-        _combination_changed: Optional[CombinationChangedCallback] = None
+    _combination_changed: Optional[CombinationChangedCallback] = None
 
     # use type: ignore, looks like a mypy bug related to:
     # https://github.com/samuelcolvin/pydantic/issues/2949
     def __init__(self, **kwargs):  # type: ignore
         super().__init__(**kwargs)
-        if needs_workaround:
-            object.__setattr__(self, "_combination_changed", None)
 
     def __setattr__(self, key: str, value: Any):
         """Call the combination changed callback
         if we are about to update the input_combination
         """
         if key != "input_combination" or self._combination_changed is None:
-            if key == "_combination_changed" and needs_workaround:
-                object.__setattr__(self, "_combination_changed", value)
-                return
             super().__setattr__(key, value)
             return
 
@@ -230,20 +203,13 @@ class UIMapping(BaseModel):
         self._combination_changed(new_combi, self.input_combination)
         super().__setattr__("input_combination", new_combi)
 
-    def __str__(self):
-        return str(
+    def __str__(self) -> str:
+        d = str(
             self.dict(
                 exclude_defaults=True, include={"input_combination", "target_uinput"}
             )
         )
-
-    if needs_workaround:
-        # https://github.com/samuelcolvin/pydantic/issues/1383
-        def copy(self: MappingModel, *args, **kwargs) -> MappingModel:
-            kwargs["deep"] = True
-            copy = super().copy(*args, **kwargs)
-            object.__setattr__(copy, "_combination_changed", self._combination_changed)
-            return copy
+        return f"{self.__class__.__name__} {d}"
 
     def format_name(self) -> str:
         """Get the custom-name or a readable representation of the combination."""
@@ -313,21 +279,22 @@ class UIMapping(BaseModel):
     def get_error(self) -> Optional[ValidationError]:
         """The validation error or None."""
         try:
+            print("eyjo", self.dict())
             Mapping(**self.dict())
         except ValidationError as exception:
             return exception
+
         return None
 
     def get_bus_message(self) -> MappingData:
         """Return an immutable copy for use in the message broker."""
         return MappingData(**self.dict())
 
-    @root_validator
-    def validate_mapping_type(cls, values):
+    def model_post_init(self, _) -> None:
         """Overrides the mapping type if the output mapping type is obvious."""
-        output_type = values.get("output_type")
-        output_code = values.get("output_code")
-        output_symbol = values.get("output_symbol")
+        output_type = self.output_type
+        output_code = self.output_code
+        output_symbol = self.output_symbol
 
         if output_type is not None and output_symbol is not None:
             # This is currently only possible when someone edits the preset file by
@@ -336,17 +303,15 @@ class UIMapping(BaseModel):
             logger.debug("Both output_type and output_symbol are set")
 
         if output_type != EV_KEY and output_code is not None and not output_symbol:
-            values["mapping_type"] = MappingType.ANALOG.value
+            self.mapping_type = MappingType.ANALOG.value
 
         if output_type is None and output_code is None and output_symbol:
-            values["mapping_type"] = MappingType.KEY_MACRO.value
+            self.mapping_type = MappingType.KEY_MACRO.value
 
         if output_type == EV_KEY:
-            values["mapping_type"] = MappingType.KEY_MACRO.value
+            self.mapping_type = MappingType.KEY_MACRO.value
 
-        return values
-
-    Config = Cfg
+    model_config = Cfg
 
 
 class Mapping(UIMapping):
@@ -380,41 +345,42 @@ class Mapping(UIMapping):
         """If the mapping is valid."""
         return True
 
-    @root_validator(pre=True)
-    def validate_symbol(cls, values):
+    @model_validator(mode="before")
+    @classmethod
+    def validate_symbol(self, data):
         """Parse a macro to check for syntax errors."""
-        symbol = values.get("output_symbol")
+        symbol = data.get("output_symbol")
 
         if symbol == "":
-            values["output_symbol"] = None
-            return values
+            data["output_symbol"] = None
+            return data
 
         if symbol is None:
-            return values
+            return data
 
         symbol = symbol.strip()
-        values["output_symbol"] = symbol
+        data["output_symbol"] = symbol
 
         if symbol == DISABLE_NAME:
-            return values
+            return data
 
         if Parser.is_this_a_macro(symbol):
-            mapping_mock = namedtuple("Mapping", values.keys())(**values)
+            mapping_mock = namedtuple("Mapping", data.keys())(**data)
             # raises MacroError
             Parser.parse(symbol, mapping=mapping_mock, verbose=False)
-            return values
+            return data
 
         code = keyboard_layout.get(symbol)
         if code is None:
             raise OutputSymbolUnknownError(symbol)
 
-        target = values.get("target_uinput")
+        target = data.get("target_uinput")
         if target is not None and not GlobalUInputs.can_default_uinput_emit(
             target, EV_KEY, code
         ):
             raise SymbolNotAvailableInTargetError(symbol, target)
 
-        return values
+        return data
 
     @validator("input_combination")
     def only_one_analog_input(cls, combination) -> InputCombination:
@@ -439,30 +405,31 @@ class Mapping(UIMapping):
                 raise TriggerPointInRangeError(input_config)
         return combination
 
-    @root_validator
-    def validate_output_symbol_variant(cls, values):
+    @model_validator(mode="after")
+    def validate_output_symbol_variant(self) -> Self:
         """Validate that either type and code or symbol are set for key output."""
-        o_symbol = values.get("output_symbol")
-        o_type = values.get("output_type")
-        o_code = values.get("output_code")
+        o_symbol = self.output_symbol
+        o_type = self.output_type
+        o_code = self.output_code
         if o_symbol is None and (o_type is None or o_code is None):
             raise OutputSymbolVariantError()
-        return values
 
-    @root_validator
-    def validate_output_integrity(cls, values):
+        return self
+
+    @model_validator(mode="after")
+    def validate_output_integrity(self) -> Self:
         """Validate the output key configuration."""
-        symbol = values.get("output_symbol")
-        type_ = values.get("output_type")
-        code = values.get("output_code")
+        symbol = self.output_symbol
+        type_ = self.output_type
+        code = self.output_code
         if symbol is None:
             # If symbol is "", then validate_symbol changes it to None
             # type and code can be anything
-            return values
+            return self
 
         if type_ is None and code is None:
             # we have a symbol: no type and code is fine
-            return values
+            return self
 
         if Parser.is_this_a_macro(symbol):
             # disallow output type and code for macros
@@ -471,26 +438,27 @@ class Mapping(UIMapping):
 
         if code is not None and code != keyboard_layout.get(symbol) or type_ != EV_KEY:
             raise SymbolAndCodeMismatchError(symbol, code)
-        return values
 
-    @root_validator
-    def output_matches_input(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        return self
+
+    @model_validator(mode="after")
+    def output_matches_input(self) -> Self:
         """Validate that an output type is an axis if we have an input axis.
         And vice versa."""
-        assert isinstance(values.get("input_combination"), InputCombination)
-        combination: InputCombination = values["input_combination"]
+        assert isinstance(self.input_combination, InputCombination)
+        combination: InputCombination = self.input_combination
 
         analog_input_config = combination.find_analog_input_config()
         defines_analog_input = analog_input_config is not None
-        output_type = values.get("output_type")
-        output_code = values.get("output_code")
-        mapping_type = values.get("mapping_type")
-        output_symbol = values.get("output_symbol")
+        output_type = self.output_type
+        output_code = self.output_code
+        mapping_type = self.mapping_type
+        output_symbol = self.output_symbol
         output_key_set = output_symbol or (output_type == EV_KEY and output_code)
 
         if mapping_type is None:
             # Empty mapping most likely
-            return values
+            return self
 
         if not defines_analog_input and mapping_type != MappingType.KEY_MACRO.value:
             raise WrongMappingTypeForKeyError()
@@ -505,17 +473,20 @@ class Mapping(UIMapping):
         ):
             raise MissingOutputAxisError(analog_input_config, output_type)
 
-        return values
+        return self
 
 
 class MappingData(UIMapping):
     """Like UIMapping, but can be sent over the message broker."""
 
-    Config = ImmutableCfg
-    message_type = MessageType.mapping  # allow this to be sent over the MessageBroker
+    model_config = ImmutableCfg
+
+    # allow this to be sent over the MessageBroker
+    message_type: MessageType = MessageType.mapping
 
     def __str__(self):
-        return str(self.dict(exclude_defaults=True))
+        str(self.dict(exclude_defaults=True))
+        return f"{self.__class__.__name__} {d}"
 
     def dict(self, *args, **kwargs):
         """Will not include the message_type."""
