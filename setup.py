@@ -114,6 +114,7 @@ setup(
         *lang_data,
         ("/usr/share/input-remapper/", glob.glob("data/*")),
         ("/usr/share/applications/", ["data/input-remapper-gtk.desktop"]),
+        ("/usr/share/applications/", ["data/input-remapper-stop-all.desktop"]),
         (
             "/usr/share/metainfo/",
             ["data/io.github.sezanzeb.input_remapper.metainfo.xml"],
