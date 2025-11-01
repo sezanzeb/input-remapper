@@ -104,7 +104,7 @@ setup(
     version="2.1.2",
     description="A tool to change the mapping of your input device buttons",
     author="Sezanzeb",
-    author_email="proxima@sezanzeb.de",
+    author_email="b8x45ygc9@mozmail.com",
     url="https://github.com/sezanzeb/input-remapper",
     license="GPL-3.0",
     packages=get_packages(),
