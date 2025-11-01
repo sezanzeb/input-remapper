@@ -36,11 +36,7 @@ from typing import (
 )
 
 from evdev import ecodes
-
-try:
-    from pydantic.v1 import ValidationError
-except ImportError:
-    from pydantic import ValidationError
+from pydantic import ValidationError
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
@@ -55,14 +51,16 @@ class Preset(Generic[MappingModel]):
 
     # workaround for typing: https://github.com/python/mypy/issues/4236
     @overload
-    def __init__(self: Preset[Mapping], path: Optional[os.PathLike] = None): ...
+    def __init__(self: Preset[Mapping], path: Optional[os.PathLike] = None):
+        ...
 
     @overload
     def __init__(
         self,
         path: Optional[os.PathLike] = None,
         mapping_factory: Type[MappingModel] = ...,
-    ): ...
+    ):
+        ...
 
     def __init__(
         self,
@@ -91,7 +89,9 @@ class Preset(Generic[MappingModel]):
 
     def has_unsaved_changes(self) -> bool:
         """Check if there are unsaved changed."""
-        return self._mappings != self._saved_mappings
+        dumped_a = {k: v.model_dump() for k, v in self._mappings.items()}
+        dumped_b = {k: v.model_dump() for k, v in self._saved_mappings.items()}
+        return dumped_a != dumped_b
 
     def remove(self, combination: InputCombination) -> None:
         """Remove a mapping from the preset by providing the InputCombination."""

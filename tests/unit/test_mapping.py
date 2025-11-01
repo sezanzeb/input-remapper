@@ -31,16 +31,13 @@ from evdev.ecodes import (
     KEY_1,
     KEY_ESC,
 )
-
-try:
-    from pydantic.v1 import ValidationError
-except ImportError:
-    from pydantic import ValidationError
+from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping, MappingType
 from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.gui.messages.message_broker import MessageType
+
 from tests.lib.test_setup import test_setup
 
 
@@ -70,6 +67,18 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(m.rel_rate, 60)
         self.assertEqual(m.rel_to_abs_input_cutoff, 2)
         self.assertEqual(m.release_timeout, 0.05)
+
+    def test_equality(self):
+        cfg = {
+            "input_combination": [{"type": 1, "code": 2}],
+            "target_uinput": "keyboard",
+            "output_symbol": "a",
+        }
+
+        a = Mapping(**cfg)
+        b = Mapping(**cfg)
+
+        self.assertEqual(a, b)
 
     def test_is_wheel_output(self):
         mapping = Mapping(
@@ -455,16 +464,30 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         mapping.target_uinput = "keyboard"
         self.assertTrue(mapping.is_valid())
 
-    def test_updates_validation_error(self):
+    def test_target_uinput_missing(self):
         mapping = UIMapping()
-        self.assertGreaterEqual(len(mapping.get_error().errors()), 2)
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
         mapping.output_symbol = "a"
-        self.assertIn(
-            "1 validation error for Mapping\ntarget_uinput",
-            str(mapping.get_error()),
-        )
+
+        errors = mapping.get_error().errors()
+        self.assertEqual(len(errors), 1)
+        self.assertIn("target_uinput", str(mapping.get_error()))
+
+        # Fix it
         mapping.target_uinput = "keyboard"
+        self.assertTrue(mapping.is_valid())
+        self.assertIsNone(mapping.get_error())
+
+    def test_input_combination_missing(self):
+        mapping = UIMapping(target_uinput="keyboard")
+
+        errors = mapping.get_error().errors()
+        self.assertEqual(len(errors), 1)
+        self.assertIn("input_combination", str(mapping.get_error()))
+
+        # Fix it
+        mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
+        mapping.output_symbol = "a"
         self.assertTrue(mapping.is_valid())
         self.assertIsNone(mapping.get_error())
 

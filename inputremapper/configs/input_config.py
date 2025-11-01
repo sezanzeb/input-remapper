@@ -23,14 +23,11 @@ import itertools
 from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
 
 from evdev import ecodes
+from pydantic_core import CoreSchema, core_schema
+from pydantic import BaseModel, model_validator, validator
+
 from inputremapper.configs.paths import PathUtils
 from inputremapper.input_event import InputEvent
-
-try:
-    from pydantic.v1 import BaseModel, root_validator, validator
-except ImportError:
-    from pydantic import BaseModel, root_validator, validator
-
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logging.logger import logger
@@ -58,7 +55,7 @@ MAX_BTN_MOUSE_ECODE = 0x11A
 class InputConfig(BaseModel):
     """Describes a single input within a combination, to configure mappings."""
 
-    message_type = MessageType.selected_event
+    message_type: MessageType = MessageType.selected_event
 
     type: int
     code: int
@@ -289,27 +286,28 @@ class InputConfig(BaseModel):
 
         return analog_threshold
 
-    @root_validator
-    def _remove_analog_threshold_for_key_input(cls, values):
+    def model_post_init(self, _) -> None:
         """remove the analog threshold if the type is a EV_KEY"""
-        type_ = values.get("type")
+        type_ = self.type
         if type_ == ecodes.EV_KEY:
-            values["analog_threshold"] = None
-        return values
+            self.analog_threshold = None
 
-    @root_validator(pre=True)
-    def validate_origin_hash(cls, values):
-        origin_hash = values.get("origin_hash")
+        return self
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_origin_hash(cls, data):
+        origin_hash = data.get("origin_hash")
         if origin_hash is None:
             # For new presets, origin_hash should be set. For old ones, it can
             # be still missing. A lot of tests didn't set an origin_hash.
-            if values.get("type") != EMPTY_TYPE:
-                logger.warning("No origin_hash set for %s", values)
+            if data.get("type") != EMPTY_TYPE:
+                logger.warning("No origin_hash set for %s", data)
 
-            return values
+            return data
 
-        values["origin_hash"] = origin_hash.lower()
-        return values
+        data["origin_hash"] = origin_hash.lower()
+        return data
 
     class Config:
         allow_mutation = False
@@ -355,7 +353,7 @@ class InputCombination(Tuple[InputConfig, ...]):
                 raise TypeError(f'Can\'t handle "{config}"')
 
         if len(validated_configs) == 0:
-            raise ValueError(f"failed to create InputCombination with {configs = }")
+            raise ValueError(f"failed to create InputCombination with {configs=}")
 
         # mypy bug: https://github.com/python/mypy/issues/8957
         # https://github.com/python/mypy/issues/8541
@@ -369,9 +367,16 @@ class InputCombination(Tuple[InputConfig, ...]):
         return f"<InputCombination ({combination}) at {hex(id(self))}>"
 
     @classmethod
-    def __get_validators__(cls):
-        """Used by pydantic to create InputCombination objects."""
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, source_type, handler: GetCoreSchemaHandler):
+        # TODO I think this is used to turn tuples of sorts into an InputCombination.
+        #  However, I'd probably prefer to pass InputCombination objects right away to
+        #  make this code simpler.
+        # Note: the validate method could be called in any way you like, and is not
+        #  some predefined name from pydantic.
+        return core_schema.no_info_before_validator_function(
+            cls.validate,
+            core_schema.any_schema(),
+        )
 
     @classmethod
     def validate(cls, init_arg) -> InputCombination:

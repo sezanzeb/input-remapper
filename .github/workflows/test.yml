@@ -21,9 +21,11 @@ jobs:
         # cache-dependency-path: setup.py
     - name: Install dependencies
       run: |
+        lsb_release -a
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
-        sudo pip install .
+        scripts/build.sh
+        sudo dpkg -i ./dist/input-remapper-*
     - name: Run tests
       run: |
         # FIXME: Had some permissions issues, currently worked around by running tests as root

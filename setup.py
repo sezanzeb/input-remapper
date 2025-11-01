@@ -129,7 +129,15 @@ setup(
         ("/usr/bin/", ["bin/input-remapper-control"]),
         ("/usr/bin/", ["bin/input-remapper-reader-service"]),
     ],
-    install_requires=["setuptools", "evdev", "psutil", "pydbus", "pygobject", "pydantic"],
+    install_requires=[
+        "setuptools",
+        "evdev",
+        "psutil",
+        "pydbus",
+        "pygobject",
+        "pydantic",
+        "pydantic_core",
+    ],
     cmdclass={
         "install": Install,
     },
