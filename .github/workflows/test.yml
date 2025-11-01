@@ -24,7 +24,9 @@ jobs:
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
         python3 -m venv .venv
+        echo VENVasdfaksd
         source ./.venv/bin/activate
+        which python3
         sudo pip install .
     - name: Run tests
       run: |
