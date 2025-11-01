@@ -21,6 +21,7 @@ jobs:
         # cache-dependency-path: setup.py
     - name: Install dependencies
       run: |
+        lsb_release -a
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
         scripts/build.sh
