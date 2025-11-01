@@ -136,6 +136,7 @@ setup(
         "pydbus",
         "pygobject",
         "pydantic",
+        "pydantic_core",
     ],
     cmdclass={
         "install": Install,

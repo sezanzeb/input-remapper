@@ -23,9 +23,12 @@ jobs:
       run: |
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
+        python3 -m venv .venv
+        source ./.venv/bin/activate
         sudo pip install .
     - name: Run tests
       run: |
+        source ./.venv/bin/activate
         # FIXME: Had some permissions issues, currently worked around by running tests as root
         mkdir test_tmp
         export TMPDIR="$(realpath test_tmp)"
