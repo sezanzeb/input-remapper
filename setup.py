@@ -101,7 +101,7 @@ for po_file in glob.glob(PO_FILES):
 
 setup(
     name="input-remapper",
-    version="2.1.1",
+    version="2.2.0",
     description="A tool to change the mapping of your input device buttons",
     author="Sezanzeb",
     author_email="b8x45ygc9@mozmail.com",
