@@ -150,7 +150,7 @@ logger = Logger.bootstrap_logger()
 
 # using pkg_resources to figure out the version fails in many cases,
 # so we hardcode it instead
-VERSION = "2.1.1"
+VERSION = "2.1.2"
 EVDEV_VERSION = None
 try:
     # pkg_resources very commonly fails/breaks

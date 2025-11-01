@@ -158,7 +158,7 @@ are interesting for injections. The config might look something like this:
 
 ```json
 {
-    "version": "2.1.1",
+    "version": "2.1.2",
     "autoload": {
         "USB Optical Mouse": "preset name"
     }
