@@ -133,7 +133,7 @@ setup(
         "setuptools",
         "evdev",
         "psutil",
-        "pydbus",
+        "dasbus",
         "pygobject",
         "pydantic",
     ],

@@ -20,7 +20,7 @@
 
 """Starts injecting keycodes based on the configuration.
 
-https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/examples/clientserver  # noqa pylint: disable=line-too-long
+https://github.com/dasbus-project/dasbus/tree/master/examples/03_helloworld
 """
 
 
@@ -30,31 +30,37 @@ import os
 import sys
 import time
 from pathlib import PurePath
-from typing import Protocol, Dict, Optional
+from typing import Dict, Optional, Protocol
 
 import gi
-from pydbus import SystemBus
+from dasbus.error import DBusError
+from dasbus.connection import SystemMessageBus
+from dasbus.identifier import DBusServiceIdentifier
+from dasbus.loop import EventLoop
 
-from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
-
-gi.require_version("GLib", "2.0")
-from gi.repository import GLib
-
-from inputremapper.logging.logger import logger
-from inputremapper.injection.injector import Injector, InjectorState
-from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.groups import groups
 from inputremapper.configs.paths import PathUtils
-from inputremapper.user import UserUtils
-from inputremapper.injection.macros.macro import macro_variables
+from inputremapper.configs.preset import Preset
+from inputremapper.groups import groups
 from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.injection.injector import Injector, InjectorState
+from inputremapper.injection.macros.macro import macro_variables
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
+from inputremapper.logging.logger import logger
+from inputremapper.user import UserUtils
+
+gi.require_version("GLib", "2.0")
 
 
-BUS_NAME = "inputremapper.Control"
-# timeout in seconds, see
-# https://github.com/LEW21/pydbus/blob/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/pydbus/proxy.py
+SESSION_BUS = SystemMessageBus()
+
+DAEMON = DBusServiceIdentifier(
+    namespace=("inputremapper", "Control"),
+    message_bus=SESSION_BUS,
+)
+
+# timeout in seconds
 BUS_TIMEOUT = 10
 
 
@@ -107,20 +113,6 @@ class AutoloadHistory:
         return False
 
 
-def remove_timeout(func):
-    """Remove timeout to ensure the call works if the daemon is not a proxy."""
-
-    # the timeout kwarg is a feature of pydbus. This is needed to make tests work
-    # that create a Daemon by calling its constructor instead of using pydbus.
-    def wrapped(*args, **kwargs):
-        if "timeout" in kwargs:
-            del kwargs["timeout"]
-
-        return func(*args, **kwargs)
-
-    return wrapped
-
-
 class DaemonProxy(Protocol):  # pragma: no cover
     """The interface provided over the dbus."""
 
@@ -155,9 +147,9 @@ class Daemon:
     """
 
     # https://dbus.freedesktop.org/doc/dbus-specification.html#type-system
-    dbus = f"""
+    __dbus_xml__ = f"""
         <node>
-            <interface name='{BUS_NAME}'>
+            <interface name='{DAEMON.interface_name}'>
                 <method name='stop_injecting'>
                     <arg type='s' name='group_key' direction='in'/>
                 </method>
@@ -195,7 +187,7 @@ class Daemon:
         global_config: GlobalConfig,
         global_uinputs: GlobalUInputs,
         mapping_parser: MappingParser,
-    ):
+    ) -> None:
         """Constructs the daemon."""
         logger.debug("Creating daemon")
 
@@ -226,19 +218,21 @@ class Daemon:
         macro_variables.start()
 
     @classmethod
-    def connect(cls, fallback: bool = True) -> DaemonProxy:
-        """Get an interface to start and stop injecting keystrokes.
+    def connect(cls, fallback: bool = True) -> Optional[DaemonProxy]:
+        """Get a proxy to start and stop injecting keystrokes.
 
         Parameters
         ----------
         fallback
             If true, starts the daemon via pkexec if it cannot connect.
         """
-        bus = SystemBus()
         try:
-            interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
+            proxy = DAEMON.get_proxy()
+            # Calling proxy.Introspect to check if the proxy is running
+            # https://dbus.freedesktop.org/doc/dbus-tutorial.html#introspection
+            proxy.Introspect(timeout=BUS_TIMEOUT)
             logger.info("Connected to the service")
-        except GLib.GError as error:
+        except DBusError as error:
             if not fallback:
                 logger.error("Service not running? %s", error)
                 return None
@@ -261,9 +255,10 @@ class Daemon:
             # try a few times if the service was just started
             for attempt in range(3):
                 try:
-                    interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
+                    proxy = DAEMON.get_proxy()
+                    proxy.Introspect(timeout=BUS_TIMEOUT)
                     break
-                except GLib.GError as error:
+                except DBusError as error:
                     logger.debug("Attempt %d to reach the service failed:", attempt + 1)
                     logger.debug('"%s"', error)
                 time.sleep(0.2)
@@ -274,26 +269,26 @@ class Daemon:
         if UserUtils.user != "root":
             config_path = PathUtils.get_config_path()
             logger.debug('Telling service about "%s"', config_path)
-            interface.set_config_dir(PathUtils.get_config_path(), timeout=2)
+            proxy.set_config_dir(PathUtils.get_config_path(), timeout=2)
 
-        return interface
+        return proxy
 
-    def publish(self):
+    def publish(self) -> None:
         """Make the dbus interface available."""
-        bus = SystemBus()
         try:
-            bus.publish(BUS_NAME, self)
-        except RuntimeError as error:
+            SESSION_BUS.publish_object(DAEMON.object_path, self)
+            SESSION_BUS.register_service(DAEMON.service_name)
+        except ConnectionError as error:
             logger.error("Is the service already running? (%s)", str(error))
             sys.exit(9)
 
-    def run(self):
+    def run(self) -> None:
         """Start the daemons loop. Blocks until the daemon stops."""
-        loop = GLib.MainLoop()
+        loop = EventLoop()
         logger.debug("Running daemon")
         loop.run()
 
-    def refresh(self, group_key: Optional[str] = None):
+    def refresh(self, group_key: Optional[str] = None) -> None:
         """Refresh groups if the specified group is unknown.
 
         Parameters
@@ -316,7 +311,7 @@ class Daemon:
             groups.refresh()
             self.refreshed_devices_at = now
 
-    def stop_injecting(self, group_key: str):
+    def stop_injecting(self, group_key: str) -> None:
         """Stop injecting the preset mappings for a single device."""
         if self.injectors.get(group_key) is None:
             logger.debug(
@@ -333,8 +328,7 @@ class Daemon:
         injector = self.injectors.get(group_key)
         return injector.get_state() if injector else InjectorState.UNKNOWN
 
-    @remove_timeout
-    def set_config_dir(self, config_dir: str):
+    def set_config_dir(self, config_dir: str) -> None:
         """All future operations will use this config dir.
 
         Existing injections (possibly of the previous user) will be kept
@@ -354,7 +348,7 @@ class Daemon:
         self.config_dir = config_dir
         self.global_config.load_config(str(config_path))
 
-    def _autoload(self, group_key: str):
+    def _autoload(self, group_key: str) -> None:
         """Check if autoloading is a good idea, and if so do it.
 
         Parameters
@@ -394,8 +388,7 @@ class Daemon:
         self.start_injecting(group.key, preset)
         self.autoload_history.remember(group.key, preset)
 
-    @remove_timeout
-    def autoload_single(self, group_key: str):
+    def autoload_single(self, group_key: str) -> None:
         """Inject the configured autoload preset for the device.
 
         If the preset is already being injected, it won't autoload it again.
@@ -421,8 +414,7 @@ class Daemon:
 
         self._autoload(group_key)
 
-    @remove_timeout
-    def autoload(self):
+    def autoload(self) -> None:
         """Load all autoloaded presets for the current config_dir.
 
         If the preset is already being injected, it won't autoload it again.
@@ -539,18 +531,18 @@ class Daemon:
 
         return True
 
-    def stop_all(self):
+    def stop_all(self) -> None:
         """Stop all injections."""
         logger.info("Stopping all injections")
         for group_key in list(self.injectors.keys()):
             self.stop_injecting(group_key)
 
-    def hello(self, out: str):
+    def hello(self, out: str) -> str:
         """Used for tests."""
         logger.info('Received "%s" from client', out)
         return out
 
-    def quit(self):
+    def quit(self) -> None:
         """Stop the process."""
         # Beware, that stop_all will also be called via atexit.register(self.stop_all)
         logger.info("Got command to stop the daemon process")

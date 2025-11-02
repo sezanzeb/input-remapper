@@ -18,8 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Testing the input-remapper-control command"""
+
 import collections
 import os
 import time
@@ -44,6 +44,26 @@ options = collections.namedtuple(
 )
 
 
+def remove_timeout_from_calls(method: str):
+    # Remove the timeout argument, which is used by dasbus but not actually
+    # passed to the Daemon class methods. Since we create the Daemon object directly
+    # for this test it would raise an exception otherwise, for example:
+    # TypeError: Daemon.autoload_single() got an unexpected keyword argument 'timeout'
+    def decorator(func):
+        def wrapped(*args, **kwargs):
+            original_method = getattr(Daemon, method)
+            with patch.object(
+                Daemon,
+                method,
+                lambda *args, timeout=0, **kwargs: original_method(*args, **kwargs),
+            ):
+                return func(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
+
+
 @test_setup
 class TestControl(unittest.TestCase):
     def setUp(self):
@@ -55,6 +75,8 @@ class TestControl(unittest.TestCase):
             self.global_config, self.migrations
         )
 
+    @remove_timeout_from_calls("autoload")
+    @remove_timeout_from_calls("autoload_single")
     def test_autoload(self):
         device_keys = ["Foo Device 2", "Bar Device"]
         groups_ = [groups.find(key=key) for key in device_keys]
@@ -98,6 +120,7 @@ class TestControl(unittest.TestCase):
             preset=None,
             device=None,
         )
+
         self.assertEqual(len(start_history), 2)
         self.assertEqual(start_history[0], (groups_[0].key, presets[0]))
         self.assertEqual(start_history[1], (groups_[1].key, presets[1]))
@@ -211,6 +234,7 @@ class TestControl(unittest.TestCase):
             daemon.autoload_history.may_autoload(groups_[1].key, presets[2])
         )
 
+    @remove_timeout_from_calls("autoload")
     def test_autoload_other_path(self):
         device_names = ["Foo Device", "Bar Device"]
         groups_ = [groups.find(name=name) for name in device_names]

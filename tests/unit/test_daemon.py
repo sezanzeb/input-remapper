@@ -27,7 +27,7 @@ from unittest.mock import patch, MagicMock
 import evdev
 from evdev._ecodes import EV_ABS
 from evdev.ecodes import EV_KEY, KEY_B, KEY_A, ABS_X, BTN_A, BTN_B
-from pydbus import SystemBus
+from dasbus.connection import SystemMessageBus
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
@@ -35,7 +35,7 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.daemon import Daemon
+from inputremapper.daemon import Daemon, DAEMON
 from inputremapper.groups import groups
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.injector import InjectorState
@@ -94,8 +94,10 @@ class TestDaemon(unittest.TestCase):
                 nonlocal set_config_dir_callcount
                 set_config_dir_callcount += 1
 
-        system_bus = SystemBus()
-        with patch.object(type(system_bus), "get") as get_mock:
+            def Introspect(self, timeout=0):
+                return ""
+
+        with patch.object(DAEMON, "get_proxy") as get_mock:
             get_mock.return_value = FakeConnection()
             self.assertIsInstance(Daemon.connect(), FakeConnection)
             self.assertEqual(set_config_dir_callcount, 1)
