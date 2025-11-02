@@ -30,7 +30,7 @@ from tests.lib.test_setup import is_service_running
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-from inputremapper.daemon import Daemon, BUS_NAME
+from inputremapper.daemon import Daemon, DAEMON
 from tests.lib.test_setup import test_setup
 
 
@@ -68,7 +68,10 @@ class TestDBusDaemon(unittest.TestCase):
 
     def test_can_connect(self):
         # it's a remote dbus object
-        self.assertEqual(self.interface._bus_name, BUS_NAME)
+        self.assertEqual(
+            self.interface._interface_names["hello"],
+            DAEMON.interface_name,
+        )
         self.assertFalse(isinstance(self.interface, Daemon))
         self.assertEqual(self.interface.hello("foo"), "foo")
 

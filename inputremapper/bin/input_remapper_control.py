@@ -267,8 +267,6 @@ class InputRemapperControlBin:
         # for all devices.
         if device is None:
             logger.info("Autoloading all")
-            # timeout is not documented, for more info see
-            # https://github.com/LEW21/pydbus/blob/master/pydbus/proxy_method.py
             self.daemon.autoload(timeout=10)
         else:
             group = self._require_group(device)

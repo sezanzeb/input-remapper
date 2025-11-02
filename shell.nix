@@ -25,7 +25,7 @@ pkgs.mkShell {
         types-setuptools
 
         evdev
-        pydbus
+        dasbus
         pygobject3
         pydantic
 
