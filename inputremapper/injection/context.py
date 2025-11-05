@@ -69,6 +69,8 @@ class Context:
         A set of callbacks which receive all events
     callbacks : Dict[Tuple[int, int], List[NotifyCallback]]
         All entry points to the event pipeline sorted by InputEvent.type_and_code
+    device_name : str
+        The name of the device being injected (for MQTT publishing)
     """
 
     listeners: Set[EventListener]
@@ -76,6 +78,7 @@ class Context:
     _handlers: EventPipelines
     _forward_devices: Dict[DeviceHash, evdev.UInput]
     _source_devices: Dict[DeviceHash, evdev.InputDevice]
+    device_name: str
 
     def __init__(
         self,
@@ -83,6 +86,7 @@ class Context:
         source_devices: Dict[DeviceHash, evdev.InputDevice],
         forward_devices: Dict[DeviceHash, evdev.UInput],
         mapping_parser: MappingParser,
+        device_name: str = "unknown_device",
     ):
         if len(forward_devices) == 0:
             logger.warning("forward_devices not set")
@@ -94,6 +98,7 @@ class Context:
         self._source_devices = source_devices
         self._forward_devices = forward_devices
         self._notify_callbacks = defaultdict(list)
+        self.device_name = device_name
         self._handlers = mapping_parser.parse_mappings(preset, self)
 
         self._create_callbacks()

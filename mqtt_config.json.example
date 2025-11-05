@@ -1,0 +1,10 @@
+{
+  "broker": "192.168.1.160",
+  "port": 1883,
+  "username": "mqttuser",
+  "password": "mqttuser",
+  "topic": "key_remap/events",
+  "qos": 1,
+  "retain": false,
+  "default_device_name": "my_device"
+}

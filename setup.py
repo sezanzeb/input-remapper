@@ -136,6 +136,7 @@ setup(
         "pydbus",
         "pygobject",
         "pydantic",
+        "paho-mqtt>=1.5.0",
     ],
     cmdclass={
         "install": Install,

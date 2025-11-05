@@ -433,6 +433,7 @@ class Injector(multiprocessing.Process):
             sources,
             forward_devices,
             self.mapping_parser,
+            device_name=self.group.name,
         )
         self._stop_event = asyncio.Event()
 

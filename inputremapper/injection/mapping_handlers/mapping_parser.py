@@ -53,6 +53,7 @@ from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
+from inputremapper.injection.mapping_handlers.mqtt_handler import MQTTHandler
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
@@ -74,6 +75,7 @@ mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     HandlerEnums.hierarchy: HierarchyHandler,
     HandlerEnums.axisswitch: AxisSwitchHandler,
     HandlerEnums.disable: NullHandler,
+    HandlerEnums.mqtt: MQTTHandler,
 }
 
 
@@ -210,7 +212,9 @@ class MappingParser:
             if Parser.is_this_a_macro(mapping.output_symbol):
                 return HandlerEnums.macro
 
-            return HandlerEnums.key
+            # Use MQTT handler for all string-based mappings (the new behavior)
+            # This publishes the string to MQTT instead of mapping to a key
+            return HandlerEnums.mqtt
 
         if mapping.output_type == EV_KEY:
             return HandlerEnums.key

@@ -122,6 +122,7 @@ class HandlerEnums(enum.Enum):
 
     macro = enum.auto()
     key = enum.auto()
+    mqtt = enum.auto()  # MQTT publishing for Home Assistant
 
     # converting to "analog"
     btn2rel = enum.auto()

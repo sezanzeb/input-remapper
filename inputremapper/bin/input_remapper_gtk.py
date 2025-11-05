@@ -52,6 +52,7 @@ from inputremapper.groups import _Groups
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
+from inputremapper.mqtt_client import initialize_mqtt_client, shutdown_mqtt_client
 
 
 class InputRemapperGtkBin:
@@ -87,6 +88,17 @@ class InputRemapperGtkBin:
         message_broker = MessageBroker()
 
         global_config = GlobalConfig()
+
+        # Initialize MQTT client for Home Assistant integration
+        logger.info("Initializing MQTT client for Home Assistant...")
+        if initialize_mqtt_client():
+            logger.info("MQTT client initialized successfully")
+        else:
+            logger.warning(
+                "Failed to initialize MQTT client. "
+                "The application will continue but MQTT publishing will not work. "
+                "Please create ~/mqtt_config.json with your MQTT broker settings."
+            )
 
         # Create the ReaderClient before we start the reader-service, otherwise the
         # privileged service creates and owns those pipes, and then they cannot be accessed
@@ -150,3 +162,7 @@ class InputRemapperGtkBin:
             daemon.stop_all()
 
         controller.close()
+
+        # Shutdown MQTT client
+        logger.info("Shutting down MQTT client...")
+        shutdown_mqtt_client()

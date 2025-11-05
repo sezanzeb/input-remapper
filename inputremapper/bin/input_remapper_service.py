@@ -27,6 +27,7 @@ from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.logging.logger import logger
+from inputremapper.mqtt_client import initialize_mqtt_client, shutdown_mqtt_client
 
 
 class InputRemapperServiceBin:
@@ -62,6 +63,17 @@ class InputRemapperServiceBin:
         if not options.hide_info:
             logger.log_info("input-remapper-service")
 
+        # Initialize MQTT client for Home Assistant integration
+        logger.info("Initializing MQTT client for Home Assistant...")
+        if initialize_mqtt_client():
+            logger.info("MQTT client initialized successfully")
+        else:
+            logger.warning(
+                "Failed to initialize MQTT client. "
+                "The service will continue but MQTT publishing will not work. "
+                "Please create ~/mqtt_config.json with your MQTT broker settings."
+            )
+
         global_config = GlobalConfig()
         global_uinputs = GlobalUInputs(UInput)
         mapping_parser = MappingParser(global_uinputs)
@@ -69,3 +81,6 @@ class InputRemapperServiceBin:
         daemon = Daemon(global_config, global_uinputs, mapping_parser)
         daemon.publish()
         daemon.run()
+
+        # Cleanup
+        shutdown_mqtt_client()
