@@ -1,0 +1,22 @@
+[Unit]
+Description=Input Remapper MQTT - Home Assistant integration service
+# dbus is required for ipc between gui and input-remapper-mqtt-control
+Requires=dbus.service
+After=dbus.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=dbus
+BusName=inputremapper.mqtt.Control
+ExecStart=/usr/bin/input-remapper-mqtt-service
+Restart=on-failure
+RestartSec=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=input-remapper-mqtt
+
+[Install]
+WantedBy=default.target
+Alias=input-remapper-mqtt.service

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Input Remapper MQTT Autoload
+Icon=input-remapper
+Exec=sh -c "input-remapper-mqtt-control --command autoload"
+Terminal=false
+Categories=Settings;
+Comment=Autoload presets for Input Remapper MQTT
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

@@ -51,6 +51,7 @@ class MQTTConfig:
         qos: int = 1,
         retain: bool = False,
         default_device_name: Optional[str] = None,
+        ha_url: Optional[str] = None,
     ):
         self.broker = broker
         self.port = port
@@ -60,6 +61,7 @@ class MQTTConfig:
         self.qos = qos
         self.retain = retain
         self.default_device_name = default_device_name
+        self.ha_url = ha_url
 
     @classmethod
     def load_from_file(cls, config_path: Optional[str] = None) -> MQTTConfig:
@@ -107,6 +109,7 @@ class MQTTConfig:
             qos=int(config_data.get("qos", 1)),
             retain=bool(config_data.get("retain", False)),
             default_device_name=config_data.get("default_device_name"),
+            ha_url=config_data.get("ha_url"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -120,6 +123,7 @@ class MQTTConfig:
             "qos": self.qos,
             "retain": self.retain,
             "default_device_name": self.default_device_name,
+            "ha_url": self.ha_url,
         }
 
     def save_to_file(self, config_path: Optional[str] = None) -> None:

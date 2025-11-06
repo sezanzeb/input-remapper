@@ -20,7 +20,10 @@
 """Logging setup for input-remapper."""
 
 import logging
+import logging.handlers
+import os
 import time
+from pathlib import Path
 from typing import cast
 
 from inputremapper.logging.formatter import ColorfulFormatter
@@ -131,6 +134,40 @@ class Logger(logging.Logger):
         for handler in self.handlers:
             handler.setFormatter(ColorfulFormatter(debug))
 
+    def add_file_handler(self, log_path: str = None) -> None:
+        """Add file logging with rotation.
+
+        Args:
+            log_path: Path to log file. If None, uses default location.
+        """
+        if log_path is None:
+            # Try user-specific location first
+            log_dir = Path.home() / ".local" / "share" / "input-remapper-mqtt" / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            log_path = str(log_dir / "app.log")
+
+        try:
+            # Use RotatingFileHandler for automatic rotation
+            # Max 10MB per file, keep 5 backup files
+            file_handler = logging.handlers.RotatingFileHandler(
+                log_path,
+                maxBytes=10 * 1024 * 1024,  # 10MB
+                backupCount=5,
+                encoding='utf-8'
+            )
+
+            # Use a detailed formatter for file logs
+            file_formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
+            file_handler.setFormatter(file_formatter)
+
+            self.addHandler(file_handler)
+            self.info(f"File logging enabled: {log_path}")
+        except Exception as e:
+            self.warning(f"Failed to enable file logging to {log_path}: {e}")
+
     @classmethod
     def bootstrap_logger(cls):
         # https://github.com/python/typeshed/issues/1801
@@ -142,6 +179,10 @@ class Logger(logging.Logger):
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
         logging.getLogger("asyncio").setLevel(logging.WARNING)
+
+        # Add file logging by default
+        logger.add_file_handler()
+
         return logger
 
 

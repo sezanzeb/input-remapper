@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Input Remapper MQTT
+Icon=input-remapper
+Exec=input-remapper-mqtt-gtk
+Terminal=false
+Categories=Settings;
+Comment=MQTT-based Home Assistant input device integration
+Keywords=input;remap;keyboard;mouse;remote;mqtt;homeassistant;
