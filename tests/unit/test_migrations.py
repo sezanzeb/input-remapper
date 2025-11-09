@@ -222,10 +222,10 @@ class TestMigrations(unittest.TestCase):
                         f"{EV_KEY}, 5, 1": ("e", "foo"),  # unknown target
                         f"{EV_KEY}, 6, 1": ("key(a, b)", "keyboard"),  # broken macro
                         # ignored because broken
-                        f"3,1,1,2": "e",
-                        f"3": "e",
-                        f",,+3,1,2": "g",
-                        f"": "h",
+                        "3,1,1,2": "e",
+                        "3": "e",
+                        ",,+3,1,2": "g",
+                        "": "h",
                     }
                 },
                 file,

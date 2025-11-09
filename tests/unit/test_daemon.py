@@ -27,7 +27,6 @@ from unittest.mock import patch, MagicMock
 import evdev
 from evdev._ecodes import EV_ABS
 from evdev.ecodes import EV_KEY, KEY_B, KEY_A, ABS_X, BTN_A, BTN_B
-from dasbus.connection import SystemMessageBus
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig

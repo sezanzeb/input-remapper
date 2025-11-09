@@ -25,70 +25,43 @@ import os
 import time
 import unittest
 from contextlib import contextmanager
-from typing import Tuple, List, Optional, Iterable
-from unittest.mock import patch, MagicMock, call
+from typing import Tuple, List, Optional
+from unittest.mock import patch
 
 import evdev
 import gi
 import sys
-from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    KEY_LEFTSHIFT,
-    KEY_A,
-    KEY_Q,
-    EV_REL,
-)
 
-from inputremapper.gui.autocompletion import (
-    get_incomplete_parameter,
-    get_incomplete_function_name,
-)
 from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput, UInput
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
-from inputremapper.input_event import InputEvent
-from tests.system.gui.test_components import FlowBoxTestUtils
 from tests.lib.cleanup import cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import fixtures
 from tests.lib.fixtures import prepare_presets
 from tests.lib.logger import logger
-from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
-from tests.lib.spy import spy
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkSource", "4")
 gi.require_version("GLib", "2.0")
-from gi.repository import Gtk, GLib, Gdk, GtkSource
+from gi.repository import Gtk, GLib, GtkSource
 
-from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
-    MessageType,
 )
-from inputremapper.gui.messages.message_data import StatusData, CombinationRecorded
 from inputremapper.gui.components.editor import (
     MappingSelectionLabel,
-    SET_KEY_FIRST,
-    CodeEditor,
 )
-from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.reader_service import ReaderService
-from inputremapper.gui.utils import gtk_iteration, Colors, debounce, debounce_manager
+from inputremapper.gui.utils import gtk_iteration
 from inputremapper.gui.user_interface import UserInterface
-from inputremapper.injection.injector import InjectorState
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.daemon import Daemon, DaemonProxy
 from inputremapper.bin.input_remapper_gtk import InputRemapperGtkBin
-
-from tests.lib.test_setup import test_setup
 
 
 # iterate a few times when Gtk.main() is called, but don't block
@@ -100,16 +73,14 @@ Gtk.main = gtk_iteration
 Gtk.main_quit = lambda: None
 
 
-def launch() -> (
-    Tuple[
-        UserInterface,
-        Controller,
-        DataManager,
-        MessageBroker,
-        DaemonProxy,
-        GlobalConfig,
-    ]
-):
+def launch() -> Tuple[
+    UserInterface,
+    Controller,
+    DataManager,
+    MessageBroker,
+    DaemonProxy,
+    GlobalConfig,
+]:
     """Start input-remapper-gtk."""
     with patch.object(sys, "argv", ["/usr/bin/input-remapper-gtk", "-d"]):
         return_ = InputRemapperGtkBin.main()

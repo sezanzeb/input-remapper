@@ -18,9 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import sys
 import unittest
-from unittest.mock import patch
 
 import evdev
 from evdev.ecodes import (

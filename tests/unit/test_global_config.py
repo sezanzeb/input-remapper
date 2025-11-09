@@ -23,9 +23,7 @@ import os
 import unittest
 
 from inputremapper.configs.global_config import GlobalConfig
-from inputremapper.configs.paths import PathUtils
 from tests.lib.test_setup import test_setup
-from tests.lib.tmp import tmp
 
 
 @test_setup

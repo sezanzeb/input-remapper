@@ -96,7 +96,7 @@ class InputDevice:
         return self.fd
 
     def log(self, key, msg):
-        logger.info(f'%s "%s" "%s" %s', msg, self.name, self.path, key)
+        logger.info('%s "%s" "%s" %s', msg, self.name, self.path, key)
 
     def absinfo(self, *args):
         raise Exception("Ubuntus version of evdev doesn't support .absinfo")

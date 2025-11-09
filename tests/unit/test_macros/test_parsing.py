@@ -152,7 +152,7 @@ class TestParsing(MacroTestBase):
         strings = ["+", "a+", "+b", "a\n+\n+\nb", "key(a + b)"]
         for string in strings:
             with self.assertRaises(MacroError):
-                logger.info(f'testing "%s"', string)
+                logger.info('testing "%s"', string)
                 Parser.handle_plus_syntax(string)
 
         self.assertEqual(Parser.handle_plus_syntax("a"), "a")

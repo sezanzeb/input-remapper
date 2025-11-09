@@ -68,7 +68,7 @@ class TestMouse(MacroTestBase):
         self.assertAlmostEqual(float(total_movement), expected_movement, delta=1)
 
     async def test_slow_movement(self):
-        await self._run_macro(f"mouse(down, 0.1)", 0.2, 200)
+        await self._run_macro("mouse(down, 0.1)", 0.2, 200)
         total_movement = sum(event[2] for event in self.result)
         self.assertAlmostEqual(total_movement, 4, delta=1)
 
@@ -181,30 +181,30 @@ class TestMouse(MacroTestBase):
         )
 
     async def test_wheel_up(self):
-        await self._run_macro(f"wheel(up, 60)", 0.1)
+        await self._run_macro("wheel(up, 60)", 0.1)
         self.assertIn((EV_REL, REL_WHEEL, 1), self.result)
         self.assertIn((EV_REL, REL_WHEEL_HI_RES, 60), self.result)
 
     async def test_wheel_down(self):
-        await self._run_macro(f"wheel(down, 60)", 0.1)
+        await self._run_macro("wheel(down, 60)", 0.1)
         self.assertIn((EV_REL, REL_WHEEL, -1), self.result)
         self.assertIn((EV_REL, REL_WHEEL_HI_RES, -60), self.result)
 
     async def test_wheel_right(self):
-        await self._run_macro(f"wheel(right, 60)", 0.1)
+        await self._run_macro("wheel(right, 60)", 0.1)
         self.assertIn((EV_REL, REL_HWHEEL, -1), self.result)
         self.assertIn((EV_REL, REL_HWHEEL_HI_RES, -60), self.result)
 
     async def test_mouse_releases(self):
-        await self._run_macro(f"mouse(down, 1).key(a)", 0.1)
+        await self._run_macro("mouse(down, 1).key(a)", 0.1)
         self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
 
     async def test_mouse_xy_releases(self):
-        await self._run_macro(f"mouse_xy(1, 1, 1).key(a)", 0.1)
+        await self._run_macro("mouse_xy(1, 1, 1).key(a)", 0.1)
         self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
 
     async def test_wheel_releases(self):
-        await self._run_macro(f"wheel(down, 1).key(a)", 0.1)
+        await self._run_macro("wheel(down, 1).key(a)", 0.1)
         self.assertEqual(self.result[-2:], [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
 
     async def test_raises_error(self):

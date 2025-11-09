@@ -23,7 +23,7 @@ from __future__ import annotations
 import copy
 import json
 import os
-from typing import Union, List, Optional, Callable, Any
+from typing import Optional
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.logging.logger import logger, VERSION
