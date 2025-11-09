@@ -1,4 +1,4 @@
-"""Tests that require a linux desktop environment to be running."""
+"""Tests that require linux system components to be running, that might not be."""
 
 import gi
 

@@ -27,6 +27,7 @@ import subprocess
 import time
 from pickle import UnpicklingError
 from unittest.mock import patch
+import atexit
 
 import evdev
 
@@ -295,6 +296,13 @@ def patch_os_system():
     return patch.object(os, "system", system)
 
 
+def patch_atexit_register():
+    """Avoid adding tons of redundant atexit handlers that we don't need anyway.
+    Otherwise we get lots of logs at the end of gui tests that bury the test result.
+    """
+    return patch.object(atexit, "register")
+
+
 def patch_check_output():
     """Xmodmap -pke should always return a fixed set of symbols.
 
@@ -382,6 +390,7 @@ def create_patches():
         # importing `check_output` and `system` from the module.
         *patch_evdev(),
         patch_os_system(),
+        patch_atexit_register(),
         patch_check_output(),
         # Those are comfortably wrapped in a class, and are therefore easy to patch
         patch_paths(),

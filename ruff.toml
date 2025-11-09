@@ -1,0 +1,5 @@
+[tool.ruff.lint]
+# Because of the gi require_version stuff the imports are all over the place.
+# Also, at least in the past, the order of imports was important for tests. Hopefully
+# this is not the case anymore, but
+ignore = ["E402"]
