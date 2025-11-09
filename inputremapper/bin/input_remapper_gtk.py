@@ -56,14 +56,16 @@ from inputremapper.configs.migrations import Migrations
 
 class InputRemapperGtkBin:
     @staticmethod
-    def main() -> Tuple[
-        UserInterface,
-        Controller,
-        DataManager,
-        MessageBroker,
-        DaemonProxy,
-        GlobalConfig,
-    ]:
+    def main() -> (
+        Tuple[
+            UserInterface,
+            Controller,
+            DataManager,
+            MessageBroker,
+            DaemonProxy,
+            GlobalConfig,
+        ]
+    ):
         parser = ArgumentParser()
         parser.add_argument(
             "-d",
@@ -145,6 +147,7 @@ class InputRemapperGtkBin:
 
     @staticmethod
     def stop(daemon, controller):
+        print("stoppppp")
         if isinstance(daemon, Daemon):
             # have fun debugging completely unrelated tests if you remove this
             daemon.stop_all()
