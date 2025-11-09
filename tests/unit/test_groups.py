@@ -23,7 +23,6 @@ import os
 import unittest
 
 import evdev
-from evdev.ecodes import EV_KEY, KEY_A
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.groups import (

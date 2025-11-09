@@ -57,7 +57,7 @@ class MacroHandler(MappingHandler):
         self._macro = Parser.parse(self.mapping.output_symbol, context, mapping)
 
     def __str__(self):
-        return f"MacroHandler"
+        return "MacroHandler"
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"

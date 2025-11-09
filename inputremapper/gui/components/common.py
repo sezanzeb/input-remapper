@@ -23,7 +23,6 @@
 
 from __future__ import annotations
 
-import gi
 
 from gi.repository import Gtk
 

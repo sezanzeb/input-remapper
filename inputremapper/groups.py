@@ -116,17 +116,17 @@ def _is_mouse(capabilities):
     # UInput recognized as mouse
 
     # mouse movements
-    if not REL_X in capabilities.get(EV_REL, []):
+    if REL_X not in capabilities.get(EV_REL, []):
         return False
-    if not REL_Y in capabilities.get(EV_REL, []):
+    if REL_Y not in capabilities.get(EV_REL, []):
         return False
 
     # at least the vertical mouse wheel
-    if not REL_WHEEL in capabilities.get(EV_REL, []):
+    if REL_WHEEL not in capabilities.get(EV_REL, []):
         return False
 
     # and a mouse click button
-    if not BTN_LEFT in capabilities.get(EV_KEY, []):
+    if BTN_LEFT not in capabilities.get(EV_KEY, []):
         return False
 
     return True

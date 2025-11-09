@@ -67,7 +67,7 @@ class TestLogger(unittest.TestCase):
         with open(path, "r") as f:
             content = f.read()
             self.assertIn(
-                f'Writing (1, 30, 1) to "foo"',
+                'Writing (1, 30, 1) to "foo"',
                 content,
             )
 

@@ -239,13 +239,13 @@ class Argument(ArgumentConfig):
         if float in self.types and "." in value:
             try:
                 return Variable(value=float(value), const=True)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 pass
 
         if int in self.types:
             try:
                 return Variable(value=int(value), const=True)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 pass
 
         if not value.startswith('"') and ("(" in value or ")" in value):
