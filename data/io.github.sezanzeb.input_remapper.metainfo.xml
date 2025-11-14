@@ -21,7 +21,7 @@
     </p>
   </description>
   
-  <launchable type="desktop-id">input-remapper.desktop</launchable>
+  <launchable type="desktop-id">input-remapper-gtk.desktop</launchable>
   
   <screenshots>
     <screenshot type="default">
