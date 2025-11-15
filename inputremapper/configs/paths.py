@@ -21,7 +21,6 @@
 
 """Path constants to be used."""
 
-
 import os
 import shutil
 from typing import List, Union, Optional
@@ -39,7 +38,11 @@ class PathUtils:
         # TODO when proper DI is being done, construct PathUtils and configure it in
         #  the constructor. Then there is no need to recompute the config_path
         #  each time. Tests might have overwritten UserUtils.home.
-        return os.path.join(UserUtils.home, PathUtils.rel_path)
+        xdg_config_home = os.getenv(
+            "XDG_CONFIG_HOME", os.path.join(UserUtils.home, ".config")
+        )
+        print("ASDJFKASJFDKA", xdg_config_home, os.getenv("XDG_CONFIG_HOME"))
+        return os.path.join(xdg_config_home, "input-remapper-2")
 
     @staticmethod
     def chown(path):

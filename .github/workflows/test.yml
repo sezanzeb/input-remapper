@@ -34,4 +34,5 @@ jobs:
         # try this if input-remappers data cannot be found, and set DATA_DIR to a matching directory
         # find / -type f -name "input-remapper.glade"
 
+        echo $XDG_CONFIG_HOME
         sudo -E python -m unittest discover tests/unit
