@@ -48,8 +48,12 @@ from tests.lib.logger import logger
 
 def patch_paths():
     from inputremapper.user import UserUtils
+    from inputremapper.configs.paths import PathUtils
 
-    return patch.object(UserUtils, "home", tmp)
+    return [
+        patch.object(UserUtils, "home", tmp),
+        patch.dict(os.environ, {"XDG_CONFIG_HOME": os.path.join(tmp, ".config")}),
+    ]
 
 
 class InputDevice:
@@ -393,7 +397,7 @@ def create_patches():
         patch_atexit_register(),
         patch_check_output(),
         # Those are comfortably wrapped in a class, and are therefore easy to patch
-        patch_paths(),
+        *patch_paths(),
         patch_regrab_timeout(),
         patch_is_running(),
         patch_events(),

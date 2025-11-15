@@ -32,14 +32,15 @@ from inputremapper.user import UserUtils
 
 # TODO maybe this could become, idk, ConfigService and PresetService
 class PathUtils:
-    rel_path = ".config/input-remapper-2"
-
     @staticmethod
     def config_path() -> str:
-        # TODO when proper DI is being done, construct PathUtils and configure it in
-        #  the constructor. Then there is no need to recompute the config_path
+        # TODO when proper DI is being done, construct PathUtils and configure it
+        #  in the constructor. Then there is no need to recompute the config_path
         #  each time. Tests might have overwritten UserUtils.home.
-        return os.path.join(UserUtils.home, PathUtils.rel_path)
+        xdg_config_home = os.getenv(
+            "XDG_CONFIG_HOME", os.path.join(UserUtils.home, ".config")
+        )
+        return os.path.join(xdg_config_home, "input-remapper-2")
 
     @staticmethod
     def chown(path):
