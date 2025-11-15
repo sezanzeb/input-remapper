@@ -267,11 +267,11 @@ class InputRemapperControlBin:
         # for all devices.
         if device is None:
             logger.info("Autoloading all")
-            self.daemon.autoload(timeout=10)
+            self.daemon.autoload(timeout=10000)
         else:
             group = self._require_group(device)
             logger.info("Asking daemon to autoload for %s", device)
-            self.daemon.autoload_single(group.key, timeout=2)
+            self.daemon.autoload_single(group.key, timeout=2000)
 
     def internals(self, command: str, debug: True) -> None:
         """Methods that are needed to get the gui to work and that require root.
