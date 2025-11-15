@@ -35,4 +35,5 @@ jobs:
         # find / -type f -name "input-remapper.glade"
 
         echo $XDG_CONFIG_HOME
+        python3 -c "import os; print([os.getenv('XDG_CONFIG_HOME')])"
         sudo -E python -m unittest discover tests/unit
