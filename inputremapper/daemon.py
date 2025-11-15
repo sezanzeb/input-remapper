@@ -23,7 +23,6 @@
 https://github.com/dasbus-project/dasbus/tree/master/examples/03_helloworld
 """
 
-
 import atexit
 import json
 import os
@@ -60,8 +59,8 @@ DAEMON = DBusServiceIdentifier(
     message_bus=SESSION_BUS,
 )
 
-# timeout in seconds
-BUS_TIMEOUT = 10
+# timeout in milliseconds
+BUS_TIMEOUT = 10000
 
 
 class AutoloadHistory:
@@ -269,7 +268,7 @@ class Daemon:
         if UserUtils.user != "root":
             config_path = PathUtils.get_config_path()
             logger.debug('Telling service about "%s"', config_path)
-            proxy.set_config_dir(PathUtils.get_config_path(), timeout=2)
+            proxy.set_config_dir(PathUtils.get_config_path(), timeout=2000)
 
         return proxy
 
