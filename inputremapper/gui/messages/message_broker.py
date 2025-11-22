@@ -47,7 +47,7 @@ MessageListener = Callable[[Any], None]
 
 
 class MessageBroker:
-    shorten_path = re.compile("inputremapper/")
+    shorten_path = re.compile(r"inputremapper/")
 
     def __init__(self):
         self._listeners: Dict[MessageType, Set[MessageListener]] = defaultdict(set)

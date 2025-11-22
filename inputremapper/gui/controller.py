@@ -330,7 +330,7 @@ class Controller:
     def copy_preset(self):
         """Create a copy of the active preset and name it `preset_name copy`."""
         name = self.data_manager.active_preset.name
-        match = re.search(" copy *\d*$", name)
+        match = re.search(r" copy *\d*$", name)
         if match:
             name = name[: match.start()]
 
