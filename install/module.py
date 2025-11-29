@@ -44,13 +44,17 @@ import shutil
 
 
 def _key(path) -> int:
-    # sorted from desired to undesired
+    # good
 
     if path.startswith("/usr/lib/python3/") or path == "/usr/lib/python3":
         # Paths that work independent of the python version, yes please
         return -1
 
+    # bad
+
     if path.startswith("/usr/local"):
+        # Cannot be imported in evdev and some python installations.
+        # Workarounds are annoying and not satisfactory.
         return 1
 
     if not path.startswith("/usr"):
@@ -61,6 +65,8 @@ def _key(path) -> int:
     if not os.path.isdir(path):
         return 3
 
+    # neutral
+    # Stuff like /usr/lib/python3.13/site-packages
     return 0
 
 
