@@ -9,7 +9,4 @@ build_deb() {
   dpkg-deb -Z gzip -b build dist/input-remapper-2.2.0.deb
 }
 
-build_deb &
-# add more build targets here
-
-wait
+build_deb

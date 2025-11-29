@@ -38,7 +38,7 @@ Or install the very latest changes via:
 sudo apt install git gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
-./scripts/build.sh
+./scripts/build-deb.sh
 sudo apt purge input-remapper input-remapper-daemon input-remapper-gtk python3-inputremapper
 sudo apt install -f ./dist/input-remapper-2.2.0.deb
 ```
@@ -89,8 +89,7 @@ sudo pip install evdev pydantic dasbus PyGObject
 ```bash
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
-# installing to /usr/local is broken
-meson setup --reconfigure build --prefix=/usr
-sudo meson install -C build
+python3 -m install
+# TODO install directory structure to /
 sudo systemctl enable --now input-remapper
 ```

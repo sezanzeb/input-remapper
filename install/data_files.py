@@ -58,7 +58,7 @@ def make_lang():
     return lang_data
 
 
-def build_data_files():
+def build_data_files(root: str):
     data_files = [
         # see development.md#files
         *make_lang(),
@@ -85,8 +85,7 @@ def build_data_files():
         # arguments with a leading slash.
         assert not target_dir.startswith("/")
         for file_ in files:
-            destination_dir = os.path.join("build", target_dir)
+            destination_dir = os.path.join(root, target_dir)
             print("Copying", file_, "to", destination_dir)
             os.makedirs(destination_dir, exist_ok=True)
             shutil.copy(file_, os.path.join(destination_dir, os.path.basename(file_)))
-

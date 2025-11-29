@@ -21,7 +21,8 @@
 """Build input-remapper including its translations and system-files.
 
 pip, in many cases, fails to install data files, which need to go into system paths,
-and instead puts them (despite them being absolute paths) into /usr/lib/...
+and instead puts them (despite them being absolute paths) into
+/usr/lib/python3/inputremapper/usr/share/...
 
 python3 setup.py install is deprecated
 
@@ -32,15 +33,49 @@ So instead input-remapper uses a custom python solution. Hopefulls this works we
 enough to prevent all ModuleNotFoundErrors in the future.
 """
 
-from building.check_dependencies import check_dependencies
-from building.data_files import build_data_files
-from building.module import build_input_remapper_module
+import shutil
+import os
+import sys
+
+from install.check_dependencies import check_dependencies
+from install.data_files import build_data_files
+from install.module import build_input_remapper_module
+
+import argparse
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Tool to build input-remapper with.")
+    parser.add_argument(
+        "--root",
+        type=str,
+        help="Where to build input-remapper into",
+        default="./build",
+    )
+    args = parser.parse_args()
+    return args
+
+
+def ask(msg):
+    answer = ""
+    while answer not in ["y", "n"]:
+        answer = input(f"{msg} [y/n] ").lower()
+    return answer == "y"
 
 
 def main():
+    args = parse_args()
+
+    if os.path.exists(args.root) and not args.root.startswith('/'):
+        delete = ask(f"{args.root} already exists. Delete?")
+        if delete:
+            shutil.rmtree(args.root)
+        else:
+            sys.exit(3)
+
     check_dependencies()
-    build_data_files()
-    build_input_remapper_module()
+    build_data_files(args.root)
+    build_input_remapper_module(args.root)
 
 
 if __name__ == "__main__":
