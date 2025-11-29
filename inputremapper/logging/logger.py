@@ -25,10 +25,7 @@ from typing import cast
 
 from inputremapper.logging.formatter import ColorfulFormatter
 
-try:
-    from inputremapper.commit_hash import COMMIT_HASH
-except ImportError:
-    COMMIT_HASH = ""
+from inputremapper.installation_info import VERSION, COMMIT_HASH
 
 
 start = time.time()
@@ -148,9 +145,6 @@ class Logger(logging.Logger):
 logger = Logger.bootstrap_logger()
 
 
-# using pkg_resources to figure out the version fails in many cases,
-# so we hardcode it instead
-VERSION = "2.2.0"
 EVDEV_VERSION = None
 try:
     # pkg_resources very commonly fails/breaks
@@ -161,7 +155,7 @@ except Exception as error:
     # there have been pkg_resources.DistributionNotFound and
     # pkg_resources.ContextualVersionConflict errors so far.
     # We can safely ignore all Exceptions here
-    logger.info("Could not figure out the version")
+    logger.info("Could not figure out the evdev version")
     logger.debug(error)
 
 # check if the version is something like 1.5.0-beta or 1.5.0-beta.5

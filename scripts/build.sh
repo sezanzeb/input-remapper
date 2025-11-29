@@ -4,13 +4,9 @@ build_deb() {
   # https://www.devdungeon.com/content/debian-package-tutorial-dpkgdeb
   # that was really easy actually
   rm build -r
-  mkdir build/deb -p
-  python3 setup.py install --root=build/deb
-  mv build/deb/usr/local/lib/python3.*/ build/deb/usr/lib/python3/
-  cp ./DEBIAN build/deb/ -r
-  mkdir dist -p
-  rm dist/input-remapper-2.2.0.deb || true
-  dpkg-deb -Z gzip -b build/deb dist/input-remapper-2.2.0.deb
+  python3 -m building
+  cp ./DEBIAN build/ -r
+  dpkg-deb -Z gzip -b build dist/input-remapper-2.2.0.deb
 }
 
 build_deb &

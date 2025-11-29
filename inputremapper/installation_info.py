@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
@@ -17,20 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import gettext
-import locale
-import os.path
-
-from inputremapper.configs.data import get_data_path
-
-APP_NAME = "input-remapper"
-LOCALE_DIR = os.path.join(get_data_path(), "lang")
-
-locale.bindtextdomain(APP_NAME, LOCALE_DIR)
-locale.textdomain(APP_NAME)
-
-translate = gettext.translation(APP_NAME, LOCALE_DIR, fallback=True)
-_ = translate.gettext
-
-# TODO make this work
-
+COMMIT_HASH = 'unknown'
+VERSION = '2.2.0'
+# depending on where this file is installed to, make sure to use the proper
+# prefix path for data. Package maintainers may overwrite this file in
+# any way they like.
+DATA_DIR = '/usr/share/inputremapper'

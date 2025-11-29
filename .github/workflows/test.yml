@@ -23,15 +23,12 @@ jobs:
       run: |
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
-        sudo pip install .
+        sudo meson setup --wipe build --prefix=/usr
+        sudo meson install -C build
     - name: Run tests
       run: |
         # FIXME: Had some permissions issues, currently worked around by running tests as root
         mkdir test_tmp
         export TMPDIR="$(realpath test_tmp)"
-
-        export DATA_DIR="/home/runner/work/input-remapper/input-remapper/data/"
-        # try this if input-remappers data cannot be found, and set DATA_DIR to a matching directory
-        # find / -type f -name "input-remapper.glade"
 
         sudo -E python -m unittest discover tests/unit

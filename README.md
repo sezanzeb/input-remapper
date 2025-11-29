@@ -35,7 +35,7 @@ sudo apt install -f ./input-remapper-2.2.0.deb
 Or install the very latest changes via:
 
 ```bash
-sudo apt install git python3-setuptools gettext
+sudo apt install git gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
 ./scripts/build.sh
@@ -83,12 +83,14 @@ globally for the service to be able to import them. Don't use `--user`. Conda an
 may also cause problems due to changed python paths and versions.
 
 ```bash
-sudo pip install evdev pydantic dasbus PyGObject setuptools
+sudo pip install evdev pydantic dasbus PyGObject
 ```
 
 ```bash
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
-sudo python3 setup.py install
+# installing to /usr/local is broken
+meson setup --reconfigure build --prefix=/usr
+sudo meson install -C build
 sudo systemctl enable --now input-remapper
 ```

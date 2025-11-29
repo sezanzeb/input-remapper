@@ -1,0 +1,1 @@
+COMMIT_HASH = '@COMMIT@'

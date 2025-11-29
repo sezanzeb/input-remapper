@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "input-remapper"
+version = "2.2.0"
+description = "A tool to change the mapping of your input device buttons"
+authors = [
+    { name = "Sezanzeb", email = "b8x45ygc9@mozmail.com" },
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "setuptools",
+    "evdev",
+    "psutil",
+    "dasbus",
+    "pygobject",
+    "pydantic",
+]
+
+[tool.setuptools]
+packages = ["inputremapper"]
+
+[project.urls]
+Homepage = "https://github.com/sezanzeb/input-remapper"

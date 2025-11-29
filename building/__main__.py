@@ -18,13 +18,30 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Control the dbus service from the command line."""
+"""Build input-remapper including its translations and system-files.
 
-import os
-import sys
+pip, in many cases, fails to install data files, which need to go into system paths,
+and instead puts them (despite them being absolute paths) into /usr/lib/...
 
-from inputremapper.bin.input_remapper_control import InputRemapperControlBin
+python3 setup.py install is deprecated
+
+meson fails to install the module into a path that can actually be imported, and
+its python features require one to specify each individual file of the module.
+
+So instead input-remapper uses a custom python solution. Hopefulls this works well
+enough to prevent all ModuleNotFoundErrors in the future.
+"""
+
+from building.check_dependencies import check_dependencies
+from building.data_files import build_data_files
+from building.module import build_input_remapper_module
+
+
+def main():
+    check_dependencies()
+    build_data_files()
+    build_input_remapper_module()
 
 
 if __name__ == "__main__":
-    InputRemapperControlBin.main(InputRemapperControlBin.parse_args())
+    main()
