@@ -45,11 +45,11 @@ import argparse
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Tool to build input-remapper with.")
+    parser = argparse.ArgumentParser(description="Tool to install input-remapper with.")
     parser.add_argument(
         "--root",
         type=str,
-        help="Where to build input-remapper into",
+        help="Where to install input-remapper to. Defaults to ./build",
         default="./build",
     )
     args = parser.parse_args()
