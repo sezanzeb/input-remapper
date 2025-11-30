@@ -40,7 +40,7 @@ jobs:
     - name: Container info
       run: |
         cat /etc/*-release
-        python3 --version
+        python --version
     - name: Generic installation
       run: |
         sudo dnf install -y gettext python3-evdev python3-dasbus python3-pydantic \
@@ -49,7 +49,7 @@ jobs:
 
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
-        sudo python3 -m install --root /
+        sudo python -m install --root /
 
         sudo systemctl daemon-reload
         sudo systemctl restart input-remapper
