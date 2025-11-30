@@ -20,6 +20,7 @@ dependencies = [
     "pycairo",
     "PyGObject",
     "pydantic",
+    "packaging",
 ]
 
 [tool.setuptools.packages.find]
