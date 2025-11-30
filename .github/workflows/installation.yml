@@ -33,10 +33,11 @@ jobs:
         [ ! -d "inputremapper" ]
 
         # Helps with debugging
-        find /usr -name inputremapper
+        find /usr/lib/python* -name inputremapper -type d
         python3 -c "import sys; print(sys.path)"
         sudo python3 -c "import sys; print(sys.path)"
 
+        # sys.path only contains funky special paths without sudo, lets install and
+        # check with sudo.
         # Should not fail with ModuleNotFoundError
-        python3 -c "import inputremapper"
         sudo python3 -c "import inputremapper"
