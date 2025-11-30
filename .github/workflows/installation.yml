@@ -21,11 +21,15 @@ jobs:
         # cache-dependency-path: pyproject.toml
     - name: Install
       run: |
+        set -x
+
         # build dependencies
         sudo apt install gettext -y
 
         sudo scripts/build-deb.sh
         sudo apt install -f ./dist/input-remapper-*.deb | true
+
+        # For debugging
         sudo python3 -c "import sys; print(sys.path)"
         find /usr/lib/python* -type d -name inputremapper
         systemctl status input-remapper.service
@@ -39,4 +43,5 @@ jobs:
         cd /
         [ ! -d "inputremapper" ]
 
-        input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
+        # Need to use sudo, because sys.path is weird in the ci otherwise
+        sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
