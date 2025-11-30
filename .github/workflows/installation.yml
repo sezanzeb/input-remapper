@@ -49,7 +49,7 @@ jobs:
 
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
-        # sudo python3 -m install --root /
+        sudo python3 -m install --root /
     - name: DBus Hello 2
       run: |
         # Lets try it again
