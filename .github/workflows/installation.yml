@@ -27,6 +27,8 @@ jobs:
         sudo scripts/build-deb.sh
         sudo apt install -f ./dist/input-remapper-*.deb | true
         systemctl status input-remapper.service
+        sudo python3 -c "import sys; print(sys.path)"
+        find /usr/lib/python* -type d -name inputremapper
     - name: DBus Hello
       run: |
         # Test if files have been placed at the correct places in ubuntus file system.
