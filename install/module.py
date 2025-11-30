@@ -99,10 +99,10 @@ def _set_variables(target: str):
     values = {
         "COMMIT_HASH": _get_commit_hash(),
         "VERSION": version,
-        "DATA_DIR": '/usr/share/inputremapper',
+        "DATA_DIR": "/usr/share/inputremapper",
     }
 
-    print("Setting", values, 'in', path)
+    print("Setting", values, "in", path)
 
     with open(path, "w") as f:
         for variable_name, value in values.items():
