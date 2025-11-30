@@ -1667,7 +1667,7 @@ class TestAbsToRel(EventPipelineTestBase):
                 # possibly in addition to writing mouse events
             )
 
-        # This varies quite a lot depending on the machines sperformance.
+        # This varies quite a lot depending on the machines performance.
         # Face it, python is a bad choice for this.
         self.assertAlmostEqual(len(mouse_history), rel_rate * sleep * 2, delta=10)
 
