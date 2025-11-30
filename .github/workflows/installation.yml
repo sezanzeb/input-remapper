@@ -37,10 +37,6 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
     - uses: actions/checkout@v3
-    - name: Container info
-      run: |
-        cat /etc/*-release
-        python --version
     - name: Generic installation
       run: |
         sudo dnf install -y gettext python3-evdev python3-dasbus python3-pydantic \
@@ -49,7 +45,7 @@ jobs:
 
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
-        sudo python -m install --root /
+        sudo python3 -m install --root /
 
         sudo systemctl daemon-reload
         sudo systemctl restart input-remapper
