@@ -1,5 +1,6 @@
 # noqa: F401
 
+
 def check_dependencies() -> None:
     try:
         import gi
