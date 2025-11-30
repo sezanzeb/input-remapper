@@ -20,8 +20,12 @@ jobs:
     - name: Install dependencies
       run: |
         scripts/ci-install-deps.sh
-        pip install black
+        pip install black ruff
     - name: Analysing the code with black --check --diff
       run: |
         black --version
         black --check --diff ./inputremapper ./tests
+    - name: Analysing the code with ruff
+      run: |
+        ruff --version
+        ruff check ./inputremapper ./install

@@ -161,7 +161,7 @@ class InputConfig(BaseModel):
         # must check if it's a mouse button *before* ecodes
         # because not all mouse buttons are in ecodes.
         mouse_button_name: Optional[str] = self._get_mouse_button_name()
-        if mouse_button_name != None:
+        if mouse_button_name is not None:
             return mouse_button_name
 
         if self.type not in ecodes.bytype:

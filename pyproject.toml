@@ -26,3 +26,9 @@ packages = ["inputremapper"]
 
 [project.urls]
 Homepage = "https://github.com/sezanzeb/input-remapper"
+
+[tool.ruff.lint]
+# Because of gi.require_version we get this a lot
+ignore = ["E402"]
+# Lots of unused imports in
+exclude = ["install/check_dependencies.py"]

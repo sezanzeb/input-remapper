@@ -22,12 +22,7 @@
 
 
 import os
-import site
-import sys
 
-import pkg_resources
-
-from inputremapper.logging.logger import logger
 from inputremapper.installation_info import DATA_DIR
 
 

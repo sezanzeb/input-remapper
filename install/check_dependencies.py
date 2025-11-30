@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-
-import sys
-
+# noqa: F401
 
 def check_dependencies() -> None:
     try:
