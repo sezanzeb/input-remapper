@@ -118,7 +118,7 @@ setup(
             "/usr/share/metainfo/",
             ["data/io.github.sezanzeb.input_remapper.metainfo.xml"],
         ),
-        ("/usr/share/icons/hicolor/scalable/apps/", ["data/input-remapper.svg"]),
+        ("/usr/share/icons/hicolor/scalable/apps/", ["data/input-remapper.png"]),
         ("/usr/share/polkit-1/actions/", ["data/input-remapper.policy"]),
         ("/usr/lib/systemd/system", ["data/input-remapper.service"]),
         ("/usr/share/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),
