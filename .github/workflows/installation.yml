@@ -21,8 +21,11 @@ jobs:
         # cache-dependency-path: pyproject.toml
     - name: Install
       run: |
+        # build dependencies
+        sudo apt install gettext -y
+
         sudo scripts/build-deb.sh
-        sudo apt install -f ./dist/input-remapper-2.2.0.deb
+        sudo apt install -f ./dist/input-remapper-*.deb
     - name: DBus Hello
       run: |
         # Test if files have been placed at the correct places in ubuntus file system.
