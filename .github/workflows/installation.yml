@@ -3,7 +3,7 @@ name: Installation
 on: [push, pull_request]
 
 jobs:
-  deb:
+  deb-ubuntu:
     continue-on-error: true
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
@@ -30,12 +30,17 @@ jobs:
         # Need to use sudo, because sys.path is weird in the ci otherwise
         sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
 
-  generic:
+  generic-fedora:
     continue-on-error: true
     runs-on: ubuntu-latest
+    container: fedora:latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
     - uses: actions/checkout@v3
+    - name: Container info
+      run: |
+        cat /etc/*-release
+        python3 --version
     - name: Generic installation
       run: |
         sudo scripts/ci-install-deps.sh
