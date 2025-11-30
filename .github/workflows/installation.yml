@@ -41,16 +41,15 @@ jobs:
         sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
     - name: Generic installation
       run: |
-        # sudo apt purge input-remapper
+        sudo apt purge input-remapper
 
         # Presence of the build directory changes a bit how pip installs stuff. Lets
         # try it clean.
         sudo rm build -r
 
-        # Tests should also work when inputremapper is installed system-wide.
-        # Don't build and install the deb this time, because the generic installation
-        # method should work too. Also, lets check if `--root /` breaks the system.
-        sudo python3 -m install --root /
+        # Check if the generic installation method works too. Also, using `--root /`
+        # should not break the system somehow
+        # sudo python3 -m install --root /
     - name: DBus Hello 2
       run: |
         # Lets try it again
