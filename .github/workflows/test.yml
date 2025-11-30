@@ -23,8 +23,7 @@ jobs:
       run: |
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
-        sudo meson setup --wipe build --prefix=/usr
-        sudo meson install -C build
+        sudo python3 -m install --root /
     - name: Run tests
       run: |
         # FIXME: Had some permissions issues, currently worked around by running tests as root
