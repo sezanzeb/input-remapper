@@ -20,27 +20,27 @@
 
 """Figure out where the python module needs to be placed in order to reliable import it.
 
-Dealing with varying sys.paths is frustrating. The paths in /usr and /usr/local are
-inconsistently listed in sys.path. meson uses /usr/local/python3, which ubuntus python3
-does not import from. /usr/local is ignored in arch and by udev. When in doubt, do not
-install into /usr/local. I do not want to deal with ModuleNotFoundErrors. I don't care
-if it should be in /usr/local by convention. I don't know how much this varies across
-ubuntu versions and other debian based distributions. I want my .deb to install
-reliably.
+Dealing with varying sys.paths is frustrating. The sys.paths in /usr are not mirrored
+in /usr/local consistently. Meson uses /usr/local/python3, which ubuntus python3 does
+not import from. /usr/local is ignored by python within udev. Arch does not import
+from /usr/local. When in doubt, do not install into /usr/local. I do not want to deal
+with ModuleNotFoundErrors. I don't care if it should be in /usr/local by convention.
+I don't know how much this varies across ubuntu versions and other debian based
+distributions. I want the .deb to install reliably.
 
-Samples:
+sys.path samples:
 endeavouros  user: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/lib/python3.13/site-packages']
 endeavouros  root: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/lib/python3.13/site-packages']
 ubuntu 25.04 user: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/home/mango/.local/lib/python3.13/site-packages', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
 ubuntu 25.04 root: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
-
-Getting input-remapper to reliably install is torture. And meson does not help.
 """
 
 import sys
 import os
 import subprocess
 import shutil
+import re
+import tomllib
 
 
 def _key(path) -> int:
@@ -53,16 +53,17 @@ def _key(path) -> int:
     # bad
 
     if path.startswith("/usr/local"):
-        # Cannot be imported in evdev and some python installations.
+        # Cannot be imported in udev and some python installations.
         # Workarounds are annoying and not satisfactory.
         return 1
 
-    if not path.startswith("/usr"):
+    if not path.startswith("/"):
         # Editable package paths, not system-wide, user installations which don't work
         # for input-remapper.
         return 2
 
     if not os.path.isdir(path):
+        # /usr/lib/python313.zip
         return 3
 
     # neutral
@@ -85,18 +86,33 @@ def _get_commit_hash():
     return commit
 
 
-def _fill_templates(target: str):
+def _set_variables(target: str):
     path = os.path.join(target, "inputremapper", "installation_info.py")
-    print("Writing", path)
     assert os.path.exists(path)
-    with open(path, "w") as f:
-        lines = [
-            f"COMMIT_HASH = '{_get_commit_hash()}'",
-            "VERSION = '2.2.0'",
-            "DATA_DIR = '/usr/share/inputremapper'",
-        ]
 
-        f.write("\n".join(lines))
+    with open(path, "r") as f:
+        contents = f.read()
+
+    with open("pyproject.toml", "rb") as f:
+        version = tomllib.load(f)["project"]["version"]
+
+    values = {
+        "COMMIT_HASH": _get_commit_hash(),
+        "VERSION": version,
+        "DATA_DIR": '/usr/share/inputremapper',
+    }
+
+    print("Setting", values, 'in', path)
+
+    with open(path, "w") as f:
+        for variable_name, value in values.items():
+            contents = re.sub(
+                rf"{variable_name}\s*=.+",
+                f"{variable_name} = '{value}'",
+                contents,
+            )
+
+        f.write(contents)
 
 
 def build_input_remapper_module(root: str):
@@ -110,22 +126,27 @@ def build_input_remapper_module(root: str):
 
     target = os.path.join(root, package_dir)
 
-    subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            ".",
-            "--target",
-            target,
-            "--no-deps",
-        ]
-    )
+    command = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        ".",
+        "--target",
+        target,
+        "--no-deps",
+    ]
+
+    print("Running", " ".join(command))
+
+    subprocess.check_call(command)
 
     # pip puts its own leftovers into ./build that we don't need.
     # This only happens, when root is set to "build".
-    if root.endswith("build") and os.path.exists("./build/lib/"):
-        shutil.rmtree("./build/lib/")
+    if "build" in root:
+        if os.path.exists("./build/lib/"):
+            shutil.rmtree("./build/lib/")
+        if os.path.exists("./build/bdist.linux-x86_64/"):
+            shutil.rmtree("./build/bdist.linux-x86_64/")
 
-    _fill_templates(target)
+    _set_variables(target)

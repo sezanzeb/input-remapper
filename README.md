@@ -89,6 +89,6 @@ sudo pip install evdev pydantic dasbus PyGObject
 ```bash
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
-python3 -m install --root /
+sudo python3 -m install --root /
 sudo systemctl enable --now input-remapper
 ```

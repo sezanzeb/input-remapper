@@ -21,4 +21,4 @@ def check_dependencies() -> None:
 
         print("All required Python modules found")
     except ImportError as e:
-        print(f"Missing Python module: {e}")
+        print(f"\033[93mMissing Python module: {e}\033[0m")

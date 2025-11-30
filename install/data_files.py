@@ -18,50 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Build input-remapper including its translations and system-files."""
+"""Copy input-remappers system-files around."""
 
 import glob
 import os
-import re
-import subprocess
-from os.path import basename, splitext, join
 import shutil
-import sys
-
-
-def make_lang():
-    """Build po files into build/mo/."""
-    lang_data = []
-    os.makedirs("mo", exist_ok=True)
-    for po_file in glob.glob("po/*.po"):
-        lang = splitext(basename(po_file))[0]
-        lang_data.append(
-            (
-                f"usr/share/input-remapper/lang/{lang}/LC_MESSAGES",
-                [f"mo/{lang}/input-remapper.mo"],
-            )
-        )
-
-        lang = splitext(basename(po_file))[0]
-        os.makedirs(join("mo", lang), exist_ok=True)
-        print(f"generating translation for {lang}")
-        subprocess.run(
-            [
-                "msgfmt",
-                "-o",
-                join("mo", lang, "input-remapper.mo"),
-                str(po_file),
-            ],
-            check=True,
-        )
-
-    return lang_data
 
 
 def build_data_files(root: str):
     data_files = [
         # see development.md#files
-        *make_lang(),
         ("usr/share/input-remapper/", glob.glob("data/*")),
         ("usr/share/applications/", ["data/input-remapper-gtk.desktop"]),
         (
