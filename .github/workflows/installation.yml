@@ -36,14 +36,16 @@ jobs:
     container: fedora:latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
-    - uses: actions/checkout@v3
-    - name: Generic installation
+    - name: Dependencies
       run: |
+        # Installing git has to be done before the checkout step for it to contain
+        # the .git directory
         sudo dnf install -y gettext python3-evdev python3-dasbus python3-pydantic \
             python3-gobject gobject-introspection gtk3 gtksourceview4 python3-pydantic \
             python3-psutil python3-devel git
-
-        ls . -a
+    - uses: actions/checkout@v3
+    - name: Generic installation
+      run: |
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
         sudo python3 -m install --root /
