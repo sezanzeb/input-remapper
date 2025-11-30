@@ -17,7 +17,7 @@ dependencies = [
     "evdev",
     "psutil",
     "dasbus",
-    "pygobject",
+    "PyGObject",
     "pydantic",
 ]
 

@@ -21,8 +21,7 @@ jobs:
         # cache-dependency-path: pyproject.toml
     - name: Install dependencies
       run: |
-        # Install deps as root since we will run tests as root
-        scripts/ci-install-deps.sh
+        pip install -e .
     - name: Run tests
       run: |
         # Don't run tests as root, otherwise (I think) they run on the systems python
