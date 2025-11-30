@@ -21,6 +21,8 @@ jobs:
         # cache-dependency-path: pyproject.toml
     - name: Install
       run: |
+        ls -a
+        sudo pip install build
         python3 -m build
 
         # build dependencies
