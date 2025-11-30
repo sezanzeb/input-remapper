@@ -41,7 +41,7 @@ jobs:
       run: |
         sudo dnf install -y gettext python3-evdev python3-dasbus python3-pydantic \
             python3-gobject gobject-introspection gtk3 gtksourceview4 python3-pydantic \
-            python3-psutil python3-devel
+            python3-psutil python3-devel git
 
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
