@@ -34,7 +34,6 @@ jobs:
         # version (3.12 currently)
         python3 --version
 
-        # FIXME: Had some permissions issues, currently worked around by running tests as root
         mkdir test_tmp
         export TMPDIR="$(realpath test_tmp)"
 
