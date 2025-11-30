@@ -23,6 +23,15 @@ jobs:
       run: |
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
+
+        # Tests should also work when inputremapper is installed system-wide.
+        # Don't build and install the deb this time, because the generic installation
+        # method should work too.
+        sudo python3 -m install --root /
+
+        # Remove the local package, to avoid accidentally importing that one over the
+        # system-wide installation.
+        rm inputremapper -r
     - name: Run tests
       run: |
         # FIXME: Had some permissions issues, currently worked around by running tests as root
