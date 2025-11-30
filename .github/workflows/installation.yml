@@ -27,9 +27,7 @@ jobs:
       run: |
         set -x
 
-        # Helps to retain the order of logs:
-        export PYTHONUNBUFFERED=1
-
+        # Note, that the order of logs is kinda broken in the workflow
         sudo python3 -m install --root /
 
         # Make sure we aren't just importing the module from the cloned repo in the
