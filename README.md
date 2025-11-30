@@ -1,4 +1,4 @@
-<p align="center"><img src="data/input-remapper.svg" width=100/></p>
+<p align="center"><img src="data/input-remapper.png" width=100/></p>
 
 <h1 align="center">Input Remapper</h1>
 
