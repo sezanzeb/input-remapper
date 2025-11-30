@@ -41,6 +41,7 @@ import subprocess
 import shutil
 import re
 import tomllib
+import evdev
 
 
 def _key(path) -> int:
