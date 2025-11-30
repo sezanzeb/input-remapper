@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -23,6 +23,10 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["inputremapper"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["inputremapper*"]
 
 [project.urls]
 Homepage = "https://github.com/sezanzeb/input-remapper"

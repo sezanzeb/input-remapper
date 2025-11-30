@@ -21,20 +21,23 @@ jobs:
         # cache-dependency-path: pyproject.toml
     - name: Install
       run: |
-        set -x
-
         # build dependencies
         sudo apt install gettext -y
 
         sudo scripts/build-deb.sh
         find build
         sudo apt install -f ./dist/input-remapper-*.deb | true
+    - name: Debug build
+      run: |
+        set -x
 
-        # For debugging
+        python3 -m build
+        unzip -l dist/*.whl
+
         sudo python3 -c "import sys; print(sys.path)"
         find .
         find /usr/lib/python* -type d -name inputremapper
-        find /usr/lib/python3/dist-packages/inputremapper
+        find /usr/lib/python*/dist-packages/inputremapper
         systemctl status input-remapper.service
     - name: DBus Hello
       run: |
