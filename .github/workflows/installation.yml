@@ -46,6 +46,9 @@ jobs:
     - uses: actions/checkout@v3
     - name: Generic installation
       run: |
+        # To avoid the "dubious ownership" error
+        git config --global --add safe.directory /__w/input-remapper/input-remapper
+
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
         sudo python3 -m install --root /
