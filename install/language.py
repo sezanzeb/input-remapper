@@ -27,7 +27,7 @@ from os.path import basename, splitext, join, dirname
 
 
 def make_lang(root: str):
-    """Build po files into build/mo/."""
+    """Build po files as mo files into the expected directory."""
     os.makedirs("mo", exist_ok=True)
     for po_file in glob.glob("po/*.po"):
         lang = splitext(basename(po_file))[0]
