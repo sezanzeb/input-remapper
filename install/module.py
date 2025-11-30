@@ -135,7 +135,6 @@ def build_input_remapper_module(root: str):
         "--target",
         target,
         "--no-deps",
-        "-v",
     ]
 
     print("Running", " ".join(command))

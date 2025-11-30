@@ -45,7 +45,7 @@ jobs:
 
         # Presence of the build directory changes a bit how pip installs stuff. Lets
         # try it clean.
-        rm build -r
+        sudo rm build -r
 
         # Tests should also work when inputremapper is installed system-wide.
         # Don't build and install the deb this time, because the generic installation
