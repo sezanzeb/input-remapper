@@ -55,6 +55,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Generic installation
       run: |
+        set -x
+
         # build dependencies
         sudo apt install gettext -y
 
@@ -62,7 +64,8 @@ jobs:
         # should not break the system somehow
         sudo python3 -m install --root /
         sudo systemctl daemon-reload
-        sudo systemctl restart input-remapper
+        sudo systemctl restart input-remapper | true
+        systemctl status input-remapper
     - name: DBus Hello
       run: |
         # Try it again
