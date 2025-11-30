@@ -55,7 +55,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Generic installation
       run: |
-        ls .
+        # build dependencies
+        sudo apt install gettext -y
+
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
         sudo python3 -m install --root /
