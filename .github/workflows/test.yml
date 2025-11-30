@@ -22,7 +22,7 @@ jobs:
     - name: Install dependencies
       run: |
         # see https://pygobject.gnome.org/getting_started.html
-        # sudo zypper install cairo-devel pkg-config python3-devel gcc gobject-introspection-devel
+        sudo zypper install cairo-devel pkg-config python3-devel gcc gobject-introspection-devel
         pip install -e .
     - name: Run tests
       run: |
