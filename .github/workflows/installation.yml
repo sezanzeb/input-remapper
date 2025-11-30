@@ -1,4 +1,4 @@
-name: Installation
+name: Ubuntu Installation
 
 on: [push, pull_request]
 
@@ -19,28 +19,20 @@ jobs:
         # broken "Error: Cache folder path is retrieved for pip but doesn't exist on disk: /home/runner/.cache/pip"
         # cache: 'pip'
         # cache-dependency-path: pyproject.toml
-    - name: Install dependencies
+    - name: Install
       run: |
-        # Install deps as root since we will run tests as root
-        sudo scripts/ci-install-deps.sh
-    - name: Try to install and import
+        sudo scripts/build-deb.sh
+        sudo apt install -f ./dist/input-remapper-2.2.0.deb
+    - name: DBus Hello
       run: |
-        set -x
-
-        # Note, that the order of logs is kinda broken in the workflow
-        sudo python3 -m install --root /
+        # Test if files have been placed at the correct places in ubuntus file system.
+        # By sending the hello command, we tests the service file, binaries and module
 
         # Make sure we aren't just importing the module from the cloned repo in the
-        # cwd. The import below should import the installed package.
+        # cwd. Commands should import the installed package
         cd /
         [ ! -d "inputremapper" ]
 
-        # Helps with debugging
-        find /usr/lib/python* -name inputremapper -type d
-        python3 -c "import sys; print(sys.path)"
-        sudo python3 -c "import sys; print(sys.path)"
-
-        # sys.path only contains funky special paths without sudo, lets install and
-        # check with sudo.
-        # Should not fail with ModuleNotFoundError
-        sudo python3 -c "import inputremapper"
+        # This will only work if all data_files and the module have been placed at the
+        # correct places in ubuntus file system.
+        input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
