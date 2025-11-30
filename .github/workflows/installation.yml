@@ -27,6 +27,7 @@ jobs:
         sudo apt install gettext -y
 
         sudo scripts/build-deb.sh
+        find build
         sudo apt install -f ./dist/input-remapper-*.deb | true
 
         # For debugging
