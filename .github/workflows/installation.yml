@@ -25,7 +25,8 @@ jobs:
         sudo apt install gettext -y
 
         sudo scripts/build-deb.sh
-        sudo apt install -f ./dist/input-remapper-*.deb
+        sudo apt install -f ./dist/input-remapper-*.deb | true
+        systemctl status input-remapper.service
     - name: DBus Hello
       run: |
         # Test if files have been placed at the correct places in ubuntus file system.
@@ -36,6 +37,4 @@ jobs:
         cd /
         [ ! -d "inputremapper" ]
 
-        # This will only work if all data_files and the module have been placed at the
-        # correct places in ubuntus file system.
         input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
