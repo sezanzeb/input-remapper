@@ -9,7 +9,7 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       matrix:
-        python-version: ["3.8", "3.14"] # min and max supported versions?
+        python-version: ["3.14"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -23,10 +23,14 @@ jobs:
       run: |
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
-    - name: Run tests
+    - name: Try to install and import
       run: |
-        # FIXME: Had some permissions issues, currently worked around by running tests as root
-        mkdir test_tmp
-        export TMPDIR="$(realpath test_tmp)"
+        sudo python3 -m install --root /
+        cd /
 
-        sudo -E python -m unittest discover tests/unit
+        # Assert that the chosen working directory does not contain the inputremapper
+        # source module. The import below should import the installed package.
+        [ ! -d "inputremapper" ]
+
+        # Should not fail with ModuleNotFoundError
+        python3 -c "import inputremapper"

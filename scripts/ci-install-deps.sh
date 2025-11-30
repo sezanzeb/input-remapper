@@ -9,5 +9,5 @@ sudo apt-get install -y gettext python3-evdev python3-dasbus python3-pydantic py
 # ensure pip and setuptools/wheel up to date so can install all pip modules
 sudo apt-get install python3-pip python3-wheel python3-setuptools
 
-# install test deps which aren't in setup.py
+# install test deps which aren't in pyproject.toml
 python -m pip install psutil pylint-pydantic
