@@ -25,11 +25,16 @@ jobs:
         sudo scripts/ci-install-deps.sh
     - name: Try to install and import
       run: |
-        sudo python3 -m install --root /
-        cd /
+        set -x
 
-        # Assert that the chosen working directory does not contain the inputremapper
-        # source module. The import below should import the installed package.
+        # Helps to retain the order of logs:
+        export PYTHONUNBUFFERED=1
+
+        sudo python3 -m install --root /
+
+        # Make sure we aren't just importing the module from the cloned repo in the
+        # cwd. The import below should import the installed package.
+        cd /
         [ ! -d "inputremapper" ]
 
         # Helps with debugging
