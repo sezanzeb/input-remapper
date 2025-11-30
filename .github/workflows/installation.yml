@@ -9,7 +9,6 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
     - uses: actions/checkout@v3
-    # Lets use the default Ubuntu image without modifications for the deb installation
     - name: Install .deb
       run: |
         # build dependencies
@@ -37,15 +36,8 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
     - uses: actions/checkout@v3
-    # The generic installation hopefully works in many special cases, for example with
-    # the very latest python version.
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.14
     - name: Generic installation
       run: |
-        sudo python3 --version
         # When using `with: python-version: ...` beware that sys.path for the regular
         # user is changed substantially.
         sudo scripts/ci-install-deps.sh
