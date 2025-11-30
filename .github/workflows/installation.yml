@@ -1,9 +1,9 @@
-name: Ubuntu Installation
+name: Installation
 
 on: [push, pull_request]
 
 jobs:
-  build:
+  deb:
     continue-on-error: true
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
@@ -39,20 +39,31 @@ jobs:
 
         # Need to use sudo, because sys.path is weird in the ci otherwise
         sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
+
+  generic:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    strategy:
+      matrix:
+        python-version: ["3.14"]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
     - name: Generic installation
       run: |
-        sudo apt purge input-remapper
-
-        # Presence of the build directory changes a bit how pip installs stuff. Lets
-        # try it clean.
-        sudo rm build -r
-
+        ls .
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
         sudo python3 -m install --root /
-    - name: DBus Hello 2
+        sudo systemctl daemon-reload
+        sudo systemctl restart input-remapper
+    - name: DBus Hello
       run: |
-        # Lets try it again
+        # Try it again
         cd /
         [ ! -d "inputremapper" ]
         sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
