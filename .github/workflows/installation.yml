@@ -21,6 +21,8 @@ jobs:
         # cache-dependency-path: pyproject.toml
     - name: Install
       run: |
+        python3 -m build
+
         # build dependencies
         sudo apt install gettext -y
 

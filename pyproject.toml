@@ -24,10 +24,6 @@ dependencies = [
 [tool.setuptools]
 packages = ["inputremapper"]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["inputremapper*"]
-
 [project.urls]
 Homepage = "https://github.com/sezanzeb/input-remapper"
 
