@@ -19,7 +19,7 @@ jobs:
         # broken "Error: Cache folder path is retrieved for pip but doesn't exist on disk: /home/runner/.cache/pip"
         # cache: 'pip'
         # cache-dependency-path: pyproject.toml
-    - name: Install
+    - name: Install .deb
       run: |
         # build dependencies
         sudo apt install gettext -y
@@ -38,4 +38,18 @@ jobs:
         [ ! -d "inputremapper" ]
 
         # Need to use sudo, because sys.path is weird in the ci otherwise
+        sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
+    - name: Generic installation
+      run: |
+        sudo apt purge input-remapper
+
+        # Tests should also work when inputremapper is installed system-wide.
+        # Don't build and install the deb this time, because the generic installation
+        # method should work too. Also, lets check if `--root /` breaks the system.
+        sudo python3 -m install --root /
+    - name: DBus Hello 2
+      run: |
+        # Lets try it again
+        cd /
+        [ ! -d "inputremapper" ]
         sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
