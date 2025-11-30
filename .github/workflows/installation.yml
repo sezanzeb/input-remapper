@@ -55,17 +55,14 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Generic installation
       run: |
-        set -x
-
-        # build dependencies
-        sudo apt install gettext -y
+        sudo scripts/ci-install-deps.sh
 
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
         sudo python3 -m install --root /
+
         sudo systemctl daemon-reload
-        sudo systemctl restart input-remapper | true
-        systemctl status input-remapper
+        sudo systemctl restart input-remapper | systemctl status input-remapper
     - name: DBus Hello
       run: |
         # Try it again
