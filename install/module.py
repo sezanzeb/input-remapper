@@ -140,6 +140,9 @@ def build_input_remapper_module(root: str):
 
     print("Running", " ".join(command))
 
+    # Possibly fix the stdout ordering in github workflows
+    sys.stdout.flush()
+
     subprocess.check_call(command)
 
     # pip puts its own leftovers into ./build that we don't need.
