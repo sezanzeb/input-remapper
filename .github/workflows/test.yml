@@ -34,7 +34,4 @@ jobs:
         # version (3.12 currently)
         python3 --version
 
-        mkdir test_tmp
-        export TMPDIR="$(realpath test_tmp)"
-
         python -m unittest discover tests/unit
