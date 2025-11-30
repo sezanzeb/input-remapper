@@ -18,13 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-import tempfile
-from tests.lib.logger import logger
-
-# When it gets garbage collected it cleans up the temporary directory so it needs to
-# stay reachable while the tests are ran.
-temporary_directory = tempfile.TemporaryDirectory(prefix="input-remapper-test")
-tmp = temporary_directory.name
-logger.info('tmp at "%s"', tmp)
+COMMIT_HASH = "unknown"
+VERSION = "2.2.0"
+# depending on where this file is installed to, make sure to use the proper
+# prefix path for data. Package maintainers may overwrite this file in
+# any way they like.
+DATA_DIR = "/usr/share/inputremapper"

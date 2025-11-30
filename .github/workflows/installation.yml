@@ -1,0 +1,54 @@
+name: Installation
+
+on: [push, pull_request]
+
+jobs:
+  deb:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install .deb
+      run: |
+        # build dependencies
+        sudo apt install gettext -y
+
+        sudo scripts/build-deb.sh
+        find build
+        sudo apt install -f ./dist/input-remapper-*.deb
+    - name: DBus Hello
+      run: |
+        # Test if files have been placed at the correct places in ubuntus file system.
+        # By sending the hello command, we tests the service file, binaries and module
+
+        # Make sure we aren't just importing the module from the cloned repo in the
+        # cwd. Commands should import the installed package
+        cd /
+        [ ! -d "inputremapper" ]
+
+        # Need to use sudo, because sys.path is weird in the ci otherwise
+        sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
+
+  generic:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+    - uses: actions/checkout@v3
+    - name: Generic installation
+      run: |
+        sudo scripts/ci-install-deps.sh
+
+        # Check if the generic installation method works too. Also, using `--root /`
+        # should not break the system somehow
+        sudo python3 -m install --root /
+
+        sudo systemctl daemon-reload
+        sudo systemctl restart input-remapper
+    - name: DBus Hello
+      run: |
+        # Try it again
+        cd /
+        [ ! -d "inputremapper" ]
+        sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'

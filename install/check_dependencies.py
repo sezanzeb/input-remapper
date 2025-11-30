@@ -18,13 +18,25 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
 
-import tempfile
-from tests.lib.logger import logger
+def check_dependencies() -> None:
+    try:
+        import gi
 
-# When it gets garbage collected it cleans up the temporary directory so it needs to
-# stay reachable while the tests are ran.
-temporary_directory = tempfile.TemporaryDirectory(prefix="input-remapper-test")
-tmp = temporary_directory.name
-logger.info('tmp at "%s"', tmp)
+        gi.require_version("Gdk", "3.0")
+        gi.require_version("GLib", "2.0")
+        gi.require_version("Gst", "1.0")
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("GtkSource", "4")
+        from gi.repository import GObject, Gtk, Gst, Gdk, GLib, Pango, Gio, GtkSource
+        import evdev
+        import psutil
+        import dasbus
+        import pygobject
+        import pydantic
+
+        print("All required Python modules found")
+    except ImportError as e:
+        print(f"\033[93mMissing Python module: {e}\033[0m")
+    except Exception as e:
+        print(f"\033[93mException while checking dependencies: {e}\033[0m")

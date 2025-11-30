@@ -130,11 +130,14 @@ def patch_services():
             mapping_parser,
         )
 
-    with patch.object(
-        os,
-        "system",
-        os_system_patch,
-    ), patch.object(Daemon, "connect", bootstrap_daemon):
+    with (
+        patch.object(
+            os,
+            "system",
+            os_system_patch,
+        ),
+        patch.object(Daemon, "connect", bootstrap_daemon),
+    ):
         yield
 
 

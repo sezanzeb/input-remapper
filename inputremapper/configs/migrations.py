@@ -385,7 +385,7 @@ class Migrations:
                 pointer_speed = joystick_dict.get("pointer_speed")
                 if pointer_speed:
                     pointer_speed /= 100
-                non_linearity = joystick_dict.get("non_linearity")  # Todo
+                # non_linearity = joystick_dict.get("non_linearity")  # Todo
                 x_scroll_speed = joystick_dict.get("x_scroll_speed")
                 y_scroll_speed = joystick_dict.get("y_scroll_speed")
 

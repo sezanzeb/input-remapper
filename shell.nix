@@ -21,8 +21,6 @@ pkgs.mkShell {
       python-packages: with python-packages; [
         pip
         wheel
-        setuptools # for pkg_resources
-        types-setuptools
 
         evdev
         dasbus
