@@ -32,6 +32,7 @@ jobs:
         # For debugging
         sudo python3 -c "import sys; print(sys.path)"
         find /usr/lib/python* -type d -name inputremapper
+        find /usr/lib/python3/dist-packages/inputremapper
         systemctl status input-remapper.service
     - name: DBus Hello
       run: |
