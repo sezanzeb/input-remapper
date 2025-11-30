@@ -41,7 +41,7 @@ jobs:
         sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
     - name: Generic installation
       run: |
-        sudo apt purge input-remapper
+        # sudo apt purge input-remapper
 
         # Presence of the build directory changes a bit how pip installs stuff. Lets
         # try it clean.
