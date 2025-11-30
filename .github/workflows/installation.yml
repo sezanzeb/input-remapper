@@ -3,7 +3,7 @@ name: Installation
 on: [push, pull_request]
 
 jobs:
-  deb-ubuntu:
+  deb:
     continue-on-error: true
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
@@ -30,24 +30,15 @@ jobs:
         # Need to use sudo, because sys.path is weird in the ci otherwise
         sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
 
-  generic-fedora:
+  generic:
     continue-on-error: true
     runs-on: ubuntu-latest
-    container: fedora:latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
-    - name: Dependencies
-      run: |
-        # Installing git has to be done before the checkout step for it to contain
-        # the .git directory
-        sudo dnf install -y gettext python3-evdev python3-dasbus python3-pydantic \
-            python3-gobject gobject-introspection gtk3 gtksourceview4 python3-pydantic \
-            python3-psutil python3-devel git
     - uses: actions/checkout@v3
     - name: Generic installation
       run: |
-        # To avoid the "dubious ownership" error
-        sudo git config --global --add safe.directory /__w/input-remapper/input-remapper
+        sudo scripts/ci-install-deps.sh
 
         # Check if the generic installation method works too. Also, using `--root /`
         # should not break the system somehow
