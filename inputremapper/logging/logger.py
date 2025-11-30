@@ -147,14 +147,10 @@ logger = Logger.bootstrap_logger()
 
 EVDEV_VERSION = None
 try:
-    # pkg_resources very commonly fails/breaks
-    import pkg_resources
+    from importlib.metadata import version
 
-    EVDEV_VERSION = pkg_resources.require("evdev")[0].version
+    EVDEV_VERSION = version("evdev")
 except Exception as error:
-    # there have been pkg_resources.DistributionNotFound and
-    # pkg_resources.ContextualVersionConflict errors so far.
-    # We can safely ignore all Exceptions here
     logger.info("Could not figure out the evdev version")
     logger.debug(error)
 
