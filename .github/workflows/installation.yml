@@ -7,18 +7,9 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
-    strategy:
-      matrix:
-        python-version: ["3.14"]
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-        # broken "Error: Cache folder path is retrieved for pip but doesn't exist on disk: /home/runner/.cache/pip"
-        # cache: 'pip'
-        # cache-dependency-path: pyproject.toml
+    # Lets use the default Ubuntu image without modifications for the deb installation
     - name: Install .deb
       run: |
         # build dependencies
@@ -46,11 +37,17 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
     - uses: actions/checkout@v3
+    # The generic installation hopefully works in many special cases, for example with
+    # the very latest python version.
+    - name: Set up Python 3.14
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.14
     - name: Generic installation
       run: |
-        set -x
-        python3 --version
-        python3 -c "import sys; print(sys.path)"
+        sudo python3 --version
+        # When using `with: python-version: ...` beware that sys.path for the regular
+        # user is changed substantially.
         sudo scripts/ci-install-deps.sh
 
         # Check if the generic installation method works too. Also, using `--root /`
