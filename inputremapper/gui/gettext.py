@@ -31,6 +31,3 @@ locale.textdomain(APP_NAME)
 
 translate = gettext.translation(APP_NAME, LOCALE_DIR, fallback=True)
 _ = translate.gettext
-
-# TODO make this work
-
