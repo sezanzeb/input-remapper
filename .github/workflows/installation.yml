@@ -1,4 +1,4 @@
-name: Test
+name: Installation
 
 on: [push, pull_request]
 
@@ -32,5 +32,11 @@ jobs:
         # source module. The import below should import the installed package.
         [ ! -d "inputremapper" ]
 
+        # Helps with debugging
+        find /usr -name inputremapper
+        python3 -c "import sys; print(sys.path)"
+        sudo python3 -c "import sys; print(sys.path)"
+
         # Should not fail with ModuleNotFoundError
         python3 -c "import inputremapper"
+        sudo python3 -c "import inputremapper"
