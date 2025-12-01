@@ -6,7 +6,7 @@
    version="1.1"
    id="svg2873"
    inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
-   sodipodi:docname="input-remapper-flat.svg"
+   sodipodi:docname="input-remapper.svg"
    xml:space="preserve"
    inkscape:export-filename="input-remapper-large.png"
    inkscape:export-xdpi="25.76"
@@ -30,10 +30,10 @@
          id="stop4156" /></linearGradient><linearGradient
        inkscape:collect="always"
        id="linearGradient4146"><stop
-         style="stop-color:#3cc383;stop-opacity:1;"
+         style="stop-color:#3abb7d;stop-opacity:1;"
          offset="0.39255014"
          id="stop4142" /><stop
-         style="stop-color:#c1db5b;stop-opacity:1;"
+         style="stop-color:#c5dd64;stop-opacity:1;"
          offset="0.39255014"
          id="stop4144" /></linearGradient><filter
        style="color-interpolation-filters:sRGB"
@@ -66,8 +66,8 @@
        id="linearGradient4152"
        x1="226.41911"
        y1="108.84107"
-       x2="274.24225"
-       y2="189.99623"
+       x2="275.41513"
+       y2="189.42172"
        gradientUnits="userSpaceOnUse" /><linearGradient
        inkscape:collect="always"
        xlink:href="#linearGradient4158"
@@ -84,9 +84,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.2810327"
-     inkscape:cx="159.63683"
-     inkscape:cy="295.46475"
+     inkscape:zoom="0.97060004"
+     inkscape:cx="39.666184"
+     inkscape:cy="148.87698"
      inkscape:document-units="mm"
      inkscape:current-layer="g4363"
      inkscape:document-rotation="0"
