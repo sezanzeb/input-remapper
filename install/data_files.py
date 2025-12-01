@@ -25,10 +25,13 @@ import os
 import shutil
 
 
+DATA_DIR = "usr/share/input-remapper"
+
+
 def build_data_files(root: str):
     data_files = [
         # see development.md#files
-        ("usr/share/input-remapper/", glob.glob("data/*")),
+        (DATA_DIR, glob.glob("data/*")),
         ("usr/share/applications/", ["data/input-remapper-gtk.desktop"]),
         (
             "usr/share/metainfo/",

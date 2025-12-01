@@ -42,6 +42,8 @@ import shutil
 import re
 import tomllib
 
+from install.data_files import DATA_DIR
+
 
 def _key(path) -> int:
     # good
@@ -99,7 +101,7 @@ def _set_variables(target: str):
     values = {
         "COMMIT_HASH": _get_commit_hash(),
         "VERSION": version,
-        "DATA_DIR": "/usr/share/inputremapper",
+        "DATA_DIR": f"/{DATA_DIR}",
     }
 
     print("Setting", values, "in", path)
