@@ -23,7 +23,7 @@
        inkscape:collect="always"
        id="linearGradient4158"><stop
          style="stop-color:#6d257e;stop-opacity:1;"
-         offset="0.57306588"
+         offset="0.56"
          id="stop4154" /><stop
          style="stop-color:#a92077;stop-opacity:1;"
          offset="0.57306588"
@@ -31,7 +31,7 @@
        inkscape:collect="always"
        id="linearGradient4146"><stop
          style="stop-color:#3abb7d;stop-opacity:1;"
-         offset="0.39255014"
+         offset="0.38"
          id="stop4142" /><stop
          style="stop-color:#c5dd64;stop-opacity:1;"
          offset="0.39255014"
@@ -72,8 +72,8 @@
        inkscape:collect="always"
        xlink:href="#linearGradient4158"
        id="linearGradient4160"
-       x1="266.4267"
-       y1="4.2334733"
+       x1="264.68271"
+       y1="5.086688"
        x2="311.19925"
        y2="98.210831"
        gradientUnits="userSpaceOnUse"
@@ -84,9 +84,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.96908183"
-     inkscape:cx="141.88688"
-     inkscape:cy="361.68256"
+     inkscape:zoom="0.95156351"
+     inkscape:cx="179.70424"
+     inkscape:cy="188.63691"
      inkscape:document-units="mm"
      inkscape:current-layer="g4363"
      inkscape:document-rotation="0"
