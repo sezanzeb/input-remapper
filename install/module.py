@@ -50,6 +50,9 @@ def _key(path) -> int:
 
     if path.startswith("/usr/lib/python3/") or path == "/usr/lib/python3":
         # Paths that work independent of the python version, yes please
+        return -2
+
+    if path.startswith("/usr/lib"):
         return -1
 
     # bad
@@ -59,14 +62,17 @@ def _key(path) -> int:
         # Workarounds are annoying and not satisfactory.
         return 1
 
+    if path.startswith("/home") or path.startswith("/root"):
+        return 2
+
     if not path.startswith("/"):
         # Editable package paths, not system-wide, user installations which don't work
         # for input-remapper.
-        return 2
+        return 3
 
     if not os.path.isdir(path):
         # /usr/lib/python313.zip
-        return 3
+        return 4
 
     # neutral
     # Stuff like /usr/lib/python3.13/site-packages
