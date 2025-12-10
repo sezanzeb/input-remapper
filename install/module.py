@@ -78,6 +78,7 @@ def _get_packages_dir():
 
     For example "/usr/lib/python3.13
     """
+    print("Picking the best python path from", sys.path)
     packages_dir = sorted(sys.path, key=_key)[0]
     return packages_dir
 
