@@ -9,7 +9,6 @@ license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "setuptools",
     "evdev",
     "psutil",
     "dasbus",
