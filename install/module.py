@@ -85,7 +85,6 @@ def _key(path) -> int:
         # /usr/lib/python313.zip or a directory that doesn't exist
         favorability -= 4
 
-    print('Rated', path, favorability)
     return -favorability
 
 
