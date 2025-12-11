@@ -48,13 +48,15 @@ from install.data_files import DATA_DIR
 def _key(path) -> int:
     favorability = 0
 
-    # Sorted from desireable paths to less desireable
-
-    if path.startswith("/usr/lib/python3/"):
-        # Paths that work independent of the python version, yes please
-        favorability += 1
+    # Sorted from desireable paths to less desireable. Multiple may apply to a single
+    # path. For example, /usr/lib/python3/ is less desireable than
+    # /usr/lib/python3/dist-packages/
 
     if path.startswith("/usr/lib"):
+        favorability += 1
+
+    if "/python3/" in path:
+        # Paths that work independent of the python version, yes please
         favorability += 1
 
     if path.startswith("/usr/local"):
@@ -65,6 +67,9 @@ def _key(path) -> int:
     if not '-packages' in path:
         # Don't install into the standard libraries path (such as /usr/lib/python3.13)
         favorability -= 1
+
+    if 'lib-dynload' in path:
+        favorability -= 2
 
     if path.startswith("/home") or path.startswith("/root"):
         # Editable package paths, not system-wide, user installations which don't work
