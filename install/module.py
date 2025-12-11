@@ -71,7 +71,7 @@ def _key(path) -> int:
     if 'lib-dynload' in path:
         favorability -= 2
 
-    if path.startswith("/home") or path.startswith("/root"):
+    if not path.startswith("/usr"):
         # Editable package paths, not system-wide, user installations which don't work
         # for input-remapper.
         # Input-remapper typically needs a system-wide installation
