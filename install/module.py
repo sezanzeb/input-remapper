@@ -64,7 +64,7 @@ def _key(path) -> int:
         # Workarounds are annoying and not satisfactory.
         favorability -= 1
 
-    if not '-packages' in path:
+    if '-packages' not in path:
         # Don't install into the standard libraries path (such as /usr/lib/python3.13)
         favorability -= 1
 

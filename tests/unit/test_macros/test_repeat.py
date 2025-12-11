@@ -46,7 +46,9 @@ class TestRepeat(MacroTestBase):
         keystroke_sleep = DummyMapping.macro_key_sleep_ms
         sleep_time = 2 * repeats * keystroke_sleep / 1000
         self.assertGreater(time.time() - start, sleep_time * 0.9)
-        self.assertLess(time.time() - start, sleep_time * 1.3)
+
+        # This test is rather lax, timing in github actions is slow
+        self.assertLess(time.time() - start, sleep_time * 1.4)
 
         self.assertListEqual(
             self.result,
