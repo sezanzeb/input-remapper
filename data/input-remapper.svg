@@ -105,7 +105,7 @@
        x2="285.77728"
        y2="166.38808"
        gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(0.90269625,0,0,0.90269625,24.848781,11.078928)" />
+       gradientTransform="matrix(0.94972122,0,0,0.94972122,12.804168,6.330255)" />
     <linearGradient
        inkscape:collect="always"
        xlink:href="#linearGradient2085"
@@ -170,17 +170,17 @@
      id="layer1"
      transform="translate(-186.12124,-30.970871)">
     <path
-       style="fill:url(#linearGradient2023);fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:5;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:url(#linearGradient2023);fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:5.26047;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="path3680"
        sodipodi:type="arc"
        sodipodi:cx="256.05847"
        sodipodi:cy="102.23496"
-       sodipodi:rx="63.198746"
-       sodipodi:ry="63.198746"
+       sodipodi:rx="66.491013"
+       sodipodi:ry="66.491013"
        sodipodi:start="0.11227764"
        sodipodi:end="0.10993049"
        sodipodi:arc-type="arc"
-       d="m 318.85929,109.31587 a 63.198746,63.198746 0 0 1 -69.84487,55.72405 63.198746,63.198746 0 0 1 -55.76503,-69.812158 63.198746,63.198746 0 0 1 69.77943,-55.805981 63.198746,63.198746 0 0 1 55.84691,69.746669"
+       d="m 322.13082,109.68474 a 66.491013,66.491013 0 0 1 -73.48336,58.62693 66.491013,66.491013 0 0 1 -58.67004,-73.44894 66.491013,66.491013 0 0 1 73.41451,-58.71313 66.491013,66.491013 0 0 1 58.7562,73.38004"
        sodipodi:open="true" />
     <path
        id="path3702"
