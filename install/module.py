@@ -72,7 +72,7 @@ def _key(path) -> int:
         "/lib/python3/dist-packages",
     ]
 
-    if path.replace('/usr', '') not in ubuntu_udev:
+    if path.replace('/usr/lib', '/lib') not in ubuntu_udev:
         favorability -= 5
 
     if not os.path.exists(path):
