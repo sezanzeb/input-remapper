@@ -21,7 +21,6 @@ jobs:
         # cache-dependency-path: pyproject.toml
     - name: Install dependencies
       run: |
-        # Getting this to work with the actions/setup-python step is more involved...
         # see https://pygobject.gnome.org/getting_started.html
         sudo apt update
         sudo apt install \

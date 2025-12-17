@@ -28,5 +28,6 @@ from inputremapper.installation_info import DATA_DIR
 
 def get_data_path(filename=""):
     """Depending on the installation prefix, return the data dir."""
-    # This was more complicated in the past. This useless wrapper is kept for now.
+    # This was more complicated in the past. This wrapper is kept for now, but feel
+    # free to remove it at a later point.
     return os.path.join(DATA_DIR, filename)

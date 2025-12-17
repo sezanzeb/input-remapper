@@ -18,9 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Information about the input-remapper installation.
+
+These defaults might be overwritten by package maintainers.
+"""
+
 COMMIT_HASH = "unknown"
 VERSION = "2.2.0"
 # depending on where this file is installed to, make sure to use the proper
-# prefix path for data. Package maintainers may overwrite this file in
-# any way they like.
+# prefix path for data.
 DATA_DIR = "/usr/share/inputremapper"
