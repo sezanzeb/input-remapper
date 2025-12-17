@@ -33,6 +33,7 @@ endeavouros  user: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/l
 endeavouros  root: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/lib/python3.13/site-packages']
 ubuntu 25.04 user: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/home/mango/.local/lib/python3.13/site-packages', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
 ubuntu 25.04 root: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
+ubuntu 25.04 udev: ['/usr/bin', '/lib/python313.zip', '/lib/python3.13', '/lib/python3.13/lib-dynload', '/lib/python3/dist-packages']
 """
 
 import sys
@@ -48,42 +49,31 @@ from install.data_files import DATA_DIR
 def _key(path) -> int:
     favorability = 0
 
-    # Sorted from desireable paths to less desireable. Multiple may apply to a single
-    # path. For example, /usr/lib/python3/ is less desireable than
-    # /usr/lib/python3/dist-packages/
+    if re.match(r".*/lib/python3/.+-packages", path):
+        favorability = 5
 
-    if path.startswith("/usr/lib"):
-        favorability += 1
+    if re.match(r".*/lib/python3.+?/.+-packages", path):
+        favorability = 4
 
-    if "/python3/" in path:
-        # Paths that work independent of the python version, yes please
-        favorability += 1
+    if re.match(r".*/lib/python3", path):
+        favorability = 3
 
-    if path.startswith("/usr/local"):
-        # Cannot be imported in udev and some python installations.
-        # Workarounds are annoying and not satisfactory.
-        favorability -= 1
+    if re.match(r".*/lib/python3.+?", path):
+        favorability = 2
 
-    if '-packages' not in path:
-        # Don't install into the standard libraries path (such as /usr/lib/python3.13)
-        favorability -= 1
+    if re.match(r".*/lib/python3.+?/lib-dynload", path):
+        favorability = 1
 
-    if 'lib-dynload' in path:
-        favorability -= 2
+    ubuntu_udev = [
+        "/usr/bin",
+        "/lib/python313.zip",
+        "/lib/python3.13",
+        "/lib/python3.13/lib-dynload",
+        "/lib/python3/dist-packages",
+    ]
 
-    if not path.startswith("/usr"):
-        # Editable package paths, not system-wide, user installations which don't work
-        # for input-remapper.
-        # Input-remapper typically needs a system-wide installation
-        favorability -= 2
-
-    if not path.startswith("/"):
-        # If this is even possible at all
-        favorability -= 3
-
-    if not os.path.isdir(path):
-        # /usr/lib/python313.zip or a directory that doesn't exist
-        favorability -= 4
+    if path not in ubuntu_udev:udev
+        favorability -= 5
 
     return -favorability
 
