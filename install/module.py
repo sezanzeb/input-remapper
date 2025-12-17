@@ -52,16 +52,16 @@ def _key(path) -> int:
     if re.match(r".*/lib/python3/.+-packages", path):
         favorability = 5
 
-    if re.match(r".*/lib/python3.+?/.+-packages", path):
+    elif re.match(r".*/lib/python3.+?/.+-packages", path):
         favorability = 4
 
-    if re.match(r".*/lib/python3", path):
+    elif re.match(r".*/lib/python3", path):
         favorability = 3
 
-    if re.match(r".*/lib/python3.+?", path):
+    elif re.match(r".*/lib/python3.+?", path):
         favorability = 2
 
-    if re.match(r".*/lib/python3.+?/lib-dynload", path):
+    elif re.match(r".*/lib/python3.+?/lib-dynload", path):
         favorability = 1
 
     ubuntu_udev = [
@@ -72,9 +72,17 @@ def _key(path) -> int:
         "/lib/python3/dist-packages",
     ]
 
-    if path not in ubuntu_udev:udev
+    if path.replace('/usr', '') not in ubuntu_udev:
         favorability -= 5
 
+    if not os.path.exists(path):
+        # If it doesn't exist yet, pip will apparently create it
+        favorability -= 2
+    elif not os.path.isdir(path):
+        # If it exists but is not a dir, do not use it
+        favorability -= 10
+
+    print(path, favorability)
     return -favorability
 
 
