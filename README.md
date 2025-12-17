@@ -72,6 +72,17 @@ sudo systemctl enable --now input-remapper
 
 <br/>
 
+### Gentoo
+
+`games-util/input-remapper` is available in [Project:GURU](https://wiki.gentoo.org/wiki/Project:GURU/Information_for_End_Users).
+
+```bash
+sudo emerge -av games-util/input-remapper
+sudo systemctl enable --now input-remapper
+```
+
+<br/>
+
 ### Other Distros
 
 Figure out the packages providing those dependencies in your distro, and install them:
