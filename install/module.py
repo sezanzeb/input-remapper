@@ -82,7 +82,6 @@ def _key(path) -> int:
         # If it exists but is not a dir, do not use it
         favorability -= 10
 
-    print(path, favorability)
     return -favorability
 
 
