@@ -35,7 +35,10 @@ def uninstall():
             filename = os.path.basename(file_)
             path = os.path.join('/', directory, filename)
 
-            # Do not accidentally remove system directories due to a bug
+            # Removing files from system directories is risky. Low propability, very
+            # high damage. To avoid accidentally removing system directories due to
+            # a bug, assert that this is an input-remapper path.
+            # If this happens, urgently create a new issue on github!
             assert 'input' in path and 'remapper' in path
 
             try:
@@ -43,6 +46,14 @@ def uninstall():
                 print("Removed", path)
             except FileNotFoundError:
                 print(path, "not found")
+
+    # language files are not in data_files
+    data_path = '/usr/share/input-remapper/'
+    try:
+        shutil.rmtree(data_path)
+        print("Removed", data_path)
+    except FileNotFoundError:
+        print(data_path, "not found")
 
     # remove pip module
     command = [
