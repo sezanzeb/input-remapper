@@ -78,8 +78,11 @@ def main():
             sys.exit(3)
 
     check_dependencies()
+    print()
     build_data_files(args.root)
+    print()
     make_lang(args.root)
+    print()
     build_input_remapper_module(args.root)
 
 

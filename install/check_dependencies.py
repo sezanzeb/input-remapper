@@ -20,6 +20,7 @@
 
 
 def check_dependencies() -> None:
+    print("Checking dependencies")
     try:
         import gi
 
