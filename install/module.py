@@ -52,11 +52,15 @@ def _key(path) -> int:
 
     # Good
     if re.match(r".*/lib/python3/.+-packages", path):
-        favorability = 4
+        favorability = 5
     elif re.match(r".*/lib/python3.+?/.+-packages", path):
+        favorability = 4
+
+    # Not meant for python code, but it probably works flawlessly
+    elif re.match(r".*/lib/python3.+?/lib-dynload", path):
         favorability = 3
 
-    # Installing into standard library paths makes it hard to uninstall
+    # pip refuses to uninstall from standard-library directories once installed there
     elif re.match(r".*/lib/python3", path):
         favorability = 2
     elif re.match(r".*/lib/python3.+?", path):
