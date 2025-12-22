@@ -27,6 +27,7 @@ jobs:
         ruff --version
         ruff check ./inputremapper ./install
     - name: mypy
+      run: |
         # There are honestly many mypy issues with input-remapper, but nowadays
         # reviewdog points them out for us on changed files luckily.
         # The "install" module should be compliant.
