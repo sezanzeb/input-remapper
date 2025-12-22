@@ -31,6 +31,7 @@ distributions. I want the .deb to install reliably.
 sys.path samples:
 endeavouros  user: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/lib/python3.13/site-packages']
 endeavouros  root: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/lib/python3.13/site-packages']
+endeavouros  udev: ['/usr/bin', '/lib/python313.zip', '/lib/python3.13', '/lib/python3.13/lib-dynload', '/lib/python3.13/site-packages']
 ubuntu 25.04 user: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/home/mango/.local/lib/python3.13/site-packages', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
 ubuntu 25.04 root: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
 ubuntu 25.04 udev: ['/usr/bin', '/lib/python313.zip', '/lib/python3.13', '/lib/python3.13/lib-dynload', '/lib/python3/dist-packages']
@@ -49,30 +50,20 @@ from install.data_files import DATA_DIR
 def _key(path) -> int:
     favorability = 0
 
+    # Good
     if re.match(r".*/lib/python3/.+-packages", path):
-        favorability = 5
-
-    elif re.match(r".*/lib/python3.+?/.+-packages", path):
         favorability = 4
-
-    elif re.match(r".*/lib/python3", path):
+    elif re.match(r".*/lib/python3.+?/.+-packages", path):
         favorability = 3
 
-    elif re.match(r".*/lib/python3.+?", path):
+    # Installing into standard library paths makes it hard to uninstall
+    elif re.match(r".*/lib/python3", path):
         favorability = 2
-
-    elif re.match(r".*/lib/python3.+?/lib-dynload", path):
+    elif re.match(r".*/lib/python3.+?", path):
         favorability = 1
 
-    ubuntu_udev = [
-        "/usr/bin",
-        "/lib/python313.zip",
-        "/lib/python3.13",
-        "/lib/python3.13/lib-dynload",
-        "/lib/python3/dist-packages",
-    ]
-
-    if path.replace('/usr/lib', '/lib') not in ubuntu_udev:
+    # udev does not import from /usr/local
+    if path.startswith("/usr/local"):
         favorability -= 5
 
     if not os.path.exists(path):
@@ -80,7 +71,7 @@ def _key(path) -> int:
         favorability -= 2
     elif not os.path.isdir(path):
         # If it exists but is not a dir, do not use it
-        favorability -= 10
+        favorability -= 99
 
     return -favorability
 

@@ -33,13 +33,13 @@ def uninstall():
     for directory, files in get_data_files():
         for file_ in files:
             filename = os.path.basename(file_)
-            path = os.path.join('/', directory, filename)
+            path = os.path.join("/", directory, filename)
 
             # Removing files from system directories is risky. Low propability, very
             # high damage. To avoid accidentally removing system directories due to
             # a bug, assert that this is an input-remapper path.
             # If this happens, urgently create a new issue on github!
-            assert 'input' in path and 'remapper' in path
+            assert "input" in path and "remapper" in path
 
             try:
                 os.unlink(path)
@@ -48,7 +48,7 @@ def uninstall():
                 print(path, "not found")
 
     # language files are not in data_files
-    data_path = '/usr/share/input-remapper/'
+    data_path = "/usr/share/input-remapper/"
     try:
         shutil.rmtree(data_path)
         print("Removed", data_path)
@@ -62,7 +62,7 @@ def uninstall():
         "pip",
         "uninstall",
         "input-remapper",
-        "--break-system-packages"
+        "--break-system-packages",
     ]
     print("Running", " ".join(command))
     # Fix the stdout ordering in github workflows
@@ -70,5 +70,5 @@ def uninstall():
     subprocess.check_call(command)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     uninstall()
