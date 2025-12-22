@@ -26,7 +26,7 @@ import subprocess
 from os.path import basename, splitext, join, dirname
 
 
-def make_lang(root: str):
+def make_lang(root: str) -> None:
     """Build po files as mo files into the expected directory."""
     os.makedirs("mo", exist_ok=True)
     for po_file in glob.glob("po/*.po"):

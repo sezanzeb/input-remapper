@@ -28,7 +28,7 @@ import shutil
 DATA_DIR = "usr/share/input-remapper"
 
 
-def get_data_files():
+def get_data_files() -> list[tuple[str, list[str]]]:
     return [
         # see development.md#files
         (DATA_DIR, glob.glob("data/*")),
@@ -53,7 +53,7 @@ def get_data_files():
     ]
 
 
-def build_data_files(root: str):
+def build_data_files(root: str) -> None:
     for target_dir, files in get_data_files():
         # We specify the root via argv instead. Argparse would ignore the first
         # arguments with a leading slash.

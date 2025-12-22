@@ -60,14 +60,14 @@ def parse_args():
     return args
 
 
-def ask(msg):
+def ask(msg) -> bool:
     answer = ""
     while answer not in ["y", "n"]:
         answer = input(f"{msg} [y/n] ").lower()
     return answer == "y"
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     if os.path.exists(args.root) and not args.root.startswith("/"):

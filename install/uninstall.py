@@ -28,7 +28,7 @@ import subprocess
 from install.data_files import get_data_files
 
 
-def uninstall():
+def uninstall() -> None:
     # remove data files
     for directory, files in get_data_files():
         for file_ in files:

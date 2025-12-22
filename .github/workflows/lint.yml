@@ -18,11 +18,16 @@ jobs:
       run: |
         scripts/ci-install-deps.sh
         pip install black ruff
-    - name: Analysing the code with black --check --diff
+    - name: black --check --diff
       run: |
         black --version
         black --check --diff ./inputremapper ./tests
-    - name: Analysing the code with ruff
+    - name: ruff
       run: |
         ruff --version
         ruff check ./inputremapper ./install
+    - name: mypy
+        # There are honestly many mypy issues with input-remapper, but nowadays
+        # reviewdog points them out for us on changed files luckily.
+        # The "install" module should be compliant.
+        mypy ./install

@@ -82,7 +82,7 @@ def _key(path) -> int:
     return -favorability
 
 
-def _get_packages_dir():
+def _get_packages_dir() -> str:
     """Where to install the input-remapper module to.
 
     For example "/usr/lib/python3.13
@@ -93,13 +93,13 @@ def _get_packages_dir():
     return packages_dir
 
 
-def _get_commit_hash():
+def _get_commit_hash() -> str:
     git_call = subprocess.check_output(["git", "rev-parse", "HEAD"])
     commit = git_call.decode().strip()
     return commit
 
 
-def _set_variables(target: str):
+def _set_variables(target: str) -> None:
     path = os.path.join(target, "inputremapper", "installation_info.py")
     assert os.path.exists(path)
 
@@ -128,7 +128,7 @@ def _set_variables(target: str):
         f.write(contents)
 
 
-def build_input_remapper_module(root: str):
+def build_input_remapper_module(root: str) -> None:
     # I'd use --prefix and --root, but
     # `pip install . --root ./build --prefix usr`
     # makes it end up in ./build/usr/local
