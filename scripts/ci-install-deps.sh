@@ -2,6 +2,8 @@
 # Called from multiple CI pipelines in .github/workflows
 set -xeuo pipefail
 
+sudo apt update
+
 # native deps
 # gettext required to generate translations, others are python deps
 sudo apt-get install -y gettext python3-evdev python3-dasbus python3-pydantic python3-gi gir1.2-gtk-3.0 gir1.2-gtksource-4
