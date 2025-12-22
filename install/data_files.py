@@ -28,8 +28,8 @@ import shutil
 DATA_DIR = "usr/share/input-remapper"
 
 
-def build_data_files(root: str):
-    data_files = [
+def get_data_files():
+    return [
         # see development.md#files
         (DATA_DIR, glob.glob("data/*")),
         ("usr/share/applications/", ["data/input-remapper-gtk.desktop"]),
@@ -40,6 +40,9 @@ def build_data_files(root: str):
         ("usr/share/icons/hicolor/scalable/apps/", ["data/input-remapper.svg"]),
         ("usr/share/polkit-1/actions/", ["data/input-remapper.policy"]),
         ("usr/lib/systemd/system", ["data/input-remapper.service"]),
+        # Fun fact: At some point during development and testing on arch, I ended up
+        # with an empty inputremapper.Control.conf file, causing dbus to fail to start,
+        # which rendered the whole operating system unusable.
         ("usr/share/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),
         ("etc/xdg/autostart/", ["data/input-remapper-autoload.desktop"]),
         ("usr/lib/udev/rules.d", ["data/99-input-remapper.rules"]),
@@ -49,7 +52,9 @@ def build_data_files(root: str):
         ("usr/bin/", ["bin/input-remapper-reader-service"]),
     ]
 
-    for target_dir, files in data_files:
+
+def build_data_files(root: str):
+    for target_dir, files in get_data_files():
         # We specify the root via argv instead. Argparse would ignore the first
         # arguments with a leading slash.
         assert not target_dir.startswith("/")
