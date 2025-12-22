@@ -143,7 +143,8 @@ def build_input_remapper_module(root: str):
     target = os.path.join(root, package_dir)
 
     # Make sure we don't install input-remapper twice on that system into two different
-    # paths, which commonly causes unexpected behavior.
+    # paths, which commonly causes unexpected behavior. Also, we need to specifically
+    # tell pip to replace an existing installation, or uninstall it beforehand.
     if root == "/":
         print("Uninstalling existing input-remapper installation")
         os.system("pip uninstall input-remapper --break-system-packages -y")
