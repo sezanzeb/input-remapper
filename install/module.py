@@ -99,6 +99,9 @@ def _get_commit_hash() -> str:
     return commit
 
 
+foo: str = 5
+
+
 def _set_variables(target: str) -> None:
     path = os.path.join(target, "inputremapper", "installation_info.py")
     assert os.path.exists(path)
