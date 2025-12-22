@@ -148,6 +148,8 @@ def build_input_remapper_module(root: str) -> None:
     if root == "/":
         print("Uninstalling existing input-remapper installation")
         os.system("pip uninstall input-remapper --break-system-packages -y")
+        # If root is not "/", it is probably part of a packaging script for a distro,
+        # which will take care of uninstalling the old python-package for us.
 
     command = [
         sys.executable,
