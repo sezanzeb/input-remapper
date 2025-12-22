@@ -128,37 +128,6 @@ def _set_variables(target: str):
         f.write(contents)
 
 
-def _get_existing_installation_path() -> str | None:
-    # Check if input-remapper is already installed SYSTEM-WIDE! Just trying to import
-    # it makes us import the cloned source code of the project.
-    popen = subprocess.Popen(
-        ["python3", "-c", "import inputremapper; print(inputremapper.__file__)"],
-        cwd="/",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-
-    if popen.stderr is not None and b"ModuleNotFoundError" in popen.stderr.read():
-        return None
-
-    assert popen.stdout is not None, "Some sort of bug happened"
-
-    # Something like "/usr/lib/python3/dist-packages/inputremapper"
-    return os.path.dirname(popen.stdout.read().decode().strip())
-
-
-def _uninstall_conflicting_package(where_we_want_to_install: str) -> None:
-    """If input-remapper is installed system-wide already, and not where we want to
-    install it to, uninstall it first. Otherwise we end up with two installations."""
-    existing_installation_path = _get_existing_installation_path()
-    if existing_installation_path is None:
-        return
-
-    if where_we_want_to_install not in existing_installation_path:
-        print("Uninstalling existing input-remapper installation")
-        os.system("pip uninstall input-remapper --break-system-packages")
-
-
 def build_input_remapper_module(root: str):
     # I'd use --prefix and --root, but
     # `pip install . --root ./build --prefix usr`
@@ -176,7 +145,8 @@ def build_input_remapper_module(root: str):
     # Make sure we don't install input-remapper twice on that system into two different
     # paths, which commonly causes unexpected behavior.
     if root == "/":
-        _uninstall_conflicting_package(package_dir)
+        print("Uninstalling existing input-remapper installation")
+        os.system("pip uninstall input-remapper --break-system-packages -y")
 
     command = [
         sys.executable,
