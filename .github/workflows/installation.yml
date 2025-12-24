@@ -50,7 +50,30 @@ jobs:
         sudo systemctl restart input-remapper
     - name: DBus Hello
       run: |
-        # Try it again
+        # Make sure we aren't just importing the module from the cloned repo in the
+        # cwd. Commands should import the installed package
         cd /
         [ ! -d "inputremapper" ]
         sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
+    - name: uninstall
+      run: |
+        cd ~/input-remapper
+
+        sudo python3 -m install.uninstall
+
+        if pip show input-remapper; then
+            echo "Expected input-remapper package to be uninstalled"
+            exit 1
+
+        if [ -f /usr/share/dbus-1/system.d/inputremapper.Control.conf ]; then
+            echo "Expected input-remappers files to be removed"
+            exit 1
+        fi
+
+        if pgrep -f input-remapper; then
+            echo "Expected input-remapper processes to not be running"
+            exit 1
+
+        if systemctl statusinput-remapper; then
+            echo "Expected input-remapper service to be missing"
+            exit 1

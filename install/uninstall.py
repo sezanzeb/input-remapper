@@ -69,6 +69,9 @@ def uninstall() -> None:
     sys.stdout.flush()
     subprocess.check_call(command)
 
+    os.system("sudo systemctl stop input-remapper")
+    os.system("sudo systemctl daemon-reload")
+
 
 if __name__ == "__main__":
     uninstall()
