@@ -72,7 +72,9 @@ jobs:
         if pgrep -f input-remapper; then
             echo "Expected input-remapper processes to not be running"
             exit 1
+        fi
 
         if systemctl statusinput-remapper; then
             echo "Expected input-remapper service to be missing"
             exit 1
+        fi
