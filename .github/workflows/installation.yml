@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 jobs:
   deb:
-    continue-on-error: true
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
@@ -33,7 +32,6 @@ jobs:
         sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
 
   generic:
-    continue-on-error: true
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
@@ -64,6 +62,7 @@ jobs:
         if pip show input-remapper; then
             echo "Expected input-remapper package to be uninstalled"
             exit 1
+        fi
 
         if [ -f /usr/share/dbus-1/system.d/inputremapper.Control.conf ]; then
             echo "Expected input-remappers files to be removed"
