@@ -59,7 +59,7 @@ jobs:
       run: |
         cd $GITHUB_WORKSPACE
 
-        sudo python3 -m install.uninstall
+        sudo python3 -m install.uninstall | yes
 
         if pip show input-remapper; then
             echo "Expected input-remapper package to be uninstalled"
