@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-          cache-dependency-path: setup.py
+          cache-dependency-path: pyproject.toml
       - uses: reviewdog/action-setup@master
         with:
           reviewdog_version: latest
@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           scripts/ci-install-deps.sh
-          pip install flake8 pylint mypy black types-setuptools
+          pip install flake8 pylint mypy black
       - name: Set env for PR
         if: github.event_name == 'pull_request'
         shell: bash

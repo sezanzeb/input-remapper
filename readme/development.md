@@ -98,10 +98,10 @@ Releasing
 ssh/login into a debian/ubuntu environment
 
 ```bash
-scripts/build.sh
+scripts/build-deb.sh
 ```
 
-This will generate `input-remapper/deb/input-remapper-2.2.0.deb`
+This will generate `dist/input-remapper-2.2.0.deb`
 
 Badges
 ------

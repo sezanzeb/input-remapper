@@ -21,8 +21,10 @@
 from __future__ import annotations
 
 import tempfile
+from tests.lib.logger import logger
 
 # When it gets garbage collected it cleans up the temporary directory so it needs to
 # stay reachable while the tests are ran.
 temporary_directory = tempfile.TemporaryDirectory(prefix="input-remapper-test")
 tmp = temporary_directory.name
+logger.info('tmp at "%s"', tmp)

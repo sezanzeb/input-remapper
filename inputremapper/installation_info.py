@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
@@ -17,17 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Information about the input-remapper installation.
 
-"""Get stuff from /usr/share/input-remapper, depending on the prefix."""
+These defaults might be overwritten by package maintainers.
+"""
 
-
-import os
-
-from inputremapper.installation_info import DATA_DIR
-
-
-def get_data_path(filename=""):
-    """Depending on the installation prefix, return the data dir."""
-    # This was more complicated in the past. This wrapper is kept for now, but feel
-    # free to remove it at a later point.
-    return os.path.join(DATA_DIR, filename)
+COMMIT_HASH = "unknown"
+VERSION = "2.2.0"
+# depending on where this file is installed to, make sure to use the proper
+# prefix path for data.
+DATA_DIR = "/usr/share/inputremapper"

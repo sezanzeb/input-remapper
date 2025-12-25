@@ -1,0 +1,80 @@
+name: Installation
+
+on: [push, pull_request]
+
+jobs:
+  deb:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install .deb
+      run: |
+        sudo apt update
+
+        # build dependencies
+        sudo apt install gettext -y
+
+        sudo scripts/build-deb.sh
+        find build
+        sudo apt install -f ./dist/input-remapper-*.deb
+    - name: DBus Hello
+      run: |
+        # Test if files have been placed at the correct places in ubuntus file system.
+        # By sending the hello command, we tests the service file, binaries and module
+
+        # Make sure we aren't just importing the module from the cloned repo in the
+        # cwd. Commands should import the installed package
+        cd /
+        [ ! -d "inputremapper" ]
+
+        # Need to use sudo, because sys.path is weird in the ci otherwise
+        sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
+
+  generic:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+    - uses: actions/checkout@v3
+    - name: Generic installation
+      run: |
+        sudo scripts/ci-install-deps.sh
+
+        # Check if the generic installation method works too. Also, using `--root /`
+        # should not break the system somehow
+        sudo python3 -m install --root /
+
+        sudo systemctl daemon-reload
+        sudo systemctl restart input-remapper
+    - name: DBus Hello
+      run: |
+        # Make sure we aren't just importing the module from the cloned repo in the
+        # cwd. Commands should import the installed package
+        cd /
+        [ ! -d "inputremapper" ]
+        sudo input-remapper-control --command hello 2>&1 | grep 'Daemon answered with "hello"'
+    - name: uninstall
+      run: |
+        cd $GITHUB_WORKSPACE
+
+        printf y | sudo python3 -m install.uninstall
+
+        if pip show input-remapper; then
+            echo "Expected input-remapper package to be uninstalled"
+            exit 1
+        fi
+
+        if [ -f /usr/share/dbus-1/system.d/inputremapper.Control.conf ]; then
+            echo "Expected input-remappers files to be removed"
+            exit 1
+        fi
+
+        if pgrep -f input-remapper; then
+            echo "Expected input-remapper processes to not be running"
+            exit 1
+        fi
+
+        if systemctl list-unit-files input-remapper.service; then
+            echo "Expected input-remapper service to be missing"
+            exit 1
+        fi

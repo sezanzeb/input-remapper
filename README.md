@@ -27,18 +27,18 @@
 
 Either download an installable .deb file from the [latest release](https://github.com/sezanzeb/input-remapper/releases):
 
-```bash
+```sh
 wget https://github.com/sezanzeb/input-remapper/releases/download/2.2.0/input-remapper-2.2.0.deb
 sudo apt install -f ./input-remapper-2.2.0.deb
 ```
 
 Or install the very latest changes via:
 
-```bash
-sudo apt install git python3-setuptools gettext
+```sh
+sudo apt install git gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
-./scripts/build.sh
+./scripts/build-deb.sh
 sudo apt purge input-remapper input-remapper-daemon input-remapper-gtk python3-inputremapper
 sudo apt install -f ./dist/input-remapper-2.2.0.deb
 ```
@@ -46,7 +46,7 @@ sudo apt install -f ./dist/input-remapper-2.2.0.deb
 Input Remapper is also available in the repositories of [Debian](https://tracker.debian.org/pkg/input-remapper)
 and [Ubuntu](https://packages.ubuntu.com/oracular/input-remapper) via
 
-```bash
+```sh
 sudo apt install input-remapper
 ```
 
@@ -56,7 +56,7 @@ Input Remapper ≥ 2.0 requires at least Ubuntu 22.04.
 
 ### Fedora
 
-```bash
+```sh
 sudo dnf install input-remapper
 sudo systemctl enable --now input-remapper
 ```
@@ -65,7 +65,7 @@ sudo systemctl enable --now input-remapper
 
 ### Arch
 
-```bash
+```sh
 yay -S input-remapper-git
 sudo systemctl enable --now input-remapper
 ```
@@ -82,13 +82,19 @@ You can also use pip to install some of them. Python packages need to be install
 globally for the service to be able to import them. Don't use `--user`. Conda and such
 may also cause problems due to changed python paths and versions.
 
-```bash
-sudo pip install evdev pydantic dasbus PyGObject setuptools
+```sh
+sudo pip install evdev pydantic dasbus PyGObject
 ```
 
-```bash
+```sh
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper
-sudo python3 setup.py install
+sudo python3 -m install --root /
 sudo systemctl enable --now input-remapper
+```
+
+To uninstall:
+
+```sh
+sudo python3 -m install.uninstall
 ```

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
@@ -18,16 +19,25 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Get stuff from /usr/share/input-remapper, depending on the prefix."""
+def check_dependencies() -> None:
+    print("Checking dependencies")
+    try:
+        import gi
 
+        gi.require_version("Gdk", "3.0")
+        gi.require_version("GLib", "2.0")
+        gi.require_version("Gst", "1.0")
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("GtkSource", "4")
+        from gi.repository import GObject, Gtk, Gst, Gdk, GLib, Pango, Gio, GtkSource
+        import evdev
+        import psutil
+        import dasbus
+        import pygobject
+        import pydantic
 
-import os
-
-from inputremapper.installation_info import DATA_DIR
-
-
-def get_data_path(filename=""):
-    """Depending on the installation prefix, return the data dir."""
-    # This was more complicated in the past. This wrapper is kept for now, but feel
-    # free to remove it at a later point.
-    return os.path.join(DATA_DIR, filename)
+        print("All required Python modules found")
+    except ImportError as e:
+        print(f"\033[93mMissing Python module: {e}\033[0m")
+    except Exception as e:
+        print(f"\033[93mException while checking dependencies: {e}\033[0m")

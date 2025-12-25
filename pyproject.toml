@@ -1,0 +1,32 @@
+[project]
+name = "input-remapper"
+version = "2.2.0"
+description = "A tool to change the mapping of your input device buttons"
+authors = [
+    { name = "Sezanzeb", email = "b8x45ygc9@mozmail.com" },
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "evdev",
+    "psutil",
+    "dasbus",
+    "pycairo",
+    "PyGObject",
+    "pydantic",
+    "packaging",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["inputremapper*"]
+
+[project.urls]
+Homepage = "https://github.com/sezanzeb/input-remapper"
+
+[tool.ruff.lint]
+# Because of gi.require_version we get this a lot
+ignore = ["E402"]
+# Lots of unused imports in
+exclude = ["install/check_dependencies.py"]

@@ -2,7 +2,7 @@
 runner:
   mypy:
     name: mypy
-    cmd: mypy --show-column-numbers inputremapper tests --ignore-missing-imports
+    cmd: mypy --show-column-numbers inputremapper tests install --ignore-missing-imports
     errorformat:
       - "%f:%l:%c: %m"
 

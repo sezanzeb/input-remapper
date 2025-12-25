@@ -52,11 +52,11 @@ from inputremapper.user import UserUtils
 gi.require_version("GLib", "2.0")
 
 
-SESSION_BUS = SystemMessageBus()
+SYSTEM_BUS = SystemMessageBus()
 
 DAEMON = DBusServiceIdentifier(
     namespace=("inputremapper", "Control"),
-    message_bus=SESSION_BUS,
+    message_bus=SYSTEM_BUS,
 )
 
 # timeout in milliseconds
@@ -275,8 +275,8 @@ class Daemon:
     def publish(self) -> None:
         """Make the dbus interface available."""
         try:
-            SESSION_BUS.publish_object(DAEMON.object_path, self)
-            SESSION_BUS.register_service(DAEMON.service_name)
+            SYSTEM_BUS.publish_object(DAEMON.object_path, self)
+            SYSTEM_BUS.register_service(DAEMON.service_name)
         except ConnectionError as error:
             logger.error("Is the service already running? (%s)", str(error))
             sys.exit(9)

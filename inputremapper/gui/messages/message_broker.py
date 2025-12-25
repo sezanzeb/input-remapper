@@ -117,4 +117,4 @@ class Signal:
         return f"Signal: {self.message_type}"
 
     def __eq__(self, other: Any):
-        return type(self) == type(other) and self.message_type == other.message_type
+        return type(self) is type(other) and self.message_type == other.message_type

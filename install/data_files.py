@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+#
+# This file is part of input-remapper.
+#
+# input-remapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# input-remapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
+"""Copy input-remappers system-files around."""
+
+import glob
+import os
+import shutil
+
+
+DATA_DIR = "usr/share/input-remapper"
+
+
+def get_data_files() -> list[tuple[str, list[str]]]:
+    return [
+        # see development.md#files
+        (DATA_DIR, glob.glob("data/*")),
+        ("usr/share/applications/", ["data/input-remapper-gtk.desktop"]),
+        (
+            "usr/share/metainfo/",
+            ["data/io.github.sezanzeb.input_remapper.metainfo.xml"],
+        ),
+        ("usr/share/icons/hicolor/scalable/apps/", ["data/input-remapper.svg"]),
+        ("usr/share/polkit-1/actions/", ["data/input-remapper.policy"]),
+        ("usr/lib/systemd/system", ["data/input-remapper.service"]),
+        # Fun fact: At some point during development and testing on arch, I ended up
+        # with an empty inputremapper.Control.conf file, causing dbus to fail to start,
+        # which rendered the whole operating system unusable.
+        ("usr/share/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),
+        ("etc/xdg/autostart/", ["data/input-remapper-autoload.desktop"]),
+        ("usr/lib/udev/rules.d", ["data/99-input-remapper.rules"]),
+        ("usr/bin/", ["bin/input-remapper-gtk"]),
+        ("usr/bin/", ["bin/input-remapper-service"]),
+        ("usr/bin/", ["bin/input-remapper-control"]),
+        ("usr/bin/", ["bin/input-remapper-reader-service"]),
+    ]
+
+
+def build_data_files(root: str) -> None:
+    for target_dir, files in get_data_files():
+        # We specify the root via argv instead. Argparse would ignore the first
+        # arguments with a leading slash.
+        assert not target_dir.startswith("/")
+        for file_ in files:
+            destination_dir = os.path.join(root, target_dir)
+            print("Copying", file_, "to", destination_dir)
+            os.makedirs(destination_dir, exist_ok=True)
+            shutil.copy(file_, os.path.join(destination_dir, os.path.basename(file_)))
