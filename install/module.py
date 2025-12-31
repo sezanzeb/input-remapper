@@ -32,7 +32,7 @@ sys.path samples:
 endeavouros  user: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/lib/python3.13/site-packages']
 endeavouros  root: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/lib/python3.13/site-packages']
 endeavouros  udev: ['/usr/bin', '/lib/python313.zip', '/lib/python3.13', '/lib/python3.13/lib-dynload', '/lib/python3.13/site-packages']
-ubuntu 25.04 user: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/home/mango/.local/lib/python3.13/site-packages', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
+ubuntu 25.04 user: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/home/user/.local/lib/python3.13/site-packages', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
 ubuntu 25.04 root: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
 ubuntu 25.04 udev: ['/usr/bin', '/lib/python313.zip', '/lib/python3.13', '/lib/python3.13/lib-dynload', '/lib/python3/dist-packages']
 """
@@ -68,9 +68,16 @@ def _key(path) -> int:
     elif re.match(r".*/lib/python3.+?", path):
         favorability = 1
 
-    # udev does not import from /usr/local
+    # Check the prefix
+    # (beware, udev imports from /lib, which I think is equivalent to /usr/lib, so
+    # don't require /usr as a prefix)
     if path.startswith("/usr/local"):
+        # udev does not import from /usr/local
         favorability -= 5
+    elif path.startswith("/home"):
+        # Something like /home/user/.local/lib/python3.13/site-packages
+        # The python package needs to be installed system-wide
+        favorability -= 50
 
     if not os.path.exists(path):
         # If it doesn't exist yet, pip will apparently create it
