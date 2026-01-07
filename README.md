@@ -93,6 +93,8 @@ sudo python3 -m install --root /
 sudo systemctl enable --now input-remapper
 ```
 
+For all other options and help, check `python3 -m install --help`
+
 To uninstall:
 
 ```sh
