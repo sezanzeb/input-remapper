@@ -59,7 +59,7 @@ jobs:
 
         printf y | sudo python3 -m install.uninstall
 
-        if pip show input-remapper; then
+        if pip show input-remapper --quiet; then
             echo "Expected input-remapper package to be uninstalled"
             exit 1
         fi
@@ -82,7 +82,7 @@ jobs:
       run: |
         sudo python3 -m install --root / --components python_module
 
-        if ! pip show input-remapper; then
+        if ! pip show input-remapper --quiet; then
             echo "Expected python module to be installed"
             exit 1
         fi
@@ -95,7 +95,7 @@ jobs:
         printf y | sudo python3 -m install.uninstall
         sudo python3 -m install --root / --components data_files
 
-        if pip show input-remapper; then
+        if pip show input-remapper --quiet; then
             echo "Expected python module not to be installed"
             exit 1
         fi
@@ -108,7 +108,7 @@ jobs:
         printf y | sudo python3 -m install.uninstall
         sudo python3 -m install --root / --components python_module data_files
 
-        if ! pip show input-remapper; then
+        if ! pip show input-remapper --quiet; then
             echo "Expected python module to be installed"
             exit 1
         fi
