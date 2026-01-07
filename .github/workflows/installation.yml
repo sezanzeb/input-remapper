@@ -78,3 +78,42 @@ jobs:
             echo "Expected input-remapper service to be missing"
             exit 1
         fi
+    - name: Partial generic installation
+      run: |
+        sudo python3 -m install --root / --components python_module
+
+        if ! pip show input-remapper; then
+            echo "Expected python module to be installed"
+            exit 1
+        fi
+
+        if [ -f /usr/share/dbus-1/system.d/inputremapper.Control.conf ]; then
+            echo "Expected data files not to be installed"
+            exit 1
+        fi
+
+        printf y | sudo python3 -m install.uninstall
+        sudo python3 -m install --root / --components data_files
+
+        if pip show input-remapper; then
+            echo "Expected python module not to be installed"
+            exit 1
+        fi
+
+        if [ ! -f /usr/share/dbus-1/system.d/inputremapper.Control.conf ]; then
+            echo "Expected data files to be installed"
+            exit 1
+        fi
+
+        printf y | sudo python3 -m install.uninstall
+        sudo python3 -m install --root / --components python_module data_files
+
+        if ! pip show input-remapper; then
+            echo "Expected python module to be installed"
+            exit 1
+        fi
+
+        if [ ! -f /usr/share/dbus-1/system.d/inputremapper.Control.conf ]; then
+            echo "Expected data files to be installed"
+            exit 1
+        fi

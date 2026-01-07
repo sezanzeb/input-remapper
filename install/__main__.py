@@ -69,7 +69,7 @@ def parse_args():
             f'A list of components to install. Default: --components '
             f'{Components.python_module.value} {Components.data_files.value}'
         ),
-        default=["python_module", "data_files"],
+        default=[Components.python_module, Components.data_files],
         metavar="COMPONENT"
     )
     args = parser.parse_args()
