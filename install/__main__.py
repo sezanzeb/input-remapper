@@ -36,6 +36,7 @@ enough to prevent all ModuleNotFoundErrors in the future.
 import shutil
 import os
 import sys
+from enum import Enum
 
 from install.check_dependencies import check_dependencies
 from install.data_files import build_data_files
@@ -43,6 +44,11 @@ from install.module import build_input_remapper_module
 from install.language import make_lang
 
 import argparse
+
+
+class Components(str, Enum):
+    data_files = "data_files"
+    python_module = "python_module"
 
 
 def parse_args():
@@ -56,6 +62,16 @@ def parse_args():
         ),
         required=True,
     )
+    parser.add_argument(
+        "--components",
+        type=str, nargs='+',
+        help=(
+            f'A list of components to install. Default: --components '
+            f'{Components.python_module.value} {Components.data_files.value}'
+        ),
+        default=[Components.python_module, Components.data_files],
+        metavar="COMPONENT"
+    )
     args = parser.parse_args()
     return args
 
@@ -65,6 +81,10 @@ def ask(msg) -> bool:
     while answer not in ["y", "n"]:
         answer = input(f"{msg} [y/n] ").lower()
     return answer == "y"
+
+
+def print_headline(message: str) -> None:
+    print(f"\033[7m{message}\033[0m")
 
 
 def main() -> None:
@@ -77,13 +97,19 @@ def main() -> None:
         else:
             sys.exit(3)
 
-    check_dependencies()
-    print()
-    build_data_files(args.root)
-    print()
-    make_lang(args.root)
-    print()
-    build_input_remapper_module(args.root)
+    for component in args.components:
+        if component not in [Components.data_files, Components.python_module]:
+            raise ValueError(f"Unknown component {component}")
+
+    if Components.data_files in args.components:
+        print_headline(f'Installing component "{Components.data_files.value}"')
+        build_data_files(args.root)
+        make_lang(args.root)
+
+    if Components.python_module in args.components:
+        print_headline(f'Installing component "{Components.python_module.value}"')
+        check_dependencies()
+        build_input_remapper_module(args.root)
 
 
 if __name__ == "__main__":
