@@ -250,7 +250,7 @@ Available types and codes. See also the [evdev documentation](https://www.kernel
 ##### origin_hash
 
 The origin_hash is an internally computed hash. It is used associate the input with a 
-specific `/dev/input/eventXX` device. This is useful when a single pyhsical device 
+specific `/dev/input/eventXX` device. This is useful when a single physical device 
 creates multiple `/dev/input/eventXX` devices wihth similar capabilities.
 See also: [Issue#435](https://github.com/sezanzeb/input-remapper/issues/435)
 
