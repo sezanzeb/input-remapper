@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         scripts/ci-install-deps.sh
-        pip install black ruff
+        apt install black python3-ruff
     - name: black --check --diff
       run: |
         black --version
