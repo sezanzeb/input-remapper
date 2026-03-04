@@ -17,7 +17,8 @@ jobs:
     - name: Install dependencies
       run: |
         scripts/ci-install-deps.sh
-        pip install black ruff
+        sudo apt install black
+        pip install ruff
     - name: black --check --diff
       run: |
         black --version
