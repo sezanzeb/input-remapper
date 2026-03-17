@@ -72,6 +72,16 @@ sudo systemctl enable --now input-remapper
 
 <br/>
 
+### Void
+
+```sh
+sudo xbps-install -S input-remapper
+sudo ln -s /etc/sv/input-remapper /var/service
+sudo sv up input-remapper
+```
+
+<br/>
+
 ### Other Distros
 
 Figure out the packages providing those dependencies in your distro, and install them:
