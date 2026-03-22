@@ -137,7 +137,12 @@ class ForwardToUIHandler:
         )
         return True
 
-    def _trigger_point(self, analog_threshold: int, abs_min: int, abs_max: int,) -> Tuple[float, float]:
+    def _trigger_point(
+        self,
+        analog_threshold: int,
+        abs_min: int,
+        abs_max: int,
+    ) -> Tuple[float, float]:
         """Calculate the axis mid and trigger point."""
         half_range = (abs_max - abs_min) / 2
         middle = half_range + abs_min
