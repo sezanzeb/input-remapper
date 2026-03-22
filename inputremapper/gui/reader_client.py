@@ -194,10 +194,11 @@ class ReaderClient:
 
     @staticmethod
     def _input_event_to_config(event: InputEvent):
+        value_sign = -1 if event.value < 0 else 1
         return {
             "type": event.type,
             "code": event.code,
-            "analog_threshold": 10,
+            "analog_threshold": value_sign * 10,
             "origin_hash": event.origin_hash,
         }
 
