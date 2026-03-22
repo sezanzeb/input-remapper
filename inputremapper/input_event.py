@@ -57,7 +57,7 @@ class InputEvent:
 
     # Our own custom attributes
     # (They need types for the dataclass to allow them in the constructor)
-    pressed: bool = False
+    pressed: bool | None = None  # haven't figured out yet, depends on threshold config
     direction: int = 1  # -1 for joystick left, +1 for joystick right
     actions: Tuple[EventActions, ...] = ()
     origin_hash: Optional[DeviceHash] = None
@@ -69,6 +69,23 @@ class InputEvent:
         if isinstance(other, tuple):
             return self.event_tuple == other
         raise TypeError(f"cannot compare {type(other)} with InputEvent")
+
+    def get_pressed(self) -> bool:
+        """Get if the event is representing a pressed button, joystick, trigger,
+        a scrolled wheel, a moved mouse, etc.
+
+        It might depend on stuff like the analog_threshold.
+        """
+        if self.pressed is not None:
+            return self.pressed
+
+        # As long as we haven't checked it using the analog thresholds and such,
+        # assume that anything != 0 means it is pressed.'
+
+        if self.value == 0:
+            return False
+
+        return True
 
     @staticmethod
     def validate_event(event):
@@ -244,7 +261,7 @@ class InputEvent:
             type_ if type_ is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
-            pressed if pressed is not None else self.pressed,
+            pressed if pressed is not None else self.get_pressed(),
             direction if direction is not None else self.direction,
             actions if actions is not None else self.actions,
             origin_hash=origin_hash if origin_hash is not None else self.origin_hash,  # type: ignore
