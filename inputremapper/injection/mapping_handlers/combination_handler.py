@@ -101,8 +101,6 @@ class CombinationHandler(MappingHandler):
         source: evdev.InputDevice,
         suppress: bool = False,
     ) -> bool:
-        print("ch idk", event)
-
         if event.input_match_hash not in self._handled_input_hashes:
             # we are not responsible for the event
             return False

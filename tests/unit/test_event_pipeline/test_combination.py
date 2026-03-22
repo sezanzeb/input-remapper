@@ -1264,12 +1264,12 @@ class TestCombination(EventPipelineTestBase):
                 # possibly in addition to writing mouse events
             )
 
-        self.assertAlmostEqual(len(mouse_history), rel_rate * sleep, delta=3)
-
         # does not contain anything else
         expected_rel_event = (EV_REL, REL_X, int(gain * REL_XY_SCALING))
         count_x = mouse_history.count(expected_rel_event)
         self.assertEqual(len(mouse_history), count_x)
+
+        self.assertAlmostEqual(len(mouse_history), rel_rate * sleep, delta=3)
 
     async def test_key_axis_combination_to_disable(self):
         combination = InputCombination(

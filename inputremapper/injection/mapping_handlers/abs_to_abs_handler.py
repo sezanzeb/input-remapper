@@ -118,7 +118,7 @@ class AbsToAbsHandler(MappingHandler):
         self._write(self._scale_to_target(0))
 
     def _scale_to_target(self, x: float) -> int:
-        """Scales a x value between -1 and 1 to an integer between
+        """Scales an x value between -1 and 1 to an integer between
         target_absinfo.min and target_absinfo.max
 
         input values above 1 or below -1 are clamped to the extreme values

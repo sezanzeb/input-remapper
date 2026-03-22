@@ -39,6 +39,9 @@ from inputremapper.utils import get_device_hash
 class AxisSwitchHandler(MappingHandler):
     """Enables or disables an axis.
 
+    This is used when a combination involving an analog input (rel or abs) is mapped
+    to another analog input (rel or abs). I think.
+
     Generally, if multiple events are mapped to something in a combination, all of
     them need to be triggered in order to map to the output.
 
@@ -153,6 +156,8 @@ class AxisSwitchHandler(MappingHandler):
             return False
 
         if event.is_key_event:
+            # A key or an analog even that is being treated as a key (on/off) due to
+            # previous handlers.
             return self._handle_key_input(event)
 
         # do some caching so that we can generate the
@@ -168,6 +173,7 @@ class AxisSwitchHandler(MappingHandler):
         self._last_value = event.value
 
         if self._active:
+            print("NOTIFY", event)
             return self._sub_handler.notify(event, source, suppress)
 
         return False
