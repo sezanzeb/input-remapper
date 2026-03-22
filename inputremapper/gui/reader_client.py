@@ -217,7 +217,7 @@ class ReaderClient:
             if event.type_and_code in BLACKLISTED_EVENTS:
                 continue
 
-            if not event.get_pressed():
+            if not event.is_pressed():
                 try:
                     active.remove(event.input_match_hash)
                 except KeyError:
