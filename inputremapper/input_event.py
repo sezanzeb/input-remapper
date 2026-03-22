@@ -70,15 +70,6 @@ class InputEvent:
             return self.event_tuple == other
         raise TypeError(f"cannot compare {type(other)} with InputEvent")
 
-    def get_pressed(self):
-        """Get if the event is representing a pressed button, joystick, trigger,
-        a scrolled wheel, a moved mouse, etc.
-
-        It might depend on stuff like the analog_threshold.
-        """
-        # TODO remove method for this
-        self.pressed
-
     @staticmethod
     def validate_event(event):
         """Test if the event is valid."""
@@ -253,7 +244,7 @@ class InputEvent:
             type_ if type_ is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
-            pressed if pressed is not None else self.get_pressed(),
+            pressed if pressed is not None else self.pressed,
             direction if direction is not None else self.direction,
             actions if actions is not None else self.actions,
             origin_hash=origin_hash if origin_hash is not None else self.origin_hash,  # type: ignore

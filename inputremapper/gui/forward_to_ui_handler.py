@@ -51,7 +51,7 @@ from typing import Set, List, Tuple
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 
-from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig, DEFAULT_ANALOG_THRESHOLD_MAGNITUDE
 from inputremapper.configs.mapping import Mapping
 from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
@@ -99,9 +99,12 @@ class ForwardToUIHandler:
 
         absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])  # type: ignore
 
-        pressed = True
-        direction = 1
+        # These defaults work with EV_KEY and EV_REL
+        pressed = False if event.value == 0 else True
+        direction = 1 if event.value >= 0 else -1
 
+        # Because joysticks aren't as precise, they wiggle and their value might not be
+        # centered around 0, they need special treatment
         if event.type == EV_ABS:
             abs_min = absinfo[event.code].min
             abs_max = absinfo[event.code].max
@@ -111,7 +114,7 @@ class ForwardToUIHandler:
             # If within 30% (into each direction) of the mid_point, count as released
             # A large threahold makes it significantly easier to not accidentally
             # record both ABS_X and ABS_Y.
-            if abs(event.value - mid_point) < half_range * 0.3:
+            if abs(event.value - mid_point) < half_range * DEFAULT_ANALOG_THRESHOLD_MAGNITUDE / 100:
                 pressed = False
 
             if event.value < mid_point:

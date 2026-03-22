@@ -29,7 +29,7 @@ from typing import Optional, List, Generator, Dict, Set
 import evdev
 from gi.repository import GLib
 
-from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputCombination, DEFAULT_ANALOG_THRESHOLD_MAGNITUDE
 from inputremapper.groups import _Groups, _Group
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import MessageBroker
@@ -197,7 +197,7 @@ class ReaderClient:
         return {
             "type": event.type,
             "code": event.code,
-            "analog_threshold": event.direction * 30,
+            "analog_threshold": event.direction * DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
             "origin_hash": event.origin_hash,
         }
 

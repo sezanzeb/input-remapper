@@ -54,6 +54,9 @@ EMPTY_TYPE = 99
 # Please update if a way to simulate higher button-presses is found.
 MAX_BTN_MOUSE_ECODE = 0x11A
 
+# Beware, this is without sign! Movement to the left needs this to be negative
+DEFAULT_ANALOG_THRESHOLD_MAGNITUDE = 30
+
 
 class InputConfig(BaseModel):
     """Describes a single input within a combination, to configure mappings."""
