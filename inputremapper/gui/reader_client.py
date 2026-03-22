@@ -197,7 +197,7 @@ class ReaderClient:
         return {
             "type": event.type,
             "code": event.code,
-            "analog_threshold": event.direction * 10,
+            "analog_threshold": event.direction * 30,
             "origin_hash": event.origin_hash,
         }
 
@@ -214,7 +214,7 @@ class ReaderClient:
             if event.type_and_code in BLACKLISTED_EVENTS:
                 continue
 
-            if event.value == 0:
+            if not event.pressed:
                 try:
                     active.remove(event.input_match_hash)
                 except KeyError:

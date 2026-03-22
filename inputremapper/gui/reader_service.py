@@ -68,6 +68,7 @@ from inputremapper.ipc.pipe import Pipe
 from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
 from inputremapper.utils import get_device_hash
+from inputremapper.gui.forward_to_ui_handler import ForwardToUIHandler
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"
@@ -410,44 +411,3 @@ class ContextDummy:
     def get_forward_uinput(self, origin_hash) -> evdev.UInput:
         """Don't actually write anything."""
         return self.forward_dummy
-
-
-class ForwardToUIHandler:
-    """Implements the InputEventHandler protocol. Sends all events into the pipe."""
-
-    def __init__(self, pipe: Pipe):
-        self.pipe = pipe
-        self._last_event = InputEvent.from_tuple((99, 99, 99))
-
-    def notify(
-        self,
-        event: InputEvent,
-        source: evdev.InputDevice,
-        suppress: bool = False,
-    ) -> bool:
-        """Filter duplicates and send into the pipe."""
-        if event != self._last_event:
-            self._last_event = event
-            if EventActions.negative_trigger in event.actions:
-                event = event.modify(pressed=True, direction=-1)
-
-            logger.debug("Sending %s to frontend", event)
-            self.pipe.send(
-                {
-                    "type": MSG_EVENT,
-                    "message": {
-                        "sec": event.sec,
-                        "usec": event.usec,
-                        "type": event.type,
-                        "code": event.code,
-                        "value": event.value,
-                        "pressed": event.pressed,
-                        "direction": event.direction,
-                        "origin_hash": event.origin_hash,
-                    },
-                }
-            )
-        return True
-
-    def reset(self):
-        pass
