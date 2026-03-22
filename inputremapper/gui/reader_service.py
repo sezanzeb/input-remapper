@@ -429,9 +429,9 @@ class ForwardToUIHandler:
         if event != self._last_event:
             self._last_event = event
             if EventActions.negative_trigger in event.actions:
-                event = event.modify(pressed=True)
+                event = event.modify(pressed=True, direction=-1)
 
-            logger.debug("Sending to %s frontend", event)
+            logger.debug("Sending %s to frontend", event)
             self.pipe.send(
                 {
                     "type": MSG_EVENT,
@@ -441,6 +441,8 @@ class ForwardToUIHandler:
                         "type": event.type,
                         "code": event.code,
                         "value": event.value,
+                        "pressed": event.pressed,
+                        "direction": event.direction,
                         "origin_hash": event.origin_hash,
                     },
                 }

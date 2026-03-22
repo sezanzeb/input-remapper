@@ -54,7 +54,11 @@ class InputEvent:
     type: int
     code: int
     value: int
-    pressed: bool | None = None
+
+    # Our own custom attributes
+    # (They need types for the dataclass to allow them in the constructor)
+    pressed: bool = False
+    direction: int = 1  # -1 for joystick left, +1 for joystick right
     actions: Tuple[EventActions, ...] = ()
     origin_hash: Optional[DeviceHash] = None
 
@@ -72,14 +76,8 @@ class InputEvent:
 
         It might depend on stuff like the analog_threshold.
         """
-        # TODO boolean
-        if self.pressed is not None:
-            return self.pressed
-
-        if self.value == 0:
-            return 0
-
-        return 1
+        # TODO remove method for this
+        self.pressed
 
     @staticmethod
     def validate_event(event):
@@ -243,7 +241,8 @@ class InputEvent:
         type_: Optional[int] = None,
         code: Optional[int] = None,
         value: Optional[int] = None,
-        pressed: Optional[int] = None,
+        pressed: Optional[bool] = None,
+        direction: Optional[int] = None,
         actions: Optional[Tuple[EventActions, ...]] = None,
         origin_hash: Optional[str] = None,
     ) -> InputEvent:
@@ -255,6 +254,7 @@ class InputEvent:
             code if code is not None else self.code,
             value if value is not None else self.value,
             pressed if pressed is not None else self.get_pressed(),
+            direction if direction is not None else self.direction,
             actions if actions is not None else self.actions,
-            origin_hash=origin_hash if origin_hash is not None else self.origin_hash,
+            origin_hash=origin_hash if origin_hash is not None else self.origin_hash,  # type: ignore
         )
