@@ -69,7 +69,8 @@ class InputConfig(BaseModel):
     # see utils.get_device_hash for the exact hashing function
     origin_hash: Optional[DeviceHash] = None
 
-    # At which point is an analog input treated as "pressed"
+    # At which point is an analog input treated as "pressed". In percent (-99 to 99)
+    # of the delta between a resting joystick and a maxed-out joystick.
     analog_threshold: Optional[int] = None
 
     def __str__(self):

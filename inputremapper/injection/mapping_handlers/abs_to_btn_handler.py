@@ -81,6 +81,9 @@ class AbsToBtnHandler(MappingHandler):
         half_range = (abs_max - abs_min) / 2
         middle = half_range + abs_min
         trigger_offset = half_range * self._input_config.analog_threshold / 100
+        # Examples for threshold of +50:
+        # -128 to 128. half_range is 128. middle is 0. trigger_offset is 64 (and above)
+        # 0 to 128. half_range is 64. middle is 64. trigger_offset is 96 (and above)
 
         # threshold, middle
         return middle + trigger_offset, middle
@@ -101,19 +104,29 @@ class AbsToBtnHandler(MappingHandler):
         )
         value = event.value
 
-        # If the joysticks right movement is mapped to something, the threshold is
-        # larger than the mid-point, and the value needs to be larger than that.
-        positive_triggered = (threshold > mid_point) and (value >= threshold)
-        negative_triggered = (threshold < mid_point) and (value <= threshold)
-        if not positive_triggered and not negative_triggered:
-            event = event.modify(not_value=0, actions=(EventActions.as_key,))
+        # If the joysticks right movement is mapped to something then the threshold is
+        # larger than the mid-point. The value needs to be larger than that.
+        is_positive = value >= mid_point
+        is_negative = value < mid_point
+        positive_mapped = threshold > mid_point
+        negative_mapped = threshold < mid_point
+        positive_triggered = positive_mapped and (value >= threshold)
+        negative_triggered = negative_mapped and (value <= threshold)
+
+        if positive_mapped and is_positive:
+            event = event.modify(
+                not_value=int(positive_triggered),
+                actions=(EventActions.as_key, EventActions.positive_trigger)
+            )
+        elif negative_mapped and is_negative:
+            event = event.modify(
+                not_value=int(negative_triggered),
+                actions=(EventActions.as_key, EventActions.negative_trigger)
+            )
         else:
-            # The output should be a button-press
-            if positive_triggered:
-                direction = EventActions.positive_trigger
-            else:
-                direction = EventActions.negative_trigger
-            event = event.modify(not_value=1, actions=(EventActions.as_key, direction))
+            # either positive_mapped and is_negative, or negative_mapped and is_positive
+            # This event is not mapped to anything, forward it
+            return False
 
         return self._sub_handler.notify(
             event,

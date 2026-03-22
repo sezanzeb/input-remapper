@@ -173,7 +173,6 @@ class AxisSwitchHandler(MappingHandler):
         self._last_value = event.value
 
         if self._active:
-            print("NOTIFY", event)
             return self._sub_handler.notify(event, source, suppress)
 
         return False

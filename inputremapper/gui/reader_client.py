@@ -194,11 +194,10 @@ class ReaderClient:
 
     @staticmethod
     def _input_event_to_config(event: InputEvent):
-        print("AAA _input_event_to_config", event, event.value)
         return {
             "type": event.type,
             "code": event.code,
-            "analog_threshold": event.value,
+            "analog_threshold": 10,
             "origin_hash": event.origin_hash,
         }
 
