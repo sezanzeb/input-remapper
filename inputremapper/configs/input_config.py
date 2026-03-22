@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import itertools
 from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
-import traceback
 
 from evdev import ecodes
 from inputremapper.configs.paths import PathUtils
