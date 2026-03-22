@@ -22,19 +22,20 @@
 import logging
 import time
 from typing import cast
+from evdev.ecodes import EV_ABS, EV_KEY, EV_REL
 
+from inputremapper.input_event import InputEvent
 from inputremapper.logging.formatter import ColorfulFormatter
-
 from inputremapper.installation_info import VERSION, COMMIT_HASH
 
 
 start = time.time()
 
-previous_key_debug_log = None
-previous_write_debug_log = None
-
 
 class Logger(logging.Logger):
+    previous_abs_rel_log_time = 0
+    previous_write_debug_log = None
+
     def debug_mapping_handler(self, mapping_handler):
         """Parse the structure of a mapping_handler and log it."""
         if not self.isEnabledFor(logging.DEBUG):
@@ -59,18 +60,28 @@ class Logger(logging.Logger):
         if not self.isEnabledFor(logging.DEBUG):
             return
 
-        global previous_write_debug_log
+        if isinstance(key, InputEvent):
+            if key.type not in [EV_ABS, EV_REL, EV_KEY]:
+                return
+
+            # Avoid spaming the terminal with tons of high-resolution logs
+            now = time.time()
+            if key.type in [EV_ABS, EV_REL] and key.code not in [HAT_]:
+                if now - self.previous_abs_rel_log_time < 0.1:
+                    return
+
+                self.previous_abs_rel_log_time = now
 
         str_key = repr(key)
         str_key = str_key.replace(",)", ")")
 
         msg = f'Writing {str_key} to "{uinput.name}"'
 
-        if msg == previous_write_debug_log:
-            # avoid some super spam from EV_ABS events
+        if msg == self.previous_write_debug_log:
+            # avoid some spam
             return
 
-        previous_write_debug_log = msg
+        self.previous_write_debug_log = msg
 
         self._log(logging.DEBUG, msg, args=None, stacklevel=2)
 
