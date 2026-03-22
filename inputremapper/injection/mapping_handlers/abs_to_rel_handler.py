@@ -53,6 +53,7 @@ from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
 
+# TODO move into class
 def calculate_output(value, weight, remainder):
     # self._value is between 0 and 1, scale up with weight
     scaled = value * weight + remainder
@@ -61,7 +62,7 @@ def calculate_output(value, weight, remainder):
     return int(scaled), remainder
 
 
-# TODO move into class?
+# TODO move into class
 async def _run_normal_output(self) -> None:
     """Start injecting events."""
     self._running = True
@@ -91,7 +92,7 @@ async def _run_normal_output(self) -> None:
     self._running = False
 
 
-# TODO move into class?
+# TODO move into class
 async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
     """Start injecting wheel events.
 

@@ -66,7 +66,7 @@ class Logger(logging.Logger):
 
             # Avoid spaming the terminal with tons of high-resolution logs
             now = time.time()
-            if key.type in [EV_ABS, EV_REL] and key.code not in [HAT_]:
+            if key.type in [EV_ABS, EV_REL]:
                 if now - self.previous_abs_rel_log_time < 0.1:
                     return
 

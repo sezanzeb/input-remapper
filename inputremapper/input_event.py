@@ -54,6 +54,7 @@ class InputEvent:
     type: int
     code: int
     value: int
+    not_value: int | None = None
     actions: Tuple[EventActions, ...] = ()
     origin_hash: Optional[DeviceHash] = None
 
@@ -64,6 +65,10 @@ class InputEvent:
         if isinstance(other, tuple):
             return self.event_tuple == other
         raise TypeError(f"cannot compare {type(other)} with InputEvent")
+
+    def get_not_value(self):
+        # TODO what is this even
+        return self.not_value or self.value
 
     @staticmethod
     def validate_event(event):
@@ -227,6 +232,7 @@ class InputEvent:
         type_: Optional[int] = None,
         code: Optional[int] = None,
         value: Optional[int] = None,
+        not_value: Optional[int] = None,
         actions: Optional[Tuple[EventActions, ...]] = None,
         origin_hash: Optional[str] = None,
     ) -> InputEvent:
@@ -237,6 +243,7 @@ class InputEvent:
             type_ if type_ is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
+            not_value if not_value is not None else self.not_value,
             actions if actions is not None else self.actions,
             origin_hash=origin_hash if origin_hash is not None else self.origin_hash,
         )

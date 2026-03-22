@@ -101,22 +101,22 @@ class AbsToBtnHandler(MappingHandler):
             absinfo[event.code].min, absinfo[event.code].max
         )
         value = event.value
-        if (value < threshold > mid_point) or (value > threshold < mid_point):
-            if self._active:
-                event = event.modify(value=0, actions=(EventActions.as_key,))
-            else:
-                # consume the event.
-                # We could return False to forward events
-                return True
+
+        # If the joysticks right movement is mapped to something, the threshold is
+        # larger than the mid-point, and the value needs to be larger than that.
+        positive_triggered = (threshold > mid_point) and (value >= threshold)
+        negative_triggered = (threshold < mid_point) and (value <= threshold)
+        if not positive_triggered and not negative_triggered:
+            # The output should be a button-release
+            event = event.modify(not_value=0, actions=(EventActions.as_key,))
         else:
-            if value >= threshold > mid_point:
+            # The output should be a button-press
+            if positive_triggered:
                 direction = EventActions.positive_trigger
             else:
                 direction = EventActions.negative_trigger
-            event = event.modify(value=1, actions=(EventActions.as_key, direction))
+            event = event.modify(not_value=1, actions=(EventActions.as_key, direction))
 
-        self._active = bool(event.value)
-        # logger.debug(event.event_tuple, "sending to sub_handler")
         return self._sub_handler.notify(
             event,
             source=source,
