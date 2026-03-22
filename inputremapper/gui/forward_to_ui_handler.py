@@ -51,7 +51,11 @@ from typing import Set, List, Tuple
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 
-from inputremapper.configs.input_config import InputCombination, InputConfig, DEFAULT_ANALOG_THRESHOLD_MAGNITUDE
+from inputremapper.configs.input_config import (
+    InputCombination,
+    InputConfig,
+    DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
+)
 from inputremapper.configs.mapping import Mapping
 from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
@@ -114,7 +118,10 @@ class ForwardToUIHandler:
             # If within 30% (into each direction) of the mid_point, count as released
             # A large threahold makes it significantly easier to not accidentally
             # record both ABS_X and ABS_Y.
-            if abs(event.value - mid_point) < half_range * DEFAULT_ANALOG_THRESHOLD_MAGNITUDE / 100:
+            if (
+                abs(event.value - mid_point)
+                < half_range * DEFAULT_ANALOG_THRESHOLD_MAGNITUDE / 100
+            ):
                 pressed = False
 
             if event.value < mid_point:

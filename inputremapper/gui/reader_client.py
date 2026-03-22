@@ -29,7 +29,10 @@ from typing import Optional, List, Generator, Dict, Set
 import evdev
 from gi.repository import GLib
 
-from inputremapper.configs.input_config import InputCombination, DEFAULT_ANALOG_THRESHOLD_MAGNITUDE
+from inputremapper.configs.input_config import (
+    InputCombination,
+    DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
+)
 from inputremapper.groups import _Groups, _Group
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import MessageBroker
