@@ -65,7 +65,6 @@ from inputremapper.injection.mapping_handlers.mapping_parser import MappingParse
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
-from tests.lib.constants import MAX_ABS, MIN_ABS
 from tests.lib.fixtures import Fixture, fixtures
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
@@ -106,8 +105,8 @@ class TestAbsToRel(EventPipelineTestBase):
 
         # set input axis to 100% in order to move
         # (gain * REL_XY_SCALING) pixel per event
-        x = MAX_ABS
-        y = MAX_ABS
+        x = fixtures.gamepad.max_abs
+        y = fixtures.gamepad.max_abs
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
@@ -183,8 +182,8 @@ class TestAbsToRel(EventPipelineTestBase):
 
         # set input axis to 100% in order to move
         # speed*gain*rate=1*0.5*60 pixel per second
-        x = MAX_ABS
-        y = MAX_ABS
+        x = fixtures.gamepad.max_abs
+        y = fixtures.gamepad.max_abs
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 

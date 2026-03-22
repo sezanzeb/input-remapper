@@ -54,12 +54,7 @@ from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService, ContextDummy
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
 from inputremapper.input_event import InputEvent
-from tests.lib.constants import (
-    EVENT_READ_TIMEOUT,
-    START_READING_DELAY,
-    MAX_ABS,
-    MIN_ABS,
-)
+from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
 from tests.lib.fixtures import fixtures
 from tests.lib.fixtures import new_event
 from tests.lib.pipes import push_event, push_events
@@ -410,7 +405,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         # over 30% should trigger
         push_events(
             fixtures.foo_device_2_gamepad,
-            [InputEvent.abs(ABS_X, int(MAX_ABS * 0.4))],
+            [InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.4))],
         )
         time.sleep(0.1)
         self.reader_client._read()
@@ -436,7 +431,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         # less the 30% should release
         push_events(
             fixtures.foo_device_2_gamepad,
-            [InputEvent.abs(ABS_X, int(MAX_ABS * 0.2))],
+            [InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.2))],
         )
         time.sleep(0.1)
         self.reader_client._read()
@@ -469,7 +464,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_A, 1))
         time.sleep(0.1)
         push_event(
-            fixtures.foo_device_2_gamepad, InputEvent.abs(ABS_X, int(MAX_ABS * 0.4))
+            fixtures.foo_device_2_gamepad, InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.4)),
         )
         time.sleep(0.1)
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_COMMA, 1))
@@ -477,8 +472,8 @@ class TestReaderMultiprocessing(unittest.TestCase):
         push_events(
             fixtures.foo_device_2_gamepad,
             [
-                InputEvent.abs(ABS_X, int(MAX_ABS * 0.1)),
-                InputEvent.abs(ABS_X, int(MIN_ABS * 0.4)),
+                InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.1)),
+                InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.min_abs * 0.4)),
             ],
         )
         time.sleep(0.1)

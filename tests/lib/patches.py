@@ -32,7 +32,7 @@ import atexit
 import evdev
 
 from inputremapper.utils import get_evdev_constant_name
-from tests.lib.constants import EVENT_READ_TIMEOUT, MIN_ABS, MAX_ABS
+from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import Fixture, fixtures, new_event
 from tests.lib.pipes import (
     setup_pipe,
@@ -176,11 +176,11 @@ class InputDevice:
         if absinfo and evdev.ecodes.EV_ABS in result:
             absinfo_obj = evdev.AbsInfo(
                 value=None,
-                min=MIN_ABS,
+                min=self._fixture.min_abs,
                 fuzz=None,
                 flat=None,
                 resolution=None,
-                max=MAX_ABS,
+                max=self._fixture.max_abs,
             )
 
             ev_abs = []

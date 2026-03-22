@@ -65,7 +65,6 @@ from inputremapper.injection.mapping_handlers.mapping_parser import MappingParse
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
-from tests.lib.constants import MAX_ABS, MIN_ABS
 from tests.lib.fixtures import Fixture, fixtures
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
@@ -91,7 +90,7 @@ class TestAbsToBtn(EventPipelineTestBase):
 
         # 50%, trigger a
         await self.send_events(
-            [InputEvent.abs(ABS_X, MAX_ABS // 2)],
+            [InputEvent.abs(ABS_X, fixtures.gamepad.max_abs // 2)],
             event_reader,
         )
 
@@ -130,13 +129,13 @@ class TestAbsToBtn(EventPipelineTestBase):
         await self.send_events(
             [
                 # -10%, do nothing
-                InputEvent.abs(ABS_X, MIN_ABS // 10),
+                InputEvent.abs(ABS_X, fixtures.gamepad.min_abs // 10),
                 # 0%, do noting
                 InputEvent.abs(ABS_X, 0),
                 # 10%, do nothing
-                InputEvent.abs(ABS_X, MAX_ABS // 10),
+                InputEvent.abs(ABS_X, fixtures.gamepad.max_abs // 10),
                 # 50%, trigger a
-                InputEvent.abs(ABS_X, MAX_ABS // 2),
+                InputEvent.abs(ABS_X, fixtures.gamepad.max_abs // 2),
             ],
             event_reader,
         )
@@ -149,8 +148,8 @@ class TestAbsToBtn(EventPipelineTestBase):
         await self.send_events(
             [
                 # 80%, trigger b
-                InputEvent.abs(ABS_X, int(MAX_ABS * 0.8)),
-                InputEvent.abs(ABS_X, MAX_ABS // 2),  # 50%, release b
+                InputEvent.abs(ABS_X, int(fixtures.gamepad.max_abs * 0.8)),
+                InputEvent.abs(ABS_X, fixtures.gamepad.max_abs // 2),  # 50%, release b
             ],
             event_reader,
         )

@@ -65,7 +65,6 @@ from inputremapper.injection.mapping_handlers.mapping_parser import MappingParse
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
-from tests.lib.constants import MAX_ABS, MIN_ABS
 from tests.lib.fixtures import Fixture, fixtures
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup

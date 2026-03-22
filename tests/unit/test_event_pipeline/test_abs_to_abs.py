@@ -65,7 +65,6 @@ from inputremapper.injection.mapping_handlers.mapping_parser import MappingParse
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
-from tests.lib.constants import MAX_ABS, MIN_ABS
 from tests.lib.fixtures import Fixture, fixtures
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
@@ -99,8 +98,8 @@ class TestAbsToAbs(EventPipelineTestBase):
         mapping_2 = Mapping(**mapping_config)
         preset.add(mapping_2)
 
-        x = MAX_ABS
-        y = MAX_ABS
+        x = fixtures.gamepad.max_abs
+        y = fixtures.gamepad.max_abs
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
@@ -118,8 +117,8 @@ class TestAbsToAbs(EventPipelineTestBase):
         self.assertEqual(
             history,
             [
-                InputEvent.from_tuple((3, 0, MIN_ABS / 2)),
-                InputEvent.from_tuple((3, 1, MAX_ABS / 2)),
+                InputEvent.from_tuple((3, 0, fixtures.gamepad.min_abs / 2)),
+                InputEvent.from_tuple((3, 1, fixtures.gamepad.max_abs / 2)),
             ],
         )
 
@@ -144,8 +143,8 @@ class TestAbsToAbs(EventPipelineTestBase):
         preset = Preset()
         preset.add(mapping_1)
 
-        x = MAX_ABS
-        y = MAX_ABS
+        x = fixtures.gamepad.max_abs
+        y = fixtures.gamepad.max_abs
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
@@ -168,8 +167,8 @@ class TestAbsToAbs(EventPipelineTestBase):
         self.assertEqual(
             history,
             [
-                InputEvent.from_tuple((3, 0, MIN_ABS / 2)),
-                InputEvent.from_tuple((3, 0, MAX_ABS / 2)),
+                InputEvent.from_tuple((3, 0, fixtures.gamepad.min_abs / 2)),
+                InputEvent.from_tuple((3, 0, fixtures.gamepad.max_abs / 2)),
                 InputEvent.from_tuple((3, 0, 0)),
             ],
         )

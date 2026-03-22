@@ -67,8 +67,19 @@ class InputEvent:
         raise TypeError(f"cannot compare {type(other)} with InputEvent")
 
     def get_not_value(self):
-        # TODO what is this even
-        return self.not_value or self.value
+        """Get if the event is representing a pressed button, joystick, trigger,
+        a scrolled wheel, a moved mouse, etc.
+
+        It might depend on stuff like the analog_threshold.
+        """
+        # TODO boolean
+        if self.not_value is not None:
+            return self.not_value
+
+        if self.value == 0:
+            return 0
+
+        return 1
 
     @staticmethod
     def validate_event(event):
@@ -243,7 +254,7 @@ class InputEvent:
             type_ if type_ is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
-            not_value if not_value is not None else self.not_value,
+            not_value if not_value is not None else self.get_not_value(),
             actions if actions is not None else self.actions,
             origin_hash=origin_hash if origin_hash is not None else self.origin_hash,
         )

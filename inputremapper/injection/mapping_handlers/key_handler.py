@@ -69,10 +69,10 @@ class KeyHandler(MappingHandler):
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
         """Inject event.value to the target key."""
-        event_tuple = (*self._maps_to, event.not_value)
+        event_tuple = (*self._maps_to, event.get_not_value())
         try:
             self.global_uinputs.write(event_tuple, self.mapping.target_uinput)
-            self._active = bool(event.not_value)
+            self._active = bool(event.get_not_value())
             return True
         except exceptions.Error:
             return False

@@ -65,7 +65,6 @@ from inputremapper.injection.mapping_handlers.mapping_parser import MappingParse
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
-from tests.lib.constants import MAX_ABS, MIN_ABS
 from tests.lib.fixtures import Fixture, fixtures
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
@@ -76,6 +75,118 @@ from tests.unit.test_event_pipeline.event_pipeline_test_base import (
 
 @test_setup
 class TestCombination(EventPipelineTestBase):
+    async def test_abs_combination_0_to_256(self):
+        b = keyboard_layout.get("b")
+        origin = fixtures.gamepad_abs_0_to_256
+        origin_hash = origin.get_device_hash()
+        mapping_1 = Mapping.from_combination(
+            InputCombination(
+                [
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_X,
+                        # This value is relative in percent from half_range
+                        # Positive: should trigger from 192 to 256
+                        # Negative: it would be from 0 to 64
+                        analog_threshold=50,
+                        origin_hash=origin_hash,
+                    )
+                ]
+            ),
+            output_symbol="b",
+        )
+        assert mapping_1.release_combination_keys
+        preset = Preset()
+        preset.add(mapping_1)
+        event_reader = self.create_event_reader(preset, origin)
+
+        # don't trigger anything
+        await self.send_events(
+            [
+                # Because the abs range is from 0 to 256, 128 is the centerpoint and
+                # releases both directions.
+                InputEvent.abs(ABS_X, 128, origin_hash),
+                # Wrong direction, should not trigger anything
+                InputEvent.abs(ABS_X, 0, origin_hash),
+            ],
+            event_reader,
+        )
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
+        self.assertEqual(len(keyboard_history), 0)
+
+        # trigger b
+        await self.send_events(
+            [InputEvent.abs(ABS_X, 256, origin_hash)],
+            event_reader,
+        )
+        self.assertEqual(keyboard_history.count((EV_KEY, b, 1)), 1)
+        self.assertEqual(len(keyboard_history), 1)
+
+        # release b
+        await self.send_events(
+            [InputEvent.abs(ABS_X, 128, origin_hash)],
+            event_reader,
+        )
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
+        self.assertEqual(keyboard_history.count((EV_KEY, b, 0)), 1)
+        self.assertEqual(len(keyboard_history), 2)
+
+    async def test_abs_combination_0_to_256_negative(self):
+        b = keyboard_layout.get("b")
+        origin = fixtures.gamepad_abs_0_to_256
+        origin_hash = origin.get_device_hash()
+        mapping_1 = Mapping.from_combination(
+            InputCombination(
+                [
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_X,
+                        # This value is relative in percent from half_range
+                        # Positive: should trigger from 192 to 256
+                        # Negative: it would be from 0 to 64
+                        analog_threshold=-50,
+                        origin_hash=origin_hash,
+                    )
+                ]
+            ),
+            output_symbol="b",
+        )
+        assert mapping_1.release_combination_keys
+        preset = Preset()
+        preset.add(mapping_1)
+        event_reader = self.create_event_reader(preset, origin)
+
+        # don't trigger anything
+        await self.send_events(
+            [
+                # Because the abs range is from 0 to 256, 128 is the centerpoint and
+                # releases both directions.
+                InputEvent.abs(ABS_X, 128, origin_hash),
+                # Wrong direction, should not trigger anything
+                InputEvent.abs(ABS_X, 256, origin_hash),
+            ],
+            event_reader,
+        )
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
+        self.assertEqual(len(keyboard_history), 0)
+
+        # trigger b
+        await self.send_events(
+            [InputEvent.abs(ABS_X, 0, origin_hash)],
+            event_reader,
+        )
+        self.assertEqual(keyboard_history.count((EV_KEY, b, 1)), 1)
+        self.assertEqual(len(keyboard_history), 1)
+
+        # release b
+        await self.send_events(
+            [InputEvent.abs(ABS_X, 128, origin_hash)],
+            event_reader,
+        )
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
+        self.assertEqual(keyboard_history.count((EV_KEY, b, 0)), 1)
+        self.assertEqual(len(keyboard_history), 2)
+
     async def test_any_event_as_button(self):
         """As long as there is an event handler and a mapping we should be able
         to map anything to a button"""
@@ -1103,8 +1214,10 @@ class TestCombination(EventPipelineTestBase):
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
+        max_abs = fixtures.gamepad.max_abs
+
         # set ABS_X input to 100%
-        await event_reader.handle(InputEvent.abs(ABS_X, MAX_ABS))
+        await event_reader.handle(InputEvent.abs(ABS_X, max_abs))
 
         # wait a bit more for nothing to sum up, because ABS_Y is still 0
         await asyncio.sleep(0.2)
@@ -1112,15 +1225,15 @@ class TestCombination(EventPipelineTestBase):
         self.assertEqual(len(forward_history), 1)
         self.assertEqual(
             InputEvent.from_event(forward_history[0]),
-            (EV_ABS, ABS_X, MAX_ABS),
+            (EV_ABS, ABS_X, max_abs),
         )
 
         # move ABS_Y above 10%
         await self.send_events(
             (
-                InputEvent.abs(ABS_Y, int(MAX_ABS * 0.05)),
-                InputEvent.abs(ABS_Y, int(MAX_ABS * 0.11)),
-                InputEvent.abs(ABS_Y, int(MAX_ABS * 0.5)),
+                InputEvent.abs(ABS_Y, int(max_abs * 0.05)),
+                InputEvent.abs(ABS_Y, int(max_abs * 0.11)),
+                InputEvent.abs(ABS_Y, int(max_abs * 0.5)),
             ),
             event_reader,
         )
@@ -1135,14 +1248,14 @@ class TestCombination(EventPipelineTestBase):
         # send some more x events
         await self.send_events(
             (
-                InputEvent.abs(ABS_X, MAX_ABS),
-                InputEvent.abs(ABS_X, int(MAX_ABS * 0.9)),
+                InputEvent.abs(ABS_X, max_abs),
+                InputEvent.abs(ABS_X, int(max_abs * 0.9)),
             ),
             event_reader,
         )
 
         # stop it
-        await event_reader.handle(InputEvent.abs(ABS_Y, int(MAX_ABS * 0.05)))
+        await event_reader.handle(InputEvent.abs(ABS_Y, int(max_abs * 0.05)))
 
         await asyncio.sleep(0.2)  # wait a bit more for nothing to sum up
         if mouse_history[0].type == EV_ABS:
@@ -1177,12 +1290,13 @@ class TestCombination(EventPipelineTestBase):
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
+        max_abs = fixtures.gamepad.max_abs
         await self.send_events(
             [
                 InputEvent.from_tuple((EV_ABS, ABS_X, 10)),  # forwarded
-                InputEvent.from_tuple((EV_ABS, ABS_Y, int(0.1 * MAX_ABS))),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, int(0.1 * max_abs))),
                 InputEvent.from_tuple((EV_ABS, ABS_X, 20)),  # disabled
-                InputEvent.from_tuple((EV_ABS, ABS_Y, int(0.02 * MAX_ABS))),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, int(0.02 * max_abs))),
                 InputEvent.from_tuple((EV_ABS, ABS_X, 30)),  # forwarded
             ],
             event_reader,
@@ -1257,11 +1371,12 @@ class TestCombination(EventPipelineTestBase):
         # We expect all of it to be present. No mapping was suppressed.
         # So we can trigger combinations that inject keys while a joystick is being
         # simulated in multiple directions.
+        max_abs = fixtures.gamepad.max_abs
         self.assertEqual(
             uinput_write_history,
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS / 2)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS / 2)),
+                InputEvent.from_tuple((EV_ABS, ABS_X, max_abs / 2)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, max_abs / 2)),
                 InputEvent.from_tuple((EV_KEY, KEY_C, 1)),
                 InputEvent.from_tuple((EV_KEY, KEY_C, 0)),
                 InputEvent.from_tuple((EV_ABS, ABS_X, 0)),

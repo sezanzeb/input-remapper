@@ -26,7 +26,3 @@ EVENT_READ_TIMEOUT = 0.01
 # the reader-service starts receiving previously pushed events after a
 # call to start_reading
 START_READING_DELAY = 0.05
-
-# for joysticks
-MIN_ABS = -(2**15)
-MAX_ABS = 2**15

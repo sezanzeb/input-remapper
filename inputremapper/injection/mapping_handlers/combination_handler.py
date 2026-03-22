@@ -110,7 +110,7 @@ class CombinationHandler(MappingHandler):
         # update the state
         # The value of non-key input should have been changed to either 0 or 1 at this
         # point by other handlers.
-        is_pressed = event.not_value == 1
+        is_pressed = event.get_not_value() == 1
         self._pressed_keys[event.input_match_hash] = is_pressed
         # maybe this changes the activation status (triggered/not-triggered)
         changed = self._is_activated() != self._output_previously_active
@@ -163,7 +163,7 @@ class CombinationHandler(MappingHandler):
             repr(event),
             repr(self._sub_handler),
         )
-        self._output_previously_active = bool(event.not_value)
+        self._output_previously_active = bool(event.get_not_value())
         sub_handler_result = self._sub_handler.notify(event, source, suppress)
 
         # Only if the sub-handler return False, we need a release-event later.
@@ -187,7 +187,7 @@ class CombinationHandler(MappingHandler):
             repr(event),
             repr(self._sub_handler),
         )
-        self._output_previously_active = bool(event.not_value)
+        self._output_previously_active = bool(event.get_not_value())
         self._sub_handler.notify(event, source, suppress=False)
 
         # Negate: `False` means that the event-reader will forward the release.
@@ -207,12 +207,12 @@ class CombinationHandler(MappingHandler):
         # an earlier key in the combination chain), then we need to ensure that its
         # release is injected as well. So we get two release events in that case:
         # one for the key, and one for the output.
-        assert event.not_value == 0, f"expected {event.not_value} to be 0"
+        assert event.get_not_value() == 0, f"expected {event.get_not_value()} to be 0"
         return self._requires_a_release.pop(event.type_and_code, False)
 
     def _require_release_later(self, require: bool, event: InputEvent) -> None:
         """Remember if this key-down event will need a release event later on."""
-        assert event.not_value == 1
+        assert event.get_not_value() == 1
         self._requires_a_release[event.type_and_code] = require
 
     def reset(self) -> None:

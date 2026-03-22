@@ -94,11 +94,10 @@ class AbsToBtnHandler(MappingHandler):
         if event.input_match_hash != self._input_config.input_match_hash:
             return False
 
-        absinfo = {
-            entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]
-        }
+        absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])  # type: ignore
         threshold, mid_point = self._trigger_point(
-            absinfo[event.code].min, absinfo[event.code].max
+            absinfo[event.code].min,
+            absinfo[event.code].max,
         )
         value = event.value
 
@@ -107,7 +106,6 @@ class AbsToBtnHandler(MappingHandler):
         positive_triggered = (threshold > mid_point) and (value >= threshold)
         negative_triggered = (threshold < mid_point) and (value <= threshold)
         if not positive_triggered and not negative_triggered:
-            # The output should be a button-release
             event = event.modify(not_value=0, actions=(EventActions.as_key,))
         else:
             # The output should be a button-press

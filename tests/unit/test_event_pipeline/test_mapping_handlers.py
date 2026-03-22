@@ -63,7 +63,6 @@ from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtn
 from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.input_event import InputEvent, EventActions
 from tests.lib.cleanup import cleanup
-from tests.lib.constants import MAX_ABS
 from tests.lib.fixtures import fixtures
 from tests.lib.patches import InputDevice
 from tests.lib.test_setup import test_setup
@@ -151,14 +150,17 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
     async def test_reset(self):
         self.handler.notify(
-            InputEvent(0, 0, EV_ABS, ABS_X, MAX_ABS),
+            InputEvent(0, 0, EV_ABS, ABS_X, fixtures.foo_device_2_gamepad.max_abs),
             source=InputDevice("/dev/input/event15"),
         )
         self.handler.reset()
         history = self.global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
-            [InputEvent.from_tuple((3, 0, MAX_ABS)), InputEvent.from_tuple((3, 0, 0))],
+            [
+                InputEvent.from_tuple((3, 0, fixtures.foo_device_2_gamepad.max_abs)),
+                InputEvent.from_tuple((3, 0, 0)),
+            ],
         )
 
 
@@ -189,7 +191,7 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(history), 2)
 
         # something large, doesn't matter
-        self.assertGreater(history[0].value, MAX_ABS / 10)
+        self.assertGreater(history[0].value, fixtures.foo_device_2_gamepad.max_abs / 10)
 
         # 0, because of the reset
         self.assertEqual(history[1].value, 0)
@@ -248,7 +250,7 @@ class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
     async def test_reset(self):
         self.handler.notify(
-            InputEvent(0, 0, EV_ABS, ABS_X, MAX_ABS),
+            InputEvent(0, 0, EV_ABS, ABS_X, fixtures.foo_device_2_gamepad.max_abs),
             source=InputDevice("/dev/input/event15"),
         )
         await asyncio.sleep(0.2)
