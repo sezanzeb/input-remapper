@@ -54,7 +54,7 @@ class InputEvent:
     # Our own custom attributes
     # (They need types for the dataclass to allow them in the constructor)
     pressed: bool | None = None  # haven't figured out yet, depends on threshold config
-    direction: int = 1  # -1 for joystick left, +1 for joystick right
+    direction: int = 1  # -1 for joystick left, +1 for joystick right and buttons
     actions: Tuple[EventActions, ...] = ()
     origin_hash: Optional[DeviceHash] = None
 
