@@ -134,7 +134,7 @@ class RelToBtnHandler(MappingHandler):
             event = event.modify(
                 pressed=True,
                 direction=direction,
-                actions=(EventActions.as_key),
+                actions=(EventActions.as_key,),
             )
 
         self._active = bool(event.value)
