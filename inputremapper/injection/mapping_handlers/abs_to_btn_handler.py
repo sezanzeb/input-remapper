@@ -106,8 +106,9 @@ class AbsToBtnHandler(MappingHandler):
 
         # If the joysticks right movement is mapped to something then the threshold is
         # larger than the mid-point. The value needs to be larger than that.
-        is_positive = value >= mid_point
+        is_positive = value > mid_point
         is_negative = value < mid_point
+        is_release = value == 0
         positive_mapped = threshold > mid_point
         negative_mapped = threshold < mid_point
         positive_triggered = positive_mapped and (value >= threshold)
@@ -122,6 +123,12 @@ class AbsToBtnHandler(MappingHandler):
         elif negative_mapped and is_negative:
             event = event.modify(
                 pressed=negative_triggered,
+                direction=-1,
+                actions=(EventActions.as_key, EventActions.negative_trigger),
+            )
+        elif is_release:
+            event = event.modify(
+                pressed=False,
                 direction=-1,
                 actions=(EventActions.as_key, EventActions.negative_trigger),
             )

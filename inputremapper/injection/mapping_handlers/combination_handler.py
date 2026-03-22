@@ -113,8 +113,6 @@ class CombinationHandler(MappingHandler):
         # maybe this changes the activation status (triggered/not-triggered)
         changed = self._is_activated() != self._output_previously_active
 
-        print("????", changed, is_pressed, self._is_activated(), event)
-
         if changed:
             if is_pressed:
                 return self._handle_freshly_activated(suppress, event, source)
