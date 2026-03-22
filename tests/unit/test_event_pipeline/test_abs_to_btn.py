@@ -125,7 +125,6 @@ class TestAbsToBtn(EventPipelineTestBase):
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
-        print("\n\nalksdjflas")
         await self.send_events(
             [
                 # -10%, do nothing

@@ -493,7 +493,6 @@ class Controller:
                         self.save()
                         return
                     except KeyError:
-                        print("setanalogthreshold 1 failed")
                         pass
 
         # didn't update successfully

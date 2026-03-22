@@ -879,7 +879,6 @@ class TriggerThresholdInput:
             self._input_config = input_config
 
     def _on_gtk_changed(self, *_):
-        print("triggerthresholdinput _on_gtk_changed", int(self._gui.get_value()))
         self._controller.update_input_config(
             self._input_config.modify(analog_threshold=int(self._gui.get_value()))
         )
