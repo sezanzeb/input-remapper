@@ -127,11 +127,15 @@ class RelToBtnHandler(MappingHandler):
             if not self._active:
                 asyncio.ensure_future(self._stage_release(source, suppress))
             if value >= threshold > 0:
-                direction = EventActions.positive_trigger
+                direction = 1
             else:
-                direction = EventActions.negative_trigger
+                direction = -1
             self._last_activation = time.time()
-            event = event.modify(pressed=True, actions=(EventActions.as_key, direction))
+            event = event.modify(
+                pressed=True,
+                direction=direction,
+                actions=(EventActions.as_key),
+            )
 
         self._active = bool(event.value)
         # logger.debug("Sending %s to sub_handler", event)

@@ -36,10 +36,6 @@ class EventActions(enum.Enum):
     recenter = enum.auto()  # recenter the axis when receiving this
     none = enum.auto()
 
-    # used in combination with as_key, for originally abs or rel events
-    positive_trigger = enum.auto()  # original event was positive direction
-    negative_trigger = enum.auto()  # original event was negative direction
-
 
 # Todo: add slots=True as soon as python 3.10 is in common distros
 @dataclass(frozen=True)

@@ -111,31 +111,23 @@ class AbsToBtnHandler(MappingHandler):
         is_release = value == 0
         positive_mapped = threshold > mid_point
         negative_mapped = threshold < mid_point
-        positive_triggered = positive_mapped and (value >= threshold)
-        negative_triggered = negative_mapped and (value <= threshold)
-
-        # TODO is direction and EventActions.positive_trigger redundant?
-        if positive_mapped:
-            event = event.modify(
-                direction=1,
-                actions=(EventActions.as_key, EventActions.positive_trigger),
-            )
-        else:
-            event = event.modify(
-                direction=-1,
-                actions=(EventActions.as_key, EventActions.negative_trigger),
-            )
 
         if positive_mapped and is_positive:
-            event = event.modify(pressed=positive_triggered)
+            pressed = positive_mapped and (value >= threshold)
         elif negative_mapped and is_negative:
-            event = event.modify(pressed=negative_triggered)
+            pressed = negative_mapped and (value <= threshold)
         elif is_release:
-            event = event.modify(pressed=False)
+            pressed = False
         else:
             # either positive_mapped and is_negative, or negative_mapped and is_positive
             # This event is not mapped to anything, forward it
             return False
+
+        event = event.modify(
+            pressed=pressed,
+            direction=1 if positive_mapped else -1,
+            actions=(EventActions.as_key,),
+        )
 
         return self._sub_handler.notify(
             event,
