@@ -115,12 +115,12 @@ class AbsToBtnHandler(MappingHandler):
 
         if positive_mapped and is_positive:
             event = event.modify(
-                not_value=int(positive_triggered),
+                pressed=int(positive_triggered),
                 actions=(EventActions.as_key, EventActions.positive_trigger)
             )
         elif negative_mapped and is_negative:
             event = event.modify(
-                not_value=int(negative_triggered),
+                pressed=int(negative_triggered),
                 actions=(EventActions.as_key, EventActions.negative_trigger)
             )
         else:
