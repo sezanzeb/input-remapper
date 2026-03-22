@@ -487,7 +487,6 @@ class Controller:
                 try_values = {EV_REL: [1, -1], EV_ABS: [10, -10]}
                 for value in try_values[event.type]:
                     try:
-                        print("AAA event.modify(analog_threshold=value)", value)
                         self.data_manager.update_input_config(
                             event.modify(analog_threshold=value)
                         )

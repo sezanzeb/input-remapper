@@ -464,7 +464,8 @@ class TestReaderMultiprocessing(unittest.TestCase):
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_A, 1))
         time.sleep(0.1)
         push_event(
-            fixtures.foo_device_2_gamepad, InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.4)),
+            fixtures.foo_device_2_gamepad,
+            InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.4)),
         )
         time.sleep(0.1)
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_COMMA, 1))

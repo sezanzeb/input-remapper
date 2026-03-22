@@ -117,7 +117,6 @@ class InputConfig(BaseModel):
     def from_input_event(cls, event: InputEvent) -> InputConfig:
         """create an input confing from the given InputEvent, uses the value as
         analog threshold"""
-        print("AAA from_input_event", event, event.value)
         return cls(
             type=event.type,
             code=event.code,
@@ -270,11 +269,6 @@ class InputConfig(BaseModel):
         analog_threshold: Optional[int] = None,
     ) -> InputConfig:
         """Return a new modified event."""
-        print("AAA modify", (
-                analog_threshold
-                if analog_threshold is not None
-                else self.analog_threshold
-            ))
         return InputConfig(
             type=type_ if type_ is not None else self.type,
             code=code if code is not None else self.code,
@@ -406,7 +400,6 @@ class InputCombination(Tuple[InputConfig, ...]):
         dicts = []
         for tuple_ in tuples:
             if len(tuple_) == 3:
-                print("AAA from_tuples", tuple_[2])
                 dicts.append(
                     {
                         "type": tuple_[0],
