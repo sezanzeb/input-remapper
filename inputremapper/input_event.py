@@ -54,7 +54,7 @@ class InputEvent:
     type: int
     code: int
     value: int
-    pressed: int | None = None
+    pressed: bool | None = None
     actions: Tuple[EventActions, ...] = ()
     origin_hash: Optional[DeviceHash] = None
 

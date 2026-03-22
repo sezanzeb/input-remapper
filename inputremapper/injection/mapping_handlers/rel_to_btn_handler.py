@@ -115,7 +115,7 @@ class RelToBtnHandler(MappingHandler):
                 if self.mapping.force_release_timeout:
                     # consume the event
                     return True
-                event = event.modify(pressed=0, actions=(EventActions.as_key,))
+                event = event.modify(pressed=False, actions=(EventActions.as_key,))
                 logger.debug("Sending %s to sub_handler", event)
                 self._abort_release = True
             else:
@@ -131,7 +131,7 @@ class RelToBtnHandler(MappingHandler):
             else:
                 direction = EventActions.negative_trigger
             self._last_activation = time.time()
-            event = event.modify(pressed=1, actions=(EventActions.as_key, direction))
+            event = event.modify(pressed=True, actions=(EventActions.as_key, direction))
 
         self._active = bool(event.value)
         # logger.debug("Sending %s to sub_handler", event)
