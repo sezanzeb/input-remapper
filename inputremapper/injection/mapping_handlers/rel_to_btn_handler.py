@@ -74,7 +74,7 @@ class RelToBtnHandler(MappingHandler):
 
     async def _stage_release(
         self,
-        source: InputEvent,
+        source: evdev.InputDevice,
         suppress: bool,
     ):
         while time.time() < self._last_activation + self.mapping.release_timeout:
