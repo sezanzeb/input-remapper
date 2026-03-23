@@ -137,7 +137,7 @@ class RelToBtnHandler(MappingHandler):
                 actions=(EventActions.as_key,),
             )
 
-        self._active = bool(event.value)
+        self._active = event.is_pressed()
         # logger.debug("Sending %s to sub_handler", event)
         return self._sub_handler.notify(event, source=source, suppress=suppress)
 

@@ -1198,8 +1198,12 @@ class TestCombination(EventPipelineTestBase):
 
         # ABS_X to REL_Y if ABS_Y is above 10%
         combination = InputCombination(
-            InputCombination.from_tuples((EV_ABS, ABS_X, 0), (EV_ABS, ABS_Y, 10))
+            [
+                InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=0),
+                InputConfig(type=EV_ABS, code=ABS_Y, analog_threshold=10),
+            ]
         )
+
         cfg = {
             "input_combination": combination.to_config(),
             "target_uinput": "mouse",

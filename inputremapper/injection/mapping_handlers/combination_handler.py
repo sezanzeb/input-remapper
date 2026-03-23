@@ -108,7 +108,7 @@ class CombinationHandler(MappingHandler):
         # update the state
         # The value of non-key input should have been changed to either 0 or 1 at this
         # point by other handlers.
-        is_pressed = event.is_pressed() == 1
+        is_pressed = event.is_pressed()
         self._pressed_keys[event.input_match_hash] = is_pressed
         # maybe this changes the activation status (triggered/not-triggered)
         changed = self._is_activated() != self._output_previously_active

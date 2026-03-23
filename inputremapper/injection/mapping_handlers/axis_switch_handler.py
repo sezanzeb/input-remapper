@@ -100,7 +100,7 @@ class AxisSwitchHandler(MappingHandler):
         Analog events (e.g. ABS_X, REL_Y) that have gone through Handlers that
         transform them to buttons also count as keys.
         """
-        key_is_pressed = bool(event.value)
+        key_is_pressed = event.is_pressed()
         if self._active == key_is_pressed:
             # nothing changed
             return False
