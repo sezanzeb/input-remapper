@@ -40,7 +40,7 @@ class AxisSwitchHandler(MappingHandler):
     """Enables or disables an axis.
 
     This is used when a combination involving an analog input (rel or abs) is mapped
-    to another analog input (rel or abs). I think.
+    to another analog output (rel or abs). I think.
 
     Generally, if multiple events are mapped to something in a combination, all of
     them need to be triggered in order to map to the output.
