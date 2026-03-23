@@ -255,6 +255,8 @@ class RelToRelHandler(MappingHandler):
 
     def _write(self, code: int, value: int):
         if value == 0:
+            # rel 0 does not make sense. We don't need to tell linux that the mouse
+            # should not be moved this time.
             return
 
         self.global_uinputs.write(

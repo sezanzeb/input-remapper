@@ -75,7 +75,7 @@ class MacroHandler(MappingHandler):
             traceback.print_exc()
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
-        if event.value == 1:
+        if event.is_pressed():
             self._active = True
             self._macro.press_trigger()
             if self._macro.running:

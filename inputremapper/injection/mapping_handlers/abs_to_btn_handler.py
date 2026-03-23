@@ -123,6 +123,9 @@ class AbsToBtnHandler(MappingHandler):
             # Otherwise, a negative movement for a positive mapping, means the joystick
             # moves into a direction that is not mapped to anything here. So it should
             # allow other handlers to handle it or the event reader to forward it.
+            #
+            # If self._active is True, we'd want to make sure the release is sent to
+            # the sub_handler. So only do this if self._active is False.
             want_negative_is_negative = analog_threshold < 0 and value < mid_point
             want_positive_is_positive = analog_threshold > 0 and value > mid_point
             return want_negative_is_negative or want_positive_is_positive

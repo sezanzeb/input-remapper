@@ -227,11 +227,14 @@ class AbsToRelHandler(MappingHandler):
         # if the mouse won't move even though correct stuff is written here,
         # the capabilities are probably wrong
         if value == 0:
-            return  # rel 0 does not make sense
+            # rel 0 does not make sense. We don't need to tell linux that the mouse
+            # should not be moved this time.
+            return
 
         try:
             self.global_uinputs.write(
-                (type_, keycode, value), self.mapping.target_uinput
+                (type_, keycode, value),
+                self.mapping.target_uinput,
             )
         except OverflowError:
             # screwed up the calculation of mouse movements
