@@ -38,40 +38,17 @@ different input-events into simple on/off events and sends them to the gui.
 
 from __future__ import annotations
 
-import asyncio
-import logging
-import multiprocessing
-import os
-import subprocess
-import sys
-import time
-from collections import defaultdict
-from typing import Set, List, Tuple
+from typing import Tuple
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
+from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.input_config import (
-    InputCombination,
-    InputConfig,
     DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
 )
-from inputremapper.configs.mapping import Mapping
-from inputremapper.groups import _Groups, _Group
-from inputremapper.injection.event_reader import EventReader
-from inputremapper.injection.global_uinputs import GlobalUInputs
-from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
-from inputremapper.injection.mapping_handlers.mapping_handler import (
-    NotifyCallback,
-    InputEventHandler,
-    MappingHandler,
-)
-from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logging.logger import logger
-from inputremapper.user import UserUtils
-from inputremapper.utils import get_device_hash
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"

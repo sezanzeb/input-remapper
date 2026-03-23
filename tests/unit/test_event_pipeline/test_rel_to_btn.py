@@ -20,53 +20,23 @@
 
 import asyncio
 import unittest
-from typing import Iterable
 
-import evdev
 from evdev.ecodes import (
     EV_KEY,
-    EV_ABS,
     EV_REL,
-    ABS_X,
-    ABS_Y,
     REL_X,
-    REL_Y,
-    BTN_A,
     REL_HWHEEL,
     REL_WHEEL,
-    REL_WHEEL_HI_RES,
-    REL_HWHEEL_HI_RES,
-    ABS_HAT0X,
-    BTN_LEFT,
-    BTN_B,
-    KEY_A,
-    ABS_HAT0Y,
-    KEY_B,
-    KEY_C,
-    KEY_D,
-    BTN_TL,
-    KEY_1,
 )
 
 from inputremapper.configs.mapping import (
     Mapping,
-    REL_XY_SCALING,
-    WHEEL_SCALING,
-    WHEEL_HI_RES_SCALING,
-    DEFAULT_REL_RATE,
 )
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.injection.context import Context
-from inputremapper.injection.event_reader import EventReader
-from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
-from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
-from tests.lib.cleanup import cleanup
-from tests.lib.logger import logger
-from tests.lib.fixtures import Fixture, fixtures
-from tests.lib.pipes import uinput_write_history
+from tests.lib.fixtures import fixtures
 from tests.lib.test_setup import test_setup
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
     EventPipelineTestBase,

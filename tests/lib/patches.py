@@ -48,7 +48,6 @@ from tests.lib.logger import logger
 
 def patch_paths():
     from inputremapper.user import UserUtils
-    from inputremapper.configs.paths import PathUtils
 
     return [
         patch.object(UserUtils, "home", tmp),
