@@ -101,8 +101,6 @@ class ForwardToUIHandler:
         if event == self._last_event:
             return True
 
-        absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])  # type: ignore
-
         # These defaults work with EV_KEY and EV_REL
         pressed = False if event.value == 0 else True
         direction = 1 if event.value >= 0 else -1
@@ -110,6 +108,7 @@ class ForwardToUIHandler:
         # Because joysticks aren't as precise, they wiggle and their value might not be
         # centered around 0, they need special treatment
         if event.type == EV_ABS:
+            absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])  # type: ignore
             abs_min = absinfo[event.code].min
             abs_max = absinfo[event.code].max
             half_range = (abs_max - abs_min) / 2
