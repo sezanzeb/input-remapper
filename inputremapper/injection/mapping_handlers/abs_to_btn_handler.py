@@ -126,8 +126,14 @@ class AbsToBtnHandler(MappingHandler):
             #
             # If self._active is True, we'd want to make sure the release is sent to
             # the sub_handler. So only do this if self._active is False.
-            want_negative_is_negative = analog_threshold < 0 and value < mid_point
-            want_positive_is_positive = analog_threshold > 0 and value > mid_point
+            want_negative_is_negative = analog_threshold < 0 and value <= mid_point
+            want_positive_is_positive = analog_threshold > 0 and value >= mid_point
+            # Checking for <= mid_point and >= mid_point means that a value of exactly
+            # the mid_point belongs to the mapping. So even if only one direction is
+            # mapped, there is no resting point for the joystick that is being
+            # forwarded anymore. The resting point belongs to the mapping now. However,
+            # checking for < and > means that even if both directions are mapped, the
+            # resting point will be forwarded.
             return want_negative_is_negative or want_positive_is_positive
 
         self._active = pressed

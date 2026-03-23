@@ -35,6 +35,7 @@ start = time.time()
 class Logger(logging.Logger):
     previous_abs_rel_log_time = 0
     previous_write_debug_log = None
+    analog_log_threshold = 0.1  # s
 
     def debug_mapping_handler(self, mapping_handler):
         """Parse the structure of a mapping_handler and log it."""
@@ -67,7 +68,7 @@ class Logger(logging.Logger):
             # Avoid spaming the terminal with tons of high-resolution logs
             now = time.time()
             if key.type in [EV_ABS, EV_REL]:
-                if now - self.previous_abs_rel_log_time < 0.1:
+                if now - self.previous_abs_rel_log_time < self.analog_log_threshold:
                     return
 
                 self.previous_abs_rel_log_time = now

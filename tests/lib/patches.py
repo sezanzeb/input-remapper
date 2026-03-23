@@ -340,6 +340,11 @@ def patch_is_running():
     return patch.object(ReaderService, "is_running", is_running_patch)
 
 
+def patch_enable_all_logs():
+    from inputremapper.logging.logger import Logger
+    return patch.object(Logger, 'analog_log_threshold', 0)
+
+
 class FakeDaemonProxy:
     def __init__(self):
         self.calls = {
@@ -400,4 +405,5 @@ def create_patches():
         patch_regrab_timeout(),
         patch_is_running(),
         patch_events(),
+        patch_enable_all_logs(),
     ]

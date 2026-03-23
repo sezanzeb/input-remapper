@@ -33,6 +33,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.input_event import InputEvent
+from tests.lib.logger import logger
 from tests.lib.fixtures import fixtures
 from tests.lib.test_setup import test_setup
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
@@ -68,6 +69,7 @@ class TestAbsToBtn(EventPipelineTestBase):
 
     async def test_abs_trigger_threshold(self):
         """Test that different activation points for abs_to_btn work correctly."""
+        forwarded_history = self.forward_uinput.write_history
 
         # at 30% map to a
         mapping_1 = Mapping.from_combination(
@@ -92,6 +94,7 @@ class TestAbsToBtn(EventPipelineTestBase):
 
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
+        logger.info("do nothing, then trigger a")
         await self.send_events(
             [
                 # -10%, do nothing
@@ -110,12 +113,17 @@ class TestAbsToBtn(EventPipelineTestBase):
         self.assertEqual(keyboard_history.count((EV_KEY, a, 1)), 1)
         self.assertNotIn((EV_KEY, a, 0), keyboard_history)
         self.assertNotIn((EV_KEY, b, 1), keyboard_history)
+        # the negative movements are not mapped, so the one event at -10% should be
+        # forwarded instead
+        self.assertEqual(len(forwarded_history), 1)
 
+        logger.info("trigger b, then release b")
         await self.send_events(
             [
                 # 80%, trigger b
                 InputEvent.abs(ABS_X, int(fixtures.gamepad.max_abs * 0.8)),
-                InputEvent.abs(ABS_X, fixtures.gamepad.max_abs // 2),  # 50%, release b
+                # 50%, release b
+                InputEvent.abs(ABS_X, fixtures.gamepad.max_abs // 2),
             ],
             event_reader,
         )
@@ -128,9 +136,8 @@ class TestAbsToBtn(EventPipelineTestBase):
         # 0% release a
         await event_reader.handle(InputEvent.abs(ABS_X, 0))
         keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
-        forwarded_history = self.forward_uinput.write_history
         self.assertEqual(keyboard_history.count((EV_KEY, a, 0)), 1)
-        self.assertEqual(len(forwarded_history), 0)
+        self.assertEqual(len(forwarded_history), 1)
 
 
 if __name__ == "__main__":
