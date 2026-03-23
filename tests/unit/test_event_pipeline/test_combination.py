@@ -1185,7 +1185,10 @@ class TestCombination(EventPipelineTestBase):
         # ABS_X to REL_Y if ABS_Y is above 10%
         combination = InputCombination(
             [
-                InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=0),
+                # Apparently, setting the threshold to None declares this as a fully
+                # analog input. The ABS_X movement will probably be mapped to x mouse
+                # movement.
+                InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=None),
                 InputConfig(type=EV_ABS, code=ABS_Y, analog_threshold=10),
             ]
         )
@@ -1206,7 +1209,7 @@ class TestCombination(EventPipelineTestBase):
 
         max_abs = fixtures.gamepad.max_abs
 
-        # set ABS_X input to 100%
+        logger.info("set ABS_X input to 100%% (%s)", max_abs)
         await event_reader.handle(InputEvent.abs(ABS_X, max_abs))
 
         # wait a bit more for nothing to sum up, because ABS_Y is still 0
@@ -1218,7 +1221,7 @@ class TestCombination(EventPipelineTestBase):
             (EV_ABS, ABS_X, max_abs),
         )
 
-        # move ABS_Y above 10%
+        logger.info("slowly move ABS_Y above 10%% (> %s)", max_abs * 0.10)
         await self.send_events(
             (
                 InputEvent.abs(ABS_Y, int(max_abs * 0.05)),
@@ -1235,7 +1238,7 @@ class TestCombination(EventPipelineTestBase):
         self.assertAlmostEqual(len(mouse_history), rel_rate * sleep, delta=3)
         self.assertEqual(len(forward_history), 1)
 
-        # send some more x events
+        logger.info("send some more x events")
         await self.send_events(
             (
                 InputEvent.abs(ABS_X, max_abs),

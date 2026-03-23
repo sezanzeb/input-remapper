@@ -287,8 +287,11 @@ class InputConfig(BaseModel):
 
     @validator("analog_threshold")
     def _ensure_analog_threshold_is_none(cls, analog_threshold):
-        """ensure the analog threshold is none, not zero."""
+        """ensure the analog threshold is None, not zero."""
         if analog_threshold == 0 or analog_threshold is None:
+            # the sign of the threshold defines the direction the joystick has to move.
+            # 0 is invalid, it has no sign. And for triggers, what does a threshold of
+            # 0 mean? Would it always be active?
             return None
 
         return analog_threshold

@@ -104,8 +104,9 @@ class AbsToBtnHandler(MappingHandler):
         )
         value = event.value
 
-        assert self._input_config.analog_threshold is not None
-        if self._input_config.analog_threshold > 0:
+        analog_threshold = self._input_config.analog_threshold
+        assert analog_threshold is not None
+        if analog_threshold > 0:
             # Movement of the joystick into positive direction triggers an output
             pressed = value >= threshold
             direction = 1
@@ -113,9 +114,18 @@ class AbsToBtnHandler(MappingHandler):
             pressed = value <= threshold
             direction = -1
 
-        if not self._active and not pressed:
-            # Ignore
-            return False
+        if not pressed and not self._active:
+            # Noise from the joystick or a movement in the opposite direction
+            #
+            # Return True ("This handler knows this event, and took care of it", to
+            # avoid forwarding it), if it is a positive movement for a positive mapping.
+            #
+            # Otherwise, a negative movement for a positive mapping, means the joystick
+            # moves into a direction that is not mapped to anything here. So it should
+            # allow other handlers to handle it or the event reader to forward it.
+            want_negative_is_negative = analog_threshold < 0 and value < mid_point
+            want_positive_is_positive = analog_threshold > 0 and value > mid_point
+            return want_negative_is_negative or want_positive_is_positive
 
         self._active = pressed
 
