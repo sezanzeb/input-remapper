@@ -156,7 +156,7 @@ class TestCombination(EventPipelineTestBase):
         preset.add(mapping_1)
         event_reader = self.create_event_reader(preset, origin)
 
-        # don't trigger anything
+        logger.info("don't trigger anything")
         await self.send_events(
             [
                 # Because the abs range is from 0 to 256, 128 is the centerpoint and
@@ -170,7 +170,7 @@ class TestCombination(EventPipelineTestBase):
         keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
         self.assertEqual(len(keyboard_history), 0)
 
-        # trigger b
+        logger.info("trigger b")
         await self.send_events(
             [InputEvent.abs(ABS_X, 0, origin_hash)],
             event_reader,
@@ -178,7 +178,7 @@ class TestCombination(EventPipelineTestBase):
         self.assertEqual(keyboard_history.count((EV_KEY, b, 1)), 1)
         self.assertEqual(len(keyboard_history), 1)
 
-        # release b
+        logger.info("release b")
         await self.send_events(
             [InputEvent.abs(ABS_X, 128, origin_hash)],
             event_reader,

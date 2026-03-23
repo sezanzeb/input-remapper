@@ -165,6 +165,9 @@ class GlobalUInputs:
         if not uinput.can_emit(event):
             raise inputremapper.exceptions.EventNotHandled(event)
 
+        # Was bool once due to a bug during development
+        assert not isinstance(event[2], bool) and isinstance(event[2], int)
+
         logger.write(event, uinput)
         uinput.write(*event)
         uinput.syn()

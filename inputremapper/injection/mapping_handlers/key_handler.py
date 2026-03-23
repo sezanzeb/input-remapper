@@ -68,8 +68,8 @@ class KeyHandler(MappingHandler):
         return f"maps to: {name} {self._maps_to} on {self.mapping.target_uinput}"
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
-        """Inject event.value to the target key."""
-        event_tuple = (*self._maps_to, event.is_pressed())
+        """Inject the correct value to the target uinput."""
+        event_tuple = (*self._maps_to, 1 if event.is_pressed() else 0)
         try:
             self.global_uinputs.write(event_tuple, self.mapping.target_uinput)
             self._active = bool(event.is_pressed())
