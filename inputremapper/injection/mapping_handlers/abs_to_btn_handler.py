@@ -113,9 +113,9 @@ class AbsToBtnHandler(MappingHandler):
         negative_mapped = threshold < mid_point
 
         if positive_mapped and is_positive:
-            pressed = positive_mapped and (value >= threshold)
+            pressed = value >= threshold
         elif negative_mapped and is_negative:
-            pressed = negative_mapped and (value <= threshold)
+            pressed = value <= threshold
         elif is_release:
             pressed = False
         else:
