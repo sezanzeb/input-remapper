@@ -342,7 +342,8 @@ def patch_is_running():
 
 def patch_enable_all_logs():
     from inputremapper.logging.logger import Logger
-    return patch.object(Logger, 'analog_log_threshold', 0)
+
+    return patch.object(Logger, "analog_log_threshold", 0)
 
 
 class FakeDaemonProxy:
