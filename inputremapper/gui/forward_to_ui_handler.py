@@ -41,7 +41,7 @@ from __future__ import annotations
 from typing import Tuple
 
 import evdev
-from evdev.ecodes import EV_ABS
+from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE
 
 from inputremapper.configs.input_config import (
     DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
@@ -50,6 +50,7 @@ from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logging.logger import logger
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
+from inputremapper.injection.mapping_handlers.abs_util import calculate_trigger_point
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"
@@ -86,19 +87,16 @@ class ForwardToUIHandler(MappingHandler):
         # Because joysticks aren't as precise, they wiggle and their value might not be
         # centered around 0, they need special treatment
         if event.type == EV_ABS:
-            absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])  # type: ignore
-            abs_min = absinfo[event.code].min
-            abs_max = absinfo[event.code].max
-            half_range = (abs_max - abs_min) / 2
-            mid_point = half_range + abs_min
+            threshold, mid_point = calculate_trigger_point(
+                event,
+                DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
+                source,
+            )
 
             # If within 30% (into each direction) of the mid_point, count as released
             # A large threahold makes it significantly easier to not accidentally
             # record both ABS_X and ABS_Y.
-            if (
-                abs(event.value - mid_point)
-                < half_range * DEFAULT_ANALOG_THRESHOLD_MAGNITUDE / 100
-            ):
+            if abs(event.value - mid_point) < threshold:
                 pressed = False
 
             if event.value < mid_point:

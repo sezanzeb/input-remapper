@@ -20,11 +20,12 @@
 from typing import Tuple, List
 
 import evdev
-from evdev.ecodes import EV_ABS
+from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.injection.mapping_handlers.abs_util import calculate_trigger_point
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
 )
@@ -63,29 +64,6 @@ class AbsToBtnHandler(MappingHandler):
     def get_children(self) -> List[MappingHandler]:
         return [self._sub_handler]
 
-    def _trigger_point(self, abs_min: int, abs_max: int) -> Tuple[float, float]:
-        """Calculate the axis mid and trigger point."""
-        #  TODO: potentially cache this function
-        assert self._input_config.analog_threshold
-        if abs_min == -1 and abs_max == 1:
-            # this is a hat switch
-            # return +-1
-            return (
-                self._input_config.analog_threshold
-                // abs(self._input_config.analog_threshold),
-                0,
-            )
-
-        half_range = (abs_max - abs_min) / 2
-        middle = half_range + abs_min
-        trigger_offset = half_range * self._input_config.analog_threshold / 100
-        # Examples for threshold of +50:
-        # -128 to 128. half_range is 128. middle is 0. trigger_offset is 64 (and above)
-        # 0 to 128. half_range is 64. middle is 64. trigger_offset is 96 (and above)
-
-        # threshold, middle
-        return middle + trigger_offset, middle
-
     def notify(
         self,
         event: InputEvent,
@@ -95,15 +73,18 @@ class AbsToBtnHandler(MappingHandler):
         if event.input_match_hash != self._input_config.input_match_hash:
             return False
 
-        absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])  # type: ignore
-        threshold, mid_point = self._trigger_point(
-            absinfo[event.code].min,
-            absinfo[event.code].max,
-        )
-        value = event.value
-
         analog_threshold = self._input_config.analog_threshold
         assert analog_threshold is not None
+
+        # TODO: potentially cache this function
+        threshold, mid_point = calculate_trigger_point(
+            event,
+            analog_threshold,
+            source,
+        )
+
+        value = event.value
+
         if analog_threshold > 0:
             # Movement of the joystick into positive direction triggers an output
             pressed = value >= threshold
