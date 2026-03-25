@@ -65,7 +65,7 @@ class HierarchyHandler(MappingHandler):
     def notify(
         self,
         event: InputEvent,
-        source: Optional[evdev.InputDevice] = None,
+        source: evdev.InputDevice,
         suppress: bool = False,
     ) -> bool:
         if event.input_match_hash != self._input_config.input_match_hash:

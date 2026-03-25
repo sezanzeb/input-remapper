@@ -19,7 +19,7 @@
 
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
-from typing import TYPE_CHECKING, Dict, Hashable, Tuple
+from typing import TYPE_CHECKING, Dict, Hashable, Tuple, List
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
