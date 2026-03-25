@@ -30,9 +30,12 @@ def calculate_trigger_point(
     analog_threshold: int,
     source: evdev.InputDevice,
 ) -> Tuple[float, float]:
-    """Calculate the threshold and resting point of the axis.
+    """Calculate the threshold and resting-point of the axis.
 
     If an EV_ABS events value suprasses the threshold, it should be considered pressed.
+
+    The threshold is the offset from the resting-point/middle in both directions.
+
     The resting point might be the middle value for a joystick: 0, *128*, 256 or
     -128, *0*, 128. Or it might be the minimum value of the shoulder triggers: *0* 256.
     """
