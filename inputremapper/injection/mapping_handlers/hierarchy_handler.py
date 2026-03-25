@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -60,14 +60,13 @@ class HierarchyHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
+    def get_children(self) -> List[MappingHandler]:
         return self.handlers
 
     def notify(
         self,
         event: InputEvent,
-        source: evdev.InputDevice = None,
+        source: Optional[evdev.InputDevice] = None,
         suppress: bool = False,
     ) -> bool:
         if event.input_match_hash != self._input_config.input_match_hash:

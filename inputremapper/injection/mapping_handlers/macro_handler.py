@@ -19,7 +19,7 @@
 
 import asyncio
 import traceback
-from typing import Dict, Callable, Tuple
+from typing import Dict, Callable, Tuple, List
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
@@ -62,8 +62,10 @@ class MacroHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
+    def get_children(self) -> List[MappingHandler]:
+        return []
+
+    def describe(self) -> str:
         return f"maps to {self._macro} on {self.mapping.target_uinput}"
 
     async def run_macro(self, handler: Callable):

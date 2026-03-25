@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Tuple, Hashable
+from typing import Dict, Tuple, Hashable, List
 
 import evdev
 
@@ -91,8 +91,8 @@ class AxisSwitchHandler(MappingHandler):
         return f"<{str(self)} at {hex(id(self))}>"
 
     @property
-    def child(self):
-        return self._sub_handler
+    def get_children(self) -> List[MappingHandler]:
+        return [self._sub_handler]
 
     def _handle_key_input(self, event: InputEvent):
         """If a key is pressed, allow mapping analog events in subhandlers.

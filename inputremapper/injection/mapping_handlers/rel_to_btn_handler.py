@@ -19,6 +19,7 @@
 
 import asyncio
 import time
+from typing import List
 
 import evdev
 from evdev.ecodes import EV_REL
@@ -68,9 +69,8 @@ class RelToBtnHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
-        return self._sub_handler
+    def get_children(self) -> List[MappingHandler]:
+        return [self._sub_handler]
 
     async def _stage_release(
         self,

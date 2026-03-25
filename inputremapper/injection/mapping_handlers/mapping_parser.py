@@ -81,7 +81,7 @@ class MappingParser:
     def __init__(
         self,
         global_uinputs: GlobalUInputs,
-    ):
+    ) -> None:
         self.global_uinputs = global_uinputs
 
     def parse_mappings(

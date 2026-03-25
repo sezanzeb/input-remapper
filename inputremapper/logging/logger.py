@@ -92,27 +92,16 @@ class Logger(logging.Logger):
         self._log(logging.DEBUG, msg, args=(), stacklevel=2)
 
     def _parse_mapping_handler(
-        self, mapping_handler: MappingHandler
+        self,
+        mapping_handler: MappingHandler,
+        indent = 0,
     ) -> List[Tuple[str, int]]:
-        indent = 0
-        lines_and_indent = []
-        while True:
-            if isinstance(mapping_handler, list):
-                raise Exception("Remove this block if tests work")
-                for sub_handler in mapping_handler:
-                    sub_list = self._parse_mapping_handler(sub_handler)
-                    for line in sub_list:
-                        line[1] += indent
-                    lines_and_indent.extend(sub_list)
-                break
+        lines_and_indent = [(mapping_handler.describe(), indent)]
+        mapping_handlers = mapping_handler.get_children()
+        for sub_handler in mapping_handlers:
+            sub_list = self._parse_mapping_handler(sub_handler, indent + 1)
+            lines_and_indent.extend(sub_list)
 
-            lines_and_indent.append((repr(mapping_handler), indent))
-            try:
-                mapping_handler = mapping_handler.child
-            except AttributeError:
-                break
-
-            indent += 1
         return lines_and_indent
 
     def is_debug(self) -> bool:

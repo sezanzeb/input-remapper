@@ -18,7 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
-from typing import Dict
+from typing import Dict, List
 
 import evdev
 from evdev.ecodes import (
@@ -124,8 +124,10 @@ class RelToRelHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
+    def get_children(self) -> List[MappingHandler]:
+        return []
+
+    def describe(self) -> str:
         return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
 
     def _should_map(self, event: InputEvent):

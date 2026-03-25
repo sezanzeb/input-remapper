@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Optional, Dict, List
 
 import evdev
 from evdev.ecodes import EV_ABS
@@ -77,8 +77,10 @@ class AbsToAbsHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
+    def get_children(self) -> List[MappingHandler]:
+        return []
+
+    def describe(self) -> str:
         return (
             f"maps to: {self.mapping.get_output_name_constant()} "
             f"{self.mapping.get_output_type_code()} at "

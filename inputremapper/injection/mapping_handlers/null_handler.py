@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict
+from typing import Dict, List
 
 import evdev
 
@@ -35,8 +35,10 @@ class NullHandler(MappingHandler):
     def __str__(self):
         return f"NullHandler for {self.mapping.input_combination}<{id(self)}>"
 
-    @property
-    def child(self):
+    def get_children(self) -> List[MappingHandler]:
+        return []
+
+    def describe(self) -> str:
         return "Voids all events"
 
     def needs_wrapping(self) -> bool:

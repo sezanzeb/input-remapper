@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple
+from typing import Tuple, List
 
 import evdev
 from evdev.ecodes import EV_ABS
@@ -46,7 +46,7 @@ class AbsToBtnHandler(MappingHandler):
         mapping: Mapping,
         global_uinputs: GlobalUInputs,
         **_,
-    ):
+    ) -> None:
         super().__init__(combination, mapping, global_uinputs)
 
         self._active = False
@@ -61,9 +61,8 @@ class AbsToBtnHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
-        return self._sub_handler
+    def get_children(self) -> List[MappingHandler]:
+        return [self._sub_handler]
 
     def _trigger_point(self, abs_min: int, abs_max: int) -> Tuple[float, float]:
         """Calculate the axis mid and trigger point."""

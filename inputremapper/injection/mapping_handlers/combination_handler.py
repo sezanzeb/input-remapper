@@ -90,10 +90,8 @@ class CombinationHandler(MappingHandler):
         )
         return f"<{description} at {hex(id(self))}>"
 
-    @property
-    def child(self):
-        # used for logging
-        return self._sub_handler
+    def get_children(self) -> List[MappingHandler]:
+        return [self._sub_handler]
 
     def notify(
         self,

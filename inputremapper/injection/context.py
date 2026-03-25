@@ -83,7 +83,7 @@ class Context:
         source_devices: Dict[DeviceHash, evdev.InputDevice],
         forward_devices: Dict[DeviceHash, evdev.UInput],
         mapping_parser: MappingParser,
-    ):
+    ) -> None:
         if len(forward_devices) == 0:
             logger.warning("forward_devices not set")
 

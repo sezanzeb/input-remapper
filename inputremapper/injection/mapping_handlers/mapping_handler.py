@@ -227,3 +227,9 @@ class MappingHandler:
         # should be called for each event a wrapping-handler
         # has in its input_configs InputCombination
         self.input_configs.remove(input_config)
+
+    def get_children(self) -> List[MappingHandler]:
+        return []
+
+    def describe(self) -> str:
+        return repr(self)

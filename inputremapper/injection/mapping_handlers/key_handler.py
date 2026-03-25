@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 from inputremapper import exceptions
 from inputremapper.configs.input_config import InputCombination
@@ -62,8 +62,10 @@ class KeyHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
+    def get_children(self) -> List[MappingHandler]:
+        return []
+
+    def describe(self) -> str:
         name = get_evdev_constant_name(*self._maps_to)
         return f"maps to: {name} {self._maps_to} on {self.mapping.target_uinput}"
 

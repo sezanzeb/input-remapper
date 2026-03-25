@@ -21,7 +21,7 @@ import asyncio
 import math
 import time
 from functools import partial
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 
 import evdev
 from evdev.ecodes import (
@@ -173,8 +173,10 @@ class AbsToRelHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
+    def get_children(self) -> List[MappingHandler]:
+        return []
+
+    def describe(self) -> str:
         return (
             f"maps to: {self.mapping.get_output_name_constant()} "
             f"{self.mapping.get_output_type_code()} at "
