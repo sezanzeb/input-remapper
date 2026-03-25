@@ -59,7 +59,6 @@ from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     NotifyCallback,
-    InputEventHandler,
     MappingHandler,
 )
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
@@ -405,7 +404,7 @@ class ContextDummy:
         self._notify_callbacks = defaultdict(list)
         self.forward_dummy = ForwardDummy()
 
-    def add_handler(self, input_config: InputConfig, handler: InputEventHandler):
+    def add_handler(self, input_config: InputConfig, handler: MappingHandler):
         self._notify_callbacks[input_config.input_match_hash].append(handler.notify)
 
     def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:

@@ -49,6 +49,7 @@ from inputremapper.configs.input_config import (
 from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logging.logger import logger
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"
@@ -61,8 +62,8 @@ MSG_EVENT = "event"
 MSG_STATUS = "status"
 
 
-class ForwardToUIHandler:
-    """Implements the InputEventHandler protocol. Sends all events into the pipe."""
+class ForwardToUIHandler(MappingHandler):
+    """Implements the MappingHandler protocol. Sends all events into the pipe."""
 
     def __init__(self, pipe: Pipe):
         self.pipe = pipe

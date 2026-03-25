@@ -45,9 +45,8 @@ from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
-    MappingHandler,
     ContextProtocol,
-    InputEventHandler,
+    MappingHandler,
 )
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
@@ -56,7 +55,7 @@ from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRel
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
-EventPipelines = Dict[InputConfig, Set[InputEventHandler]]
+EventPipelines = Dict[InputConfig, Set[MappingHandler]]
 
 mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     # all available mapping_handlers

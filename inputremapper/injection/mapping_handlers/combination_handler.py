@@ -29,7 +29,6 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    InputEventHandler,
     HandlerEnums,
 )
 from inputremapper.input_event import InputEvent
@@ -47,7 +46,7 @@ class CombinationHandler(MappingHandler):
     # the last update we sent to a sub-handler. If this is true, the output key is
     # still being held down.
     _output_previously_active: bool
-    _sub_handler: InputEventHandler
+    _sub_handler: MappingHandler
     _handled_input_hashes: list[Hashable]
     _requires_a_release: Dict[Tuple[int, int], bool]
 

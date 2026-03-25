@@ -44,9 +44,8 @@ from inputremapper.configs.mapping import (
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
-    InputEventHandler,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logging.logger import logger
@@ -168,20 +167,18 @@ class AbsToRelHandler(MappingHandler):
 
     def __str__(self):
         name = get_evdev_constant_name(*self._map_axis.type_and_code)
-        return f'AbsToRelHandler for "{name}" {self._map_axis}'
+        return (
+            f'AbsToRelHandler for "{name}" {self._map_axis}: '
+            f"maps to {self.mapping.get_output_name_constant()} "
+            f"{self.mapping.get_output_type_code()} at "
+            f"{self.mapping.target_uinput}"
+        )
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
     def get_children(self) -> List[MappingHandler]:
         return []
-
-    def describe(self) -> str:
-        return (
-            f"maps to: {self.mapping.get_output_name_constant()} "
-            f"{self.mapping.get_output_type_code()} at "
-            f"{self.mapping.target_uinput}"
-        )
 
     def notify(
         self,
@@ -245,7 +242,7 @@ class AbsToRelHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return len(self.input_configs) > 1
 
-    def set_sub_handler(self, handler: InputEventHandler) -> None:
+    def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False  # cannot have a sub-handler
 
     def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:

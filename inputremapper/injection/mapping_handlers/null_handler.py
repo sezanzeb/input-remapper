@@ -23,8 +23,8 @@ import evdev
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent
 
@@ -37,9 +37,6 @@ class NullHandler(MappingHandler):
 
     def get_children(self) -> List[MappingHandler]:
         return []
-
-    def describe(self) -> str:
-        return "Voids all events"
 
     def needs_wrapping(self) -> bool:
         return False in [

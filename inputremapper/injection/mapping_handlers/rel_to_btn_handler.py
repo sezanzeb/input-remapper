@@ -29,7 +29,6 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logging.logger import logger
@@ -45,7 +44,7 @@ class RelToBtnHandler(MappingHandler):
     _active: bool
     _input_config: InputConfig
     _last_activation: float
-    _sub_handler: InputEventHandler
+    _sub_handler: MappingHandler
 
     def __init__(
         self,

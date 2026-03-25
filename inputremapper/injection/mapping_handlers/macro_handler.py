@@ -28,8 +28,8 @@ from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     ContextProtocol,
-    MappingHandler,
     HandlerEnums,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
@@ -57,16 +57,13 @@ class MacroHandler(MappingHandler):
         self._macro = Parser.parse(self.mapping.output_symbol, context, mapping)
 
     def __str__(self):
-        return "MacroHandler"
+        return f"MacroHandler maps to {self._macro} on {self.mapping.target_uinput}"
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
     def get_children(self) -> List[MappingHandler]:
         return []
-
-    def describe(self) -> str:
-        return f"maps to {self._macro} on {self.mapping.target_uinput}"
 
     async def run_macro(self, handler: Callable):
         """Run the macro with the provided function."""

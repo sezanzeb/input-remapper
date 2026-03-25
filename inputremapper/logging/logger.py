@@ -47,7 +47,7 @@ class Logger(logging.Logger):
         if not self.isEnabledFor(logging.DEBUG):
             return
 
-        lines_and_indent = self._parse_mapping_handler(mapping_handler)
+        lines_and_indent = self._build_mapping_handler_description_tree(mapping_handler)
         for line in lines_and_indent:
             indent = "    "
             msg = indent * line[1] + line[0]
@@ -91,15 +91,20 @@ class Logger(logging.Logger):
 
         self._log(logging.DEBUG, msg, args=(), stacklevel=2)
 
-    def _parse_mapping_handler(
+    def _build_mapping_handler_description_tree(
         self,
         mapping_handler: MappingHandler,
-        indent = 0,
+        indent=0,
     ) -> List[Tuple[str, int]]:
-        lines_and_indent = [(mapping_handler.describe(), indent)]
+        lines_and_indent = [
+            (str(mapping_handler), indent),
+        ]
+
         mapping_handlers = mapping_handler.get_children()
         for sub_handler in mapping_handlers:
-            sub_list = self._parse_mapping_handler(sub_handler, indent + 1)
+            sub_list = self._build_mapping_handler_description_tree(
+                sub_handler, indent + 1
+            )
             lines_and_indent.extend(sub_list)
 
         return lines_and_indent

@@ -24,8 +24,8 @@ Handling an InputEvent is done in 3 steps:
  1. Input Event Handling
     A MappingHandler that does Input event handling receives Input Events directly
     from the EventReader.
-    To do so it must implement the InputEventHandler protocol.
-    An InputEventHandler may handle multiple events (InputEvent.type_and_code)
+    To do so it must implement the MappingHandler protocol.
+    An MappingHandler may handle multiple events (InputEvent.type_and_code)
 
  2. Event Transformation
     The event gets transformed as described by the mapping.
@@ -87,7 +87,7 @@ class ContextProtocol(Protocol):
 
 
 class NotifyCallback(Protocol):
-    """Type signature of InputEventHandler.notify
+    """Type signature of MappingHandler.notify
 
     return True if the event was actually taken care of
     """
@@ -98,21 +98,6 @@ class NotifyCallback(Protocol):
         source: evdev.InputDevice,
         suppress: bool = False,
     ) -> bool: ...
-
-
-class InputEventHandler(Protocol):
-    """The protocol any handler, which can be part of an event pipeline, must follow."""
-
-    def notify(
-        self,
-        event: InputEvent,
-        source: evdev.InputDevice,
-        suppress: bool = False,
-    ) -> bool: ...
-
-    def reset(self) -> None:
-        """Reset the state of the handler e.g. release any buttons."""
-        ...
 
 
 class HandlerEnums(enum.Enum):
@@ -140,15 +125,11 @@ class HandlerEnums(enum.Enum):
 
 
 class MappingHandler:
-    """The protocol an InputEventHandler must follow if it should be
-    dynamically integrated in an event-pipeline by the mapping parser
-    """
-
     mapping: Mapping
     # all input events this handler cares about
     # should always be a subset of mapping.input_combination
     input_configs: List[InputConfig]
-    _sub_handler: Optional[InputEventHandler]
+    _sub_handler: Optional[MappingHandler]
 
     # https://bugs.python.org/issue44807
     def __init__(
@@ -212,7 +193,7 @@ class MappingHandler:
         """
         return {}
 
-    def set_sub_handler(self, handler: InputEventHandler) -> None:
+    def set_sub_handler(self, handler: MappingHandler) -> None:
         """Give this handler a sub_handler."""
         self._sub_handler = handler
 
@@ -230,6 +211,3 @@ class MappingHandler:
 
     def get_children(self) -> List[MappingHandler]:
         return []
-
-    def describe(self) -> str:
-        return repr(self)

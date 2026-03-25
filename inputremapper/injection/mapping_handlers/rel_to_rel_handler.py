@@ -40,9 +40,8 @@ from inputremapper.configs.mapping import (
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
-    InputEventHandler,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
@@ -119,16 +118,16 @@ class RelToRelHandler(MappingHandler):
         )
 
     def __str__(self):
-        return f"RelToRelHandler for {self._input_config}"
+        return (
+            f"RelToRelHandler for {self._input_config} "
+            f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
+        )
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
     def get_children(self) -> List[MappingHandler]:
         return []
-
-    def describe(self) -> str:
-        return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
 
     def _should_map(self, event: InputEvent):
         """Check if this input event is relevant for this handler."""
@@ -269,7 +268,7 @@ class RelToRelHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return len(self.input_configs) > 1
 
-    def set_sub_handler(self, handler: InputEventHandler) -> None:
+    def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False  # cannot have a sub-handler
 
     def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:

@@ -26,9 +26,8 @@ from inputremapper.configs.input_config import InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
-    InputEventHandler,
+    MappingHandler,
     ContextProtocol,
 )
 from inputremapper.input_event import InputEvent, EventActions
@@ -56,7 +55,7 @@ class AxisSwitchHandler(MappingHandler):
     _last_value: int  # the value of the last axis event that arrived
     _axis_source: evdev.InputDevice  # the cached source of the axis input events
     _forward_device: evdev.UInput  # the cached forward uinput
-    _sub_handler: InputEventHandler
+    _sub_handler: MappingHandler
 
     def __init__(
         self,

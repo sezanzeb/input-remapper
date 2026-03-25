@@ -27,7 +27,6 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.utils import get_evdev_constant_name
@@ -38,7 +37,7 @@ class AbsToBtnHandler(MappingHandler):
 
     _input_config: InputConfig
     _active: bool
-    _sub_handler: InputEventHandler
+    _sub_handler: MappingHandler
 
     def __init__(
         self,

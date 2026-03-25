@@ -56,7 +56,6 @@ from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    InputEventHandler,
 )
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
@@ -316,7 +315,7 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
             global_uinputs=self.global_uinputs,
         )
 
-        sub_handler_mock = MagicMock(InputEventHandler)
+        sub_handler_mock = MagicMock(MappingHandler)
         self.handler.set_sub_handler(sub_handler_mock)
 
         # insert our own test-uinput to see what is being written to it

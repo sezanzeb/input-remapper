@@ -25,8 +25,8 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
@@ -57,17 +57,14 @@ class KeyHandler(MappingHandler):
         self._active = False
 
     def __str__(self):
-        return f"KeyHandler to {self._maps_to}"
+        name = get_evdev_constant_name(*self._maps_to)
+        return f"KeyHandler to {name} {self._maps_to} on {self.mapping.target_uinput}"
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
     def get_children(self) -> List[MappingHandler]:
         return []
-
-    def describe(self) -> str:
-        name = get_evdev_constant_name(*self._maps_to)
-        return f"maps to: {name} {self._maps_to} on {self.mapping.target_uinput}"
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
         """Inject the correct value to the target uinput."""
