@@ -25,6 +25,7 @@ from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE
 from inputremapper.input_event import InputEvent
 
 
+# TODO: potentially cache this function { cache_key_from_args: previous_result }
 def calculate_trigger_point(
     event: InputEvent,
     analog_threshold: int,

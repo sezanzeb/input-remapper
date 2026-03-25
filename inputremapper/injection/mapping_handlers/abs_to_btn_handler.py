@@ -75,7 +75,6 @@ class AbsToBtnHandler(MappingHandler):
         analog_threshold = self._input_config.analog_threshold
         assert analog_threshold is not None
 
-        # TODO: potentially cache this function
         threshold, mid_point = calculate_trigger_point(
             event,
             analog_threshold,

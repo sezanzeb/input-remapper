@@ -94,7 +94,7 @@ class ForwardToUIHandler(MappingHandler):
             )
 
             # If within 30% (into each direction) of the mid_point, count as released
-            # A large threahold makes it significantly easier to not accidentally
+            # A large threshold makes it significantly easier to not accidentally
             # record both ABS_X and ABS_Y.
             if abs(event.value - mid_point) < threshold:
                 pressed = False
