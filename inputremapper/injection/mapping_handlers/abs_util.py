@@ -17,19 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, List
+from typing import Tuple
 
 import evdev
 from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE
 
-from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping
-from inputremapper.injection.global_uinputs import GlobalUInputs
-from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
-)
-from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.utils import get_evdev_constant_name
+from inputremapper.input_event import InputEvent
 
 
 def calculate_trigger_point(

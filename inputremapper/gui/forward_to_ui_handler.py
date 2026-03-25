@@ -41,7 +41,7 @@ from __future__ import annotations
 from typing import Tuple
 
 import evdev
-from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE
+from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.input_config import (
     DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,

@@ -17,10 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, List
+from typing import List
 
 import evdev
-from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
