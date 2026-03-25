@@ -298,10 +298,13 @@ class ReaderService:
 
             for ev_code in capabilities.get(EV_KEY) or ():
                 input_config = InputConfig(
-                    type=EV_KEY, code=ev_code, origin_hash=device_hash,
+                    type=EV_KEY,
+                    code=ev_code,
+                    origin_hash=device_hash,
                 )
                 context_dummy.add_handler(
-                    input_config, ForwardToUIHandler(self._results_pipe),
+                    input_config,
+                    ForwardToUIHandler(self._results_pipe),
                 )
 
             for ev_code in capabilities.get(EV_ABS) or ():

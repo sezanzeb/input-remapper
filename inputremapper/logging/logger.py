@@ -34,7 +34,6 @@ if TYPE_CHECKING:
     from inputremapper.injection.mapping_handler import MappingHandler
 
 
-
 start = time.time()
 
 
@@ -92,7 +91,9 @@ class Logger(logging.Logger):
 
         self._log(logging.DEBUG, msg, args=(), stacklevel=2)
 
-    def _parse_mapping_handler(self, mapping_handler: MappingHandler) -> List[Tuple[str, int]]:
+    def _parse_mapping_handler(
+        self, mapping_handler: MappingHandler
+    ) -> List[Tuple[str, int]]:
         indent = 0
         lines_and_indent = []
         while True:
