@@ -73,6 +73,7 @@ class InputConfig(BaseModel):
 
     # At which point is an analog input treated as "pressed". In percent (-99 to 99)
     # of the delta between a resting joystick and a maxed-out joystick.
+    # Should be None if no analog input is configured.
     analog_threshold: Optional[int] = None
 
     def __str__(self):

@@ -19,25 +19,31 @@
 
 """Logging setup for input-remapper."""
 
+from __future__ import annotations  # needed for the TYPE_CHECKING import
+
 import logging
 import time
-from typing import cast
+from typing import cast, Type, TYPE_CHECKING, List, Tuple
 from evdev.ecodes import EV_ABS, EV_KEY, EV_REL
 
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.formatter import ColorfulFormatter
 from inputremapper.installation_info import VERSION, COMMIT_HASH
 
+if TYPE_CHECKING:
+    from inputremapper.injection.mapping_handler import MappingHandler
+
+
 
 start = time.time()
 
 
 class Logger(logging.Logger):
-    previous_abs_rel_log_time = 0
+    previous_abs_rel_log_time = 0.0
     previous_write_debug_log = None
     analog_log_threshold = 0.1  # s
 
-    def debug_mapping_handler(self, mapping_handler):
+    def debug_mapping_handler(self, mapping_handler: MappingHandler) -> None:
         """Parse the structure of a mapping_handler and log it."""
         if not self.isEnabledFor(logging.DEBUG):
             return
@@ -46,9 +52,9 @@ class Logger(logging.Logger):
         for line in lines_and_indent:
             indent = "    "
             msg = indent * line[1] + line[0]
-            self._log(logging.DEBUG, msg, args=None)
+            self._log(logging.DEBUG, msg, args=())
 
-    def write(self, key, uinput):
+    def write(self, key, uinput) -> None:
         """Log that an event is being written
 
         Parameters
@@ -84,13 +90,14 @@ class Logger(logging.Logger):
 
         self.previous_write_debug_log = msg
 
-        self._log(logging.DEBUG, msg, args=None, stacklevel=2)
+        self._log(logging.DEBUG, msg, args=(), stacklevel=2)
 
-    def _parse_mapping_handler(self, mapping_handler):
+    def _parse_mapping_handler(self, mapping_handler: MappingHandler) -> List[Tuple[str, int]]:
         indent = 0
         lines_and_indent = []
         while True:
             if isinstance(mapping_handler, list):
+                raise Exception("Remove this block if tests work")
                 for sub_handler in mapping_handler:
                     sub_list = self._parse_mapping_handler(sub_handler)
                     for line in sub_list:
@@ -98,7 +105,7 @@ class Logger(logging.Logger):
                     lines_and_indent.extend(sub_list)
                 break
 
-            lines_and_indent.append([repr(mapping_handler), indent])
+            lines_and_indent.append((repr(mapping_handler), indent))
             try:
                 mapping_handler = mapping_handler.child
             except AttributeError:
@@ -141,10 +148,10 @@ class Logger(logging.Logger):
             handler.setFormatter(ColorfulFormatter(debug))
 
     @classmethod
-    def bootstrap_logger(cls):
+    def bootstrap_logger(cls: Type[Logger]) -> Logger:
         # https://github.com/python/typeshed/issues/1801
         logging.setLoggerClass(cls)
-        logger = cast(cls, logging.getLogger("input-remapper"))
+        logger = cast(Logger, logging.getLogger("input-remapper"))
 
         handler = logging.StreamHandler()
         handler.setFormatter(ColorfulFormatter(False))
