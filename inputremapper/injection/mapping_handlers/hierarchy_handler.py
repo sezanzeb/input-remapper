@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
