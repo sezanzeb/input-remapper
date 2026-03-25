@@ -38,7 +38,6 @@ different input-events into simple on/off events and sends them to the gui.
 
 from __future__ import annotations
 
-from typing import Tuple
 
 import evdev
 from evdev.ecodes import EV_ABS
@@ -121,26 +120,6 @@ class ForwardToUIHandler(MappingHandler):
             }
         )
         return True
-
-    def _trigger_point(
-        self,
-        analog_threshold: int,
-        abs_min: int,
-        abs_max: int,
-    ) -> Tuple[float, float]:
-        """Calculate the axis mid and trigger point."""
-        half_range = (abs_max - abs_min) / 2
-        middle = half_range + abs_min
-        # Nothing configured yet, assume 10% as default, which makes the ui usable.
-        # Without a threshold, tiny wiggles of the joystick will already screw the
-        # recording up, and releasing the joystick will in many cases not stop the
-        # recording, presumably because the last event has a very small value instead of
-        # 0 because it's impossible to perfectly center the joystick. Or something.
-        # Haven't verified if this is really what's going on.
-        trigger_offset = half_range * analog_threshold / 100
-
-        # threshold, middle
-        return middle + trigger_offset, middle
 
     def reset(self):
         pass
