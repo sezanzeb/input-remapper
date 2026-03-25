@@ -89,7 +89,6 @@ class AxisSwitchHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
     def get_children(self) -> List[MappingHandler]:
         return [self._sub_handler]
 
