@@ -51,10 +51,21 @@ class GlobalConfig:
         """The folder containing this config."""
         return os.path.split(self.path)[0]
 
-    def get_autoload_preset(self, group_key: str) -> Optional[str]:
+    def get_autoload_preset(
+        self, group_key: str, group_name: Optional[str] = None
+    ) -> Optional[str]:
         # modifications are only allowed via the setter, because it needs to write
         # the config file too. Therefore return a copy to prevent inconsistencies.
-        return copy.deepcopy(self._config["autoload"].get(group_key))
+        #
+        # First try an exact match on the group key (e.g. "Logitech MX Ergo 2").
+        # If that fails and a group_name is provided, fall back to matching by the
+        # base device name (e.g. "Logitech MX Ergo"). This allows a single config
+        # entry to cover all instances of the same device model, such as multiple
+        # pairing slots on a Logitech Unifying receiver.
+        result = self._config["autoload"].get(group_key)
+        if result is None and group_name is not None:
+            result = self._config["autoload"].get(group_name)
+        return copy.deepcopy(result)
 
     def set_autoload_preset(self, group_key: str, preset: Optional[str]):
         """Set a preset to be automatically applied on start.

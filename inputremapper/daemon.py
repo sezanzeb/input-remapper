@@ -363,7 +363,7 @@ class Daemon:
             # either not relevant for input-remapper, or not connected yet
             return
 
-        preset = self.global_config.get_autoload_preset(group.key)
+        preset = self.global_config.get_autoload_preset(group.key, group.name)
 
         if preset is None:
             # no autoloading is configured for this device
@@ -433,8 +433,18 @@ class Daemon:
             logger.error("No presets configured to autoload")
             return
 
+        # Iterate all discovered groups, not just config keys. This allows a
+        # single autoload entry like "Logitech MX Ergo" to also match groups
+        # "Logitech MX Ergo 2", "Logitech MX Ergo 3", etc. via the name-based
+        # fallback in get_autoload_preset.
+        autoloaded_keys = set()
         for group_key, _ in autoload_presets:
             self._autoload(group_key)
+            autoloaded_keys.add(group_key)
+
+        for group in groups.filter():
+            if group.key not in autoloaded_keys:
+                self._autoload(group.key)
 
     def start_injecting(self, group_key: str, preset_name: str) -> bool:
         """Start injecting the preset for the device.
