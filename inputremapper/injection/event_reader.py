@@ -80,34 +80,41 @@ class EventReader:
         self.stop_event.set()
 
     async def read_loop(self) -> AsyncIterator[evdev.InputEvent]:
-        stop_task = asyncio.Task(self.stop_event.wait())
         loop = asyncio.get_running_loop()
         events_ready = asyncio.Event()
         loop.add_reader(self._source.fileno(), events_ready.set)
 
-        while True:
-            _, pending = await asyncio.wait(
-                {stop_task, asyncio.Task(events_ready.wait())},
-                return_when=asyncio.FIRST_COMPLETED,
-            )
+        # A single task that wakes the loop when stop is requested, instead of
+        # creating a new asyncio.Task on every iteration.
+        async def _stop_watcher():
+            await self.stop_event.wait()
+            events_ready.set()
 
-            fd_broken = os.stat(self._source.fileno()).st_nlink == 0
-            if fd_broken:
-                # happens when the device is unplugged while reading, causing 100% cpu
-                # usage because events_ready.set is called repeatedly forever,
-                # while read_loop will hang at self._source.read_one().
-                logger.error("fd broke, was the device unplugged?")
+        watcher = asyncio.ensure_future(_stop_watcher())
 
-            if stop_task.done() or fd_broken:
-                for task in pending:
-                    task.cancel()
-                loop.remove_reader(self._source.fileno())
-                logger.debug("read loop stopped")
-                return
+        try:
+            while True:
+                await events_ready.wait()
+                events_ready.clear()
 
-            events_ready.clear()
-            while event := self._source.read_one():
-                yield event
+                fd_broken = os.stat(self._source.fileno()).st_nlink == 0
+                if fd_broken:
+                    # happens when the device is unplugged while reading,
+                    # causing 100% cpu usage because events_ready.set is called
+                    # repeatedly forever, while read_loop will hang at
+                    # self._source.read_one().
+                    logger.error("fd broke, was the device unplugged?")
+                    return
+
+                if self.stop_event.is_set():
+                    logger.debug("read loop stopped")
+                    return
+
+                while event := self._source.read_one():
+                    yield event
+        finally:
+            watcher.cancel()
+            loop.remove_reader(self._source.fileno())
 
     def send_to_handlers(self, event: InputEvent) -> bool:
         """Send the event to the NotifyCallbacks.
@@ -193,8 +200,6 @@ class EventReader:
 
         async for event in self.read_loop():
             try:
-                # Fire and forget, so that handlers and listeners can take their time,
-                # if they want to wait for something special to happen.
                 asyncio.ensure_future(
                     self.handle(
                         InputEvent.from_event(event, origin_hash=self._device_hash)
