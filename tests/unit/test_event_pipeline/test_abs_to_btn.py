@@ -20,12 +20,7 @@
 
 import unittest
 
-from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    ABS_X,
-    ABS_Z
-)
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_X, ABS_Z
 
 from inputremapper.configs.mapping import (
     Mapping,
@@ -120,11 +115,13 @@ class TestAbsToBtn(EventPipelineTestBase):
 
         # The negative mapping (mapping_2, to b) was not triggered. It just released
         # the a.
-        self.assertEqual(keyboard_history, [
-            (EV_KEY, a_code, 1),
-            (EV_KEY, a_code, 0)
-        ])
-
+        self.assertEqual(
+            keyboard_history,
+            [
+                (EV_KEY, a_code, 1),
+                (EV_KEY, a_code, 0),
+            ],
+        )
 
     async def test_abs_trigger_threshold(self):
         """Test that different activation points for abs_to_btn work correctly."""
