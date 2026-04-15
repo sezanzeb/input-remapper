@@ -66,6 +66,10 @@ class TestAbsToBtn(EventPipelineTestBase):
     async def test_abs_z(self):
         # Shoulder triggers (ABS_Z, ABS_RZ, ABS_GAS, ABS_BRAKE). Their center point
         # is equal to the fully released point. They only have one direction.
+
+        # Triggers go from 0 to whatever value, so use the appropriate fixture.
+        # Yes this test setup is stupid, it should have different absinfos depending
+        # on the event.
         fixture = fixtures.gamepad_abs_0_to_256
 
         # at 30% map to a
