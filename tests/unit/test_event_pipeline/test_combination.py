@@ -61,6 +61,113 @@ from tests.unit.test_event_pipeline.event_pipeline_test_base import (
 
 @test_setup
 class TestCombination(EventPipelineTestBase):
+
+    # -----------------
+    # | Test Template |
+    # -----------------
+
+    async def test_releases_then_triggers(self):
+        origin = fixtures.foo_device_2_keyboard
+        origin_hash = origin.get_device_hash()
+
+        input_combination = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_A,
+                    origin_hash=origin_hash,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=KEY_B,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping = Mapping(
+            input_combination=input_combination.to_config(),
+            target_uinput="keyboard",
+            output_symbol="1",
+            release_combination_keys=True,
+        )
+
+        preset = Preset()
+        preset.add(mapping)
+
+        event_reader = self.create_event_reader(preset, origin)
+
+        await self.send_events(
+            [
+                InputEvent.key(KEY_A, 1, origin_hash),
+                InputEvent.key(KEY_B, 1, origin_hash),
+            ],
+            event_reader,
+        )
+
+        # Other tests check forwarded_history and keyboard_history individually,
+        # so here is one that looks at the order in uinput_write_history
+        self.assertListEqual(
+            uinput_write_history,
+            [
+                (EV_KEY, KEY_A, 1),
+                (EV_KEY, KEY_A, 0),
+                (EV_KEY, KEY_1, 1),
+            ],
+        )
+
+    # --------------------------
+    # | More complicated tests |
+    # --------------------------
+
+    async def test_combine_hat_right_forward_hat_left(self):
+        origin = fixtures.gamepad
+        origin_hash = origin.get_device_hash()
+
+        input_combination = InputCombination(
+            [
+                InputConfig(
+                    type=EV_ABS,
+                    code=ABS_HAT0X,
+                    origin_hash=origin_hash,
+                    analog_threshold=30,
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=BTN_B,
+                    origin_hash=origin_hash,
+                ),
+            ]
+        )
+
+        mapping = Mapping(
+            input_combination=input_combination.to_config(),
+            target_uinput="keyboard",
+            output_symbol="1",
+        )
+
+        preset = Preset()
+        preset.add(mapping)
+
+        event_reader = self.create_event_reader(preset, origin)
+
+        await self.send_events(
+            [
+                InputEvent.abs(ABS_HAT0X, -1, origin_hash),
+                InputEvent.abs(ABS_HAT0X, 0, origin_hash),
+            ],
+            event_reader,
+        )
+
+        # This used to be empty due to a bug. ABS_HAT0X -1 disappeared somewhere
+        self.assertListEqual(
+            uinput_write_history,
+            [
+                (EV_ABS, ABS_HAT0X, -1),
+                (EV_ABS, ABS_HAT0X, 0),
+            ],
+        )
+
     async def test_abs_combination_0_to_256(self):
         b = keyboard_layout.get("b")
         origin = fixtures.gamepad_abs_0_to_256
@@ -598,56 +705,6 @@ class TestCombination(EventPipelineTestBase):
         await self.send_events([InputEvent.key(in_2, 0, origin_hash)], event_reader)
         self.assertListEqual(forwarded_history, [(EV_KEY, in_1, 1), (EV_KEY, in_1, 0)])
         self.assertListEqual(keyboard_history, [(EV_KEY, out, 1), (EV_KEY, out, 0)])
-
-    async def test_releases_before_triggering(self):
-        origin = fixtures.foo_device_2_keyboard
-        origin_hash = origin.get_device_hash()
-
-        input_combination = InputCombination(
-            [
-                InputConfig(
-                    type=EV_KEY,
-                    code=KEY_A,
-                    origin_hash=origin_hash,
-                ),
-                InputConfig(
-                    type=EV_KEY,
-                    code=KEY_B,
-                    origin_hash=origin_hash,
-                ),
-            ]
-        )
-
-        mapping = Mapping(
-            input_combination=input_combination.to_config(),
-            target_uinput="keyboard",
-            output_symbol="1",
-            release_combination_keys=True,
-        )
-
-        preset = Preset()
-        preset.add(mapping)
-
-        event_reader = self.create_event_reader(preset, origin)
-
-        await self.send_events(
-            [
-                InputEvent.key(KEY_A, 1, origin_hash),
-                InputEvent.key(KEY_B, 1, origin_hash),
-            ],
-            event_reader,
-        )
-
-        # Other tests check forwarded_history and keyboard_history individually,
-        # so here is one that looks at the order in uinput_write_history
-        self.assertListEqual(
-            uinput_write_history,
-            [
-                (EV_KEY, KEY_A, 1),
-                (EV_KEY, KEY_A, 0),
-                (EV_KEY, KEY_1, 1),
-            ],
-        )
 
     async def test_suppressed_doesnt_forward_releases(self):
         origin = fixtures.foo_device_2_keyboard
