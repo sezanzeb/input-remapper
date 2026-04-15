@@ -20,7 +20,7 @@
 from typing import Tuple
 
 import evdev
-from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE
+from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE, ABS_Z, ABS_RZ
 
 from inputremapper.input_event import InputEvent
 
@@ -53,7 +53,7 @@ def calculate_trigger_point(
             0,
         )
 
-    if event.code in [ABS_GAS, ABS_BRAKE]:
+    if event.code in [ABS_GAS, ABS_BRAKE, ABS_Z, ABS_RZ]:
         threshold = abs_max * analog_threshold / 100
         # For the L/R triggers, there is only one direction, and the resting
         # position is the same as the min_abs.

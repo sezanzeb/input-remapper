@@ -88,6 +88,10 @@ class AbsToBtnHandler(MappingHandler):
         want_positive = analog_threshold > 0
         want_negative = analog_threshold < 0
 
+        # For dpads, the threshold is 1, but so is the max value. So <= and >= it is.
+        # If this is dumb, change the threhsold to be a float.
+        pressed = value >= threshold if want_positive else value <= threshold
+
         '''print(f"""abs_to_btn
             {pressed=}
             {value=}
@@ -127,10 +131,6 @@ class AbsToBtnHandler(MappingHandler):
                 return False
 
         # if it was pressed, then we first need to deal with releasing the sub-handler.
-
-        # For dpads, the threshold is 1, but so is the max value. So <= and >= it is.
-        # If this is dumb, change the threhsold to be a float.
-        pressed = value >= threshold if want_positive else value <= threshold
 
         self._configured_direction_was_pressed = pressed
 
