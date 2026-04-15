@@ -144,12 +144,16 @@ class TestCombination(EventPipelineTestBase):
             input_combination=input_combination.to_config(),
             target_uinput="keyboard",
             output_symbol="1",
+            release_combination_keys=True,
         )
 
         preset = Preset()
         preset.add(mapping)
 
         event_reader = self.create_event_reader(preset, origin)
+
+        # 1. DPAD-Left works
+        # ------------------
 
         await self.send_events(
             [
@@ -159,12 +163,65 @@ class TestCombination(EventPipelineTestBase):
             event_reader,
         )
 
-        # This used to be empty due to a bug. ABS_HAT0X -1 disappeared somewhere
+        # This used to be empty due to a bug
         self.assertListEqual(
             uinput_write_history,
             [
                 (EV_ABS, ABS_HAT0X, -1),
                 (EV_ABS, ABS_HAT0X, 0),
+            ],
+        )
+
+        # 2. Pressing dpad-right without combining it should forward it
+        # ------------------
+
+        await self.send_events(
+            [
+                InputEvent.abs(ABS_HAT0X, 1, origin_hash),
+                InputEvent.abs(ABS_HAT0X, 0, origin_hash),
+            ],
+            event_reader,
+        )
+
+        self.assertListEqual(
+            uinput_write_history,
+            [
+                # 1
+                (EV_ABS, ABS_HAT0X, -1),
+                (EV_ABS, ABS_HAT0X, 0),
+                # 2
+                (EV_ABS, ABS_HAT0X, 1),
+                (EV_ABS, ABS_HAT0X, 0),
+            ],
+        )
+
+        # 3. The combintaion can be triggered
+        # ------------------
+
+        await self.send_events(
+            [
+                InputEvent.abs(ABS_HAT0X, 1, origin_hash),
+                InputEvent.key(BTN_B, 1, origin_hash),
+                InputEvent.key(BTN_B, 0, origin_hash),
+                InputEvent.abs(ABS_HAT0X, 0, origin_hash),
+            ],
+            event_reader,
+        )
+
+        self.assertListEqual(
+            uinput_write_history,
+            [
+                # 1
+                (EV_ABS, ABS_HAT0X, -1),
+                (EV_ABS, ABS_HAT0X, 0),
+                # 2
+                (EV_ABS, ABS_HAT0X, 1),
+                (EV_ABS, ABS_HAT0X, 0),
+                # 3
+                (EV_ABS, ABS_HAT0X, 1),
+                (EV_ABS, ABS_HAT0X, 0),
+                (EV_KEY, KEY_1, 1),
+                (EV_KEY, KEY_1, 0),
             ],
         )
 
