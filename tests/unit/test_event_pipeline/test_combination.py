@@ -120,7 +120,7 @@ class TestCombination(EventPipelineTestBase):
     # | More complicated tests |
     # --------------------------
 
-    async def test_combine_hat_right_forward_hat_left(self):
+    async def test_combine_hat_right_and_forward_hat_left(self):
         origin = fixtures.gamepad
         origin_hash = origin.get_device_hash()
 
@@ -1269,14 +1269,15 @@ class TestCombination(EventPipelineTestBase):
         logger.info("set ABS_X input to 100%% (%s)", max_abs)
         await event_reader.handle(InputEvent.abs(ABS_X, max_abs))
 
-        # wait a bit more for nothing to sum up, because ABS_Y is still 0
+        # wait a bit more for nothing to sum up, because ABS_Y is still 0.
         await asyncio.sleep(0.2)
-        self.assertEqual(len(mouse_history), 0)
-        self.assertEqual(len(forward_history), 1)
         self.assertEqual(
+            # There is one forwarded event from maxing out abs_x
             InputEvent.from_event(forward_history[0]),
             (EV_ABS, ABS_X, max_abs),
         )
+        self.assertEqual(len(mouse_history), 0)
+        self.assertEqual(len(forward_history), 1)
 
         logger.info("slowly move ABS_Y above 10%% (> %s)", max_abs * 0.10)
         await self.send_events(

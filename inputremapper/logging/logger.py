@@ -24,7 +24,7 @@ from __future__ import annotations  # needed for the TYPE_CHECKING import
 import logging
 import time
 from typing import cast, Type, TYPE_CHECKING, List, Tuple
-from evdev.ecodes import EV_ABS, EV_KEY, EV_REL
+from evdev.ecodes import EV_ABS, EV_KEY, EV_REL, ABS_HAT0X, ABS_HAT0Y
 
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.formatter import ColorfulFormatter
@@ -72,7 +72,7 @@ class Logger(logging.Logger):
 
             # Avoid spaming the terminal with tons of high-resolution logs
             now = time.time()
-            if key.type in [EV_ABS, EV_REL]:
+            if key.type in [EV_ABS, EV_REL] and key.code not in [ABS_HAT0X, ABS_HAT0Y]:
                 if now - self.previous_abs_rel_log_time < self.analog_log_threshold:
                     return
 

@@ -36,7 +36,7 @@ class AbsToBtnHandler(MappingHandler):
     """Handler which transforms an EV_ABS to a button event."""
 
     _input_config: InputConfig
-    _active: bool
+    _configured_direction_was_pressed: bool
     _sub_handler: MappingHandler
 
     def __init__(
@@ -48,7 +48,7 @@ class AbsToBtnHandler(MappingHandler):
     ) -> None:
         super().__init__(combination, mapping, global_uinputs)
 
-        self._active = False
+        self._configured_direction_was_pressed = False
         self._input_config = combination[0]
         assert self._input_config.analog_threshold
         assert len(combination) == 1
@@ -83,37 +83,56 @@ class AbsToBtnHandler(MappingHandler):
 
         value = event.value
 
-        if analog_threshold > 0:
-            # Movement of the joystick into positive direction triggers an output
-            pressed = value >= threshold
-            direction = 1
-        else:
-            pressed = value <= threshold
-            direction = -1
+        direction = 1 if value > mid_point else -1
 
-        if not pressed and not self._active:
-            # Noise from the joystick or a movement in the opposite direction
-            #
-            # Return True ("This handler knows this event, and took care of it", to
-            # avoid forwarding it), if it is a positive movement for a positive mapping.
-            #
-            # Otherwise, a negative movement for a positive mapping, means the joystick
-            # moves into a direction that is not mapped to anything here. So it should
-            # allow other handlers to handle it or the event reader to forward it.
-            #
-            # If self._active is True, we'd want to make sure the release is sent to
-            # the sub_handler. So only do this if self._active is False.
-            want_negative_is_negative = analog_threshold < 0 and value <= mid_point
-            want_positive_is_positive = analog_threshold > 0 and value >= mid_point
-            # Checking for <= mid_point and >= mid_point means that a value of exactly
-            # the mid_point belongs to the mapping. So even if only one direction is
-            # mapped, there is no resting point for the joystick that is being
-            # forwarded anymore. The resting point belongs to the mapping now. However,
-            # checking for < and > means that even if both directions are mapped, the
-            # resting point will be forwarded.
-            return want_negative_is_negative or want_positive_is_positive
+        want_positive = analog_threshold > 0
+        want_negative = analog_threshold < 0
 
-        self._active = pressed
+        '''print(f"""abs_to_btn
+            {pressed=}
+            {value=}
+            {want_positive=}
+            {want_negative=}
+            {direction=}
+            {threshold=}
+            {mid_point=}
+            {analog_threshold=}
+            {self._configured_direction_was_pressed=}"""
+        )'''
+
+        # dpad-right to a:
+        # dpad moves right: a down
+        # dpad returns: a up
+        # dpad goes left: dpad -1
+        # dpad returns: dpad 0
+        # There are two "dpad returns" cases that have different outcomes
+
+        # joystick-right to a:
+        # joystick moves to +1234: ignore (If the architecture could do it, forward 0)
+        # joystick moves over threshold: a down
+        # joystick returns below threshold: a up
+        # joystick moves -1234: forward -1234
+        # joystick goes to 0: forward 0
+        # (In many cases it won't exactly return to 0, but to +1 or something, because
+        # they aren't 100% precise. But the positive direction is mapped, so turn
+        # this into 0. Unfortunately there is currently no way to do this in our
+        # architecture.)
+
+        if not self._configured_direction_was_pressed:
+            # these needs to be <= and >= mid point, to forward the dpad release for
+            # the unmapped direction
+            if want_positive and value <= mid_point:
+                return False
+            if want_negative and value >= mid_point:
+                return False
+
+        # if it was pressed, then we first need to deal with releasing the sub-handler.
+
+        # For dpads, the threshold is 1, but so is the max value. So <= and >= it is.
+        # If this is dumb, change the threhsold to be a float.
+        pressed = value >= threshold if want_positive else value <= threshold
+
+        self._configured_direction_was_pressed = pressed
 
         event = event.modify(
             pressed=pressed,
@@ -128,5 +147,5 @@ class AbsToBtnHandler(MappingHandler):
         )
 
     def reset(self) -> None:
-        self._active = False
+        self._configured_direction_was_pressed = False
         self._sub_handler.reset()
