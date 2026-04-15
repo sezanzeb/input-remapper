@@ -24,6 +24,7 @@ from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
     ABS_X,
+    ABS_Z
 )
 
 from inputremapper.configs.mapping import (
@@ -66,6 +67,64 @@ class TestAbsToBtn(EventPipelineTestBase):
         self.assertEqual(len(keyboard_history), 1)
         self.assertEqual(keyboard_history[0], (EV_KEY, a_code, 1))
         self.assertNotIn((EV_KEY, a_code, 0), keyboard_history)
+
+    async def test_abs_z(self):
+        # Shoulder triggers (ABS_Z, ABS_RZ, ABS_GAS, ABS_BRAKE). Their center point
+        # is equal to the fully released point. They only have one direction.
+        fixture = fixtures.gamepad_abs_0_to_256
+
+        # at 30% map to a
+        mapping_1 = Mapping.from_combination(
+            InputCombination(
+                [InputConfig(type=EV_ABS, code=ABS_Z, analog_threshold=30)]
+            ),
+            output_symbol="a",
+        )
+
+        # This mapping is impossible. There is no negative direction.
+        mapping_2 = Mapping.from_combination(
+            InputCombination(
+                [InputConfig(type=EV_ABS, code=ABS_Z, analog_threshold=-30)]
+            ),
+            output_symbol="b",
+        )
+
+        preset = Preset()
+        preset.add(mapping_1)
+        preset.add(mapping_2)
+        a_code = keyboard_layout.get("a")
+        b_code = keyboard_layout.get("b")
+        event_reader = self.create_event_reader(preset, fixture)
+        max_abs = fixture.max_abs
+
+        # 50%, trigger a
+        await self.send_events(
+            [InputEvent.abs(ABS_Z, max_abs // 2)],
+            event_reader,
+        )
+
+        keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
+        self.assertEqual(keyboard_history, [(EV_KEY, a_code, 1)])
+
+        # Lets slowly move it all the way into the other direction
+        assert fixture.min_abs == 0  # just for clarification here
+        await self.send_events(
+            [
+                InputEvent.abs(ABS_Z, max_abs // 3),
+                InputEvent.abs(ABS_Z, max_abs // 5),
+                InputEvent.abs(ABS_Z, max_abs // 10),
+                InputEvent.abs(ABS_Z, 0),
+            ],
+            event_reader,
+        )
+
+        # The negative mapping (mapping_2, to b) was not triggered. It just released
+        # the a.
+        self.assertEqual(keyboard_history, [
+            (EV_KEY, a_code, 1),
+            (EV_KEY, a_code, 0)
+        ])
+
 
     async def test_abs_trigger_threshold(self):
         """Test that different activation points for abs_to_btn work correctly."""
