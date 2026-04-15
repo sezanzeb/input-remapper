@@ -152,7 +152,7 @@ class TestCombination(EventPipelineTestBase):
 
         event_reader = self.create_event_reader(preset, origin)
 
-        # 1. DPAD-Left works
+        # 1. dpad-Left works
         # ------------------
 
         await self.send_events(

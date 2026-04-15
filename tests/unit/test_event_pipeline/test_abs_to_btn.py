@@ -113,9 +113,15 @@ class TestAbsToBtn(EventPipelineTestBase):
         self.assertEqual(keyboard_history.count((EV_KEY, a, 1)), 1)
         self.assertNotIn((EV_KEY, a, 0), keyboard_history)
         self.assertNotIn((EV_KEY, b, 1), keyboard_history)
-        # the negative movements are not mapped, so the one event at -10% should be
-        # forwarded instead
-        self.assertEqual(len(forwarded_history), 1)
+        # the negative movements are not mapped, so the one event at -10% and its
+        # release should be forwarded instead
+        self.assertEqual(
+            forwarded_history,
+            [
+                (EV_ABS, ABS_X, fixtures.gamepad.min_abs // 10),
+                (EV_ABS, ABS_X, 0),
+            ],
+        )
 
         logger.info("trigger b, then release b")
         await self.send_events(
@@ -128,16 +134,31 @@ class TestAbsToBtn(EventPipelineTestBase):
             event_reader,
         )
         keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
-        self.assertEqual(keyboard_history.count((EV_KEY, a, 1)), 1)
-        self.assertEqual(keyboard_history.count((EV_KEY, b, 1)), 1)
-        self.assertEqual(keyboard_history.count((EV_KEY, b, 0)), 1)
-        self.assertNotIn((EV_KEY, a, 0), keyboard_history)
+        self.assertEqual(
+            keyboard_history,
+            [
+                (EV_KEY, a, 1),
+                (EV_KEY, b, 1),
+                (EV_KEY, b, 0),
+            ],
+        )
 
         # 0% release a
         await event_reader.handle(InputEvent.abs(ABS_X, 0))
         keyboard_history = self.global_uinputs.get_uinput("keyboard").write_history
-        self.assertEqual(keyboard_history.count((EV_KEY, a, 0)), 1)
-        self.assertEqual(len(forwarded_history), 1)
+        self.assertEqual(
+            keyboard_history,
+            [
+                (EV_KEY, a, 1),
+                (EV_KEY, b, 1),
+                (EV_KEY, b, 0),
+                (EV_KEY, a, 0),
+            ],
+        )
+
+        # This didn't change. ABS_X of 0 should not be forwarded, because the joystick
+        # came from the mapped direction to 0. Instead, it maps to release a.
+        self.assertEqual(len(forwarded_history), 2)
 
 
 if __name__ == "__main__":
