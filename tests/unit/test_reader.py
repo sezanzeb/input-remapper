@@ -40,6 +40,7 @@ from evdev.ecodes import (
     ABS_X,
     REL_HWHEEL,
     BTN_LEFT,
+    EV_REL,
 )
 
 from inputremapper.configs.input_config import (
@@ -246,9 +247,9 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                         ),
                         InputConfig(
-                            type=2,
+                            type=EV_REL,
                             code=0,
-                            analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+                            analog_threshold=1,
                             origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                         ),
                     ]
@@ -288,9 +289,9 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=2,
+                                type=EV_REL,
                                 code=0,
-                                analog_threshold=-DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+                                analog_threshold=-1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                             )
                         ]
@@ -337,9 +338,9 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=2,
+                                type=EV_REL,
                                 code=8,
-                                analog_threshold=-DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+                                analog_threshold=-1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                             )
                         ]
@@ -349,15 +350,15 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=2,
+                                type=EV_REL,
                                 code=8,
-                                analog_threshold=-DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+                                analog_threshold=-1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                             ),
                             InputConfig(
-                                type=2,
+                                type=EV_REL,
                                 code=6,
-                                analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+                                analog_threshold=1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                             ),
                         ]
