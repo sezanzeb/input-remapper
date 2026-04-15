@@ -31,7 +31,7 @@ from gi.repository import GLib
 
 from inputremapper.configs.input_config import (
     InputCombination,
-    DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
+    DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
 )
 from inputremapper.groups import _Groups, _Group
 from inputremapper.gui.gettext import _
@@ -197,10 +197,25 @@ class ReaderClient:
 
     @staticmethod
     def _input_event_to_config(event: InputEvent):
+        # This used to default to event.value, which was broken for joysticks because
+        # it resulted in a very low value (I tihnk 1). Which I think was because we
+        # overwrote the event.value with 1 in the handlers.
+
+        # For joysticks the default uses DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE
+        # in percent now. This value would break moues movements, because mice don't
+        # have a maximum value that we could use for percent calculations.
+
+        # So for EV_REL we just use 1 or -1 to keep it working the same way it used to
+        # work.
+        analog_threshold = event.direction
+
+        if event.type == evdev.ecodes.EV_ABS:
+            analog_threshold = event.direction * DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE
+
         return {
             "type": event.type,
             "code": event.code,
-            "analog_threshold": event.direction * DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
+            "analog_threshold": analog_threshold,
             "origin_hash": event.origin_hash,
         }
 

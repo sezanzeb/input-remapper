@@ -55,7 +55,7 @@ EMPTY_TYPE = 99
 MAX_BTN_MOUSE_ECODE = 0x11A
 
 # Beware, this is without sign! Movement to the left needs this to be negative
-DEFAULT_ANALOG_THRESHOLD_MAGNITUDE = 30
+DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE = 30
 
 
 class InputConfig(BaseModel):

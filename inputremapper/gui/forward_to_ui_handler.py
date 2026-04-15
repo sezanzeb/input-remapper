@@ -43,7 +43,7 @@ import evdev
 from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.input_config import (
-    DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
+    DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
@@ -88,7 +88,7 @@ class ForwardToUIHandler(MappingHandler):
         if event.type == EV_ABS:
             threshold, mid_point = calculate_trigger_point(
                 event,
-                DEFAULT_ANALOG_THRESHOLD_MAGNITUDE,
+                DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                 source,
             )
 
