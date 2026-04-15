@@ -19,7 +19,7 @@
 
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
-from typing import TYPE_CHECKING, Dict, Hashable, Tuple
+from typing import TYPE_CHECKING, Dict, Hashable, Tuple, List
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -29,7 +29,6 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    InputEventHandler,
     HandlerEnums,
 )
 from inputremapper.input_event import InputEvent
@@ -47,7 +46,7 @@ class CombinationHandler(MappingHandler):
     # the last update we sent to a sub-handler. If this is true, the output key is
     # still being held down.
     _output_previously_active: bool
-    _sub_handler: InputEventHandler
+    _sub_handler: MappingHandler
     _handled_input_hashes: list[Hashable]
     _requires_a_release: Dict[Tuple[int, int], bool]
 
@@ -90,10 +89,8 @@ class CombinationHandler(MappingHandler):
         )
         return f"<{description} at {hex(id(self))}>"
 
-    @property
-    def child(self):
-        # used for logging
-        return self._sub_handler
+    def get_children(self) -> List[MappingHandler]:
+        return [self._sub_handler]
 
     def notify(
         self,
@@ -108,7 +105,7 @@ class CombinationHandler(MappingHandler):
         # update the state
         # The value of non-key input should have been changed to either 0 or 1 at this
         # point by other handlers.
-        is_pressed = event.value == 1
+        is_pressed = event.is_pressed()
         self._pressed_keys[event.input_match_hash] = is_pressed
         # maybe this changes the activation status (triggered/not-triggered)
         changed = self._is_activated() != self._output_previously_active
@@ -161,7 +158,7 @@ class CombinationHandler(MappingHandler):
             repr(event),
             repr(self._sub_handler),
         )
-        self._output_previously_active = bool(event.value)
+        self._output_previously_active = event.is_pressed()
         sub_handler_result = self._sub_handler.notify(event, source, suppress)
 
         # Only if the sub-handler return False, we need a release-event later.
@@ -185,7 +182,7 @@ class CombinationHandler(MappingHandler):
             repr(event),
             repr(self._sub_handler),
         )
-        self._output_previously_active = bool(event.value)
+        self._output_previously_active = event.is_pressed()
         self._sub_handler.notify(event, source, suppress=False)
 
         # Negate: `False` means that the event-reader will forward the release.
@@ -205,12 +202,12 @@ class CombinationHandler(MappingHandler):
         # an earlier key in the combination chain), then we need to ensure that its
         # release is injected as well. So we get two release events in that case:
         # one for the key, and one for the output.
-        assert event.value == 0
+        assert event.is_pressed() == 0, f"expected {event.is_pressed()} to be 0"
         return self._requires_a_release.pop(event.type_and_code, False)
 
     def _require_release_later(self, require: bool, event: InputEvent) -> None:
         """Remember if this key-down event will need a release event later on."""
-        assert event.value == 1
+        assert event.is_pressed() == 1
         self._requires_a_release[event.type_and_code] = require
 
     def reset(self) -> None:

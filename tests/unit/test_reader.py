@@ -40,9 +40,14 @@ from evdev.ecodes import (
     ABS_X,
     REL_HWHEEL,
     BTN_LEFT,
+    EV_REL,
 )
 
-from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import (
+    InputCombination,
+    InputConfig,
+    DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+)
 from inputremapper.groups import _Groups, DeviceType
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -54,12 +59,7 @@ from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService, ContextDummy
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
 from inputremapper.input_event import InputEvent
-from tests.lib.constants import (
-    EVENT_READ_TIMEOUT,
-    START_READING_DELAY,
-    MAX_ABS,
-    MIN_ABS,
-)
+from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
 from tests.lib.fixtures import fixtures
 from tests.lib.fixtures import new_event
 from tests.lib.pipes import push_event, push_events
@@ -223,39 +223,42 @@ class TestReaderMultiprocessing(unittest.TestCase):
         # read all pending events. Having a glib mainloop would be better,
         # as it would call read automatically periodically
         self.reader_client._read()
+
+        expected = [
+            CombinationRecorded(
+                InputCombination(
+                    [
+                        InputConfig(
+                            type=3,
+                            code=16,
+                            analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+                            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                        )
+                    ]
+                )
+            ),
+            CombinationRecorded(
+                InputCombination(
+                    [
+                        InputConfig(
+                            type=3,
+                            code=16,
+                            analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+                            origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                        ),
+                        InputConfig(
+                            type=EV_REL,
+                            code=0,
+                            analog_threshold=1,
+                            origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
+                        ),
+                    ]
+                )
+            ),
+        ]
+
         self.assertEqual(
-            [
-                CombinationRecorded(
-                    InputCombination(
-                        [
-                            InputConfig(
-                                type=3,
-                                code=16,
-                                analog_threshold=1,
-                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                            )
-                        ]
-                    )
-                ),
-                CombinationRecorded(
-                    InputCombination(
-                        [
-                            InputConfig(
-                                type=3,
-                                code=16,
-                                analog_threshold=1,
-                                origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                            ),
-                            InputConfig(
-                                type=2,
-                                code=0,
-                                analog_threshold=1,
-                                origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
-                            ),
-                        ]
-                    )
-                ),
-            ],
+            expected,
             l1.calls,
         )
 
@@ -286,7 +289,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=2,
+                                type=EV_REL,
                                 code=0,
                                 analog_threshold=-1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
@@ -335,7 +338,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=2,
+                                type=EV_REL,
                                 code=8,
                                 analog_threshold=-1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
@@ -347,13 +350,13 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=2,
+                                type=EV_REL,
                                 code=8,
                                 analog_threshold=-1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                             ),
                             InputConfig(
-                                type=2,
+                                type=EV_REL,
                                 code=6,
                                 analog_threshold=1,
                                 origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
@@ -388,7 +391,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             InputConfig(
                                 type=1,
                                 code=30,
-                                analog_threshold=1,
+                                analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                             )
                         ]
@@ -410,7 +413,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         # over 30% should trigger
         push_events(
             fixtures.foo_device_2_gamepad,
-            [InputEvent.abs(ABS_X, int(MAX_ABS * 0.4))],
+            [InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.4))],
         )
         time.sleep(0.1)
         self.reader_client._read()
@@ -422,7 +425,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             InputConfig(
                                 type=3,
                                 code=0,
-                                analog_threshold=1,
+                                analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                             )
                         ]
@@ -436,7 +439,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         # less the 30% should release
         push_events(
             fixtures.foo_device_2_gamepad,
-            [InputEvent.abs(ABS_X, int(MAX_ABS * 0.2))],
+            [InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.2))],
         )
         time.sleep(0.1)
         self.reader_client._read()
@@ -448,7 +451,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             InputConfig(
                                 type=3,
                                 code=0,
-                                analog_threshold=1,
+                                analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                             )
                         ]
@@ -469,7 +472,8 @@ class TestReaderMultiprocessing(unittest.TestCase):
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_A, 1))
         time.sleep(0.1)
         push_event(
-            fixtures.foo_device_2_gamepad, InputEvent.abs(ABS_X, int(MAX_ABS * 0.4))
+            fixtures.foo_device_2_gamepad,
+            InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.4)),
         )
         time.sleep(0.1)
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_COMMA, 1))
@@ -477,8 +481,8 @@ class TestReaderMultiprocessing(unittest.TestCase):
         push_events(
             fixtures.foo_device_2_gamepad,
             [
-                InputEvent.abs(ABS_X, int(MAX_ABS * 0.1)),
-                InputEvent.abs(ABS_X, int(MIN_ABS * 0.4)),
+                InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.1)),
+                InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.min_abs * 0.4)),
             ],
         )
         time.sleep(0.1)
@@ -507,7 +511,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             InputConfig(
                                 type=EV_ABS,
                                 code=ABS_X,
-                                analog_threshold=1,
+                                analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                             ),
                         ]
@@ -524,7 +528,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             InputConfig(
                                 type=EV_ABS,
                                 code=ABS_X,
-                                analog_threshold=1,
+                                analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                             ),
                             InputConfig(
@@ -546,7 +550,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             InputConfig(
                                 type=EV_ABS,
                                 code=ABS_X,
-                                analog_threshold=-1,
+                                analog_threshold=-DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                             ),
                             InputConfig(
@@ -665,28 +669,31 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.assertEqual(pipe[0].recv(), "refreshed")
 
         self.reader_client._read()
+
+        expected = InputCombination(
+            [
+                InputConfig(
+                    type=EV_KEY,
+                    code=CODE_1,
+                    origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                ),
+                InputConfig(
+                    type=EV_KEY,
+                    code=CODE_3,
+                    origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
+                ),
+                InputConfig(
+                    type=EV_ABS,
+                    code=ABS_HAT0X,
+                    analog_threshold=-DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+                    origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
+                ),
+            ]
+        )
+
         self.assertEqual(
             l1.calls[-1].combination,
-            InputCombination(
-                [
-                    InputConfig(
-                        type=EV_KEY,
-                        code=CODE_1,
-                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                    ),
-                    InputConfig(
-                        type=EV_KEY,
-                        code=CODE_3,
-                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
-                    ),
-                    InputConfig(
-                        type=EV_ABS,
-                        code=ABS_HAT0X,
-                        analog_threshold=-1,
-                        origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
-                    ),
-                ]
-            ),
+            expected,
         )
 
     def test_blacklisted_events(self):
@@ -741,7 +748,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputConfig(
                         type=EV_ABS,
                         code=ABS_HAT0X,
-                        analog_threshold=1,
+                        analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                         origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                     )
                 ]

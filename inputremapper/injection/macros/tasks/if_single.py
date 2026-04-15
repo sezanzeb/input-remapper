@@ -27,6 +27,7 @@ from evdev.ecodes import EV_KEY
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.task import Task
+from inputremapper.input_event import InputEvent
 
 
 class IfSingleTask(Task):
@@ -57,12 +58,12 @@ class IfSingleTask(Task):
         then = self.get_argument("then").get_value()
         else_ = self.get_argument("else").get_value()
 
-        async def listener(event) -> None:
+        async def listener(event: InputEvent) -> None:
             if event.type != EV_KEY:
                 # Ignore anything that is not a key
                 return
 
-            if event.value == 1:
+            if event.is_pressed():
                 # Another key was pressed
                 another_key_pressed_event.set()
                 return

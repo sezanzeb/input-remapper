@@ -54,6 +54,9 @@ EMPTY_TYPE = 99
 # Please update if a way to simulate higher button-presses is found.
 MAX_BTN_MOUSE_ECODE = 0x11A
 
+# Beware, this is without sign! Movement to the left needs this to be negative
+DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE = 30
+
 
 class InputConfig(BaseModel):
     """Describes a single input within a combination, to configure mappings."""
@@ -68,7 +71,9 @@ class InputConfig(BaseModel):
     # see utils.get_device_hash for the exact hashing function
     origin_hash: Optional[DeviceHash] = None
 
-    # At which point is an analog input treated as "pressed"
+    # At which point is an analog input treated as "pressed". In percent (-99 to 99)
+    # of the delta between a resting joystick and a maxed-out joystick.
+    # Should be None if no analog input is configured.
     analog_threshold: Optional[int] = None
 
     def __str__(self):
@@ -283,8 +288,11 @@ class InputConfig(BaseModel):
 
     @validator("analog_threshold")
     def _ensure_analog_threshold_is_none(cls, analog_threshold):
-        """ensure the analog threshold is none, not zero."""
+        """ensure the analog threshold is None, not zero."""
         if analog_threshold == 0 or analog_threshold is None:
+            # the sign of the threshold defines the direction the joystick has to move.
+            # 0 is invalid, it has no sign. And for triggers, what does a threshold of
+            # 0 mean? Would it always be active?
             return None
 
         return analog_threshold

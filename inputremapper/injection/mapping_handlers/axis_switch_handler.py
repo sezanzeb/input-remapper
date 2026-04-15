@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Tuple, Hashable
+from typing import Dict, Tuple, Hashable, List
 
 import evdev
 
@@ -26,9 +26,8 @@ from inputremapper.configs.input_config import InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
-    InputEventHandler,
+    MappingHandler,
     ContextProtocol,
 )
 from inputremapper.input_event import InputEvent, EventActions
@@ -38,6 +37,9 @@ from inputremapper.utils import get_device_hash
 
 class AxisSwitchHandler(MappingHandler):
     """Enables or disables an axis.
+
+    This is used when a combination involving an analog input (rel or abs) is mapped
+    to another analog output (rel or abs). I think.
 
     Generally, if multiple events are mapped to something in a combination, all of
     them need to be triggered in order to map to the output.
@@ -53,7 +55,7 @@ class AxisSwitchHandler(MappingHandler):
     _last_value: int  # the value of the last axis event that arrived
     _axis_source: evdev.InputDevice  # the cached source of the axis input events
     _forward_device: evdev.UInput  # the cached forward uinput
-    _sub_handler: InputEventHandler
+    _sub_handler: MappingHandler
 
     def __init__(
         self,
@@ -87,9 +89,8 @@ class AxisSwitchHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):
-        return self._sub_handler
+    def get_children(self) -> List[MappingHandler]:
+        return [self._sub_handler]
 
     def _handle_key_input(self, event: InputEvent):
         """If a key is pressed, allow mapping analog events in subhandlers.
@@ -97,7 +98,7 @@ class AxisSwitchHandler(MappingHandler):
         Analog events (e.g. ABS_X, REL_Y) that have gone through Handlers that
         transform them to buttons also count as keys.
         """
-        key_is_pressed = bool(event.value)
+        key_is_pressed = event.is_pressed()
         if self._active == key_is_pressed:
             # nothing changed
             return False
@@ -153,6 +154,8 @@ class AxisSwitchHandler(MappingHandler):
             return False
 
         if event.is_key_event:
+            # A key or an analog even that is being treated as a key (on/off) due to
+            # previous handlers.
             return self._handle_key_input(event)
 
         # do some caching so that we can generate the

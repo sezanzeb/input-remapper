@@ -21,7 +21,7 @@ import asyncio
 import math
 import time
 from functools import partial
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 
 import evdev
 from evdev.ecodes import (
@@ -44,81 +44,12 @@ from inputremapper.configs.mapping import (
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
-    InputEventHandler,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
-
-
-def calculate_output(value, weight, remainder):
-    # self._value is between 0 and 1, scale up with weight
-    scaled = value * weight + remainder
-    # float_value % 1 will result in wrong calculations for negative values
-    remainder = math.fmod(scaled, 1)
-    return int(scaled), remainder
-
-
-# TODO move into class?
-async def _run_normal_output(self) -> None:
-    """Start injecting events."""
-    self._running = True
-    self._stop = False
-    remainder = 0.0
-    start = time.time()
-
-    # if the rate is configured to be slower than the default, increase the value, so
-    # that the overall speed stays the same.
-    rate_compensation = DEFAULT_REL_RATE / self.mapping.rel_rate
-    weight = REL_XY_SCALING * rate_compensation
-
-    while not self._stop:
-        value, remainder = calculate_output(
-            self._value,
-            weight,
-            remainder,
-        )
-
-        self._write(EV_REL, self.mapping.output_code, value)
-
-        time_taken = time.time() - start
-        sleep = max(0.0, (1 / self.mapping.rel_rate) - time_taken)
-        await asyncio.sleep(sleep)
-        start = time.time()
-
-    self._running = False
-
-
-# TODO move into class?
-async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
-    """Start injecting wheel events.
-
-    made to inject both REL_WHEEL and REL_WHEEL_HI_RES events, because otherwise
-    wheel output doesn't work for some people. See issue #354
-    """
-    weights = (WHEEL_SCALING, WHEEL_HI_RES_SCALING)
-
-    self._running = True
-    self._stop = False
-    remainder = [0.0, 0.0]
-    start = time.time()
-    while not self._stop:
-        for i in range(len(codes)):
-            value, remainder[i] = calculate_output(
-                self._value,
-                weights[i],
-                remainder[i],
-            )
-
-            self._write(EV_REL, codes[i], value)
-
-        time_taken = time.time() - start
-        await asyncio.sleep(max(0.0, (1 / self.mapping.rel_rate) - time_taken))
-        start = time.time()
-
-    self._running = False
 
 
 class AbsToRelHandler(MappingHandler):
@@ -160,25 +91,25 @@ class AbsToRelHandler(MappingHandler):
             else:
                 codes = (REL_HWHEEL, REL_HWHEEL_HI_RES)
 
-            self._run = partial(_run_wheel_output, self, codes=codes)
+            self._run = partial(self._run_wheel_output, codes=codes)
 
         else:
-            self._run = partial(_run_normal_output, self)
+            self._run = partial(self._run_normal_output)
 
     def __str__(self):
         name = get_evdev_constant_name(*self._map_axis.type_and_code)
-        return f'AbsToRelHandler for "{name}" {self._map_axis}'
+        return (
+            f'AbsToRelHandler for "{name}" {self._map_axis}: '
+            f"maps to {self.mapping.get_output_name_constant()} "
+            f"{self.mapping.get_output_type_code()} at "
+            f"{self.mapping.target_uinput}"
+        )
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
-        return (
-            f"maps to: {self.mapping.get_output_name_constant()} "
-            f"{self.mapping.get_output_type_code()} at "
-            f"{self.mapping.target_uinput}"
-        )
+    def get_children(self) -> List[MappingHandler]:
+        return []
 
     def notify(
         self,
@@ -195,7 +126,7 @@ class AbsToRelHandler(MappingHandler):
 
         if not self._transform:
             absinfo = {
-                entry[0]: entry[1]
+                entry[0]: entry[1]  # type: ignore
                 for entry in source.capabilities(absinfo=True)[EV_ABS]
             }
             self._transform = Transformation(
@@ -226,11 +157,14 @@ class AbsToRelHandler(MappingHandler):
         # if the mouse won't move even though correct stuff is written here,
         # the capabilities are probably wrong
         if value == 0:
-            return  # rel 0 does not make sense
+            # rel 0 does not make sense. We don't need to tell linux that the mouse
+            # should not be moved this time.
+            return
 
         try:
             self.global_uinputs.write(
-                (type_, keycode, value), self.mapping.target_uinput
+                (type_, keycode, value),
+                self.mapping.target_uinput,
             )
         except OverflowError:
             # screwed up the calculation of mouse movements
@@ -239,10 +173,73 @@ class AbsToRelHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return len(self.input_configs) > 1
 
-    def set_sub_handler(self, handler: InputEventHandler) -> None:
+    def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False  # cannot have a sub-handler
 
     def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         if self.needs_wrapping():
             return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}
+
+    def _calculate_output(self, value, weight, remainder):
+        # self._value is between 0 and 1, scale up with weight
+        scaled = value * weight + remainder
+        # float_value % 1 will result in wrong calculations for negative values
+        remainder = math.fmod(scaled, 1)
+        return int(scaled), remainder
+
+    async def _run_normal_output(self) -> None:
+        """Start injecting events."""
+        self._running = True
+        self._stop = False
+        remainder = 0.0
+        start = time.time()
+
+        # if the rate is configured to be slower than the default, increase the value, so
+        # that the overall speed stays the same.
+        rate_compensation = DEFAULT_REL_RATE / self.mapping.rel_rate
+        weight = REL_XY_SCALING * rate_compensation
+
+        while not self._stop:
+            value, remainder = self._calculate_output(
+                self._value,
+                weight,
+                remainder,
+            )
+
+            self._write(EV_REL, self.mapping.output_code, value)
+
+            time_taken = time.time() - start
+            sleep = max(0.0, (1 / self.mapping.rel_rate) - time_taken)
+            await asyncio.sleep(sleep)
+            start = time.time()
+
+        self._running = False
+
+    async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
+        """Start injecting wheel events.
+
+        made to inject both REL_WHEEL and REL_WHEEL_HI_RES events, because otherwise
+        wheel output doesn't work for some people. See issue #354
+        """
+        weights = (WHEEL_SCALING, WHEEL_HI_RES_SCALING)
+
+        self._running = True
+        self._stop = False
+        remainder = [0.0, 0.0]
+        start = time.time()
+        while not self._stop:
+            for i in range(len(codes)):
+                value, remainder[i] = self._calculate_output(
+                    self._value,
+                    weights[i],
+                    remainder[i],
+                )
+
+                self._write(EV_REL, codes[i], value)
+
+            time_taken = time.time() - start
+            await asyncio.sleep(max(0.0, (1 / self.mapping.rel_rate) - time_taken))
+            start = time.time()
+
+        self._running = False

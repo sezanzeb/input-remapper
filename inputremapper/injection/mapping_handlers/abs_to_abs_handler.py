@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Optional, Dict, List
 
 import evdev
 from evdev.ecodes import EV_ABS
@@ -28,9 +28,8 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
-    InputEventHandler,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logging.logger import logger
@@ -72,18 +71,18 @@ class AbsToAbsHandler(MappingHandler):
 
     def __str__(self):
         name = get_evdev_constant_name(*self._map_axis.type_and_code)
-        return f'AbsToAbsHandler for "{name}" {self._map_axis}'
+        return (
+            f'AbsToAbsHandler for "{name}" {self._map_axis} '
+            f"maps {self._map_axis} to: {self.mapping.get_output_name_constant()} "
+            f"{self.mapping.get_output_type_code()} at "
+            f"{self.mapping.target_uinput}"
+        )
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
-        return (
-            f"maps to: {self.mapping.get_output_name_constant()} "
-            f"{self.mapping.get_output_type_code()} at "
-            f"{self.mapping.target_uinput}"
-        )
+    def get_children(self) -> List[MappingHandler]:
+        return []
 
     def notify(
         self,
@@ -99,7 +98,7 @@ class AbsToAbsHandler(MappingHandler):
             return True
 
         if not self._transform:
-            absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])[event.code]
+            absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])[event.code]  # type: ignore
             self._transform = Transformation(
                 max_=absinfo.max,
                 min_=absinfo.min,
@@ -118,7 +117,7 @@ class AbsToAbsHandler(MappingHandler):
         self._write(self._scale_to_target(0))
 
     def _scale_to_target(self, x: float) -> int:
-        """Scales a x value between -1 and 1 to an integer between
+        """Scales an x value between -1 and 1 to an integer between
         target_absinfo.min and target_absinfo.max
 
         input values above 1 or below -1 are clamped to the extreme values
@@ -144,7 +143,7 @@ class AbsToAbsHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return len(self.input_configs) > 1
 
-    def set_sub_handler(self, handler: InputEventHandler) -> None:
+    def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False  # cannot have a sub-handler
 
     def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:

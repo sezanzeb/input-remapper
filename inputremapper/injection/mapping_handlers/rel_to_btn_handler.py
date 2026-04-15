@@ -19,6 +19,7 @@
 
 import asyncio
 import time
+from typing import List
 
 import evdev
 from evdev.ecodes import EV_REL
@@ -28,7 +29,6 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logging.logger import logger
@@ -44,7 +44,7 @@ class RelToBtnHandler(MappingHandler):
     _active: bool
     _input_config: InputConfig
     _last_activation: float
-    _sub_handler: InputEventHandler
+    _sub_handler: MappingHandler
 
     def __init__(
         self,
@@ -68,13 +68,12 @@ class RelToBtnHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
-        return self._sub_handler
+    def get_children(self) -> List[MappingHandler]:
+        return [self._sub_handler]
 
     async def _stage_release(
         self,
-        source: InputEvent,
+        source: evdev.InputDevice,
         suppress: bool,
     ):
         while time.time() < self._last_activation + self.mapping.release_timeout:
@@ -115,7 +114,7 @@ class RelToBtnHandler(MappingHandler):
                 if self.mapping.force_release_timeout:
                     # consume the event
                     return True
-                event = event.modify(value=0, actions=(EventActions.as_key,))
+                event = event.modify(pressed=False, actions=(EventActions.as_key,))
                 logger.debug("Sending %s to sub_handler", event)
                 self._abort_release = True
             else:
@@ -127,13 +126,17 @@ class RelToBtnHandler(MappingHandler):
             if not self._active:
                 asyncio.ensure_future(self._stage_release(source, suppress))
             if value >= threshold > 0:
-                direction = EventActions.positive_trigger
+                direction = 1
             else:
-                direction = EventActions.negative_trigger
+                direction = -1
             self._last_activation = time.time()
-            event = event.modify(value=1, actions=(EventActions.as_key, direction))
+            event = event.modify(
+                pressed=True,
+                direction=direction,
+                actions=(EventActions.as_key,),
+            )
 
-        self._active = bool(event.value)
+        self._active = event.is_pressed()
         # logger.debug("Sending %s to sub_handler", event)
         return self._sub_handler.notify(event, source=source, suppress=suppress)
 

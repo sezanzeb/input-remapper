@@ -32,7 +32,7 @@ import atexit
 import evdev
 
 from inputremapper.utils import get_evdev_constant_name
-from tests.lib.constants import EVENT_READ_TIMEOUT, MIN_ABS, MAX_ABS
+from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import Fixture, fixtures, new_event
 from tests.lib.pipes import (
     setup_pipe,
@@ -48,7 +48,6 @@ from tests.lib.logger import logger
 
 def patch_paths():
     from inputremapper.user import UserUtils
-    from inputremapper.configs.paths import PathUtils
 
     return [
         patch.object(UserUtils, "home", tmp),
@@ -176,11 +175,11 @@ class InputDevice:
         if absinfo and evdev.ecodes.EV_ABS in result:
             absinfo_obj = evdev.AbsInfo(
                 value=None,
-                min=MIN_ABS,
+                min=self._fixture.min_abs,
                 fuzz=None,
                 flat=None,
                 resolution=None,
-                max=MAX_ABS,
+                max=self._fixture.max_abs,
             )
 
             ev_abs = []
@@ -341,6 +340,12 @@ def patch_is_running():
     return patch.object(ReaderService, "is_running", is_running_patch)
 
 
+def patch_enable_all_logs():
+    from inputremapper.logging.logger import Logger
+
+    return patch.object(Logger, "analog_log_threshold", 0)
+
+
 class FakeDaemonProxy:
     def __init__(self):
         self.calls = {
@@ -401,4 +406,5 @@ def create_patches():
         patch_regrab_timeout(),
         patch_is_running(),
         patch_events(),
+        patch_enable_all_logs(),
     ]

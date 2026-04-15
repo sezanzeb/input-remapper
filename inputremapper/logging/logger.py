@@ -19,34 +19,41 @@
 
 """Logging setup for input-remapper."""
 
+from __future__ import annotations  # needed for the TYPE_CHECKING import
+
 import logging
 import time
-from typing import cast
+from typing import cast, Type, TYPE_CHECKING, List, Tuple
+from evdev.ecodes import EV_ABS, EV_KEY, EV_REL, ABS_HAT0X, ABS_HAT0Y
 
+from inputremapper.input_event import InputEvent
 from inputremapper.logging.formatter import ColorfulFormatter
-
 from inputremapper.installation_info import VERSION, COMMIT_HASH
+
+if TYPE_CHECKING:
+    from inputremapper.injection.mapping_handler import MappingHandler
 
 
 start = time.time()
 
-previous_key_debug_log = None
-previous_write_debug_log = None
-
 
 class Logger(logging.Logger):
-    def debug_mapping_handler(self, mapping_handler):
+    previous_abs_rel_log_time = 0.0
+    previous_write_debug_log = None
+    analog_log_threshold = 0.1  # s
+
+    def debug_mapping_handler(self, mapping_handler: MappingHandler) -> None:
         """Parse the structure of a mapping_handler and log it."""
         if not self.isEnabledFor(logging.DEBUG):
             return
 
-        lines_and_indent = self._parse_mapping_handler(mapping_handler)
+        lines_and_indent = self._build_mapping_handler_description_tree(mapping_handler)
         for line in lines_and_indent:
             indent = "    "
             msg = indent * line[1] + line[0]
-            self._log(logging.DEBUG, msg, args=None)
+            self._log(logging.DEBUG, msg, args=())
 
-    def write(self, key, uinput):
+    def write(self, key, uinput) -> None:
         """Log that an event is being written
 
         Parameters
@@ -59,40 +66,47 @@ class Logger(logging.Logger):
         if not self.isEnabledFor(logging.DEBUG):
             return
 
-        global previous_write_debug_log
+        if isinstance(key, InputEvent):
+            if key.type not in [EV_ABS, EV_REL, EV_KEY]:
+                return
+
+            # Avoid spaming the terminal with tons of high-resolution logs
+            now = time.time()
+            if key.type in [EV_ABS, EV_REL] and key.code not in [ABS_HAT0X, ABS_HAT0Y]:
+                if now - self.previous_abs_rel_log_time < self.analog_log_threshold:
+                    return
+
+                self.previous_abs_rel_log_time = now
 
         str_key = repr(key)
         str_key = str_key.replace(",)", ")")
 
         msg = f'Writing {str_key} to "{uinput.name}"'
 
-        if msg == previous_write_debug_log:
-            # avoid some super spam from EV_ABS events
+        if msg == self.previous_write_debug_log:
+            # avoid some spam
             return
 
-        previous_write_debug_log = msg
+        self.previous_write_debug_log = msg
 
-        self._log(logging.DEBUG, msg, args=None, stacklevel=2)
+        self._log(logging.DEBUG, msg, args=(), stacklevel=2)
 
-    def _parse_mapping_handler(self, mapping_handler):
-        indent = 0
-        lines_and_indent = []
-        while True:
-            if isinstance(mapping_handler, list):
-                for sub_handler in mapping_handler:
-                    sub_list = self._parse_mapping_handler(sub_handler)
-                    for line in sub_list:
-                        line[1] += indent
-                    lines_and_indent.extend(sub_list)
-                break
+    def _build_mapping_handler_description_tree(
+        self,
+        mapping_handler: MappingHandler,
+        indent=0,
+    ) -> List[Tuple[str, int]]:
+        lines_and_indent = [
+            (str(mapping_handler), indent),
+        ]
 
-            lines_and_indent.append([repr(mapping_handler), indent])
-            try:
-                mapping_handler = mapping_handler.child
-            except AttributeError:
-                break
+        mapping_handlers = mapping_handler.get_children()
+        for sub_handler in mapping_handlers:
+            sub_list = self._build_mapping_handler_description_tree(
+                sub_handler, indent + 1
+            )
+            lines_and_indent.extend(sub_list)
 
-            indent += 1
         return lines_and_indent
 
     def is_debug(self) -> bool:
@@ -129,10 +143,10 @@ class Logger(logging.Logger):
             handler.setFormatter(ColorfulFormatter(debug))
 
     @classmethod
-    def bootstrap_logger(cls):
+    def bootstrap_logger(cls: Type[Logger]) -> Logger:
         # https://github.com/python/typeshed/issues/1801
         logging.setLoggerClass(cls)
-        logger = cast(cls, logging.getLogger("input-remapper"))
+        logger = cast(Logger, logging.getLogger("input-remapper"))
 
         handler = logging.StreamHandler()
         handler.setFormatter(ColorfulFormatter(False))

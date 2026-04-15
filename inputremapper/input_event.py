@@ -36,10 +36,6 @@ class EventActions(enum.Enum):
     recenter = enum.auto()  # recenter the axis when receiving this
     none = enum.auto()
 
-    # used in combination with as_key, for originally abs or rel events
-    positive_trigger = enum.auto()  # original event was positive direction
-    negative_trigger = enum.auto()  # original event was negative direction
-
 
 # Todo: add slots=True as soon as python 3.10 is in common distros
 @dataclass(frozen=True)
@@ -54,6 +50,11 @@ class InputEvent:
     type: int
     code: int
     value: int
+
+    # Our own custom attributes
+    # (They need types for the dataclass to allow them in the constructor)
+    pressed: bool | None = None  # haven't figured out yet, depends on threshold config
+    direction: int = 1  # -1 for joystick left, +1 for joystick right and buttons
     actions: Tuple[EventActions, ...] = ()
     origin_hash: Optional[DeviceHash] = None
 
@@ -64,6 +65,23 @@ class InputEvent:
         if isinstance(other, tuple):
             return self.event_tuple == other
         raise TypeError(f"cannot compare {type(other)} with InputEvent")
+
+    def is_pressed(self) -> bool:
+        """Get if the event is representing a pressed button, joystick, trigger,
+        a scrolled wheel, a moved mouse, etc.
+
+        It might depend on stuff like the analog_threshold.
+        """
+        if self.pressed is not None:
+            return self.pressed
+
+        # As long as we haven't checked it using the analog thresholds and such,
+        # assume that anything != 0 means it is pressed.'
+
+        if self.value == 0:
+            return False
+
+        return True
 
     @staticmethod
     def validate_event(event):
@@ -227,6 +245,8 @@ class InputEvent:
         type_: Optional[int] = None,
         code: Optional[int] = None,
         value: Optional[int] = None,
+        pressed: Optional[bool] = None,
+        direction: Optional[int] = None,
         actions: Optional[Tuple[EventActions, ...]] = None,
         origin_hash: Optional[str] = None,
     ) -> InputEvent:
@@ -237,6 +257,8 @@ class InputEvent:
             type_ if type_ is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
+            pressed if pressed is not None else self.is_pressed(),
+            direction if direction is not None else self.direction,
             actions if actions is not None else self.actions,
-            origin_hash=origin_hash if origin_hash is not None else self.origin_hash,
+            origin_hash=origin_hash if origin_hash is not None else self.origin_hash,  # type: ignore
         )

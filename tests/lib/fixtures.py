@@ -51,6 +51,10 @@ class Fixture:
     phys: str = "unset"
     group_key: Optional[str] = None
 
+    # for joysticks and such
+    min_abs: int = -(2**15)
+    max_abs: int = 2**15
+
     # uniq is typically empty
     uniq: str = ""
 
@@ -216,6 +220,33 @@ class _Fixtures:
         name="Qux/[Device]?",
         path="/dev/input/event52",
     )
+    dev_input_event32 = Fixture(
+        capabilities={
+            evdev.ecodes.EV_SYN: [],
+            evdev.ecodes.EV_ABS: [
+                evdev.ecodes.ABS_X,
+                evdev.ecodes.ABS_Y,
+                evdev.ecodes.ABS_RX,
+                evdev.ecodes.ABS_RY,
+                evdev.ecodes.ABS_Z,
+                evdev.ecodes.ABS_RZ,
+                evdev.ecodes.ABS_HAT0X,
+                evdev.ecodes.ABS_HAT0Y,
+            ],
+            evdev.ecodes.EV_KEY: [
+                evdev.ecodes.BTN_A,
+                evdev.ecodes.BTN_B,
+                evdev.ecodes.BTN_X,
+                evdev.ecodes.BTN_Y,
+            ],
+        },
+        phys="",  # this is empty sometimes
+        info=evdev.device.DeviceInfo(3, 1, 3, 1),
+        name="gamepad abs 0 to 256",
+        path="/dev/input/event32",
+        min_abs=0,
+        max_abs=256,
+    )
 
     def __init__(self):
         self._iter = [
@@ -322,6 +353,10 @@ class _Fixtures:
     @property
     def QuxSlashDeviceQuestionmark(self):
         return self["/dev/input/event52"]
+
+    @property
+    def gamepad_abs_0_to_256(self):
+        return self["/dev/input/event32"]
 
 
 fixtures = _Fixtures()

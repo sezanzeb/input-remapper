@@ -19,7 +19,7 @@
 
 import asyncio
 import traceback
-from typing import Dict, Callable, Tuple
+from typing import Dict, Callable, Tuple, List
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
@@ -28,8 +28,8 @@ from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     ContextProtocol,
-    MappingHandler,
     HandlerEnums,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
@@ -57,14 +57,13 @@ class MacroHandler(MappingHandler):
         self._macro = Parser.parse(self.mapping.output_symbol, context, mapping)
 
     def __str__(self):
-        return "MacroHandler"
+        return f"MacroHandler maps to {self._macro} on {self.mapping.target_uinput}"
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
-        return f"maps to {self._macro} on {self.mapping.target_uinput}"
+    def get_children(self) -> List[MappingHandler]:
+        return []
 
     async def run_macro(self, handler: Callable):
         """Run the macro with the provided function."""
@@ -75,7 +74,7 @@ class MacroHandler(MappingHandler):
             traceback.print_exc()
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
-        if event.value == 1:
+        if event.is_pressed():
             self._active = True
             self._macro.press_trigger()
             if self._macro.running:

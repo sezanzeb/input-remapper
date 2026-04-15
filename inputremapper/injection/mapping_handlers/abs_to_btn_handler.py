@@ -17,17 +17,16 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple
+from typing import List
 
 import evdev
-from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.injection.mapping_handlers.abs_util import calculate_trigger_point
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.utils import get_evdev_constant_name
@@ -37,8 +36,8 @@ class AbsToBtnHandler(MappingHandler):
     """Handler which transforms an EV_ABS to a button event."""
 
     _input_config: InputConfig
-    _active: bool
-    _sub_handler: InputEventHandler
+    _configured_direction_was_pressed: bool
+    _sub_handler: MappingHandler
 
     def __init__(
         self,
@@ -46,10 +45,10 @@ class AbsToBtnHandler(MappingHandler):
         mapping: Mapping,
         global_uinputs: GlobalUInputs,
         **_,
-    ):
+    ) -> None:
         super().__init__(combination, mapping, global_uinputs)
 
-        self._active = False
+        self._configured_direction_was_pressed = False
         self._input_config = combination[0]
         assert self._input_config.analog_threshold
         assert len(combination) == 1
@@ -61,29 +60,8 @@ class AbsToBtnHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
-        return self._sub_handler
-
-    def _trigger_point(self, abs_min: int, abs_max: int) -> Tuple[float, float]:
-        """Calculate the axis mid and trigger point."""
-        #  TODO: potentially cache this function
-        assert self._input_config.analog_threshold
-        if abs_min == -1 and abs_max == 1:
-            # this is a hat switch
-            # return +-1
-            return (
-                self._input_config.analog_threshold
-                // abs(self._input_config.analog_threshold),
-                0,
-            )
-
-        half_range = (abs_max - abs_min) / 2
-        middle = half_range + abs_min
-        trigger_offset = half_range * self._input_config.analog_threshold / 100
-
-        # threshold, middle
-        return middle + trigger_offset, middle
+    def get_children(self) -> List[MappingHandler]:
+        return [self._sub_handler]
 
     def notify(
         self,
@@ -94,29 +72,74 @@ class AbsToBtnHandler(MappingHandler):
         if event.input_match_hash != self._input_config.input_match_hash:
             return False
 
-        absinfo = {
-            entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]
-        }
-        threshold, mid_point = self._trigger_point(
-            absinfo[event.code].min, absinfo[event.code].max
-        )
-        value = event.value
-        if (value < threshold > mid_point) or (value > threshold < mid_point):
-            if self._active:
-                event = event.modify(value=0, actions=(EventActions.as_key,))
-            else:
-                # consume the event.
-                # We could return False to forward events
-                return True
-        else:
-            if value >= threshold > mid_point:
-                direction = EventActions.positive_trigger
-            else:
-                direction = EventActions.negative_trigger
-            event = event.modify(value=1, actions=(EventActions.as_key, direction))
+        analog_threshold = self._input_config.analog_threshold
+        assert analog_threshold is not None
 
-        self._active = bool(event.value)
-        # logger.debug(event.event_tuple, "sending to sub_handler")
+        threshold, mid_point = calculate_trigger_point(
+            event,
+            analog_threshold,
+            source,
+        )
+
+        value = event.value
+
+        direction = 1 if value > mid_point else -1
+
+        want_positive = analog_threshold > 0
+        want_negative = analog_threshold < 0
+
+        # For dpads, the threshold is 1, but so is the max value. So <= and >= it is.
+        # If this is dumb, change the threhsold to be a float.
+        pressed = value >= threshold if want_positive else value <= threshold
+
+        '''print(f"""abs_to_btn
+            {pressed=}
+            {value=}
+            {want_positive=}
+            {want_negative=}
+            {direction=}
+            {threshold=}
+            {mid_point=}
+            {analog_threshold=}
+            {self._configured_direction_was_pressed=}"""
+        )'''
+
+        # dpad-right to a:
+        # dpad moves right: a down
+        # dpad returns: a up
+        # dpad goes left: dpad -1
+        # dpad returns: dpad 0
+        # There are two "dpad returns" cases that have different outcomes
+
+        # joystick-right to a:
+        # joystick moves to +1234: ignore (If the architecture could do it, forward 0)
+        # joystick moves over threshold: a down
+        # joystick returns below threshold: a up
+        # joystick moves -1234: forward -1234
+        # joystick goes to 0: forward 0
+        # (In many cases it won't exactly return to 0, but to +1 or something, because
+        # they aren't 100% precise. But the positive direction is mapped, so turn
+        # this into 0. Unfortunately there is currently no way to do this in our
+        # architecture.)
+
+        if not self._configured_direction_was_pressed:
+            # these needs to be <= and >= mid point, to forward the dpad release for
+            # the unmapped direction
+            if want_positive and value <= mid_point:
+                return False
+            if want_negative and value >= mid_point:
+                return False
+
+        # if it was pressed, then we first need to deal with releasing the sub-handler.
+
+        self._configured_direction_was_pressed = pressed
+
+        event = event.modify(
+            pressed=pressed,
+            direction=direction,
+            actions=(EventActions.as_key,),
+        )
+
         return self._sub_handler.notify(
             event,
             source=source,
@@ -124,5 +147,5 @@ class AbsToBtnHandler(MappingHandler):
         )
 
     def reset(self) -> None:
-        self._active = False
+        self._configured_direction_was_pressed = False
         self._sub_handler.reset()

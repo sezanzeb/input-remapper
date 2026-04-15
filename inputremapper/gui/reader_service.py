@@ -52,22 +52,22 @@ import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, KnownUinput
 from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     NotifyCallback,
-    InputEventHandler,
     MappingHandler,
 )
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
 from inputremapper.utils import get_device_hash
+from inputremapper.gui.forward_to_ui_handler import ForwardToUIHandler
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"
@@ -147,7 +147,7 @@ class ReaderService:
         return True
 
     @staticmethod
-    def pkexec_reader_service():
+    def pkexec_reader_service() -> None:
         """Start reader-service via pkexec to run in the background."""
         debug = " -d" if logger.level <= logging.DEBUG else ""
         cmd = f"pkexec input-remapper-control --command start-reader-service{debug}"
@@ -158,7 +158,7 @@ class ReaderService:
         if exit_code != 0:
             raise Exception(f"Failed to pkexec the reader-service, code {exit_code}")
 
-    async def run(self):
+    async def run(self) -> None:
         """Start doing stuff."""
         # the reader will check for new commands later, once it is running
         # it keeps running for one device or another.
@@ -171,12 +171,12 @@ class ReaderService:
             self._stop_if_pipes_broken(),
         )
 
-    def _send_groups(self):
+    def _send_groups(self) -> None:
         """Send the groups to the gui."""
         logger.debug("Sending groups")
         self._results_pipe.send({"type": MSG_GROUPS, "message": self.groups.dumps()})
 
-    async def _timeout(self):
+    async def _timeout(self) -> None:
         """Stop automatically after some time."""
         # Prevents a permanent hole for key-loggers to exist, in case the gui crashes.
         # If the ReaderService stops even though the gui needs it, it needs to restart
@@ -201,7 +201,7 @@ class ReaderService:
         logger.debug("Maximum life-span reached, terminating")
         sys.exit(1)
 
-    async def _read_commands(self):
+    async def _read_commands(self) -> None:
         """Handle all unread commands.
         this will run until it receives CMD_TERMINATE
         """
@@ -236,7 +236,7 @@ class ReaderService:
 
             logger.error('Received unknown command "%s"', cmd)
 
-    async def _stop_if_pipes_broken(self):
+    async def _stop_if_pipes_broken(self) -> None:
         # The GUI probably exited, and failed to tell the reader-service to stop.
         # Pipes are owned by the GUI process, because the non-privileged GUI process
         # needs to be able to read them. Therefore, they are gone.
@@ -251,7 +251,7 @@ class ReaderService:
         """Check if the ReaderService is currently sending events to the GUI."""
         return len(self._tasks) > 0
 
-    def _start_reading(self, group: _Group):
+    def _start_reading(self, group: _Group) -> None:
         """Find all devices of that group, filter interesting ones and send the events
         to the gui."""
         sources = []
@@ -276,7 +276,7 @@ class ReaderService:
             reader = EventReader(context, device, self._stop_event)
             self._tasks.add(asyncio.create_task(reader.run()))
 
-    async def _stop_reading(self):
+    async def _stop_reading(self) -> None:
         """Stop the running event_reader."""
         self._stop_event.set()
         if self._tasks:
@@ -297,10 +297,13 @@ class ReaderService:
 
             for ev_code in capabilities.get(EV_KEY) or ():
                 input_config = InputConfig(
-                    type=EV_KEY, code=ev_code, origin_hash=device_hash
+                    type=EV_KEY,
+                    code=ev_code,
+                    origin_hash=device_hash,
                 )
                 context_dummy.add_handler(
-                    input_config, ForwardToUIHandler(self._results_pipe)
+                    input_config,
+                    ForwardToUIHandler(self._results_pipe),
                 )
 
             for ev_code in capabilities.get(EV_ABS) or ():
@@ -313,7 +316,7 @@ class ReaderService:
                 )
                 mapping = Mapping(
                     input_combination=InputCombination([input_config]),
-                    target_uinput="keyboard",
+                    target_uinput=KnownUinput.KEYBOARD,
                     output_symbol="KEY_A",
                 )
                 handler: MappingHandler = AbsToBtnHandler(
@@ -328,7 +331,7 @@ class ReaderService:
                 input_config = input_config.modify(analog_threshold=-30)
                 mapping = Mapping(
                     input_combination=InputCombination([input_config]),
-                    target_uinput="keyboard",
+                    target_uinput=KnownUinput.KEYBOARD,
                     output_symbol="KEY_A",
                 )
                 handler = AbsToBtnHandler(
@@ -349,7 +352,7 @@ class ReaderService:
                 )
                 mapping = Mapping(
                     input_combination=InputCombination([input_config]),
-                    target_uinput="keyboard",
+                    target_uinput=KnownUinput.KEYBOARD,
                     output_symbol="KEY_A",
                     release_timeout=0.3,
                     force_release_timeout=True,
@@ -368,7 +371,7 @@ class ReaderService:
                 )
                 mapping = Mapping(
                     input_combination=InputCombination([input_config]),
-                    target_uinput="keyboard",
+                    target_uinput=KnownUinput.KEYBOARD,
                     output_symbol="KEY_A",
                     release_timeout=0.3,
                     force_release_timeout=True,
@@ -384,7 +387,10 @@ class ReaderService:
         return context_dummy
 
 
-class ForwardDummy:
+class ForwardDummy(evdev.UInput):
+    # You may add more attributes of evdev.UInput here for compatibility
+    name: str = "forward-dummy"
+
     @staticmethod
     def write(*_):
         pass
@@ -398,7 +404,7 @@ class ContextDummy:
         self._notify_callbacks = defaultdict(list)
         self.forward_dummy = ForwardDummy()
 
-    def add_handler(self, input_config: InputConfig, handler: InputEventHandler):
+    def add_handler(self, input_config: InputConfig, handler: MappingHandler):
         self._notify_callbacks[input_config.input_match_hash].append(handler.notify)
 
     def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
@@ -410,42 +416,3 @@ class ContextDummy:
     def get_forward_uinput(self, origin_hash) -> evdev.UInput:
         """Don't actually write anything."""
         return self.forward_dummy
-
-
-class ForwardToUIHandler:
-    """Implements the InputEventHandler protocol. Sends all events into the pipe."""
-
-    def __init__(self, pipe: Pipe):
-        self.pipe = pipe
-        self._last_event = InputEvent.from_tuple((99, 99, 99))
-
-    def notify(
-        self,
-        event: InputEvent,
-        source: evdev.InputDevice,
-        suppress: bool = False,
-    ) -> bool:
-        """Filter duplicates and send into the pipe."""
-        if event != self._last_event:
-            self._last_event = event
-            if EventActions.negative_trigger in event.actions:
-                event = event.modify(value=-1)
-
-            logger.debug("Sending to %s frontend", event)
-            self.pipe.send(
-                {
-                    "type": MSG_EVENT,
-                    "message": {
-                        "sec": event.sec,
-                        "usec": event.usec,
-                        "type": event.type,
-                        "code": event.code,
-                        "value": event.value,
-                        "origin_hash": event.origin_hash,
-                    },
-                }
-            )
-        return True
-
-    def reset(self):
-        pass

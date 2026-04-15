@@ -65,5 +65,7 @@ class HoldTask(Task):
                 # run the child macro completely to avoid
                 # not-releasing any key
                 await macro.run(callback)
-                # give some other code a chance to run
+                # prevent input-remapper from freezing up and making the system hard
+                # to control, by adding 1ms of asyncio.sleep during which the event
+                # loop can do other things
                 await asyncio.sleep(1 / 1000)

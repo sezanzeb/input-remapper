@@ -17,14 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict
+from typing import Dict, List
 
 import evdev
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent
 
@@ -35,9 +35,8 @@ class NullHandler(MappingHandler):
     def __str__(self):
         return f"NullHandler for {self.mapping.input_combination}<{id(self)}>"
 
-    @property
-    def child(self):
-        return "Voids all events"
+    def get_children(self) -> List[MappingHandler]:
+        return []
 
     def needs_wrapping(self) -> bool:
         return False in [

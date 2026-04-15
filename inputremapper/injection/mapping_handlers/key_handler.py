@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 from inputremapper import exceptions
 from inputremapper.configs.input_config import InputCombination
@@ -25,8 +25,8 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
@@ -57,22 +57,21 @@ class KeyHandler(MappingHandler):
         self._active = False
 
     def __str__(self):
-        return f"KeyHandler to {self._maps_to}"
+        name = get_evdev_constant_name(*self._maps_to)
+        return f"KeyHandler to {name} {self._maps_to} on {self.mapping.target_uinput}"
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
-        name = get_evdev_constant_name(*self._maps_to)
-        return f"maps to: {name} {self._maps_to} on {self.mapping.target_uinput}"
+    def get_children(self) -> List[MappingHandler]:
+        return []
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
-        """Inject event.value to the target key."""
-        event_tuple = (*self._maps_to, event.value)
+        """Inject the correct value to the target uinput."""
+        event_tuple = (*self._maps_to, 1 if event.is_pressed() else 0)
         try:
             self.global_uinputs.write(event_tuple, self.mapping.target_uinput)
-            self._active = bool(event.value)
+            self._active = bool(event.is_pressed())
             return True
         except exceptions.Error:
             return False

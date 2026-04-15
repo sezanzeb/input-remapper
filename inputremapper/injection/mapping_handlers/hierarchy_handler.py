@@ -26,7 +26,6 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    InputEventHandler,
     HandlerEnums,
 )
 from inputremapper.input_event import InputEvent
@@ -60,14 +59,13 @@ class HierarchyHandler(MappingHandler):
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
 
-    @property
-    def child(self):  # used for logging
+    def get_children(self) -> List[MappingHandler]:
         return self.handlers
 
     def notify(
         self,
         event: InputEvent,
-        source: evdev.InputDevice = None,
+        source: evdev.InputDevice,
         suppress: bool = False,
     ) -> bool:
         if event.input_match_hash != self._input_config.input_match_hash:
@@ -106,5 +104,5 @@ class HierarchyHandler(MappingHandler):
             return {InputCombination([self._input_config]): HandlerEnums.rel2btn}
         return {}
 
-    def set_sub_handler(self, handler: InputEventHandler) -> None:
+    def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False

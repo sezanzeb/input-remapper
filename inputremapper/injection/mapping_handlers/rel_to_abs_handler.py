@@ -18,7 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, List
 
 import evdev
 from evdev.ecodes import (
@@ -42,9 +42,8 @@ from inputremapper.configs.mapping import (
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
-    InputEventHandler,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logging.logger import logger
@@ -108,18 +107,18 @@ class RelToAbsHandler(MappingHandler):
         self._observed_rate = DEFAULT_REL_RATE
 
     def __str__(self):
-        return f"RelToAbsHandler for {self._map_axis}"
-
-    def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
-
-    @property
-    def child(self):  # used for logging
         return (
+            f"RelToAbsHandler for {self._map_axis} "
             f"maps to: {self.mapping.get_output_name_constant()} "
             f"{self.mapping.get_output_type_code()} at "
             f"{self.mapping.target_uinput}"
         )
+
+    def __repr__(self):
+        return f"<{str(self)} at {hex(id(self))}>"
+
+    def get_children(self) -> List[MappingHandler]:
+        return []
 
     def _observe_rate(self, event: InputEvent):
         """Watch incoming events and remember how many events appear per second."""
@@ -240,7 +239,7 @@ class RelToAbsHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return len(self.input_configs) > 1
 
-    def set_sub_handler(self, handler: InputEventHandler) -> None:
+    def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False  # cannot have a sub-handler
 
     def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
