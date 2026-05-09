@@ -492,17 +492,9 @@ class _Groups:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
 
-    def filter(self, include_inputremapper: bool = False) -> List[_Group]:
+    def filter(self) -> List[_Group]:
         """Filter groups."""
-        result = []
-        for group in self._groups:
-            name = group.name
-            if not include_inputremapper and name.startswith("input-remapper"):
-                continue
-
-            result.append(group)
-
-        return result
+        return list(self._groups)
 
     def set_groups(self, new_groups: List[_Group]):
         """Overwrite all groups."""
@@ -536,7 +528,6 @@ class _Groups:
         name: Optional[str] = None,
         key: Optional[str] = None,
         path: Optional[str] = None,
-        include_inputremapper: bool = False,
     ) -> Optional[_Group]:
         """Find a group that matches the provided parameters.
 
@@ -551,9 +542,6 @@ class _Groups:
             "/dev/input/event3"
         """
         for group in self._groups:
-            if not include_inputremapper and group.name.startswith("input-remapper"):
-                continue
-
             if name and group.name != name:
                 continue
 

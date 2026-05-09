@@ -136,9 +136,7 @@ class TestGroups(unittest.TestCase):
             ),
         )
 
-        groups2 = json.dumps(
-            [group.dumps() for group in groups.filter(include_inputremapper=True)]
-        )
+        groups2 = json.dumps([group.dumps() for group in groups.filter()])
         self.assertEqual(pipe.groups, groups2)
 
     def test_list_group_names(self):
