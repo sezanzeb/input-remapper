@@ -176,7 +176,7 @@ class TestGroups(unittest.TestCase):
         }
 
         groups.refresh()
-        self.assertIsNone(groups.find(path="/foo/bar", include_inputremapper=True))
+        self.assertIsNone(groups.find(path="/foo/bar"))
 
     def test_is_inputremapper_device(self):
         device = evdev.InputDevice("/dev/input/event40")

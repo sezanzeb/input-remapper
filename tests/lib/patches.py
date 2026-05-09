@@ -210,13 +210,15 @@ uinputs = {}
 
 
 class UInputMock:
-    def __init__(self, events=None, name="unnamed", *args, **kwargs):
+    def __init__(
+        self, events=None, name="unnamed", phys="py-evdev-uinput", *args, **kwargs
+    ):
         self.fd = 0
         self.write_count = 0
         self.device = InputDevice("justdoit")
         self.name = name
         self.events = events
-        self.phys = kwargs.get("phys", "py-evdev-uinput")
+        self.phys = phys
         self.write_history = []
 
         global uinputs
