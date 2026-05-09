@@ -377,8 +377,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIn(EV_REL, forwarded_foo.capabilities())
         self.assertIn(EV_KEY, forwarded.capabilities())
         self.assertEqual(sorted(forwarded.capabilities()[EV_KEY]), keyboard_keys)
-        self.assertEqual(forwarded_foo.phys, "input-remapper/usb-0000:03:00.0-1/input2/input2")
-        self.assertEqual(forwarded.phys, "input-remapper/usb-0000:03:00.0-1/input2/input3")
+        self.assertEqual(
+            forwarded_foo.phys, "input-remapper/usb-0000:03:00.0-1/input2/input2"
+        )
+        self.assertEqual(
+            forwarded.phys, "input-remapper/usb-0000:03:00.0-1/input2/input3"
+        )
 
         self.assertEqual(ungrab_patch.call_count, 2)
 
