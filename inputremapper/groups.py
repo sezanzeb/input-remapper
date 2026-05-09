@@ -195,6 +195,13 @@ def classify(device) -> DeviceType:
 DENYLIST = [".*Yubico.*YubiKey.*", "Eee PC WMI hotkeys"]
 
 
+def is_inputremapper_device(device: evdev.InputDevice) -> bool:
+    """Return whether the device was created by input-remapper."""
+    name = str(device.name or "")
+    phys = str(device.phys or "")
+    return name.startswith("input-remapper") or phys.startswith("input-remapper")
+
+
 def is_denylisted(device: evdev.InputDevice):
     """Check if a device should not be used in input-remapper.
 
@@ -373,6 +380,10 @@ class _FindGroups(threading.Thread):
                 continue
 
             if device.name == "Power Button":
+                continue
+
+            if is_inputremapper_device(device):
+                logger.debug('Skipping input-remapper device "%s"', device.name)
                 continue
 
             device_type = classify(device)

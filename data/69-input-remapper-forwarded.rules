@@ -1,0 +1,8 @@
+# helpful commands:
+#   udevadm monitor --property
+#   udevadm info --query=all --name=/dev/input/event3
+#
+# Forwarded input-remapper devices are virtual, so systemd's persistent-input
+# rules do not assign ID_BUS to them. Without ID_BUS, 70-mouse.rules will not
+# query hwdb and properties such as MOUSE_DPI get lost, changing pointer feel.
+ACTION=="add", SUBSYSTEM=="input", KERNEL=="event*", ATTRS{phys}=="input-remapper/*", ENV{ID_BUS}=="", ENV{ID_BUS}="usb"

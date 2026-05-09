@@ -89,6 +89,20 @@ def get_udev_name(name: str, suffix: str) -> str:
     return name
 
 
+def get_forward_phys(source: evdev.InputDevice) -> str:
+    """Use a stable phys marker for forwarded devices.
+
+    The original phys path must not be reused because it makes the forwarded
+    device look like the hardware device to our autoload rule. However, using a
+    dedicated input-remapper phys marker still allows us to identify and ignore
+    the forwarded device elsewhere.
+    """
+    if source.phys:
+        return f"{DEV_NAME}/{source.phys}"
+
+    return DEV_NAME
+
+
 @dataclass(frozen=True)
 class InjectorStateMessage:
     message_type = MessageType.injector_state
@@ -372,12 +386,14 @@ class Injector(multiprocessing.Process):
         # typing"
         try:
             forward_to = evdev.UInput(
-                name=get_udev_name(source.name, "forwarded"),
+                # Keep the original name so system hwdb rules can still match the
+                # virtual device and restore properties such as MOUSE_DPI.
+                name=source.name,
                 events=self._copy_capabilities(source),
-                # phys=source.phys,  # this leads to confusion. the appearance of
-                # a uinput with this "phys" property causes the udev rule to
-                # autoload for the original device, overwriting our previous
-                # attempts at starting an injection.
+                # Reusing source.phys causes our autoload rule to treat the
+                # forwarded device as hardware. Prefix it so it stays
+                # distinguishable while still carrying some source identity.
+                phys=get_forward_phys(source),
                 vendor=source.info.vendor,
                 product=source.info.product,
                 version=source.info.version,

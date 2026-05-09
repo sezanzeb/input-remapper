@@ -216,6 +216,7 @@ class UInputMock:
         self.device = InputDevice("justdoit")
         self.name = name
         self.events = events
+        self.phys = kwargs.get("phys", "py-evdev-uinput")
         self.write_history = []
 
         global uinputs
