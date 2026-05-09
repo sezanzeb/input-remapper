@@ -291,8 +291,7 @@ class ReaderClient:
     def publish_groups(self):
         """Announce all known groups."""
         groups: Dict[str, List[str]] = {
-            group.key: group.types or []
-            for group in self.groups.filter()
+            group.key: group.types or [] for group in self.groups.filter()
         }
         self.message_broker.publish(GroupsData(groups))
 
