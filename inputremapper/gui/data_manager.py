@@ -178,7 +178,7 @@ class DataManager:
 
     def get_group_keys(self) -> Tuple[GroupKey, ...]:
         """Get all group keys (plugged devices)."""
-        return tuple(group.key for group in self._reader_client.groups.filter())
+        return tuple(group.key for group in self._reader_client.groups.get_groups())
 
     def get_preset_names(self) -> Tuple[Name, ...]:
         """Get all preset names for active_group and current user sorted by age."""

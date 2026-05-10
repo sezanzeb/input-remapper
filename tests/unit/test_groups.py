@@ -136,7 +136,7 @@ class TestGroups(unittest.TestCase):
             ),
         )
 
-        groups2 = json.dumps([group.dumps() for group in groups.filter()])
+        groups2 = json.dumps([group.dumps() for group in groups.get_groups()])
         self.assertEqual(pipe.groups, groups2)
 
     def test_list_group_names(self):
@@ -151,9 +151,9 @@ class TestGroups(unittest.TestCase):
             ],
         )
 
-    def test_filter(self):
+    def test_get_groups(self):
         # by default no input-remapper devices are present
-        filtered = groups.filter()
+        filtered = groups.get_groups()
         keys = [group.key for group in filtered]
         self.assertIn("Foo Device 2", keys)
         self.assertNotIn("input-remapper Bar Device", keys)

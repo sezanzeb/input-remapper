@@ -492,8 +492,8 @@ class _Groups:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
 
-    def filter(self) -> List[_Group]:
-        """Filter groups."""
+    def get_groups(self) -> List[_Group]:
+        """Return groups."""
         return list(self._groups)
 
     def set_groups(self, new_groups: List[_Group]):
