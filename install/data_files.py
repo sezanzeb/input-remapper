@@ -45,6 +45,7 @@ def get_data_files() -> list[tuple[str, list[str]]]:
         # which rendered the whole operating system unusable.
         ("usr/share/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),
         ("etc/xdg/autostart/", ["data/input-remapper-autoload.desktop"]),
+        ("usr/lib/udev/rules.d", ["data/69-input-remapper-forwarded.rules"]),
         ("usr/lib/udev/rules.d", ["data/99-input-remapper.rules"]),
         ("usr/bin/", ["bin/input-remapper-gtk"]),
         ("usr/bin/", ["bin/input-remapper-service"]),

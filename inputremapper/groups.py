@@ -195,6 +195,13 @@ def classify(device) -> DeviceType:
 DENYLIST = [".*Yubico.*YubiKey.*", "Eee PC WMI hotkeys"]
 
 
+def is_inputremapper_device(device: evdev.InputDevice) -> bool:
+    """Return whether the device was created by input-remapper."""
+    name = str(device.name or "")
+    phys = str(device.phys or "")
+    return name.startswith("input-remapper") or phys.startswith("input-remapper")
+
+
 def is_denylisted(device: evdev.InputDevice):
     """Check if a device should not be used in input-remapper.
 
@@ -375,6 +382,10 @@ class _FindGroups(threading.Thread):
             if device.name == "Power Button":
                 continue
 
+            if is_inputremapper_device(device):
+                logger.debug('Skipping input-remapper device "%s"', device.name)
+                continue
+
             device_type = classify(device)
 
             if device_type == DeviceType.CAMERA:
@@ -481,17 +492,9 @@ class _Groups:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
 
-    def filter(self, include_inputremapper: bool = False) -> List[_Group]:
-        """Filter groups."""
-        result = []
-        for group in self._groups:
-            name = group.name
-            if not include_inputremapper and name.startswith("input-remapper"):
-                continue
-
-            result.append(group)
-
-        return result
+    def get_groups(self) -> List[_Group]:
+        """Return groups."""
+        return list(self._groups)
 
     def set_groups(self, new_groups: List[_Group]):
         """Overwrite all groups."""
@@ -525,7 +528,6 @@ class _Groups:
         name: Optional[str] = None,
         key: Optional[str] = None,
         path: Optional[str] = None,
-        include_inputremapper: bool = False,
     ) -> Optional[_Group]:
         """Find a group that matches the provided parameters.
 
@@ -540,9 +542,6 @@ class _Groups:
             "/dev/input/event3"
         """
         for group in self._groups:
-            if not include_inputremapper and group.name.startswith("input-remapper"):
-                continue
-
             if name and group.name != name:
                 continue
 

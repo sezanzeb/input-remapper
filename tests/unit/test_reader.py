@@ -907,14 +907,6 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     ),
                     json.dumps(
                         {
-                            "paths": ["/dev/input/event40"],
-                            "names": ["input-remapper Bar Device"],
-                            "types": [DeviceType.KEYBOARD],
-                            "key": "input-remapper Bar Device",
-                        }
-                    ),
-                    json.dumps(
-                        {
                             "paths": ["/dev/input/event52"],
                             "names": ["Qux/[Device]?"],
                             "types": [DeviceType.KEYBOARD],

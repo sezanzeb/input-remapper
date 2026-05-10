@@ -58,6 +58,7 @@ from inputremapper.injection.injector import (
     is_in_capabilities,
     InjectorState,
     get_udev_name,
+    get_forward_phys,
 )
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.input_event import InputEvent
@@ -287,6 +288,14 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             "input-remapper abcd forwarded",
         )
 
+    def test_get_forward_phys(self):
+        path = "/dev/input/event11"
+        device = evdev.InputDevice(path)
+        self.assertEqual(
+            get_forward_phys(device),
+            "input-remapper/usb-0000:03:00.0-1/input2/input2",
+        )
+
     @mock.patch("evdev.InputDevice.ungrab")
     def test_capabilities_and_uinput_presence(self, ungrab_patch):
         preset = Preset()
@@ -359,8 +368,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         # reading and preventing original events from reaching the
         # display server
-        forwarded_foo = uinputs.get("input-remapper Foo Device foo forwarded")
-        forwarded = uinputs.get("input-remapper Foo Device forwarded")
+        forwarded_foo = uinputs.get("Foo Device foo")
+        forwarded = uinputs.get("Foo Device")
         self.assertIsNotNone(forwarded_foo)
         self.assertIsNotNone(forwarded)
 
@@ -368,6 +377,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIn(EV_REL, forwarded_foo.capabilities())
         self.assertIn(EV_KEY, forwarded.capabilities())
         self.assertEqual(sorted(forwarded.capabilities()[EV_KEY]), keyboard_keys)
+        self.assertEqual(
+            forwarded_foo.phys, "input-remapper/usb-0000:03:00.0-1/input2/input2"
+        )
+        self.assertEqual(
+            forwarded.phys, "input-remapper/usb-0000:03:00.0-1/input2/input3"
+        )
 
         self.assertEqual(ungrab_patch.call_count, 2)
 

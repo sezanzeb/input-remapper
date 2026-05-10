@@ -31,6 +31,7 @@ from inputremapper.groups import (
     classify,
     DeviceType,
     _Group,
+    is_inputremapper_device,
 )
 from tests.lib.fixtures import fixtures, keyboard_keys
 from tests.lib.test_setup import test_setup
@@ -125,14 +126,6 @@ class TestGroups(unittest.TestCase):
                     ),
                     json.dumps(
                         {
-                            "paths": ["/dev/input/event40"],
-                            "names": ["input-remapper Bar Device"],
-                            "types": [DeviceType.KEYBOARD],
-                            "key": "input-remapper Bar Device",
-                        }
-                    ),
-                    json.dumps(
-                        {
                             "paths": ["/dev/input/event52"],
                             "names": ["Qux/[Device]?"],
                             "types": [DeviceType.KEYBOARD],
@@ -143,9 +136,7 @@ class TestGroups(unittest.TestCase):
             ),
         )
 
-        groups2 = json.dumps(
-            [group.dumps() for group in groups.filter(include_inputremapper=True)]
-        )
+        groups2 = json.dumps([group.dumps() for group in groups.get_groups()])
         self.assertEqual(pipe.groups, groups2)
 
     def test_list_group_names(self):
@@ -160,12 +151,34 @@ class TestGroups(unittest.TestCase):
             ],
         )
 
-    def test_filter(self):
+    def test_get_groups(self):
         # by default no input-remapper devices are present
-        filtered = groups.filter()
+        filtered = groups.get_groups()
         keys = [group.key for group in filtered]
         self.assertIn("Foo Device 2", keys)
         self.assertNotIn("input-remapper Bar Device", keys)
+
+    def test_skip_inputremapper_phys_devices(self):
+        fixtures["/foo/bar"] = {
+            "name": "Logitech G Pro",
+            "phys": "input-remapper/usb-0000:0f:00.3-4.2/input2:1",
+            "info": evdev.DeviceInfo(3, 0x046D, 0x4079, 0x0111),
+            "capabilities": {
+                evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_LEFT],
+                evdev.ecodes.EV_REL: [
+                    evdev.ecodes.REL_X,
+                    evdev.ecodes.REL_Y,
+                    evdev.ecodes.REL_WHEEL,
+                ],
+            },
+        }
+
+        groups.refresh()
+        self.assertIsNone(groups.find(path="/foo/bar"))
+
+    def test_is_inputremapper_device(self):
+        device = evdev.InputDevice("/dev/input/event40")
+        self.assertTrue(is_inputremapper_device(device))
 
     def test_skip_camera(self):
         fixtures["/foo/bar"] = {
