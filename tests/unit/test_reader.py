@@ -229,7 +229,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                 InputCombination(
                     [
                         InputConfig(
-                            type=3,
+                            type=EV_ABS,
                             code=16,
                             analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                             origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
@@ -241,7 +241,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                 InputCombination(
                     [
                         InputConfig(
-                            type=3,
+                            type=EV_ABS,
                             code=16,
                             analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                             origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
@@ -389,9 +389,8 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=1,
+                                type=EV_KEY,
                                 code=30,
-                                analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                             )
                         ]
@@ -423,7 +422,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=3,
+                                type=EV_ABS,
                                 code=0,
                                 analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
@@ -449,7 +448,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=3,
+                                type=EV_ABS,
                                 code=0,
                                 analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
