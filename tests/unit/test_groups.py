@@ -271,7 +271,10 @@ class TestGroups(unittest.TestCase):
         backup = fixtures.get_fixture("/dev/input/event1")
         fixtures.remove_fixture("/dev/input/event1")
         fixtures.add_fixture(backup)
-        # Now the order should be messed up
+        # Now the order should be messed up (This is acceptable here, as long as the
+        # groups end up in the correct original order. This check only exists to make
+        # sure the test would still be able to reproduce the bug. The order being
+        # messed up is a prerequisite to reproduce the bug)
         paths = fixtures.get_paths()
         self.assertGreater(
             paths.index("/dev/input/event1"),
