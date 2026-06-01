@@ -869,14 +869,14 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     json.dumps(
                         {
                             "paths": [
-                                "/dev/input/event11",
                                 "/dev/input/event10",
+                                "/dev/input/event11",
                                 "/dev/input/event13",
                                 "/dev/input/event15",
                             ],
                             "names": [
-                                "Foo Device foo",
                                 "Foo Device",
+                                "Foo Device foo",
                                 "Foo Device",
                                 "Foo Device bar",
                             ],
