@@ -362,7 +362,21 @@ class _FindGroups(threading.Thread):
         # group them together by usb device because there could be stuff like
         # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
         grouped = {}
-        for path in evdev.list_devices():
+
+        # Sorting the paths is extremely important if two devices of the same make
+        # (two identical mice for example) are connected. Without sorting, the order
+        # depends on the order of plugging devices in. This causes the most recently
+        # plugged in device to get the first group.
+        # Without sorting:
+        # - mouse1 /input1 plugged in. group.key: "Mouse". Autoloads as configured.
+        # - mouse2 /input2 plugged in. group.key: "Mouse". mouse1 gets a different
+        #   group.key: "Mouse 2", even though an injection is running there. Bug.
+        # - I believe this is what causes input-remapper to stop the injection for
+        #   mouse1 and then start it for mouse2 instead. So plugging in a second
+        #   device breaks autoloading. Sorting fixes it.
+        # With sorting, mouse1 always gets group.key "Mouse", and mouse2 always
+        # "Mouse 2" (Unless only mouse2 is plugged in, then it gets "Mouse")
+        for path in sorted(evdev.list_devices()):
             try:
                 device = evdev.InputDevice(path)
             except Exception as error:
@@ -438,6 +452,7 @@ class _FindGroups(threading.Thread):
                 i += 1
             used_keys.add(key)
 
+            logger.debug('Creating group with key "%s", paths "%s"', key, devs)
             group = _Group(
                 key=key,
                 paths=devs,
@@ -462,18 +477,6 @@ class _Groups:
     def __init__(self):
         self._groups: List[_Group] = None
 
-    def __getattribute__(self, key: str):
-        """To lazy load group info only when needed.
-
-        For example, this helps to keep logs of input-remapper-control clear when it
-        doesn't need it the information.
-        """
-        if key == "_groups" and object.__getattribute__(self, "_groups") is None:
-            object.__setattr__(self, "_groups", [])
-            object.__getattribute__(self, "refresh")()
-
-        return object.__getattribute__(self, key)
-
     def refresh(self):
         """Look for devices and group them together.
 
@@ -486,14 +489,20 @@ class _Groups:
         # block until groups are available
         self.loads(pipe[0].recv())
 
-        if len(self._groups) == 0:
+        if len(self.get_groups()) == 0:
             logger.error("Did not find any input device")
         else:
-            keys = [f'"{group.key}"' for group in self._groups]
+            keys = [f'"{group.key}"' for group in self.get_groups()]
             logger.info("Found %s", ", ".join(keys))
 
     def get_groups(self) -> List[_Group]:
-        """Return groups."""
+        """Load groups and return them."""
+        if self._groups is None:
+            # To lazy load group info only when needed.
+            # For example, this helps to keep logs of input-remapper-control clear when
+            # it doesn't need it the information.
+            self.refresh()
+
         return list(self._groups)
 
     def set_groups(self, new_groups: List[_Group]):
@@ -509,15 +518,9 @@ class _Groups:
             if not group.name.startswith("input-remapper")
         ]
 
-    def __len__(self):
-        return len(self._groups)
-
-    def __iter__(self):
-        return iter(self._groups)
-
     def dumps(self):
         """Create a deserializable string representation."""
-        return json.dumps([group.dumps() for group in self._groups])
+        return json.dumps([group.dumps() for group in self.get_groups()])
 
     def loads(self, dump: str):
         """Load a serialized representation created via dumps."""
@@ -541,7 +544,7 @@ class _Groups:
         path
             "/dev/input/event3"
         """
-        for group in self._groups:
+        for group in self.get_groups():
             if name and group.name != name:
                 continue
 

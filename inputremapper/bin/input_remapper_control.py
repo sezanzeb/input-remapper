@@ -139,7 +139,7 @@ class InputRemapperControlBin:
         logger.setLevel(logging.ERROR)
         from inputremapper.groups import groups
 
-        for group in groups:
+        for group in groups.get_groups():
             print(group.key)
 
     def list_key_names(self):
@@ -214,7 +214,7 @@ class InputRemapperControlBin:
             self.migrations.migrate()
 
     def _stop(self, device: str) -> None:
-        group = self._require_group(device)
+        group = self._load_group(device)
         self.daemon.stop_injecting(group.key)
 
     def _quit(self) -> None:
@@ -228,7 +228,7 @@ class InputRemapperControlBin:
             raise
 
     def _start(self, device: str, preset: str) -> None:
-        group = self._require_group(device)
+        group = self._load_group(device)
 
         logger.info(
             'Starting injection: "%s", "%s"',
@@ -238,7 +238,14 @@ class InputRemapperControlBin:
 
         self.daemon.start_injecting(group.key, preset)
 
-    def _require_group(self, device: str):
+    def _load_group(self, device: str):
+        """Load groups, check if a group exists for the given device and return it.
+        Crash if it can't be found.
+
+        device can be either a path like "/dev/input/event1" or a group key like
+        "USB Optical Mouse",
+        """
+
         # import stuff late to make sure the correct log level is applied
         # before anything is logged
         # TODO since imports shouldn't run any code, this is fixed by moving towards DI
@@ -247,6 +254,9 @@ class InputRemapperControlBin:
         if device is None:
             logger.error("--device missing")
             sys.exit(3)
+
+        # groups.find would also refresh it, but explicit is better than implicit
+        groups.refresh()
 
         if device.startswith("/dev"):
             group = groups.find(path=device)
@@ -269,8 +279,12 @@ class InputRemapperControlBin:
             logger.info("Autoloading all")
             self.daemon.autoload(timeout=10000)
         else:
-            group = self._require_group(device)
-            logger.info("Asking daemon to autoload for %s", device)
+            group = self._load_group(device)
+            logger.info(
+                "Asking daemon to autoload for device:%s group:%s",
+                device,
+                group.key,
+            )
             self.daemon.autoload_single(group.key, timeout=2000)
 
     def internals(self, command: str, debug: True) -> None:
