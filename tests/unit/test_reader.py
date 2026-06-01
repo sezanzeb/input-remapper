@@ -642,12 +642,15 @@ class TestReaderMultiprocessing(unittest.TestCase):
 
         pipe = multiprocessing.Pipe()
 
+        groups = _Groups()
+
         def refresh():
             # from within the reader-service process notify this test that
             # refresh was called as expected
             pipe[1].send("refreshed")
+            # call original method
+            return _Groups.refresh(groups)
 
-        groups = _Groups()
         groups.refresh = refresh
         self.create_reader_service(groups)
 

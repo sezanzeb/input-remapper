@@ -487,12 +487,13 @@ class _Groups:
         pipe = multiprocessing.Pipe()
         _FindGroups(pipe[1]).start()
         # block until groups are available
-        self.loads(pipe[0].recv())
+        message = pipe[0].recv()
+        self.loads(message)
 
-        if len(self.get_groups()) == 0:
+        if len(self._groups) == 0:
             logger.error("Did not find any input device")
         else:
-            keys = [f'"{group.key}"' for group in self.get_groups()]
+            keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
 
     def get_groups(self) -> List[_Group]:
@@ -520,7 +521,8 @@ class _Groups:
 
     def dumps(self):
         """Create a deserializable string representation."""
-        return json.dumps([group.dumps() for group in self.get_groups()])
+        groups = self.get_groups()
+        return json.dumps([group.dumps() for group in groups])
 
     def loads(self, dump: str):
         """Load a serialized representation created via dumps."""
