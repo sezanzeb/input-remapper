@@ -265,6 +265,7 @@ class _Fixtures:
             self.dev_input_event40,
             self.dev_input_event51,
             self.dev_input_event52,
+            self.dev_input_event32,
         ]
 
     def get_fixture(self, path: str) -> Fixture:

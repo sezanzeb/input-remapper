@@ -74,7 +74,7 @@ class TestDBusDaemon(unittest.TestCase):
         # it's a remote dbus object
         introspection_xml = self.interface.Introspect()
         root = ET.fromstring(introspection_xml)
-        interfaces = [node.get('name') for node in root.findall('.//interface')]
+        interfaces = [node.get("name") for node in root.findall(".//interface")]
 
         self.assertIn(DAEMON.interface_name, interfaces)
         self.assertFalse(isinstance(self.interface, Daemon))
