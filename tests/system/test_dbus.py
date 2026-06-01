@@ -22,6 +22,7 @@ import multiprocessing
 import os
 import time
 import unittest
+from xml.etree import ElementTree as ET
 
 import gi
 
@@ -67,11 +68,15 @@ class TestDBusDaemon(unittest.TestCase):
         self.assertFalse(is_service_running())
 
     def test_can_connect(self):
+        # Seriously what does this test even do? It checks if the correct interface
+        # name is set, apparently, which does not sound like "can_connect" at all.
+
         # it's a remote dbus object
-        self.assertEqual(
-            self.interface._interface_names["hello"],
-            DAEMON.interface_name,
-        )
+        introspection_xml = self.interface.Introspect()
+        root = ET.fromstring(introspection_xml)
+        interfaces = [node.get('name') for node in root.findall('.//interface')]
+
+        self.assertIn(DAEMON.interface_name, interfaces)
         self.assertFalse(isinstance(self.interface, Daemon))
         self.assertEqual(self.interface.hello("foo"), "foo")
 
