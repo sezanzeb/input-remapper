@@ -67,7 +67,7 @@ class TestTest(unittest.TestCase):
         self.assertIsInstance(capabilities[EV_KEY][0], int)
 
     def test_restore_fixtures(self):
-        fixtures["/bar/dev"] = {"name": "bla"}
+        fixtures.add_fixture({"name": "bla", "path": "/bar/dev"})
         cleanup()
         self.assertIsNone(fixtures.get("/bar/dev"))
         self.assertIsNotNone(fixtures.get("/dev/input/event11"))

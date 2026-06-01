@@ -33,7 +33,7 @@ from inputremapper.groups import (
     _Group,
     is_inputremapper_device,
 )
-from tests.lib.fixtures import fixtures, keyboard_keys
+from tests.lib.fixtures import fixtures, keyboard_keys, Fixture
 from tests.lib.test_setup import test_setup
 
 
@@ -72,69 +72,75 @@ class TestGroups(unittest.TestCase):
 
         groups.loads(pipe.groups)
         self.maxDiff = None
-        self.assertEqual(
-            groups.dumps(),
-            json.dumps(
-                [
-                    json.dumps(
-                        {
-                            "paths": [
-                                "/dev/input/event1",
-                            ],
-                            "names": ["Foo Device"],
-                            "types": [DeviceType.KEYBOARD],
-                            "key": "Foo Device",
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "paths": [
-                                "/dev/input/event11",
-                                "/dev/input/event10",
-                                "/dev/input/event13",
-                                "/dev/input/event15",
-                            ],
-                            "names": [
-                                "Foo Device foo",
-                                "Foo Device",
-                                "Foo Device",
-                                "Foo Device bar",
-                            ],
-                            "types": [
-                                DeviceType.GAMEPAD,
-                                DeviceType.KEYBOARD,
-                                DeviceType.MOUSE,
-                            ],
-                            "key": "Foo Device 2",
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "paths": ["/dev/input/event20"],
-                            "names": ["Bar Device"],
-                            "types": [DeviceType.KEYBOARD],
-                            "key": "Bar Device",
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "paths": ["/dev/input/event30"],
-                            "names": ["gamepad"],
-                            "types": [DeviceType.GAMEPAD],
-                            "key": "gamepad",
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "paths": ["/dev/input/event52"],
-                            "names": ["Qux/[Device]?"],
-                            "types": [DeviceType.KEYBOARD],
-                            "key": "Qux/[Device]?",
-                        }
-                    ),
-                ]
-            ),
+        dump1 = groups.dumps()
+        dump2 = json.dumps(
+            [
+                json.dumps(
+                    {
+                        "paths": [
+                            "/dev/input/event1",
+                        ],
+                        "names": ["Foo Device"],
+                        "types": [DeviceType.KEYBOARD],
+                        "key": "Foo Device",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "paths": [
+                            "/dev/input/event10",
+                            "/dev/input/event11",
+                            "/dev/input/event13",
+                            "/dev/input/event15",
+                        ],
+                        "names": [
+                            "Foo Device",
+                            "Foo Device foo",
+                            "Foo Device",
+                            "Foo Device bar",
+                        ],
+                        "types": [
+                            DeviceType.GAMEPAD,
+                            DeviceType.KEYBOARD,
+                            DeviceType.MOUSE,
+                        ],
+                        "key": "Foo Device 2",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "paths": ["/dev/input/event20"],
+                        "names": ["Bar Device"],
+                        "types": [DeviceType.KEYBOARD],
+                        "key": "Bar Device",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "paths": [
+                            "/dev/input/event30",
+                            "/dev/input/event32",
+                        ],
+                        "names": [
+                            "gamepad",
+                            "gamepad abs 0 to 256",
+                        ],
+                        "types": [DeviceType.GAMEPAD],
+                        "key": "gamepad",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "paths": ["/dev/input/event52"],
+                        "names": ["Qux/[Device]?"],
+                        "types": [DeviceType.KEYBOARD],
+                        "key": "Qux/[Device]?",
+                    }
+                ),
+            ]
         )
+
+        self.assertEqual(dump1, dump2)
 
         groups2 = json.dumps([group.dumps() for group in groups.get_groups()])
         self.assertEqual(pipe.groups, groups2)
@@ -159,19 +165,22 @@ class TestGroups(unittest.TestCase):
         self.assertNotIn("input-remapper Bar Device", keys)
 
     def test_skip_inputremapper_phys_devices(self):
-        fixtures["/foo/bar"] = {
-            "name": "Logitech G Pro",
-            "phys": "input-remapper/usb-0000:0f:00.3-4.2/input2:1",
-            "info": evdev.DeviceInfo(3, 0x046D, 0x4079, 0x0111),
-            "capabilities": {
-                evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_LEFT],
-                evdev.ecodes.EV_REL: [
-                    evdev.ecodes.REL_X,
-                    evdev.ecodes.REL_Y,
-                    evdev.ecodes.REL_WHEEL,
-                ],
-            },
-        }
+        fixtures.add_fixture(
+            {
+                "name": "Logitech G Pro",
+                "phys": "input-remapper/usb-0000:0f:00.3-4.2/input2:1",
+                "info": evdev.DeviceInfo(3, 0x046D, 0x4079, 0x0111),
+                "capabilities": {
+                    evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_LEFT],
+                    evdev.ecodes.EV_REL: [
+                        evdev.ecodes.REL_X,
+                        evdev.ecodes.REL_Y,
+                        evdev.ecodes.REL_WHEEL,
+                    ],
+                },
+                "path": "/foo/bar",
+            }
+        )
 
         groups.refresh()
         self.assertIsNone(groups.find(path="/foo/bar"))
@@ -181,12 +190,15 @@ class TestGroups(unittest.TestCase):
         self.assertTrue(is_inputremapper_device(device))
 
     def test_skip_camera(self):
-        fixtures["/foo/bar"] = {
-            "name": "camera",
-            "phys": "abcd1",
-            "info": evdev.DeviceInfo(1, 2, 3, 4),
-            "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_CAMERA]},
-        }
+        fixtures.add_fixture(
+            {
+                "name": "camera",
+                "phys": "abcd1",
+                "info": evdev.DeviceInfo(1, 2, 3, 4),
+                "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_CAMERA]},
+                "path": "/foo/bar",
+            }
+        )
 
         groups.refresh()
         self.assertIsNone(groups.find(name="camera"))
@@ -195,50 +207,98 @@ class TestGroups(unittest.TestCase):
     def test_device_with_only_ev_abs(self):
         # As Input Mapper can now map axes to buttons,
         # a single EV_ABS device is valid for mapping.
-        fixtures["/foo/bar"] = {
-            "name": "qux",
-            "phys": "abcd2",
-            "info": evdev.DeviceInfo(1, 2, 3, 4),
-            "capabilities": {evdev.ecodes.EV_ABS: [evdev.ecodes.ABS_X]},
-        }
+        fixtures.add_fixture(
+            {
+                "name": "qux",
+                "phys": "abcd2",
+                "info": evdev.DeviceInfo(1, 2, 3, 4),
+                "capabilities": {evdev.ecodes.EV_ABS: [evdev.ecodes.ABS_X]},
+                "path": "/foo/bar",
+            }
+        )
 
         groups.refresh()
         self.assertIsNotNone(groups.find(name="gamepad"))
         self.assertIsNotNone(groups.find(name="qux"))
 
     def test_device_with_no_capabilities(self):
-        fixtures["/foo/bar"] = {
-            "name": "nulcap",
-            "phys": "abcd3",
-            "info": evdev.DeviceInfo(1, 2, 3, 4),
-            "capabilities": {},
-        }
+        fixtures.add_fixture(
+            {
+                "name": "nulcap",
+                "phys": "abcd3",
+                "info": evdev.DeviceInfo(1, 2, 3, 4),
+                "capabilities": {},
+                "path": "/foo/bar",
+            }
+        )
 
         groups.refresh()
         self.assertIsNotNone(groups.find(name="gamepad"))
         self.assertIsNone(groups.find(name="nulcap"))
 
     def test_duplicate_device(self):
-        fixtures["/dev/input/event100"] = {
-            "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
-            "phys": "usb-0000:03:00.0-3/input1",
-            "info": evdev.device.DeviceInfo(2, 1, 2, 1),
-            "name": "Foo Device",
-        }
-        groups.refresh()
+        fixtures.add_fixture(
+            {
+                "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
+                "phys": "usb-0000:03:00.0-3/input1",
+                "info": evdev.device.DeviceInfo(2, 1, 2, 1),
+                "name": "Foo Device",
+                "path": "/dev/input/event100",
+            }
+        )
 
+        groups.refresh()
         group1 = groups.find(key="Foo Device")
         group2 = groups.find(key="Foo Device 2")
         group3 = groups.find(key="Foo Device 3")
-
         self.assertIn("/dev/input/event1", group1.paths)
         self.assertIn("/dev/input/event10", group2.paths)
         self.assertIn("/dev/input/event100", group3.paths)
-
         self.assertEqual(group1.key, "Foo Device")
         self.assertEqual(group2.key, "Foo Device 2")
         self.assertEqual(group3.key, "Foo Device 3")
+        self.assertEqual(group1.name, "Foo Device")
+        self.assertEqual(group2.name, "Foo Device")
+        self.assertEqual(group3.name, "Foo Device")
 
+        # Bug reproduction: Unplugging a device and plugging it back in makes it appear
+        # earlier in the detected devices, giving it the first group, causing it to
+        # steal other devices injections on autoload.
+
+        # Make sure the first fixture is earlier in the list than the third fixture.
+        # This is the starting situation, everything is still fine.
+        paths = fixtures.get_paths()
+        self.assertLess(
+            paths.index("/dev/input/event1"),
+            paths.index("/dev/input/event100"),
+        )
+
+        # Remove the first group, and add it back in
+        backup = fixtures.get_fixture("/dev/input/event1")
+        fixtures.remove_fixture("/dev/input/event1")
+        fixtures.add_fixture(backup)
+        # Now the order should be messed up (This is acceptable here, as long as the
+        # groups end up in the correct original order. This check only exists to make
+        # sure the test would still be able to reproduce the bug. The order being
+        # messed up is a prerequisite to reproduce the bug)
+        paths = fixtures.get_paths()
+        self.assertGreater(
+            paths.index("/dev/input/event1"),
+            paths.index("/dev/input/event100"),
+        )
+
+        # refreshing groups should still end up giving each device the same group as
+        # before.
+        groups.refresh()
+        group1 = groups.find(key="Foo Device")
+        group2 = groups.find(key="Foo Device 2")
+        group3 = groups.find(key="Foo Device 3")
+        self.assertIn("/dev/input/event1", group1.paths)
+        self.assertIn("/dev/input/event10", group2.paths)
+        self.assertIn("/dev/input/event100", group3.paths)
+        self.assertEqual(group1.key, "Foo Device")
+        self.assertEqual(group2.key, "Foo Device 2")
+        self.assertEqual(group3.key, "Foo Device 3")
         self.assertEqual(group1.name, "Foo Device")
         self.assertEqual(group2.name, "Foo Device")
         self.assertEqual(group3.name, "Foo Device")

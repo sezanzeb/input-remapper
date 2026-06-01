@@ -27,4 +27,4 @@ COMMIT_HASH = "unknown"
 VERSION = "2.2.0"
 # depending on where this file is installed to, make sure to use the proper
 # prefix path for data.
-DATA_DIR = "/usr/share/inputremapper"
+DATA_DIR = "/usr/share/input-remapper"

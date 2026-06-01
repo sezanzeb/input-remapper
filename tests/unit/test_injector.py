@@ -143,7 +143,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(gamepad)
         self.assertEqual(self.failed, 2)
         # success on the third try
-        self.assertEqual(device.name, fixtures[path].name)
+        self.assertEqual(device.name, fixtures.get_fixture(path).name)
 
     def test_fail_grab(self):
         self.make_it_fail = 999

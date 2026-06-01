@@ -229,7 +229,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                 InputCombination(
                     [
                         InputConfig(
-                            type=3,
+                            type=EV_ABS,
                             code=16,
                             analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                             origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
@@ -241,7 +241,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                 InputCombination(
                     [
                         InputConfig(
-                            type=3,
+                            type=EV_ABS,
                             code=16,
                             analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                             origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
@@ -389,9 +389,8 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=1,
+                                type=EV_KEY,
                                 code=30,
-                                analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                             )
                         ]
@@ -423,7 +422,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=3,
+                                type=EV_ABS,
                                 code=0,
                                 analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
@@ -449,7 +448,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     InputCombination(
                         [
                             InputConfig(
-                                type=3,
+                                type=EV_ABS,
                                 code=0,
                                 analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
                                 origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
@@ -643,12 +642,15 @@ class TestReaderMultiprocessing(unittest.TestCase):
 
         pipe = multiprocessing.Pipe()
 
+        groups = _Groups()
+
         def refresh():
             # from within the reader-service process notify this test that
             # refresh was called as expected
             pipe[1].send("refreshed")
+            # call original method
+            return _Groups.refresh(groups)
 
-        groups = _Groups()
         groups.refresh = refresh
         self.create_reader_service(groups)
 
@@ -870,14 +872,14 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     json.dumps(
                         {
                             "paths": [
-                                "/dev/input/event11",
                                 "/dev/input/event10",
+                                "/dev/input/event11",
                                 "/dev/input/event13",
                                 "/dev/input/event15",
                             ],
                             "names": [
-                                "Foo Device foo",
                                 "Foo Device",
+                                "Foo Device foo",
                                 "Foo Device",
                                 "Foo Device bar",
                             ],
@@ -899,8 +901,14 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     ),
                     json.dumps(
                         {
-                            "paths": ["/dev/input/event30"],
-                            "names": ["gamepad"],
+                            "paths": [
+                                "/dev/input/event30",
+                                "/dev/input/event32",
+                            ],
+                            "names": [
+                                "gamepad",
+                                "gamepad abs 0 to 256",
+                            ],
                             "types": [DeviceType.GAMEPAD],
                             "key": "gamepad",
                         }

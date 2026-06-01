@@ -298,7 +298,7 @@ class ReaderClient:
     def _update_groups(self, dump: str):
         if dump != self.groups.dumps():
             self.groups.loads(dump)
-            logger.debug("Received %d devices", len(self.groups))
+            logger.debug("Received %d devices", len(self.groups.get_groups()))
             self._groups_updated = True
 
         # send this even if the groups did not change, as the user expects the ui
