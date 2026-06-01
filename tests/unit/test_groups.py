@@ -117,8 +117,14 @@ class TestGroups(unittest.TestCase):
                 ),
                 json.dumps(
                     {
-                        "paths": ["/dev/input/event30"],
-                        "names": ["gamepad"],
+                        "paths": [
+                            "/dev/input/event30",
+                            "/dev/input/event32",
+                        ],
+                        "names": [
+                            "gamepad",
+                            "gamepad abs 0 to 256",
+                        ],
                         "types": [DeviceType.GAMEPAD],
                         "key": "gamepad",
                     }
