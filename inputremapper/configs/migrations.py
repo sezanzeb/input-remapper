@@ -162,9 +162,9 @@ class Migrations:
             return
 
         logger.info("Migrating presets from < 0.4.0...")
-        groups = os.listdir(PathUtils.config_path())
+        group_config_files = os.listdir(PathUtils.config_path())
         PathUtils.mkdir(PathUtils.get_preset_path())
-        for group in groups.get_groups():
+        for group in group_config_files:
             path = os.path.join(PathUtils.config_path(), group)
             if os.path.isdir(path):
                 target = path.replace(PathUtils.config_path(), new_preset_folder)
