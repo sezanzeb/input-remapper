@@ -159,19 +159,22 @@ class TestGroups(unittest.TestCase):
         self.assertNotIn("input-remapper Bar Device", keys)
 
     def test_skip_inputremapper_phys_devices(self):
-        fixtures["/foo/bar"] = {
-            "name": "Logitech G Pro",
-            "phys": "input-remapper/usb-0000:0f:00.3-4.2/input2:1",
-            "info": evdev.DeviceInfo(3, 0x046D, 0x4079, 0x0111),
-            "capabilities": {
-                evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_LEFT],
-                evdev.ecodes.EV_REL: [
-                    evdev.ecodes.REL_X,
-                    evdev.ecodes.REL_Y,
-                    evdev.ecodes.REL_WHEEL,
-                ],
-            },
-        }
+        fixtures.add_fixture(
+            {
+                "name": "Logitech G Pro",
+                "phys": "input-remapper/usb-0000:0f:00.3-4.2/input2:1",
+                "info": evdev.DeviceInfo(3, 0x046D, 0x4079, 0x0111),
+                "capabilities": {
+                    evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_LEFT],
+                    evdev.ecodes.EV_REL: [
+                        evdev.ecodes.REL_X,
+                        evdev.ecodes.REL_Y,
+                        evdev.ecodes.REL_WHEEL,
+                    ],
+                },
+                "path": "/foo/bar",
+            }
+        )
 
         groups.refresh()
         self.assertIsNone(groups.find(path="/foo/bar"))
@@ -181,12 +184,15 @@ class TestGroups(unittest.TestCase):
         self.assertTrue(is_inputremapper_device(device))
 
     def test_skip_camera(self):
-        fixtures["/foo/bar"] = {
-            "name": "camera",
-            "phys": "abcd1",
-            "info": evdev.DeviceInfo(1, 2, 3, 4),
-            "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_CAMERA]},
-        }
+        fixtures.add_fixture(
+            {
+                "name": "camera",
+                "phys": "abcd1",
+                "info": evdev.DeviceInfo(1, 2, 3, 4),
+                "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_CAMERA]},
+                "path": "/foo/bar",
+            }
+        )
 
         groups.refresh()
         self.assertIsNone(groups.find(name="camera"))
@@ -195,37 +201,45 @@ class TestGroups(unittest.TestCase):
     def test_device_with_only_ev_abs(self):
         # As Input Mapper can now map axes to buttons,
         # a single EV_ABS device is valid for mapping.
-        fixtures["/foo/bar"] = {
-            "name": "qux",
-            "phys": "abcd2",
-            "info": evdev.DeviceInfo(1, 2, 3, 4),
-            "capabilities": {evdev.ecodes.EV_ABS: [evdev.ecodes.ABS_X]},
-        }
+        fixtures.add_fixture(
+            {
+                "name": "qux",
+                "phys": "abcd2",
+                "info": evdev.DeviceInfo(1, 2, 3, 4),
+                "capabilities": {evdev.ecodes.EV_ABS: [evdev.ecodes.ABS_X]},
+                "path": "/foo/bar",
+            }
+        )
 
         groups.refresh()
         self.assertIsNotNone(groups.find(name="gamepad"))
         self.assertIsNotNone(groups.find(name="qux"))
 
     def test_device_with_no_capabilities(self):
-        fixtures["/foo/bar"] = {
-            "name": "nulcap",
-            "phys": "abcd3",
-            "info": evdev.DeviceInfo(1, 2, 3, 4),
-            "capabilities": {},
-        }
+        fixtures.add_fixture(
+            {
+                "name": "nulcap",
+                "phys": "abcd3",
+                "info": evdev.DeviceInfo(1, 2, 3, 4),
+                "capabilities": {},
+                "path": "/foo/bar",
+            }
+        )
 
         groups.refresh()
         self.assertIsNotNone(groups.find(name="gamepad"))
         self.assertIsNone(groups.find(name="nulcap"))
 
     def test_duplicate_device(self):
-        fixtures.add_fixture({
-            "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
-            "phys": "usb-0000:03:00.0-3/input1",
-            "info": evdev.device.DeviceInfo(2, 1, 2, 1),
-            "name": "Foo Device",
-            "path": "/dev/input/event100",
-        })
+        fixtures.add_fixture(
+            {
+                "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
+                "phys": "usb-0000:03:00.0-3/input1",
+                "info": evdev.device.DeviceInfo(2, 1, 2, 1),
+                "name": "Foo Device",
+                "path": "/dev/input/event100",
+            }
+        )
 
         groups.refresh()
         group1 = groups.find(key="Foo Device")

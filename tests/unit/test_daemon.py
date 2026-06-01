@@ -258,7 +258,7 @@ class TestDaemon(unittest.TestCase):
             name=group_name,
             path=self.new_fixture_path,
         )
-        fixtures[self.new_fixture_path] = fixture
+        fixtures.add_fixture(fixture)
         push_events(fixture, [InputEvent.key(key_code, 1, fixture.get_device_hash())])
         self.daemon.start_injecting(group_key, preset_name)
 
@@ -293,12 +293,14 @@ class TestDaemon(unittest.TestCase):
 
         self.daemon.refresh()
 
-        fixtures[self.new_fixture_path] = Fixture(
-            capabilities={evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
-            phys="9876 phys",
-            info=evdev.device.DeviceInfo(4, 5, 6, 7),
-            name=device_9876,
-            path=self.new_fixture_path,
+        fixtures.add_fixture(
+            Fixture(
+                capabilities={evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
+                phys="9876 phys",
+                info=evdev.device.DeviceInfo(4, 5, 6, 7),
+                name=device_9876,
+                path=self.new_fixture_path,
+            )
         )
 
         self.daemon._autoload("25v7j9q4vtj")

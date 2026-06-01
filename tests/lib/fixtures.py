@@ -267,11 +267,6 @@ class _Fixtures:
             self.dev_input_event52,
         ]
 
-    def __getitem__(self, path: str) -> Fixture:
-        """get a Fixture by it's unique /dev/input/eventX path"""
-        # TODO deprecate in favor of get_fixture
-        return self.get_fixture(path)
-
     def get_fixture(self, path: str) -> Fixture:
         """get a Fixture by it's unique /dev/input/eventX path"""
         for fixture in self._iter:
@@ -279,15 +274,6 @@ class _Fixtures:
                 return fixture
 
         raise KeyError(f"Could not find fixture with path {path}")
-
-    def __setitem__(self, key: str, value: Fixture | dict):
-        # TODO deprecate in favor of add_fixture
-        if isinstance(value, Fixture):
-            value = value.__dict__
-
-        kwargs = { **value }
-        kwargs["path"] = key
-        self.add_fixture(**kwargs)
 
     def add_fixture(self, value: Fixture | dict) -> None:
         if isinstance(value, Fixture):
