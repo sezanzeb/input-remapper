@@ -72,69 +72,69 @@ class TestGroups(unittest.TestCase):
 
         groups.loads(pipe.groups)
         self.maxDiff = None
-        self.assertEqual(
-            groups.dumps(),
-            json.dumps(
-                [
-                    json.dumps(
-                        {
-                            "paths": [
-                                "/dev/input/event1",
-                            ],
-                            "names": ["Foo Device"],
-                            "types": [DeviceType.KEYBOARD],
-                            "key": "Foo Device",
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "paths": [
-                                "/dev/input/event11",
-                                "/dev/input/event10",
-                                "/dev/input/event13",
-                                "/dev/input/event15",
-                            ],
-                            "names": [
-                                "Foo Device foo",
-                                "Foo Device",
-                                "Foo Device",
-                                "Foo Device bar",
-                            ],
-                            "types": [
-                                DeviceType.GAMEPAD,
-                                DeviceType.KEYBOARD,
-                                DeviceType.MOUSE,
-                            ],
-                            "key": "Foo Device 2",
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "paths": ["/dev/input/event20"],
-                            "names": ["Bar Device"],
-                            "types": [DeviceType.KEYBOARD],
-                            "key": "Bar Device",
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "paths": ["/dev/input/event30"],
-                            "names": ["gamepad"],
-                            "types": [DeviceType.GAMEPAD],
-                            "key": "gamepad",
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "paths": ["/dev/input/event52"],
-                            "names": ["Qux/[Device]?"],
-                            "types": [DeviceType.KEYBOARD],
-                            "key": "Qux/[Device]?",
-                        }
-                    ),
-                ]
-            ),
+        dump1 = groups.dumps()
+        dump2 = json.dumps(
+            [
+                json.dumps(
+                    {
+                        "paths": [
+                            "/dev/input/event1",
+                        ],
+                        "names": ["Foo Device"],
+                        "types": [DeviceType.KEYBOARD],
+                        "key": "Foo Device",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "paths": [
+                            "/dev/input/event10",
+                            "/dev/input/event11",
+                            "/dev/input/event13",
+                            "/dev/input/event15",
+                        ],
+                        "names": [
+                            "Foo Device",
+                            "Foo Device foo",
+                            "Foo Device",
+                            "Foo Device bar",
+                        ],
+                        "types": [
+                            DeviceType.GAMEPAD,
+                            DeviceType.KEYBOARD,
+                            DeviceType.MOUSE,
+                        ],
+                        "key": "Foo Device 2",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "paths": ["/dev/input/event20"],
+                        "names": ["Bar Device"],
+                        "types": [DeviceType.KEYBOARD],
+                        "key": "Bar Device",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "paths": ["/dev/input/event30"],
+                        "names": ["gamepad"],
+                        "types": [DeviceType.GAMEPAD],
+                        "key": "gamepad",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "paths": ["/dev/input/event52"],
+                        "names": ["Qux/[Device]?"],
+                        "types": [DeviceType.KEYBOARD],
+                        "key": "Qux/[Device]?",
+                    }
+                ),
+            ]
         )
+
+        self.assertEqual(dump1, dump2)
 
         groups2 = json.dumps([group.dumps() for group in groups.get_groups()])
         self.assertEqual(pipe.groups, groups2)
