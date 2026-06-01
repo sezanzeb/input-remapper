@@ -281,23 +281,23 @@ class InputRemapperControlBin:
         else:
             group = self._load_group(device)
             logger.info(
-                "Asking daemon to autoload for device:%s group:%s",
+                'Asking daemon to autoload for device "%s", group "%s"',
                 device,
                 group.key,
             )
             self.daemon.autoload_single(group.key, timeout=2000)
 
-    def internals(self, command: str, debug: True) -> None:
+    def internals(self, command: str, debug: bool) -> None:
         """Methods that are needed to get the gui to work and that require root.
 
         input-remapper-control should be started with sudo or pkexec for this.
         """
-        debug = " -d" if debug else ""
+        debug_flag = " -d" if debug else ""
 
         if command == Internals.START_READER_SERVICE.value:
-            cmd = f"input-remapper-reader-service{debug}"
+            cmd = f"input-remapper-reader-service{debug_flag}"
         elif command == Internals.START_DAEMON.value:
-            cmd = f"input-remapper-service --hide-info{debug}"
+            cmd = f"input-remapper-service --hide-info{debug_flag}"
         else:
             return
 
