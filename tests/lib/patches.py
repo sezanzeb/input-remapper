@@ -73,7 +73,7 @@ class InputDevice:
         if path == "justdoit":
             self._fixture = Fixture(path="justdoit")
         else:
-            self._fixture = fixtures[path]
+            self._fixture = fixtures.get_fixture(path)
 
         self.path = path
         self.phys = self._fixture.phys

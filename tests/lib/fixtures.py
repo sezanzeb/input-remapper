@@ -249,6 +249,9 @@ class _Fixtures:
     )
 
     def __init__(self):
+        self.reset()
+
+    def reset(self) -> None:
         self._iter = [
             self.dev_input_event1,
             self.dev_input_event11,
@@ -263,100 +266,115 @@ class _Fixtures:
             self.dev_input_event51,
             self.dev_input_event52,
         ]
-        self._dynamic_fixtures = {}
 
     def __getitem__(self, path: str) -> Fixture:
         """get a Fixture by it's unique /dev/input/eventX path"""
-        if fixture := self._dynamic_fixtures.get(path):
-            return fixture
-        path = self._path_to_attribute(path)
+        # TODO deprecate in favor of get_fixture
+        return self.get_fixture(path)
 
-        try:
-            return getattr(self, path)
-        except AttributeError as e:
-            raise KeyError(str(e))
+    def get_fixture(self, path: str) -> Fixture:
+        """get a Fixture by it's unique /dev/input/eventX path"""
+        for fixture in self._iter:
+            if fixture.path == path:
+                return fixture
 
-    def __setitem__(self, key: str, value: [Fixture | dict]):
+        raise KeyError(f"Could not find fixture with path {path}")
+
+    def __setitem__(self, key: str, value: Fixture | dict):
+        # TODO deprecate in favor of add_fixture
         if isinstance(value, Fixture):
-            self._dynamic_fixtures[key] = value
+            value = value.__dict__
+
+        kwargs = { **value }
+        kwargs["path"] = key
+        self.add_fixture(**kwargs)
+
+    def add_fixture(self, value: Fixture | dict) -> None:
+        if isinstance(value, Fixture):
+            value = value.__dict__
+
+        key = value["path"]
+        if isinstance(value, Fixture):
+            self._iter.append(value)
         elif isinstance(value, dict):
-            self._dynamic_fixtures[key] = Fixture(path=key, **value)
+            self._iter.append(Fixture(**value))
+
+    def remove_fixture(self, path: str) -> None:
+        index = 0
+        for i, fixture in enumerate(self._iter):
+            if fixture.path == path:
+                index = i
+
+        del self._iter[index]
 
     def __iter__(self):
-        return iter([*self._iter, *self._dynamic_fixtures.values()])
+        return iter(self._iter)
 
     def get_paths(self):
         """Get a list of all available device paths."""
-        return list(self._dynamic_fixtures.keys())
+        paths = []
+        for fixture in self._iter:
+            paths.append(fixture.path)
 
-    def reset(self):
-        self._dynamic_fixtures = {}
-
-    @staticmethod
-    def _path_to_attribute(path) -> str:
-        if path.startswith("/"):
-            path = path[1:]
-        if "/" in path:
-            path = path.replace("/", "_")
-        return path
+        return paths
 
     def get(self, item) -> Optional[Fixture]:
         try:
-            return self[item]
+            return self.get_fixture(item)
         except KeyError:
             return None
 
     @property
     def foo_device_1_1(self):
-        return self["/dev/input/event1"]
+        return self.get_fixture("/dev/input/event1")
 
     @property
     def foo_device_2_mouse(self):
-        return self["/dev/input/event11"]
+        return self.get_fixture("/dev/input/event11")
 
     @property
     def foo_device_2_keyboard(self):
-        return self["/dev/input/event10"]
+        return self.get_fixture("/dev/input/event10")
 
     @property
     def foo_device_2_13(self):
-        return self["/dev/input/event13"]
+        return self.get_fixture("/dev/input/event13")
 
     @property
     def foo_device_2_qux(self):
-        return self["/dev/input/event14"]
+        return self.get_fixture("/dev/input/event14")
 
     @property
     def foo_device_2_gamepad(self):
-        return self["/dev/input/event15"]
+        return self.get_fixture("/dev/input/event15")
 
     @property
     def bar_device(self):
-        return self["/dev/input/event20"]
+        return self.get_fixture("/dev/input/event20")
 
     @property
     def gamepad(self):
-        return self["/dev/input/event30"]
+        return self.get_fixture("/dev/input/event30")
 
     @property
     def power_button(self):
-        return self["/dev/input/event31"]
+        return self.get_fixture("/dev/input/event31")
 
     @property
     def input_remapper_bar_device(self):
-        return self["/dev/input/event40"]
+        return self.get_fixture("/dev/input/event40")
 
     @property
     def YuBiCofooYuBiKeYbar(self):
-        return self["/dev/input/event51"]
+        return self.get_fixture("/dev/input/event51")
 
     @property
     def QuxSlashDeviceQuestionmark(self):
-        return self["/dev/input/event52"]
+        return self.get_fixture("/dev/input/event52")
 
     @property
     def gamepad_abs_0_to_256(self):
-        return self["/dev/input/event32"]
+        return self.get_fixture("/dev/input/event32")
 
 
 fixtures = _Fixtures()

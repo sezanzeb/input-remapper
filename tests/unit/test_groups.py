@@ -33,7 +33,7 @@ from inputremapper.groups import (
     _Group,
     is_inputremapper_device,
 )
-from tests.lib.fixtures import fixtures, keyboard_keys
+from tests.lib.fixtures import fixtures, keyboard_keys, Fixture
 from tests.lib.test_setup import test_setup
 
 
@@ -219,26 +219,63 @@ class TestGroups(unittest.TestCase):
         self.assertIsNone(groups.find(name="nulcap"))
 
     def test_duplicate_device(self):
-        fixtures["/dev/input/event100"] = {
+        fixtures.add_fixture({
             "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
             "phys": "usb-0000:03:00.0-3/input1",
             "info": evdev.device.DeviceInfo(2, 1, 2, 1),
             "name": "Foo Device",
-        }
-        groups.refresh()
+            "path": "/dev/input/event100",
+        })
 
+        groups.refresh()
         group1 = groups.find(key="Foo Device")
         group2 = groups.find(key="Foo Device 2")
         group3 = groups.find(key="Foo Device 3")
-
         self.assertIn("/dev/input/event1", group1.paths)
         self.assertIn("/dev/input/event10", group2.paths)
         self.assertIn("/dev/input/event100", group3.paths)
-
         self.assertEqual(group1.key, "Foo Device")
         self.assertEqual(group2.key, "Foo Device 2")
         self.assertEqual(group3.key, "Foo Device 3")
+        self.assertEqual(group1.name, "Foo Device")
+        self.assertEqual(group2.name, "Foo Device")
+        self.assertEqual(group3.name, "Foo Device")
 
+        # Bug reproduction: Unplugging a device and plugging it back in makes it appear
+        # earlier in the detected devices, giving it the first group, causing it to
+        # steal other devices injections on autoload.
+
+        # Make sure the first fixture is earlier in the list than the third fixture.
+        # This is the starting situation, everything is still fine.
+        paths = fixtures.get_paths()
+        self.assertLess(
+            paths.index("/dev/input/event1"),
+            paths.index("/dev/input/event100"),
+        )
+
+        # Remove the first group, and add it back in
+        backup = fixtures.get_fixture("/dev/input/event1")
+        fixtures.remove_fixture("/dev/input/event1")
+        fixtures.add_fixture(backup)
+        # Now the order should be messed up
+        paths = fixtures.get_paths()
+        self.assertGreater(
+            paths.index("/dev/input/event1"),
+            paths.index("/dev/input/event100"),
+        )
+
+        # refreshing groups should still end up giving each device the same group as
+        # before.
+        groups.refresh()
+        group1 = groups.find(key="Foo Device")
+        group2 = groups.find(key="Foo Device 2")
+        group3 = groups.find(key="Foo Device 3")
+        self.assertIn("/dev/input/event1", group1.paths)
+        self.assertIn("/dev/input/event10", group2.paths)
+        self.assertIn("/dev/input/event100", group3.paths)
+        self.assertEqual(group1.key, "Foo Device")
+        self.assertEqual(group2.key, "Foo Device 2")
+        self.assertEqual(group3.key, "Foo Device 3")
         self.assertEqual(group1.name, "Foo Device")
         self.assertEqual(group2.name, "Foo Device")
         self.assertEqual(group3.name, "Foo Device")
