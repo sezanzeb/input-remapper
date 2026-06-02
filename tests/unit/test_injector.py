@@ -58,6 +58,7 @@ from inputremapper.injection.injector import (
     is_in_capabilities,
     InjectorState,
     get_udev_name,
+    get_forward_name,
     get_forward_phys,
 )
 from inputremapper.injection.numlock import is_numlock_on
@@ -295,6 +296,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             get_forward_phys(device),
             "input-remapper/usb-0000:03:00.0-1/input2/input2",
         )
+
+    def test_get_forward_name(self):
+        self.assertEqual(get_forward_name("a" * 100), "a" * 80)
+        self.assertEqual(get_forward_name("abcd"), "abcd")
 
     @mock.patch("evdev.InputDevice.ungrab")
     def test_capabilities_and_uinput_presence(self, ungrab_patch):

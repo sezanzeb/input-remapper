@@ -89,6 +89,11 @@ def get_udev_name(name: str, suffix: str) -> str:
     return name
 
 
+def get_forward_name(name: str) -> str:
+    """Keep forwarded uinput names within evdev's 80 character limit."""
+    return name[:80]
+
+
 def get_forward_phys(source: evdev.InputDevice) -> str:
     """Use a stable phys marker for forwarded devices.
 
@@ -386,9 +391,10 @@ class Injector(multiprocessing.Process):
         # typing"
         try:
             forward_to = evdev.UInput(
-                # Keep the original name so system hwdb rules can still match the
-                # virtual device and restore properties such as MOUSE_DPI.
-                name=source.name,
+                # Keep the original name as far as possible so system hwdb rules
+                # can still match the virtual device and restore properties such
+                # as MOUSE_DPI.
+                name=get_forward_name(source.name),
                 events=self._copy_capabilities(source),
                 # Reusing source.phys causes our autoload rule to treat the
                 # forwarded device as hardware. Prefix it so it stays
