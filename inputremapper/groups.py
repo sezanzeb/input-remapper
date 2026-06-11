@@ -491,7 +491,10 @@ class _Groups:
         self.loads(message)
 
         if len(self._groups) == 0:
-            logger.error("Did not find any input device")
+            logger.error(
+                "Did not find any input device, "
+                "possibly due to missing permissions"
+            )
         else:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
