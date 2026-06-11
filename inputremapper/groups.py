@@ -492,8 +492,7 @@ class _Groups:
 
         if len(self._groups) == 0:
             logger.error(
-                "Did not find any input device, "
-                "possibly due to missing permissions"
+                "Did not find any input device, possibly due to missing permissions"
             )
         else:
             keys = [f'"{group.key}"' for group in self._groups]

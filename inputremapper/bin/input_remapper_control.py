@@ -266,7 +266,7 @@ class InputRemapperControlBin:
         if group is None:
             logger.error(
                 'Device "%s" is unknown, not an appropriate input device or you are '
-                'missing permissions',
+                "missing permissions",
                 device,
             )
             sys.exit(4)
