@@ -24,7 +24,7 @@ These defaults might be overwritten by package maintainers.
 """
 
 COMMIT_HASH = "unknown"
-VERSION = "2.2.0"
+VERSION = "2.2.1"
 # depending on where this file is installed to, make sure to use the proper
 # prefix path for data.
 DATA_DIR = "/usr/share/input-remapper"

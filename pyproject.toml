@@ -1,6 +1,6 @@
 [project]
 name = "input-remapper"
-version = "2.2.0"
+version = "2.2.1"
 description = "A tool to change the mapping of your input device buttons"
 authors = [
     { name = "Sezanzeb", email = "b8x45ygc9@mozmail.com" },
