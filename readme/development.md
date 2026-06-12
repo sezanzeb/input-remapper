@@ -101,7 +101,7 @@ ssh/login into a debian/ubuntu environment
 scripts/build-deb.sh
 ```
 
-This will generate `dist/input-remapper-2.2.0.deb`
+This will generate `dist/input-remapper-2.2.1.deb`
 
 Badges
 ------

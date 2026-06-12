@@ -7,7 +7,7 @@ build_deb() {
   mkdir dist | true
   python3 -m install --root build/deb
   cp ./DEBIAN build/deb -r
-  dpkg-deb -Z gzip -b build/deb dist/input-remapper-2.2.0.deb
+  dpkg-deb -Z gzip -b build/deb dist/input-remapper-2.2.1.deb
 }
 
 build_deb
