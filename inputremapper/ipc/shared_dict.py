@@ -22,7 +22,6 @@
 
 
 import psutil
-import os
 import atexit
 import multiprocessing
 import select
@@ -45,19 +44,26 @@ class SharedDict:
         self._timeout = 0.02
 
         self.pipe = multiprocessing.Pipe()
+        self.lock = multiprocessing.Lock()
+
         self.process: multiprocessing.Process | None = None
         atexit.register(self._stop)
 
     def start(self) -> None:
         """Ensure the process to manage the dictionary is running."""
-        if self.is_alive():
-            return
+        # Lock, to make sure multiple injections are not starting multiple processes
+        self.lock.acquire()
+        try:
+            if self.is_alive():
+                return
 
-        # if the manager has already been running in the past but stopped
-        # for some reason, the dictionary contents are lost.
-        logger.debug("Starting SharedDict process")
-        self.process = multiprocessing.Process(target=self.manage)
-        self.process.start()
+            # if the manager has already been running in the past but stopped
+            # for some reason, the dictionary contents are lost.
+            logger.debug("Starting SharedDict process")
+            self.process = multiprocessing.Process(target=self.manage)
+            self.process.start()
+        finally:
+            self.lock.release()
 
     def manage(self) -> None:
         """Manage the dictionary, handle read and write requests."""

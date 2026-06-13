@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 
 InjectEventCallback = Callable[[int, int, int], None]
 
+
+# TODO global object, bad practice
 macro_variables = SharedDict()
 
 
