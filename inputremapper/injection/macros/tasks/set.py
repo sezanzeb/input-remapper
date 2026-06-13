@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 from inputremapper.injection.macros.argument import ArgumentConfig
-from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.macros.task import Task
 
 
