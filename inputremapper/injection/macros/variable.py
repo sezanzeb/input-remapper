@@ -64,7 +64,7 @@ class Variable:
     def set_value(self, value: Any) -> None:
         """Set the variables value across all macros."""
         assert not self.const
-        macro_variables[self.value] = value
+        macro_variables.set(self.value, value)
 
     def validate_variable_name(self) -> None:
         """Check if this is a legit variable name.

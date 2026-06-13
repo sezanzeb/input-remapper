@@ -21,6 +21,7 @@
 """Share a dictionary across processes."""
 
 
+import os
 import atexit
 import multiprocessing
 import select
@@ -48,8 +49,8 @@ class SharedDict:
 
     def start(self):
         """Ensure the process to manage the dictionary is running."""
-        if self.process is not None and self.process.is_alive():
-            logger.debug("SharedDict process already running")
+        print("######## shared_dict ensure running fix on")
+        if self.is_alive():
             return
 
         # if the manager has already been running in the past but stopped
@@ -94,21 +95,9 @@ class SharedDict:
 
         If it doesn't exist, returns None.
         """
-        return self[key]
+        # Ensure process is alive
+        self.start()
 
-    def is_alive(self, timeout: Optional[int] = None):
-        """Check if the manager process is running."""
-        self.pipe[1].send(("ping",))
-        select.select([self.pipe[1]], [], [], timeout or self._timeout)
-        if self.pipe[1].poll():
-            return self.pipe[1].recv() == "pong"
-
-        return False
-
-    def __setitem__(self, key: str, value: Any):
-        self.pipe[1].send(("set", key, value))
-
-    def __getitem__(self, key: str):
         self.pipe[1].send(("get", key))
 
         select.select([self.pipe[1]], [], [], self._timeout)
@@ -117,6 +106,43 @@ class SharedDict:
 
         logger.error("select.select timed out")
         return None
+
+    def set(self, key: str, value: Any):
+        # Ensure process is alive
+        self.start()
+
+        self.pipe[1].send(("set", key, value))
+
+    def is_alive(self, timeout: Optional[int] = None):
+        """Check if the manager process is running."""
+        if self.process is None:
+            return False
+
+        if not self.check_pid(self.process.pid):
+            return False
+
+        return True
+
+    def check_pid(self, pid):
+        """ Check For the existence of a unix pid. """
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        else:
+            return True
+
+    def ping(self, timeout: Optional[int] = None):
+        """Return true if the process can be pinged."""
+        if not self.is_alive():
+            return False
+
+        self.pipe[1].send(("ping",))
+        select.select([self.pipe[1]], [], [], timeout or self._timeout)
+        if self.pipe[1].poll():
+            return self.pipe[1].recv() == "pong"
+
+        return False
 
     def __del__(self):
         self._stop()
