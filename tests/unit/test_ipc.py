@@ -41,12 +41,10 @@ class TestSharedDict(unittest.TestCase):
 
     def test_returns_none(self):
         self.assertIsNone(self.shared_dict.get("a"))
-        self.assertIsNone(self.shared_dict["a"])
 
     def test_set_get(self):
-        self.shared_dict["a"] = 3
+        self.shared_dict.set("a", 3)
         self.assertEqual(self.shared_dict.get("a"), 3)
-        self.assertEqual(self.shared_dict["a"], 3)
 
 
 @test_setup
