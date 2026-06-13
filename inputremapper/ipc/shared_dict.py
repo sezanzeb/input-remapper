@@ -51,42 +51,40 @@ class SharedDict:
 
     def start(self) -> None:
         """Ensure the process to manage the dictionary is running."""
-        # Lock, to make sure multiple injections are not starting multiple processes
-        self.lock.acquire()
-        try:
-            if self.is_alive():
-                return
+        if self.is_alive():
+            return
 
-            # if the manager has already been running in the past but stopped
-            # for some reason, the dictionary contents are lost.
-            logger.debug("Starting SharedDict process")
-            self.process = multiprocessing.Process(target=self.manage)
-            self.process.start()
-        finally:
-            self.lock.release()
+        # if the manager has already been running in the past but stopped
+        # for some reason, the dictionary contents are lost.
+        logger.debug("Starting SharedDict process")
+        self.process = multiprocessing.Process(target=self.manage)
+        self.process.start()
 
     def manage(self) -> None:
         """Manage the dictionary, handle read and write requests."""
         logger.debug("SharedDict process started")
         shared_dict: dict[str, str | int | float | bool | None] = {}
         while True:
-            message = self.pipe[0].recv()
-            logger.debug("SharedDict got %s", message)
+            try:
+                message = self.pipe[0].recv()
+                logger.debug("SharedDict got %s", message)
 
-            if message[0] == "stop":
-                return
+                if message[0] == "stop":
+                    return
 
-            if message[0] == "set":
-                shared_dict[message[1]] = message[2]
+                if message[0] == "set":
+                    shared_dict[message[1]] = message[2]
 
-            if message[0] == "clear":
-                shared_dict.clear()
+                if message[0] == "clear":
+                    shared_dict.clear()
 
-            if message[0] == "get":
-                self.pipe[0].send(shared_dict.get(message[1]))
+                if message[0] == "get":
+                    self.pipe[0].send(shared_dict.get(message[1]))
 
-            if message[0] == "ping":
-                self.pipe[0].send("pong")
+                if message[0] == "ping":
+                    self.pipe[0].send("pong")
+            except Exception as e:
+                logger.error("Loop crashed %s", e)
 
     def _stop(self) -> None:
         """Stop the managing process."""
@@ -101,25 +99,25 @@ class SharedDict:
 
         If it doesn't exist, returns None.
         """
-        # Ensure process is alive
-        self.start()
+        with self.lock:
+            assert self.is_alive()
 
-        self.pipe[1].send(("get", key))
+            self.pipe[1].send(("get", key))
 
-        select.select([self.pipe[1]], [], [], self._timeout)
-        if self.pipe[1].poll():
-            return self.pipe[1].recv()
+            select.select([self.pipe[1]], [], [], self._timeout)
+            if self.pipe[1].poll():
+                return self.pipe[1].recv()
 
-        logger.error("select.select timed out")
-        return None
+            logger.error("select.select timed out")
+            return None
 
     def set(self, key: str, value: Any) -> None:
-        # Ensure process is alive
-        self.start()
+        with self.lock:
+            assert self.is_alive()
 
-        self.pipe[1].send(("set", key, value))
+            self.pipe[1].send(("set", key, value))
 
-    def is_alive(self, timeout: Optional[int] = None) -> bool:
+    def is_alive(self) -> bool:
         """Check if the manager process is running."""
         if self.process is None:
             return False
@@ -140,15 +138,16 @@ class SharedDict:
 
     def ping(self, timeout: Optional[int] = None) -> bool:
         """Return true if the process can be pinged."""
-        if not self.is_alive():
+        with self.lock:
+            if not self.is_alive():
+                return False
+
+            self.pipe[1].send(("ping",))
+            select.select([self.pipe[1]], [], [], timeout or self._timeout)
+            if self.pipe[1].poll():
+                return self.pipe[1].recv() == "pong"
+
             return False
-
-        self.pipe[1].send(("ping",))
-        select.select([self.pipe[1]], [], [], timeout or self._timeout)
-        if self.pipe[1].poll():
-            return self.pipe[1].recv() == "pong"
-
-        return False
 
     def __del__(self) -> None:
         self._stop()

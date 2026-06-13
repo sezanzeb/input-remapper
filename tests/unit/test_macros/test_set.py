@@ -97,28 +97,6 @@ class TestSet(MacroTestBase):
         self.assertRaises(MacroError, Parser.parse, 'set("b,c", 2)', self.context)
         Parser.parse("set(A, 2)", self.context)  # no error
 
-    async def test_restarts_shared_dict(self):
-        macro = Parser.parse(
-            "set(a, KEY_A).key($a)",
-            self.context,
-            DummyMapping,
-        )
-
-        self.assertTrue(macro_variables.is_alive())
-
-        # takes 0.004 seconds on my device for it to stop
-        macro_variables._stop()
-        time.sleep(0.1)
-        self.assertFalse(macro_variables.is_alive())
-
-        await macro.run(self.handler)
-
-        # Running the macro restarts it
-        self.assertTrue(macro_variables.is_alive())
-        self.assertTrue(macro_variables.ping())
-        self.assertEqual(macro_variables.get("a"), "KEY_A")
-        self.assertListEqual(self.result, [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
-
 
 if __name__ == "__main__":
     unittest.main()
