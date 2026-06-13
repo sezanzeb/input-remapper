@@ -22,7 +22,7 @@
 import unittest
 import time
 
-from evdev.ecodes import EV_KEY
+from evdev.ecodes import EV_KEY, KEY_A
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.validation_errors import MacroError
@@ -106,11 +106,9 @@ class TestSet(MacroTestBase):
 
         self.assertTrue(macro_variables.is_alive())
 
-        macro_variables._stop()
-
         # takes 0.004 seconds on my device for it to stop
+        macro_variables._stop()
         time.sleep(0.1)
-
         self.assertFalse(macro_variables.is_alive())
 
         await macro.run(self.handler)
@@ -118,6 +116,8 @@ class TestSet(MacroTestBase):
         # Running the macro restarts it
         self.assertTrue(macro_variables.is_alive())
         self.assertTrue(macro_variables.ping())
+        self.assertEqual(macro_variables.get("a"), "KEY_A")
+        self.assertListEqual(self.result, [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
 
 
 if __name__ == "__main__":
