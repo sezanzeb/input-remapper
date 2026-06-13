@@ -46,7 +46,7 @@ class TestArgument(MacroTestBase):
 
         variable = Variable("a", const=False)
         self.assertEqual(variable.get_value(), None)
-        macro_variables["a"] = 1
+        macro_variables.set("a", 1)
         self.assertEqual(variable.get_value(), 1)
 
     def test_type_check(self):

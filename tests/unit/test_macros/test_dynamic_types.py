@@ -84,7 +84,7 @@ class TestDynamicTypes(MacroTestBase):
     async def test_dynamic_int_parsing(self):
         # set(a, 4) was used. Could be meant as an integer, or as a string
         # (just like how key(KEY_A) doesn't require string quotes to be a string)
-        macro_variables["a"] = 4
+        macro_variables.set("a", 4)
 
         test_task = self.make_test_task([str, int])
         self.assertEqual(test_task.get_argument("testvalue").get_value(), 4)
@@ -98,7 +98,7 @@ class TestDynamicTypes(MacroTestBase):
 
     async def test_dynamic_float_parsing(self):
         # set(a, 5.5) was used.
-        macro_variables["a"] = 5.5
+        macro_variables.set("a", 5.5)
 
         test_task = self.make_test_task([str, float])
         self.assertEqual(test_task.get_argument("testvalue").get_value(), 5.5)
@@ -111,7 +111,7 @@ class TestDynamicTypes(MacroTestBase):
 
     async def test_no_float_allowed(self):
         # set(a, 6.6) was used.
-        macro_variables["a"] = 6.6
+        macro_variables.set("a", 6.6)
 
         test_task = self.make_test_task([str, int])
         self.assertEqual(test_task.get_argument("testvalue").get_value(), "6.6")
@@ -125,7 +125,7 @@ class TestDynamicTypes(MacroTestBase):
     async def test_force_string_float(self):
         # set(a, "7.7") was used. Since quotes are explicitly added, the variable is
         # not intended to be used as a float.
-        macro_variables["a"] = "7.7"
+        macro_variables.set("a", "7.7")
 
         test_task = self.make_test_task([str, float])
         self.assertEqual(test_task.get_argument("testvalue").get_value(), "7.7")
@@ -138,7 +138,7 @@ class TestDynamicTypes(MacroTestBase):
 
     async def test_force_string_int(self):
         # set(a, "8") was used.
-        macro_variables["a"] = "8"
+        macro_variables.set("a", "8")
 
         test_task = self.make_test_task([int, str])
         self.assertEqual(test_task.get_argument("testvalue").get_value(), "8")
