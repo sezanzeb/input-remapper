@@ -83,8 +83,8 @@ class SharedDict:
 
                 if message[0] == "ping":
                     self.pipe[0].send("pong")
-            except Exception as e:
-                logger.error("Loop crashed %s", e)
+            except Exception as error:
+                logger.error("Loop crashed: %s", error)
 
     def _stop(self) -> None:
         """Stop the managing process."""
