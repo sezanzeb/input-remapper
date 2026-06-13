@@ -79,6 +79,8 @@ MSG_GROUPS = "groups"
 MSG_EVENT = "event"
 MSG_STATUS = "status"
 
+RELEASE_TIMEOUT = 0.3
+
 
 class ReaderService:
     """Service that only reads events and is supposed to run as root.
@@ -354,7 +356,7 @@ class ReaderService:
                     input_combination=InputCombination([input_config]),
                     target_uinput=KnownUinput.KEYBOARD,
                     output_symbol="KEY_A",
-                    release_timeout=0.3,
+                    release_timeout=RELEASE_TIMEOUT,
                     force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(
@@ -373,7 +375,7 @@ class ReaderService:
                     input_combination=InputCombination([input_config]),
                     target_uinput=KnownUinput.KEYBOARD,
                     output_symbol="KEY_A",
-                    release_timeout=0.3,
+                    release_timeout=RELEASE_TIMEOUT,
                     force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(

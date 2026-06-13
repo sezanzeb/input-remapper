@@ -56,7 +56,11 @@ from inputremapper.gui.messages.message_broker import (
 from inputremapper.gui.messages.message_data import CombinationRecorded
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
-from inputremapper.gui.reader_service import ReaderService, ContextDummy
+from inputremapper.gui.reader_service import (
+    ReaderService,
+    ContextDummy,
+    RELEASE_TIMEOUT,
+)
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
 from inputremapper.input_event import InputEvent
 from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
@@ -265,12 +269,11 @@ class TestReaderMultiprocessing(unittest.TestCase):
         # release the hat switch should emit the recording finished event
         # as both the hat and relative axis are released by now
         push_events(fixtures.foo_device_2_gamepad, [InputEvent.abs(ABS_HAT0X, 0)])
-        time.sleep(0.3)
+        time.sleep(RELEASE_TIMEOUT + 0.1)
         self.reader_client._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
     def test_should_release_relative_axis(self):
-        # the timeout is set to 0.3s
         l1 = Listener()
         l2 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
@@ -302,7 +305,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         )
         self.assertEqual([], l2.calls)  # no stop recording yet
 
-        time.sleep(0.3)
+        time.sleep(RELEASE_TIMEOUT + 0.1)
         self.reader_client._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
