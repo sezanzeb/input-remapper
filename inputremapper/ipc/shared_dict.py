@@ -21,6 +21,7 @@
 """Share a dictionary across processes."""
 
 
+import psutil
 import os
 import atexit
 import multiprocessing
@@ -35,7 +36,7 @@ class SharedDict:
 
     # because unittests terminate all child processes in cleanup I can't use
     # multiprocessing.Manager
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a shared dictionary."""
         super().__init__()
 
@@ -44,12 +45,11 @@ class SharedDict:
         self._timeout = 0.02
 
         self.pipe = multiprocessing.Pipe()
-        self.process = None
+        self.process: multiprocessing.Process | None = None
         atexit.register(self._stop)
 
-    def start(self):
+    def start(self) -> None:
         """Ensure the process to manage the dictionary is running."""
-        print("######## shared_dict ensure running fix on")
         if self.is_alive():
             return
 
@@ -59,10 +59,10 @@ class SharedDict:
         self.process = multiprocessing.Process(target=self.manage)
         self.process.start()
 
-    def manage(self):
+    def manage(self) -> None:
         """Manage the dictionary, handle read and write requests."""
         logger.debug("SharedDict process started")
-        shared_dict = {}
+        shared_dict: dict[str, str | int | float | bool | None] = {}
         while True:
             message = self.pipe[0].recv()
             logger.debug("SharedDict got %s", message)
@@ -82,11 +82,11 @@ class SharedDict:
             if message[0] == "ping":
                 self.pipe[0].send("pong")
 
-    def _stop(self):
+    def _stop(self) -> None:
         """Stop the managing process."""
         self.pipe[1].send(("stop",))
 
-    def _clear(self):
+    def _clear(self) -> None:
         """Clears the memory."""
         self.pipe[1].send(("clear",))
 
@@ -107,32 +107,32 @@ class SharedDict:
         logger.error("select.select timed out")
         return None
 
-    def set(self, key: str, value: Any):
+    def set(self, key: str, value: Any) -> None:
         # Ensure process is alive
         self.start()
 
         self.pipe[1].send(("set", key, value))
 
-    def is_alive(self, timeout: Optional[int] = None):
+    def is_alive(self, timeout: Optional[int] = None) -> bool:
         """Check if the manager process is running."""
         if self.process is None:
             return False
 
-        if not self.check_pid(self.process.pid):
+        proc = psutil.Process(self.process.pid)
+        if proc.status() == psutil.STATUS_ZOMBIE:
             return False
+
+        # Alternative:
+        # If the process freezes or dies, the pipe may presumably get full and .send
+        # will block forever, causing input-remapper to freeze as well. (Unless of
+        # course the process is properly killed and restarted)
+        # ready = select.select([], [self.pipe[1]], [], 0)
+        # if not ready[1]:
+        #     return False
 
         return True
 
-    def check_pid(self, pid):
-        """ Check For the existence of a unix pid. """
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            return False
-        else:
-            return True
-
-    def ping(self, timeout: Optional[int] = None):
+    def ping(self, timeout: Optional[int] = None) -> bool:
         """Return true if the process can be pinged."""
         if not self.is_alive():
             return False
@@ -144,5 +144,5 @@ class SharedDict:
 
         return False
 
-    def __del__(self):
+    def __del__(self) -> None:
         self._stop()
