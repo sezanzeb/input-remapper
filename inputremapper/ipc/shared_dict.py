@@ -86,14 +86,6 @@ class SharedDict:
             except Exception as error:
                 logger.error("Loop crashed: %s", error)
 
-    def _stop(self) -> None:
-        """Stop the managing process."""
-        self.pipe[1].send(("stop",))
-
-    def _clear(self) -> None:
-        """Clears the memory."""
-        self.pipe[1].send(("clear",))
-
     def get(self, key: str):
         """Get a value from the dictionary.
 
@@ -117,25 +109,6 @@ class SharedDict:
 
             self.pipe[1].send(("set", key, value))
 
-    def is_alive(self) -> bool:
-        """Check if the manager process is running."""
-        if self.process is None:
-            return False
-
-        proc = psutil.Process(self.process.pid)
-        if proc.status() == psutil.STATUS_ZOMBIE:
-            return False
-
-        # Alternative:
-        # If the process freezes or dies, the pipe may presumably get full and .send
-        # will block forever, causing input-remapper to freeze as well. (Unless of
-        # course the process is properly killed and restarted)
-        # ready = select.select([], [self.pipe[1]], [], 0)
-        # if not ready[1]:
-        #     return False
-
-        return True
-
     def ping(self, timeout: Optional[int] = None) -> bool:
         """Return true if the process can be pinged."""
         with self.lock:
@@ -148,6 +121,33 @@ class SharedDict:
                 return self.pipe[1].recv() == "pong"
 
             return False
+
+    def is_alive(self) -> bool:
+        """Check if the manager process is running."""
+        if self.process is None:
+            return False
+
+        proc = psutil.Process(self.process.pid)
+        if proc.status() == psutil.STATUS_ZOMBIE:
+            return False
+
+        # Alternative:
+        # If the process freezes or dies, the pipe may presumably get full and .send
+        # will block forever, causing input-remapper to freeze as well. Check if
+        # the pipe can be written to.
+        # ready = select.select([], [self.pipe[1]], [], 0)
+        # if not ready[1]:
+        #     return False
+
+        return True
+
+    def _stop(self) -> None:
+        """Stop the managing process."""
+        self.pipe[1].send(("stop",))
+
+    def _clear(self) -> None:
+        """Clears the memory."""
+        self.pipe[1].send(("clear",))
 
     def __del__(self) -> None:
         self._stop()
