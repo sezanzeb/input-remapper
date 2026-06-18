@@ -20,8 +20,9 @@
 
 
 import unittest
+import time
 
-from evdev.ecodes import EV_KEY
+from evdev.ecodes import EV_KEY, KEY_A
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.validation_errors import MacroError

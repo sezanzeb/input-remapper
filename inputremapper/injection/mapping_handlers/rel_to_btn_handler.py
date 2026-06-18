@@ -76,6 +76,9 @@ class RelToBtnHandler(MappingHandler):
         source: evdev.InputDevice,
         suppress: bool,
     ):
+        # Debounce the release of the button every time notify is called. I think the
+        # efficiency of polling outweighs doing this event-based, which would require
+        # creating new task objects with every single cursor movement event.
         while time.time() < self._last_activation + self.mapping.release_timeout:
             await asyncio.sleep(1 / self.mapping.rel_rate)
 
@@ -108,27 +111,31 @@ class RelToBtnHandler(MappingHandler):
         assert (threshold := self._input_config.analog_threshold)
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
+            # The axis is below the threshold. Either ignore or release the key
             if self._active:
-                # the axis is below the threshold and the stage_release
-                # function is running
+                # the stage_release function is running
+
                 if self.mapping.force_release_timeout:
-                    # consume the event
+                    # Wait for _stage_release to inject the release after the timeout
                     return True
+
+                # Release immediately, don't wait
                 event = event.modify(pressed=False, actions=(EventActions.as_key,))
                 logger.debug("Sending %s to sub_handler", event)
                 self._abort_release = True
             else:
                 # don't consume the event.
-                # We could return True to consume events
                 return False
         else:
-            # the axis is above the threshold
+            # The axis is above the threshold. Press the key
             if not self._active:
                 asyncio.ensure_future(self._stage_release(source, suppress))
+
             if value >= threshold > 0:
                 direction = 1
             else:
                 direction = -1
+
             self._last_activation = time.time()
             event = event.modify(
                 pressed=True,

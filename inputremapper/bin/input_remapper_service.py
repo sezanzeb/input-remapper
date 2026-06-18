@@ -21,6 +21,12 @@
 
 import sys
 import multiprocessing
+
+# Python 3.14 compatibility. Because the shared-dict is a global object in
+# input-remapper, which does multiprocessing stuff in the constructor, this has to
+# happen before imports, unfortunately. TODO refactor
+multiprocessing.set_start_method("fork")
+
 from argparse import ArgumentParser
 
 from inputremapper.configs.global_config import GlobalConfig
@@ -50,9 +56,6 @@ class InputRemapperServiceBin:
         )
 
         options = parser.parse_args(sys.argv[1:])
-
-        # Python 3.14 compatibility
-        multiprocessing.set_start_method("fork")
 
         logger.update_verbosity(options.debug)
 

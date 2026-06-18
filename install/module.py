@@ -108,7 +108,7 @@ def _get_commit_hash() -> str:
 
 def _set_variables(target: str) -> None:
     path = os.path.join(target, "inputremapper", "installation_info.py")
-    assert os.path.exists(path)
+    assert os.path.exists(path), f'"{path}" missing'
 
     with open(path, "r") as f:
         contents = f.read()
@@ -167,6 +167,9 @@ def build_input_remapper_module(root: str) -> None:
         "--target",
         target,
         "--no-deps",
+        # Fix an uninstall-no-record-file error, which can happen if installation
+        # attempts are done with both apt and pip, leading to some sort of broken state:
+        "--upgrade",
     ]
 
     print("Running", " ".join(command))

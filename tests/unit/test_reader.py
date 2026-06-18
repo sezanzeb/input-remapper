@@ -75,6 +75,11 @@ CODE_2 = 101
 CODE_3 = 102
 
 
+# 0.03 seemed to be rather reliable locally already. In the github workflow vm, 0.15
+# was still not enough.
+GITHUB_WORKFLOW_TIMEOUT_SLACK = 0.2 if os.getenv("GITHUB_ACTIONS") == "true" else 0.05
+
+
 class Listener:
     def __init__(self):
         self.calls: List = []
@@ -167,6 +172,8 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
 
 @test_setup
 class TestReaderMultiprocessing(unittest.TestCase):
+    """Test the process that records events for the GUI."""
+
     def setUp(self):
         self.reader_service_process = None
         self.groups = _Groups()
@@ -269,7 +276,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         # release the hat switch should emit the recording finished event
         # as both the hat and relative axis are released by now
         push_events(fixtures.foo_device_2_gamepad, [InputEvent.abs(ABS_HAT0X, 0)])
-        time.sleep(RELEASE_TIMEOUT + 0.1)
+        time.sleep(RELEASE_TIMEOUT + GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
@@ -305,7 +312,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         )
         self.assertEqual([], l2.calls)  # no stop recording yet
 
-        time.sleep(RELEASE_TIMEOUT + 0.1)
+        time.sleep(RELEASE_TIMEOUT + GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
@@ -332,7 +339,10 @@ class TestReaderMultiprocessing(unittest.TestCase):
             fixtures.foo_device_2_mouse,
             [InputEvent.rel(REL_WHEEL, -1), InputEvent.rel(REL_HWHEEL, 1)],
         )
-        time.sleep(0.1)
+        # For recording, the gui doesn't wait for RELEASE_TIMEOUT, it records
+        # immediately. This is just some ipc and/or process startup overhead time and
+        # such.
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
 
         self.assertEqual(

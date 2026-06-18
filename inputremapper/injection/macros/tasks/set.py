@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 from inputremapper.injection.macros.argument import ArgumentConfig
-from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.macros.task import Task
 
 
@@ -45,5 +44,4 @@ class SetTask(Task):
 
     async def run(self, callback) -> None:
         value = self.get_argument("value").get_value()
-        assert macro_variables.is_alive()
         self.arguments["variable"].set_value(value)

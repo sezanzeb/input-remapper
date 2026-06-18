@@ -21,6 +21,7 @@
 """Share a dictionary across processes."""
 
 
+import psutil
 import atexit
 import multiprocessing
 import select
@@ -34,7 +35,7 @@ class SharedDict:
 
     # because unittests terminate all child processes in cleanup I can't use
     # multiprocessing.Manager
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a shared dictionary."""
         super().__init__()
 
@@ -43,13 +44,14 @@ class SharedDict:
         self._timeout = 0.02
 
         self.pipe = multiprocessing.Pipe()
-        self.process = None
+        self.lock = multiprocessing.Lock()
+
+        self.process: multiprocessing.Process | None = None
         atexit.register(self._stop)
 
-    def start(self):
+    def start(self) -> None:
         """Ensure the process to manage the dictionary is running."""
-        if self.process is not None and self.process.is_alive():
-            logger.debug("SharedDict process already running")
+        if self.is_alive():
             return
 
         # if the manager has already been running in the past but stopped
@@ -58,65 +60,94 @@ class SharedDict:
         self.process = multiprocessing.Process(target=self.manage)
         self.process.start()
 
-    def manage(self):
+    def manage(self) -> None:
         """Manage the dictionary, handle read and write requests."""
         logger.debug("SharedDict process started")
-        shared_dict = {}
+        shared_dict: dict[str, str | int | float | bool | None] = {}
         while True:
-            message = self.pipe[0].recv()
-            logger.debug("SharedDict got %s", message)
+            try:
+                message = self.pipe[0].recv()
+                logger.debug("SharedDict got %s", message)
 
-            if message[0] == "stop":
-                return
+                if message[0] == "stop":
+                    return
 
-            if message[0] == "set":
-                shared_dict[message[1]] = message[2]
+                if message[0] == "set":
+                    shared_dict[message[1]] = message[2]
 
-            if message[0] == "clear":
-                shared_dict.clear()
+                if message[0] == "clear":
+                    shared_dict.clear()
 
-            if message[0] == "get":
-                self.pipe[0].send(shared_dict.get(message[1]))
+                if message[0] == "get":
+                    self.pipe[0].send(shared_dict.get(message[1]))
 
-            if message[0] == "ping":
-                self.pipe[0].send("pong")
-
-    def _stop(self):
-        """Stop the managing process."""
-        self.pipe[1].send(("stop",))
-
-    def _clear(self):
-        """Clears the memory."""
-        self.pipe[1].send(("clear",))
+                if message[0] == "ping":
+                    self.pipe[0].send("pong")
+            except Exception as error:
+                logger.error("Loop crashed: %s", error)
 
     def get(self, key: str):
         """Get a value from the dictionary.
 
         If it doesn't exist, returns None.
         """
-        return self[key]
+        with self.lock:
+            assert self.is_alive()
 
-    def is_alive(self, timeout: Optional[int] = None):
+            self.pipe[1].send(("get", key))
+
+            select.select([self.pipe[1]], [], [], self._timeout)
+            if self.pipe[1].poll():
+                return self.pipe[1].recv()
+
+            logger.error("select.select timed out")
+            return None
+
+    def set(self, key: str, value: Any) -> None:
+        with self.lock:
+            assert self.is_alive()
+
+            self.pipe[1].send(("set", key, value))
+
+    def ping(self, timeout: Optional[int] = None) -> bool:
+        """Return true if the process can be pinged."""
+        with self.lock:
+            if not self.is_alive():
+                return False
+
+            self.pipe[1].send(("ping",))
+            select.select([self.pipe[1]], [], [], timeout or self._timeout)
+            if self.pipe[1].poll():
+                return self.pipe[1].recv() == "pong"
+
+            return False
+
+    def is_alive(self) -> bool:
         """Check if the manager process is running."""
-        self.pipe[1].send(("ping",))
-        select.select([self.pipe[1]], [], [], timeout or self._timeout)
-        if self.pipe[1].poll():
-            return self.pipe[1].recv() == "pong"
+        if self.process is None:
+            return False
 
-        return False
+        proc = psutil.Process(self.process.pid)
+        if proc.status() == psutil.STATUS_ZOMBIE:
+            return False
 
-    def __setitem__(self, key: str, value: Any):
-        self.pipe[1].send(("set", key, value))
+        # Alternative:
+        # If the process freezes or dies, the pipe may presumably get full and .send
+        # will block forever, causing input-remapper to freeze as well. Check if
+        # the pipe can be written to.
+        # ready = select.select([], [self.pipe[1]], [], 0)
+        # if not ready[1]:
+        #     return False
 
-    def __getitem__(self, key: str):
-        self.pipe[1].send(("get", key))
+        return True
 
-        select.select([self.pipe[1]], [], [], self._timeout)
-        if self.pipe[1].poll():
-            return self.pipe[1].recv()
+    def _stop(self) -> None:
+        """Stop the managing process."""
+        self.pipe[1].send(("stop",))
 
-        logger.error("select.select timed out")
-        return None
+    def _clear(self) -> None:
+        """Clears the memory."""
+        self.pipe[1].send(("clear",))
 
-    def __del__(self):
+    def __del__(self) -> None:
         self._stop()

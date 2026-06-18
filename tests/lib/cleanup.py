@@ -147,7 +147,7 @@ def quick_cleanup(log=True):
     for _, pipe in pending_events.values():
         assert not pipe.poll()
 
-    assert macro_variables.is_alive(1)
+    assert macro_variables.ping(1)
 
     if log:
         logger.info("Quick cleanup done")
