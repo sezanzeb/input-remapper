@@ -167,6 +167,8 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
 
 @test_setup
 class TestReaderMultiprocessing(unittest.TestCase):
+    """Test the process that records events for the GUI."""
+
     def setUp(self):
         self.reader_service_process = None
         self.groups = _Groups()
@@ -332,7 +334,10 @@ class TestReaderMultiprocessing(unittest.TestCase):
             fixtures.foo_device_2_mouse,
             [InputEvent.rel(REL_WHEEL, -1), InputEvent.rel(REL_HWHEEL, 1)],
         )
-        time.sleep(0.1)
+        # 0.1 was not enough in the github workflow. For recording, the gui doesn't
+        # wait for RELEASE_TIMEOUT, it records immediately. This is just some ipc
+        # overhead and such that is rather big in the workflow, I suppose.
+        time.sleep(0.15)
         self.reader_client._read()
 
         self.assertEqual(
