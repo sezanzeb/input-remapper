@@ -339,9 +339,9 @@ class TestReaderMultiprocessing(unittest.TestCase):
             fixtures.foo_device_2_mouse,
             [InputEvent.rel(REL_WHEEL, -1), InputEvent.rel(REL_HWHEEL, 1)],
         )
-        # 0.1 was not enough in the github workflow. For recording, the gui doesn't
-        # wait for RELEASE_TIMEOUT, it records immediately. This is just some ipc
-        # overhead and such that is rather big in the workflow, I suppose.
+        # For recording, the gui doesn't wait for RELEASE_TIMEOUT, it records
+        # immediately. This is just some ipc and/or process startup overhead time and
+        # such.
         time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
 
