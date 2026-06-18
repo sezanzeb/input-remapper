@@ -75,6 +75,11 @@ CODE_2 = 101
 CODE_3 = 102
 
 
+# 0.03 seemed to be rather reliable locally already. In the github workflow vm, 0.15
+# was still not enough.
+GITHUB_WORKFLOW_TIMEOUT_SLACK = 0.2 if os.getenv("GITHUB_ACTIONS") == "true" else 0.05
+
+
 class Listener:
     def __init__(self):
         self.calls: List = []
@@ -271,7 +276,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         # release the hat switch should emit the recording finished event
         # as both the hat and relative axis are released by now
         push_events(fixtures.foo_device_2_gamepad, [InputEvent.abs(ABS_HAT0X, 0)])
-        time.sleep(RELEASE_TIMEOUT + 0.1)
+        time.sleep(RELEASE_TIMEOUT + GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
@@ -307,7 +312,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         )
         self.assertEqual([], l2.calls)  # no stop recording yet
 
-        time.sleep(RELEASE_TIMEOUT + 0.1)
+        time.sleep(RELEASE_TIMEOUT + GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
@@ -337,7 +342,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         # 0.1 was not enough in the github workflow. For recording, the gui doesn't
         # wait for RELEASE_TIMEOUT, it records immediately. This is just some ipc
         # overhead and such that is rather big in the workflow, I suppose.
-        time.sleep(0.15)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
 
         self.assertEqual(
