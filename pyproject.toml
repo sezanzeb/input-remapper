@@ -5,7 +5,8 @@ description = "A tool to change the mapping of your input device buttons"
 authors = [
     { name = "Sezanzeb", email = "b8x45ygc9@mozmail.com" },
 ]
-license = { file = "LICENSE" }
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -30,3 +31,7 @@ Homepage = "https://github.com/sezanzeb/input-remapper"
 ignore = ["E402"]
 # Lots of unused imports in
 exclude = ["install/check_dependencies.py"]
+
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
