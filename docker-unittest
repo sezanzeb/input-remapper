@@ -12,8 +12,11 @@ COPY ./inputremapper ./inputremapper
 COPY ./tests ./tests
 COPY ./pyproject.toml ./
 
-RUN ls -lhat
 RUN pip install -e .
 
+RUN useradd -m test
+USER test
+
 ENV DOCKER=1
+
 CMD ["python3", "-m", "unittest", "discover", "-s", "./tests/unit"]

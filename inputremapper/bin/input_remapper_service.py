@@ -20,12 +20,6 @@
 """Starts injecting keycodes based on the configuration."""
 
 import sys
-import multiprocessing
-
-# Python 3.14 compatibility. Because the shared-dict is a global object in
-# input-remapper, which does multiprocessing stuff in the constructor, this has to
-# happen before imports, unfortunately. TODO refactor
-multiprocessing.set_start_method("fork")
 
 from argparse import ArgumentParser
 

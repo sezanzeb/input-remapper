@@ -37,6 +37,7 @@ from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp
+from tests.lib.logger import logger
 
 options = collections.namedtuple(
     "options",
@@ -105,7 +106,7 @@ class TestControl(unittest.TestCase):
                 stop_counter += 1
 
         def start_injecting(device: str, preset: str):
-            print(f'\033[90mstart_injecting "{device}" "{preset}"\033[0m')
+            logger.info(f'\033[90mstart_injecting "{device}" "{preset}"\033[0m')
             start_history.append((device, preset))
             daemon.injectors[device] = Injector()
 
@@ -114,6 +115,7 @@ class TestControl(unittest.TestCase):
         self.global_config.set_autoload_preset(groups_[0].key, presets[0])
         self.global_config.set_autoload_preset(groups_[1].key, presets[1])
 
+        logger.info("Communicate")
         self.input_remapper_control.communicate(
             command="autoload",
             config_dir=None,

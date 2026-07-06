@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import List, Callable, Optional, TYPE_CHECKING
+import multiprocessing
 
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.logging.logger import logger
@@ -34,8 +35,11 @@ if TYPE_CHECKING:
 
 InjectEventCallback = Callable[[int, int, int], None]
 
-
-# TODO global object, bad practice
+# Python 3.14 compatibility. Because the shared-dict is a global object in
+# input-remapper, which does multiprocessing stuff in the constructor, this has to
+# happen globally too, unfortunately.
+# TODO global object, bad practice, refactor
+multiprocessing.set_start_method("fork")
 macro_variables = SharedDict()
 
 
