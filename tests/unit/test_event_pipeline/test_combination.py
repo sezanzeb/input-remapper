@@ -20,6 +20,7 @@
 
 import asyncio
 import unittest
+import os
 
 from evdev.ecodes import (
     EV_KEY,
@@ -57,6 +58,10 @@ from tests.lib.test_setup import test_setup
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
     EventPipelineTestBase,
 )
+
+
+# timing based tests are always wonky depending on where they are run.
+max_delta = 5 if os.environ.get("DOCKER") else 3
 
 
 @test_setup
@@ -1350,7 +1355,7 @@ class TestCombination(EventPipelineTestBase):
         sleep = 0.5
         await asyncio.sleep(sleep)
 
-        self.assertAlmostEqual(len(mouse_history), rel_rate * sleep, delta=3)
+        self.assertAlmostEqual(len(mouse_history), rel_rate * sleep, delta=max_delta)
         self.assertEqual(len(forward_history), 1)
 
         logger.info("send some more x events")
@@ -1377,7 +1382,7 @@ class TestCombination(EventPipelineTestBase):
         count_x = mouse_history.count(expected_rel_event)
         self.assertEqual(len(mouse_history), count_x)
 
-        self.assertAlmostEqual(len(mouse_history), rel_rate * sleep, delta=3)
+        self.assertAlmostEqual(len(mouse_history), rel_rate * sleep, delta=max_delta)
 
     async def test_key_axis_combination_to_disable(self):
         combination = InputCombination(

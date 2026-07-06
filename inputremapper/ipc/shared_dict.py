@@ -127,7 +127,11 @@ class SharedDict:
         if self.process is None:
             return False
 
-        proc = psutil.Process(self.process.pid)
+        try:
+            proc = psutil.Process(self.process.pid)
+        except psutil.NoSuchProcess:
+            return False
+
         if proc.status() == psutil.STATUS_ZOMBIE:
             return False
 

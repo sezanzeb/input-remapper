@@ -188,6 +188,9 @@ class TestReaderMultiprocessing(unittest.TestCase):
             pass
 
         if self.reader_service_process is not None:
+            if not self.reader_service_process.is_alive():
+                return
+
             self.reader_service_process.join(timeout=1)
             if self.reader_service_process.is_alive():
                 self.reader_service_process.terminate()
