@@ -215,7 +215,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
             target=start_reader_service
         )
         self.reader_service_process.start()
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
 
     def test_reading(self):
         l1 = Listener()
@@ -233,7 +233,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
 
         # relative axis events should be released automagically after 0.3s
         push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, 5)])
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         # read all pending events. Having a glib mainloop would be better,
         # as it would call read automatically periodically
         self.reader_client._read()
@@ -293,7 +293,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.reader_client.start_recorder()
 
         push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, -5)])
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
 
         self.assertEqual(
@@ -327,7 +327,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.reader_client.start_recorder()
 
         push_events(fixtures.foo_device_2_mouse, [InputEvent.rel(REL_X, -1)])
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual(0, len(l1.calls))
 
@@ -392,11 +392,11 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.reader_client.start_recorder()
 
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(KEY_A, 1)])
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         # the duplicate event should be ignored
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.key(KEY_A, 1)])
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
 
         self.assertEqual(
@@ -430,7 +430,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
             fixtures.foo_device_2_gamepad,
             [InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.4))],
         )
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual(
             [
@@ -456,7 +456,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
             fixtures.foo_device_2_gamepad,
             [InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.2))],
         )
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual(
             [
@@ -485,14 +485,14 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.reader_client.start_recorder()
 
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_A, 1))
-        time.sleep(0.1)
+        time.sleep(0.05)
         push_event(
             fixtures.foo_device_2_gamepad,
             InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.max_abs * 0.4)),
         )
-        time.sleep(0.1)
+        time.sleep(0.05)
         push_event(fixtures.foo_device_2_keyboard, InputEvent.key(KEY_COMMA, 1))
-        time.sleep(0.1)
+        time.sleep(0.05)
         push_events(
             fixtures.foo_device_2_gamepad,
             [
@@ -500,7 +500,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                 InputEvent.abs(ABS_X, int(fixtures.foo_device_2_gamepad.min_abs * 0.4)),
             ],
         )
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual(
             [
@@ -604,7 +604,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[0].combination,
@@ -620,7 +620,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         )
 
         self.reader_client.set_group(self.groups.find(name="Bar Device"))
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
 
         # we did not get the event from the "Bar Device" because the group change
@@ -629,7 +629,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
 
         self.reader_client.start_recorder()
         push_events(fixtures.bar_device, [InputEvent.key(2, 1)])
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[1].combination,
@@ -680,7 +680,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
             fixtures.foo_device_2_gamepad,
             [new_event(EV_ABS, ABS_HAT0X, -1, 10002.1234)],
         )
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         # but it makes it look for new devices because maybe its list of
         # self.groups is not up-to-date
         self.assertTrue(pipe[0].poll())
@@ -730,7 +730,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
@@ -787,7 +787,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.create_reader_service()
         self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
         self.reader_client.start_recorder()
-        time.sleep(0.1)
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
@@ -866,7 +866,8 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.create_reader_service()
         self.reader_client.groups.set_groups([])
 
-        time.sleep(0.1)  # let the reader-service send the groups
+        # let the reader-service send the groups
+        time.sleep(GITHUB_WORKFLOW_TIMEOUT_SLACK)
         # read stuff from the reader-service, which includes the devices
         self.assertEqual("[]", self.reader_client.groups.dumps())
         self.reader_client._read()
