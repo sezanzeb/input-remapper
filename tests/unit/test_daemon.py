@@ -104,7 +104,7 @@ class TestDaemon(unittest.TestCase):
             self.assertIsInstance(Daemon.connect(False), FakeConnection)
             self.assertEqual(set_config_dir_callcount, 2)
 
-    def test_daemon(self):
+    def test_daemon_two_injections(self):
         # remove the existing system mapping to force our own into it
         if os.path.exists(PathUtils.get_config_path("xmodmap.json")):
             os.remove(PathUtils.get_config_path("xmodmap.json"))
@@ -139,6 +139,8 @@ class TestDaemon(unittest.TestCase):
         self.global_config.set_autoload_preset(group.key, preset_name)
 
         """Injection 1"""
+
+        logger.info("Injection 1")
 
         # should forward the event unchanged
         push_events(
@@ -186,6 +188,9 @@ class TestDaemon(unittest.TestCase):
             raise
 
         """Injection 2"""
+
+        logger.info("Injection 2")
+
         logger.info(f"start injector for {group.key}")
         self.daemon.start_injecting(group.key, preset_name)
 

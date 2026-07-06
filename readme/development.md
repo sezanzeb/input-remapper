@@ -50,6 +50,14 @@ python3 -m unittest tests.unit.test_ipc.TestPipe -k "test_pipe" -f
 Don't use your computer during integration tests to avoid interacting with the gui,
 which might make tests fail.
 
+You can also use docker to run inputremappers unittests (without testing the gui):
+
+```bash
+docker build . -f ./docker-unittest -t inputremapper-unittests
+docker run -v ./:/app inputremapper-unittests
+docker run inputremapper-unittests python3 -m unittest ...
+```
+
 To read events for manual testing, `evtest` is very helpful.
 Add `-d` to `input-remapper-gtk` to get debug output.
 
