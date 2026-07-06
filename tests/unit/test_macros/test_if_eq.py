@@ -23,9 +23,7 @@ import asyncio
 import multiprocessing
 import unittest
 
-from evdev.ecodes import (
-    EV_KEY,
-)
+from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.validation_errors import MacroError
@@ -102,10 +100,7 @@ class TestIfEq(MacroTestBase):
         self.assertEqual(self.count_child_macros(macro), 2)
 
         def set_foo(value):
-            # will write foo = 2 into the shared dictionary of macros
-            macro_2 = Parser.parse(f"set(foo, {value})", self.context, DummyMapping)
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(macro_2.run(lambda: None))
+            macro_variables.set("foo", value)
 
         """foo is not 3"""
 

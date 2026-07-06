@@ -521,7 +521,9 @@ class Daemon:
                 preset,
                 self.mapping_parser,
             )
-            logger.debug('Starting injector process for "%s", "%s"', group.name, preset.name)
+            logger.debug(
+                'Starting injector process for "%s", "%s"', group.name, preset.name
+            )
             injector.start()
             self.injectors[group.key] = injector
         except OSError:
