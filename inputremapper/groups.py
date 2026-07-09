@@ -439,7 +439,8 @@ class _FindGroups(threading.Thread):
         # now write down all the paths of that group
         result = []
         used_keys = set()
-        for group in grouped.values():
+        for unique_key in sorted(grouped.keys()):
+            group = grouped[unique_key]
             names = [entry[0] for entry in group]
             devs = [entry[1] for entry in group]
 
