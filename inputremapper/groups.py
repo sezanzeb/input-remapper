@@ -439,8 +439,26 @@ class _FindGroups(threading.Thread):
         # now write down all the paths of that group
         result = []
         used_keys = set()
-        for unique_key in sorted(grouped.keys()):
-            group = grouped[unique_key]
+
+        # Group unique_keys by their shortest name to keep the relative order of different
+        # device names, but sort identical devices by their unique_key.
+        groups_by_name = {}
+        name_order = []
+        for unique_key, group in grouped.items():
+            names = [entry[0] for entry in group]
+            shortest_name = sorted(names, key=len)[0]
+            if shortest_name not in groups_by_name:
+                name_order.append(shortest_name)
+                groups_by_name[shortest_name] = []
+            groups_by_name[shortest_name].append((unique_key, group))
+
+        ordered_groups = []
+        for name in name_order:
+            sorted_groups = sorted(groups_by_name[name], key=lambda x: x[0])
+            for unique_key, group in sorted_groups:
+                ordered_groups.append(group)
+
+        for group in ordered_groups:
             names = [entry[0] for entry in group]
             devs = [entry[1] for entry in group]
 
