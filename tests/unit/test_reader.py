@@ -947,7 +947,10 @@ class TestReaderMultiprocessing(unittest.TestCase):
     def test_starts_the_service(self):
         # if ReaderClient can't see the ReaderService, a new ReaderService should
         # be started via pkexec
-        with patch.object(ReaderService, "is_running", lambda: False):
+        with (
+            patch.object(ReaderService, "is_running", lambda: False),
+            patch.object(os, "access", return_value=False),
+        ):
             os_system_mock = MagicMock(return_value=0)
             with patch.object(os, "system", os_system_mock):
                 # the status message enables the reader-client to see, that the
@@ -975,17 +978,19 @@ class TestReaderMultiprocessing(unittest.TestCase):
         subscribe_mock = MagicMock()
         self.message_broker.subscribe(MessageType.status_msg, subscribe_mock)
 
-        with patch.object(ReaderClient, "_timeout", 1):
-            with patch.object(ReaderService, "is_running", lambda: False):
-                os_system_mock = MagicMock(return_value=0)
-                with patch.object(os, "system", os_system_mock):
-                    self.reader_client._send_command("foo")
-                    # no message is sent into _results_pipe, so the reader-client will
-                    # think the reader-service didn't manage to start
-                    os_system_mock.assert_called_once_with(
-                        "pkexec input-remapper-control "
-                        "--command start-reader-service -d"
-                    )
+        with (
+            patch.object(ReaderClient, "_timeout", 1),
+            patch.object(ReaderService, "is_running", lambda: False),
+            patch.object(os, "access", return_value=False),
+        ):
+            os_system_mock = MagicMock(return_value=0)
+            with patch.object(os, "system", os_system_mock):
+                self.reader_client._send_command("foo")
+                # no message is sent into _results_pipe, so the reader-client will
+                # think the reader-service didn't manage to start
+                os_system_mock.assert_called_once_with(
+                    "pkexec input-remapper-control --command start-reader-service -d"
+                )
 
         subscribe_mock.assert_called_once()
         status = subscribe_mock.call_args[0][0]
@@ -1060,6 +1065,20 @@ class TestReaderMultiprocessing(unittest.TestCase):
             time.sleep(1.5)
             # still alive
             self.assertTrue(self.reader_service_process.is_alive())
+
+    def test_no_pkexec_for_service(self):
+        """Test that pkexec is avoided when permissions are present."""
+        with (
+            patch("glob.glob", return_value=["/dev/input/event0"]),
+            patch.object(os, "access", return_value=True),
+            patch.object(os, "system", return_value=0) as mock_system,
+        ):
+            ReaderService.pkexec_reader_service()
+            expected_cmd = "input-remapper-control --command start-reader-service"
+            mock_system.assert_called_once()
+            cmd = mock_system.call_args[0][0]
+            self.assertTrue(cmd.startswith(expected_cmd))
+            self.assertNotIn("pkexec", cmd)
 
 
 if __name__ == "__main__":

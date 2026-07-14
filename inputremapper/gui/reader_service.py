@@ -39,6 +39,7 @@ different input-events into simple on/off events and sends them to the gui.
 from __future__ import annotations
 
 import asyncio
+import glob
 import logging
 import multiprocessing
 import os
@@ -150,15 +151,27 @@ class ReaderService:
 
     @staticmethod
     def pkexec_reader_service() -> None:
-        """Start reader-service via pkexec to run in the background."""
+        """Start reader-service to run in the background."""
         debug = " -d" if logger.level <= logging.DEBUG else ""
-        cmd = f"pkexec input-remapper-control --command start-reader-service{debug}"
+
+        # If the user has read permissions to /dev/input event devices (e.g. in
+        # the input group), we can start the reader service directly without
+        # requesting root privileges via pkexec.
+        event_devices = glob.glob("/dev/input/event*")
+        has_permissions = len(event_devices) > 0 and all(
+            os.access(p, os.R_OK) for p in event_devices
+        )
+
+        if has_permissions:
+            cmd = f"input-remapper-control --command start-reader-service{debug}"
+        else:
+            cmd = f"pkexec input-remapper-control --command start-reader-service{debug}"
 
         logger.debug("Running `%s`", cmd)
         exit_code = os.system(cmd)
 
         if exit_code != 0:
-            raise Exception(f"Failed to pkexec the reader-service, code {exit_code}")
+            raise Exception(f"Failed to start the reader-service, code {exit_code}")
 
     async def run(self) -> None:
         """Start doing stuff."""
