@@ -448,7 +448,8 @@ class _FindGroups(threading.Thread):
             by_name.setdefault(name, []).append((unique_key, group))
 
         ordered_groups = [
-            group for name in by_name
+            group
+            for name in by_name
             for _, group in sorted(by_name[name], key=lambda x: x[0])
         ]
 
