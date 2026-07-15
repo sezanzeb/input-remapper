@@ -441,22 +441,16 @@ class _FindGroups(threading.Thread):
         used_keys = set()
 
         # Group unique_keys by their shortest name to keep the relative order of different
-        # device names, but sort identical devices by their unique_key.
-        groups_by_name = {}
-        name_order = []
+        # device names, but sort identical devices by their unique_key (physical port topology).
+        by_name = {}
         for unique_key, group in grouped.items():
-            names = [entry[0] for entry in group]
-            shortest_name = sorted(names, key=len)[0]
-            if shortest_name not in groups_by_name:
-                name_order.append(shortest_name)
-                groups_by_name[shortest_name] = []
-            groups_by_name[shortest_name].append((unique_key, group))
+            name = min([entry[0] for entry in group], key=len)
+            by_name.setdefault(name, []).append((unique_key, group))
 
-        ordered_groups = []
-        for name in name_order:
-            sorted_groups = sorted(groups_by_name[name], key=lambda x: x[0])
-            for unique_key, group in sorted_groups:
-                ordered_groups.append(group)
+        ordered_groups = [
+            group for name in by_name
+            for _, group in sorted(by_name[name], key=lambda x: x[0])
+        ]
 
         for group in ordered_groups:
             names = [entry[0] for entry in group]
