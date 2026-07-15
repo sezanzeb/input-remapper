@@ -135,7 +135,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.groups, f)
         self.message_broker.signal(MessageType.init)
         self.assertEqual(
-            ["Foo Device", "Foo Device 2", "Bar Device", "gamepad", "Qux/[Device]?"],
+            ["Foo Device", "Foo Device 2", "Bar Device", "Qux/[Device]?", "gamepad"],
             list(calls[-1].groups.keys()),
         )
 

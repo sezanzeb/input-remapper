@@ -918,6 +918,14 @@ class TestReaderMultiprocessing(unittest.TestCase):
                     ),
                     json.dumps(
                         {
+                            "paths": ["/dev/input/event52"],
+                            "names": ["Qux/[Device]?"],
+                            "types": [DeviceType.KEYBOARD],
+                            "key": "Qux/[Device]?",
+                        }
+                    ),
+                    json.dumps(
+                        {
                             "paths": [
                                 "/dev/input/event30",
                                 "/dev/input/event32",
@@ -928,14 +936,6 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             ],
                             "types": [DeviceType.GAMEPAD],
                             "key": "gamepad",
-                        }
-                    ),
-                    json.dumps(
-                        {
-                            "paths": ["/dev/input/event52"],
-                            "names": ["Qux/[Device]?"],
-                            "types": [DeviceType.KEYBOARD],
-                            "key": "Qux/[Device]?",
                         }
                     ),
                 ]
