@@ -52,6 +52,9 @@ class SuspendButton:
             self._on_global_switch_toggled,
         )
 
+        # Initialize the toggled state and tooltip
+        self._update_global_switch()
+
     def _update_global_switch(self, *_args) -> None:
         is_suspended = True
         try:
