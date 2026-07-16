@@ -52,7 +52,7 @@ from inputremapper.gui.components.editor import (
 )
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.presets import PresetSelection
-from inputremapper.gui.components.suspend import SuspendButton
+from inputremapper.gui.components.suspend_button import SuspendButton
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
