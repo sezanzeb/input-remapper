@@ -376,9 +376,10 @@ class _FindGroups(threading.Thread):
         #   device breaks autoloading. Sorting fixes it.
         # With sorting, mouse1 always gets group.key "Mouse", and mouse2 always
         # "Mouse 2" (Unless only mouse2 is plugged in, then it gets "Mouse")
+        devices = []
         for path in sorted(evdev.list_devices()):
             try:
-                device = evdev.InputDevice(path)
+                devices.append(evdev.InputDevice(path))
             except Exception as error:
                 # Observed exceptions in journalctl:
                 # - "SystemError: <built-in function ioctl_EVIOCGVERSION> returned NULL
@@ -391,8 +392,14 @@ class _FindGroups(threading.Thread):
                     error.__class__.__name__,
                     str(error),
                 )
-                continue
 
+        # Sorting the devices by unique_key (which includes product/vendor/physical port topology)
+        # is extremely important if two identical devices are connected. Without sorting, the order
+        # depends on the order of plugging devices in, causing active injections to swap keys
+        # or break autoloading. Tying the order deterministically to physical ports/IDs fixes this.
+        devices.sort(key=get_unique_key)
+
+        for device in devices:
             if device.name == "Power Button":
                 continue
 
@@ -429,16 +436,17 @@ class _FindGroups(threading.Thread):
                 'Found %s "%s" at "%s", hash "%s", key "%s"',
                 device_type.value,
                 device.name,
-                path,
+                device.path,
                 get_device_hash(device),
                 key,
             )
 
-            grouped[key].append((device.name, path, device_type))
+            grouped[key].append((device.name, device.path, device_type))
 
         # now write down all the paths of that group
         result = []
         used_keys = set()
+
         for group in grouped.values():
             names = [entry[0] for entry in group]
             devs = [entry[1] for entry in group]

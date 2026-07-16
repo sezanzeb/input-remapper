@@ -33,7 +33,7 @@ from inputremapper.groups import (
     _Group,
     is_inputremapper_device,
 )
-from tests.lib.fixtures import fixtures, keyboard_keys, Fixture
+from tests.lib.fixtures import fixtures, keyboard_keys
 from tests.lib.test_setup import test_setup
 
 
@@ -117,6 +117,14 @@ class TestGroups(unittest.TestCase):
                 ),
                 json.dumps(
                     {
+                        "paths": ["/dev/input/event52"],
+                        "names": ["Qux/[Device]?"],
+                        "types": [DeviceType.KEYBOARD],
+                        "key": "Qux/[Device]?",
+                    }
+                ),
+                json.dumps(
+                    {
                         "paths": [
                             "/dev/input/event30",
                             "/dev/input/event32",
@@ -127,14 +135,6 @@ class TestGroups(unittest.TestCase):
                         ],
                         "types": [DeviceType.GAMEPAD],
                         "key": "gamepad",
-                    }
-                ),
-                json.dumps(
-                    {
-                        "paths": ["/dev/input/event52"],
-                        "names": ["Qux/[Device]?"],
-                        "types": [DeviceType.KEYBOARD],
-                        "key": "Qux/[Device]?",
                     }
                 ),
             ]
@@ -152,8 +152,8 @@ class TestGroups(unittest.TestCase):
                 "Foo Device",
                 "Foo Device",
                 "Bar Device",
-                "gamepad",
                 "Qux/[Device]?",
+                "gamepad",
             ],
         )
 
