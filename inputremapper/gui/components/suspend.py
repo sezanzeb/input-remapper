@@ -22,19 +22,13 @@
 
 from __future__ import annotations
 
-
 from gi.repository import Gtk
-
-from typing import Optional
-
-from inputremapper.configs.mapping import MappingData
 
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_data import GroupData, PresetData
 from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.gui.gettext import _
 from inputremapper.logging.logger import logger
@@ -69,8 +63,6 @@ class SuspendButton:
             self._gui.set_tooltip_text(_("Enable all active presets"))
         else:
             self._gui.set_tooltip_text(_("Pause all active presets"))
-
-        from inputremapper.gui.utils import HandlerDisabled
 
         with HandlerDisabled(self._gui, self._on_global_switch_toggled):
             self._gui.set_active(is_suspended)
