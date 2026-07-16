@@ -19,6 +19,7 @@
 
 
 """User Interface."""
+
 from typing import Dict, Callable
 
 from gi.repository import Gtk, GtkSource, Gdk, GObject
@@ -51,6 +52,7 @@ from inputremapper.gui.components.editor import (
 )
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.presets import PresetSelection
+from inputremapper.gui.components.suspend import SuspendButton
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
@@ -110,7 +112,6 @@ class UserInterface:
         self._create_components()
         self._connect_gtk_signals()
         self._connect_message_listener()
-        self._init_global_switch()
 
         self.window.show()
         # hide everything until stuff is populated
@@ -220,6 +221,12 @@ class UserInterface:
             message_broker,
             self.get("delete-mapping"),
             require_recorded_input=False,
+        )
+
+        SuspendButton(
+            message_broker,
+            controller,
+            self.get("toggle-suspend"),
         )
 
         # code editor and autocompletion
@@ -416,59 +423,3 @@ class UserInterface:
     def on_gtk_preset_name_input_return(self, _, event: Gdk.EventKey):
         if event.keyval == Gdk.KEY_Return:
             self.on_gtk_rename_clicked()
-
-    def _init_global_switch(self) -> None:
-        headerbar = self.window.get_titlebar()
-        if not headerbar:
-            return
-
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        self.global_label = Gtk.Label(label=_("Suspend"))
-
-        self.global_switch = Gtk.Switch()
-        self.global_switch.set_valign(Gtk.Align.CENTER)
-
-        box.pack_start(self.global_label, False, False, 0)
-        box.pack_start(self.global_switch, False, False, 0)
-        box.show_all()
-        headerbar.pack_end(box)
-
-        self.global_switch_handler = self.global_switch.connect(
-            "state-set", self._on_global_switch_toggled
-        )
-
-        self.message_broker.subscribe(
-            MessageType.injector_state, self._update_global_switch
-        )
-        self.message_broker.subscribe(MessageType.preset, self._update_global_switch)
-        self.message_broker.subscribe(MessageType.group, self._update_global_switch)
-
-        self._update_global_switch()
-
-    def _update_global_switch(self, *_args) -> None:
-        if not hasattr(self, "global_switch") or not self.global_switch:
-            return
-
-        is_suspended = True
-        try:
-            is_suspended = self.controller.data_manager._daemon.is_suspended()
-        except Exception as e:
-            logger.error("Failed to query suspended state from daemon: %s", e)
-
-        if is_suspended:
-            self.global_switch.set_tooltip_text(_("Enable all active presets"))
-        else:
-            self.global_switch.set_tooltip_text(_("Pause all active presets"))
-
-        from inputremapper.gui.utils import HandlerDisabled
-
-        with HandlerDisabled(self.global_switch, self._on_global_switch_toggled):
-            self.global_switch.set_active(is_suspended)
-
-    def _on_global_switch_toggled(self, widget, state: bool) -> bool:
-        try:
-            self.controller.data_manager._daemon.set_suspended(state)
-        except Exception as e:
-            logger.error("Failed to toggle global suspend state: %s", e)
-        self._update_global_switch()
-        return False
