@@ -63,7 +63,7 @@ class SuspendButton:
             logger.error("Failed to query suspended state from daemon: %s", e)
 
         if is_suspended:
-            self._gui.set_tooltip_text(_("Resume all active presets"))
+            self._gui.set_tooltip_text(_("Resume all previously active presets"))
             self._gui.set_image(Gtk.Image.new_from_icon_name("media-playback-start", Gtk.IconSize.MENU))
             self._gui.set_label("Resume ")
         else:
