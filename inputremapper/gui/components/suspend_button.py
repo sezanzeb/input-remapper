@@ -64,12 +64,21 @@ class SuspendButton:
 
         if is_suspended:
             self._gui.set_tooltip_text(_("Enable all suspended presets"))
-            self._gui.set_image(Gtk.Image.new_from_icon_name("media-playback-start", Gtk.IconSize.MENU))
+            icon = Gtk.Image.new_from_icon_name(
+                "media-playback-start",
+                Gtk.IconSize.BUTTON,
+            )
             self._gui.set_label("Resume ")
         else:
             self._gui.set_tooltip_text(_("Temporarily pause all active presets"))
-            self._gui.set_image(Gtk.Image.new_from_icon_name("media-playback-pause", Gtk.IconSize.MENU))
+            icon = Gtk.Image.new_from_icon_name(
+                "media-playback-pause",
+                Gtk.IconSize.BUTTON,
+            )
             self._gui.set_label("Suspend")
+
+        icon.set_margin_right(2)
+        self._gui.set_image(icon)
 
         with HandlerDisabled(self._gui, self._on_global_switch_toggled):
             self._gui.set_active(is_suspended)
