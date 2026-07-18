@@ -27,7 +27,6 @@ from gi.repository import Gtk
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
-    MessageType,
 )
 from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.gui.gettext import _
