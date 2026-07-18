@@ -55,17 +55,6 @@ class SuspendButton:
         # Initialize the toggled state and tooltip
         self._update_global_switch()
 
-    def _get_button_text_translations(self) -> tuple[str, str]:
-        resume_term = _("Resume")
-        suspend_term = _("Suspend")
-
-        # To make their width similar, add trialing whitespaces
-        length = max(len(resume_term), len(suspend_term))
-        return (
-            resume_term.ljust(length),
-            suspend_term.ljust(length),
-        )
-
     def _update_global_switch(self, *_args) -> None:
         is_suspended = True
         try:
@@ -105,3 +94,14 @@ class SuspendButton:
             logger.error("Failed to toggle global suspend state: %s", e)
         self._update_global_switch()
         return False
+
+    def _get_button_text_translations(self) -> tuple[str, str]:
+        resume_term = _("Resume")
+        suspend_term = _("Suspend")
+
+        # To make their width similar, add trialing whitespaces
+        length = max(len(resume_term), len(suspend_term))
+        return (
+            resume_term.ljust(length),
+            suspend_term.ljust(length),
+        )
