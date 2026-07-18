@@ -268,7 +268,7 @@ class Daemon:
         if UserUtils.user != "root":
             config_path = PathUtils.get_config_path()
             logger.debug('Telling service about "%s"', config_path)
-            proxy.set_config_dir(PathUtils.get_config_path(), timeout=2000)
+            proxy.set_config_dir(PathUtils.get_config_path(), timeout=BUS_TIMEOUT)
 
         return proxy
 

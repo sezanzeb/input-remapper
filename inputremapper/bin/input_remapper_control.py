@@ -286,7 +286,7 @@ class InputRemapperControlBin:
                 device,
                 group.key,
             )
-            self.daemon.autoload_single(group.key, timeout=2000)
+            self.daemon.autoload_single(group.key, timeout=10000)
 
     def internals(self, command: str, debug: bool) -> None:
         """Methods that are needed to get the gui to work and that require root.
