@@ -68,14 +68,15 @@ class SuspendButton:
                 "media-playback-start",
                 Gtk.IconSize.BUTTON,
             )
-            self._gui.set_label("Resume ")
+            # Add a trailing whitespace to make the buttons width fluctuate less
+            self._gui.set_label(_("Resume "))
         else:
             self._gui.set_tooltip_text(_("Temporarily pause all active presets"))
             icon = Gtk.Image.new_from_icon_name(
                 "media-playback-pause",
                 Gtk.IconSize.BUTTON,
             )
-            self._gui.set_label("Suspend")
+            self._gui.set_label(_("Suspend"))
 
         icon.set_margin_right(2)
         self._gui.set_image(icon)
@@ -86,12 +87,9 @@ class SuspendButton:
     def _on_global_switch_toggled(self, widget) -> bool:
         state = widget.get_active()
         try:
-            self.controller.data_manager._daemon.set_suspended(state)
+            print("lqjwlaksd")
+            self.controller.data_manager.set_suspended(state)
         except Exception as e:
             logger.error("Failed to toggle global suspend state: %s", e)
         self._update_global_switch()
         return False
-
-    def _connect_message_listener(self):
-        self._message_broker.subscribe(MessageType.preset, self._update_global_switch)
-        self._message_broker.subscribe(MessageType.group, self._update_global_switch)

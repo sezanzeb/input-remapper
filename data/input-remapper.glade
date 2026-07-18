@@ -1315,6 +1315,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="label">Suspend</property>
+                <property name="always-show-image">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
