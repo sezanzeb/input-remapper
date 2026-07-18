@@ -55,12 +55,25 @@ class SuspendButton:
         # Initialize the toggled state and tooltip
         self._update_global_switch()
 
+    def _get_button_text_translations(self) -> tuple[str, str]:
+        resume_term = _("Resume")
+        suspend_term = _("Suspend")
+
+        # To make their width similar, add trialing whitespaces
+        length = max(len(resume_term), len(suspend_term))
+        return (
+            resume_term.ljust(length),
+            suspend_term.ljust(length),
+        )
+
     def _update_global_switch(self, *_args) -> None:
         is_suspended = True
         try:
             is_suspended = self.controller.data_manager._daemon.is_suspended()
         except Exception as e:
             logger.error("Failed to query suspended state from daemon: %s", e)
+
+        resume_term, suspend_term = self._get_button_text_translations()
 
         if is_suspended:
             self._gui.set_tooltip_text(_("Enable all suspended presets"))
@@ -69,14 +82,14 @@ class SuspendButton:
                 Gtk.IconSize.BUTTON,
             )
             # Add a trailing whitespace to make the buttons width fluctuate less
-            self._gui.set_label(_("Resume "))
+            self._gui.set_label(resume_term)
         else:
             self._gui.set_tooltip_text(_("Temporarily pause all active presets"))
             icon = Gtk.Image.new_from_icon_name(
                 "media-playback-pause",
                 Gtk.IconSize.BUTTON,
             )
-            self._gui.set_label(_("Suspend"))
+            self._gui.set_label(suspend_term)
 
         icon.set_margin_right(2)
         self._gui.set_image(icon)
@@ -87,7 +100,6 @@ class SuspendButton:
     def _on_global_switch_toggled(self, widget) -> bool:
         state = widget.get_active()
         try:
-            print("lqjwlaksd")
             self.controller.data_manager.set_suspended(state)
         except Exception as e:
             logger.error("Failed to toggle global suspend state: %s", e)
