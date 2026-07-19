@@ -610,3 +610,6 @@ class DataManager:
 
     def set_suspended(self, state: bool) -> None:
         self._daemon.set_suspended(state)
+
+    def is_suspended(self) -> bool:
+        return self._daemon.is_suspended()

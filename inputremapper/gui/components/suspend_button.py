@@ -57,7 +57,7 @@ class SuspendButton:
     def _update_global_switch(self, *_args) -> None:
         is_suspended = True
         try:
-            is_suspended = self.controller.data_manager._daemon.is_suspended()
+            is_suspended = self.controller.data_manager.is_suspended()
         except Exception as e:
             logger.error("Failed to query suspended state from daemon: %s", e)
 
