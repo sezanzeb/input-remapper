@@ -121,7 +121,13 @@ class DaemonProxy(Protocol):  # pragma: no cover
 
     def start_injecting(self, group_key: str, preset: str) -> bool: ...
 
+    def get_running_preset(self, group_key: str) -> str: ...
+
     def stop_all(self) -> None: ...
+
+    def set_suspended(self, suspended: bool) -> None: ...
+
+    def is_suspended(self) -> bool: ...
 
     def set_config_dir(self, config_dir: str) -> None: ...
 
@@ -163,6 +169,16 @@ class Daemon:
                 </method>
                 <method name='stop_all'>
                 </method>
+                <method name='set_suspended'>
+                    <arg type='b' name='suspended' direction='in'/>
+                </method>
+                <method name='is_suspended'>
+                    <arg type='b' name='response' direction='out'/>
+                </method>
+                <method name='get_running_preset'>
+                    <arg type='s' name='group_key' direction='in'/>
+                    <arg type='s' name='response' direction='out'/>
+                </method>
                 <method name='set_config_dir'>
                     <arg type='s' name='config_dir' direction='in'/>
                 </method>
@@ -195,6 +211,8 @@ class Daemon:
         self.mapping_parser = mapping_parser
 
         self.injectors: Dict[str, Injector] = {}
+        self.suspended = False
+        self.suspended_presets: Dict[str, str] = {}
 
         self.config_dir = None
 
@@ -312,6 +330,9 @@ class Daemon:
 
     def stop_injecting(self, group_key: str) -> None:
         """Stop injecting the preset mappings for a single device."""
+        if group_key in self.suspended_presets:
+            del self.suspended_presets[group_key]
+
         if self.injectors.get(group_key) is None:
             logger.debug(
                 'Tried to stop injector, but none is running for group "%s"',
@@ -326,6 +347,59 @@ class Daemon:
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
         return injector.get_state() if injector else InjectorState.UNKNOWN
+
+    def get_running_preset(self, group_key: str) -> str:
+        """Get the running preset name for a group."""
+        injector = self.injectors.get(group_key)
+        if injector and injector.is_alive():
+            return injector.preset.name or ""
+        return ""
+
+    def is_suspended(self) -> bool:
+        """Check if remapping is globally suspended."""
+        return self.suspended
+
+    def _suspend_injection(self, group_key: str, injector: Injector) -> None:
+        """Suspend a single active injector."""
+        # Only suspend injectors that are currently active (matching InjectorStateMessage.active())
+        if not injector or injector.get_state() not in (
+            InjectorState.STARTING,
+            InjectorState.RUNNING,
+        ):
+            return
+
+        preset_name = injector.preset.name
+        if preset_name:
+            self.suspended_presets[group_key] = preset_name
+        else:
+            logger.error(
+                "Suspending injector for %s without a preset name. It will not be resumed automatically.",
+                group_key,
+            )
+        try:
+            injector.stop_injecting()
+        except Exception as e:
+            logger.error(
+                "Failed to stop injector for %s during suspend: %s",
+                group_key,
+                e,
+            )
+
+    def set_suspended(self, suspended: bool) -> None:
+        """Globally suspend or resume all remappings."""
+        if self.suspended == suspended:
+            return
+        self.suspended = suspended
+        if self.suspended:
+            logger.info("Suspending all active remappings")
+            for group_key, injector in list(self.injectors.items()):
+                self._suspend_injection(group_key, injector)
+        else:
+            logger.info("Resuming all suspended remappings")
+            to_resume = list(self.suspended_presets.items())
+            self.suspended_presets.clear()
+            for group_key, preset_name in to_resume:
+                self._start_injecting_internal(group_key, preset_name)
 
     def set_config_dir(self, config_dir: str) -> None:
         """All future operations will use this config dir.
@@ -449,6 +523,18 @@ class Daemon:
         preset_name
             The name of the preset
         """
+        if self.suspended:
+            self.suspended_presets[group_key] = preset_name
+            logger.info(
+                'Queued injection request for "%s" with preset "%s" (suspended)',
+                group_key,
+                preset_name,
+            )
+            return True
+
+        return self._start_injecting_internal(group_key, preset_name)
+
+    def _start_injecting_internal(self, group_key: str, preset_name: str) -> bool:
         logger.info('Request to start injecting for "%s"', group_key)
 
         self.refresh(group_key)

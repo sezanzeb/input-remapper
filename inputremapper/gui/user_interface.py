@@ -19,6 +19,7 @@
 
 
 """User Interface."""
+
 from typing import Dict, Callable
 
 from gi.repository import Gtk, GtkSource, Gdk, GObject
@@ -51,6 +52,7 @@ from inputremapper.gui.components.editor import (
 )
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.presets import PresetSelection
+from inputremapper.gui.components.suspend_button import SuspendButton
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
@@ -219,6 +221,12 @@ class UserInterface:
             message_broker,
             self.get("delete-mapping"),
             require_recorded_input=False,
+        )
+
+        SuspendButton(
+            message_broker,
+            controller,
+            self.get("toggle-suspend"),
         )
 
         # code editor and autocompletion

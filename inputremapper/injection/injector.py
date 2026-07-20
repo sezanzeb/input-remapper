@@ -212,7 +212,12 @@ class Injector(multiprocessing.Process):
         Can be safely called from the main procss.
         """
         logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
-        self._msg_pipe[1].send(InjectorCommand.CLOSE)
+        try:
+            self._msg_pipe[1].send(InjectorCommand.CLOSE)
+        except OSError:
+            logger.debug(
+                "Failed to send CLOSE to injector process, it might already be terminated"
+            )
 
     """Process internal stuff."""
 

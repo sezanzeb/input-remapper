@@ -607,3 +607,9 @@ class DataManager:
             return True
 
         GLib.timeout_add(100, do)
+
+    def set_suspended(self, state: bool) -> None:
+        self._daemon.set_suspended(state)
+
+    def is_suspended(self) -> bool:
+        return self._daemon.is_suspended()

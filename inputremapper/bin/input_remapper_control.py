@@ -44,6 +44,9 @@ class Commands(Enum):
     START = "start"
     STOP = "stop"
     STOP_ALL = "stop-all"
+    SUSPEND = "suspend"
+    RESUME = "resume"
+    TOGGLE_SUSPEND = "toggle-suspend"
     HELLO = "hello"
     QUIT = "quit"
 
@@ -176,6 +179,16 @@ class InputRemapperControlBin:
 
         if command == Commands.STOP_ALL.value:
             self.daemon.stop_all()
+
+        if command == Commands.SUSPEND.value:
+            self.daemon.set_suspended(True)
+
+        if command == Commands.RESUME.value:
+            self.daemon.set_suspended(False)
+
+        if command == Commands.TOGGLE_SUSPEND.value:
+            suspended = self.daemon.is_suspended()
+            self.daemon.set_suspended(not suspended)
 
         if command == Commands.HELLO.value:
             self._hello()

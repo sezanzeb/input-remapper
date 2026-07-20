@@ -577,6 +577,68 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(self.daemon.get_state(group.key), InjectorState.STARTING)
         self.assertIsNotNone(groups.find(key="Foo Device 2"))
 
+    def test_global_suspend_resume(self):
+        preset_name = "test-preset-suspend"
+        group = groups.find(key="Foo Device 2")
+
+        preset = Preset(group.get_preset_path(preset_name))
+        preset.add(
+            Mapping.from_combination(
+                InputCombination([InputConfig(type=1, code=KEY_B)]),
+                "keyboard",
+                "a",
+            )
+        )
+        preset.save()
+
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
+
+        # Initially, not suspended
+        self.assertFalse(self.daemon.is_suspended())
+
+        # Start injecting
+        self.daemon.start_injecting(group.key, preset_name)
+        self.assertIn(
+            self.daemon.get_state(group.key),
+            (InjectorState.STARTING, InjectorState.RUNNING),
+        )
+        self.assertNotIn(group.key, self.daemon.suspended_presets)
+
+        # Suspend mapping globally
+        self.daemon.set_suspended(True)
+        # Wait up to 2 seconds for state to transition to STOPPED
+        for _ in range(20):
+            if self.daemon.get_state(group.key) == InjectorState.STOPPED:
+                break
+            time.sleep(0.1)
+
+        self.assertTrue(self.daemon.is_suspended())
+        # All injectors should be stopped
+        self.assertEqual(self.daemon.get_state(group.key), InjectorState.STOPPED)
+        # Suspended preset should be recorded in memory
+        self.assertEqual(self.daemon.suspended_presets[group.key], preset_name)
+
+        # Resume mapping globally
+        self.daemon.set_suspended(False)
+        # Wait up to 2 seconds for state to transition to STARTING/RUNNING
+        for _ in range(20):
+            state = self.daemon.get_state(group.key)
+            if state in (InjectorState.STARTING, InjectorState.RUNNING):
+                break
+            time.sleep(0.1)
+
+        self.assertFalse(self.daemon.is_suspended())
+        # Injectors should be restarted
+        self.assertIn(
+            self.daemon.get_state(group.key),
+            (InjectorState.STARTING, InjectorState.RUNNING),
+        )
+        self.assertNotIn(group.key, self.daemon.suspended_presets)
+
 
 if __name__ == "__main__":
     unittest.main()
