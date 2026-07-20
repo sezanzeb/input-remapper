@@ -51,7 +51,7 @@ from inputremapper.configs.keyboard_layout import (
     DISABLE_CODE,
     DISABLE_NAME,
 )
-from inputremapper.groups import groups, classify, DeviceType
+from inputremapper.groups import groups, classify, DeviceType, _Group
 from inputremapper.injection.context import Context
 from inputremapper.injection.injector import (
     Injector,
@@ -65,7 +65,7 @@ from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.input_event import InputEvent
 
 from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import fixtures
+from tests.lib.fixtures import fixtures, Fixture
 from tests.lib.fixtures import keyboard_keys
 from tests.lib.patches import uinputs
 from tests.lib.pipes import read_write_history_pipe, push_events
@@ -207,7 +207,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         grabbed = self.injector._grab_devices()
         self.assertEqual(len(grabbed), 1)
-        self.assertEqual(grabbed[device_hash].path, "/dev/input/event30")
+        self.assertEqual(grabbed["/dev/input/event30"].path, "/dev/input/event30")
 
     def test_forward_gamepad_events(self):
         device_hash = fixtures.gamepad.get_device_hash()
@@ -230,8 +230,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         path = "/dev/input/event30"
         devices = self.injector._grab_devices()
         self.assertEqual(len(devices), 1)
-        self.assertEqual(devices[device_hash].path, path)
-        gamepad = classify(devices[device_hash]) == DeviceType.GAMEPAD
+        self.assertEqual(devices[path].path, path)
+        gamepad = classify(devices[path]) == DeviceType.GAMEPAD
         self.assertTrue(gamepad)
 
     def test_skip_unused_device(self):
@@ -270,6 +270,171 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # skips the device alltogether, so no grab attempts fail
         self.assertEqual(self.failed, 0)
         self.assertEqual(devices, {})
+
+    def _add_multi_interface_aerox_fixtures(self):
+        """Create two event nodes of the same hardware device.
+
+        Mimics a SteelSeries Aerox 9 Wireless: the mapped button is emitted on
+        the "origin" node (event200), but that node does NOT advertise the
+        button in its static capabilities. A sibling node (event201) advertises
+        the button and would be picked by the device-type fallback instead.
+        """
+        info = evdev.device.DeviceInfo(7, 0x1038, 0x183A, 1)
+
+        origin = Fixture(
+            # event the button actually arrives on, but its capabilities do not
+            # list BTN_EXTRA (multi-interface devices under-report like this)
+            capabilities={evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_LEFTCTRL]},
+            phys="usb-0000:09:00.3-2/input2",
+            info=info,
+            name="SteelSeries Aerox 9 Wireless sysrq kbd leds",
+            group_key="Aerox Test",
+            path="/dev/input/event200",
+        )
+        sibling = Fixture(
+            # a different node that *does* advertise BTN_EXTRA. Without honoring
+            # the origin_hash the injector would read from here instead.
+            capabilities={
+                evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_EXTRA, evdev.ecodes.KEY_A]
+            },
+            phys="usb-0000:09:00.3-2/input3",
+            info=info,
+            name="SteelSeries Aerox 9 Wireless sysrq kbd leds 2",
+            group_key="Aerox Test",
+            path="/dev/input/event201",
+        )
+        fixtures.add_fixture(origin)
+        fixtures.add_fixture(sibling)
+
+        group = _Group(
+            paths=[origin.path, sibling.path],
+            names=[origin.name, sibling.name],
+            types=[DeviceType.KEYBOARD, DeviceType.KEYBOARD],
+            key="Aerox Test",
+        )
+        return group, origin, sibling
+
+    def test_reads_from_origin_hash_node_on_multi_interface_device(self):
+        # A button is emitted on the origin node, which does not advertise the
+        # button in its capabilities, while a sibling node does. The injector
+        # must honor the recorded origin_hash and start the read loop on the
+        # origin node rather than falling back to the sibling.
+        group, origin, sibling = self._add_multi_interface_aerox_fixtures()
+        origin_hash = origin.get_device_hash()
+        sibling_hash = sibling.get_device_hash()
+        self.assertNotEqual(origin_hash, sibling_hash)
+
+        preset = Preset()
+        preset.add(
+            Mapping.from_combination(
+                InputCombination(
+                    [
+                        InputConfig(
+                            type=EV_KEY,
+                            code=evdev.ecodes.BTN_EXTRA,
+                            origin_hash=origin_hash,
+                        )
+                    ]
+                ),
+                "keyboard",
+                "a",
+            )
+        )
+
+        self.initialize_injector(group, preset)
+        self.injector.context = Context(preset, {}, {}, self.mapping_parser)
+
+        # _update_preset must not overwrite the recorded origin_hash, even
+        # though the origin node does not advertise BTN_EXTRA.
+        mapping = list(self.injector.preset)[0]
+        self.assertEqual(
+            mapping.input_combination[0].origin_hash,
+            origin_hash,
+        )
+
+        # exactly one device gets grabbed (and therefore one read loop), and it
+        # is the origin node, not the sibling that merely advertises the code.
+        grabbed = self.injector._grab_devices()
+        self.assertEqual(len(grabbed), 1)
+        self.assertIn(origin.path, grabbed)
+        self.assertNotIn(sibling.path, grabbed)
+        self.assertEqual(grabbed[origin.path].path, origin.path)
+
+    def _add_hash_colliding_aerox_fixtures(self):
+        """Two devnodes of one device with identical capabilities and name.
+
+        get_device_hash is md5(capabilities + name), so these two distinct
+        /dev/input/eventXX nodes produce the *same* origin_hash - exactly like
+        the SteelSeries Aerox 9 Wireless, whose button is emitted on only one of
+        a pair of hash-identical nodes.
+        """
+        info = evdev.device.DeviceInfo(7, 0x1038, 0x183A, 1)
+        shared_caps = {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_8, evdev.ecodes.KEY_A]}
+
+        node_a = Fixture(
+            capabilities=shared_caps,
+            phys="usb-0000:09:00.3-2/input2",
+            info=info,
+            name="SteelSeries Aerox 9 Wireless",
+            group_key="Aerox Collision",
+            path="/dev/input/event210",
+        )
+        node_b = Fixture(
+            # identical capabilities AND name -> identical device hash
+            capabilities=shared_caps,
+            phys="usb-0000:09:00.3-2/input3",
+            info=info,
+            name="SteelSeries Aerox 9 Wireless",
+            group_key="Aerox Collision",
+            path="/dev/input/event211",
+        )
+        fixtures.add_fixture(node_a)
+        fixtures.add_fixture(node_b)
+
+        group = _Group(
+            paths=[node_a.path, node_b.path],
+            names=[node_a.name, node_b.name],
+            types=[DeviceType.KEYBOARD, DeviceType.KEYBOARD],
+            key="Aerox Collision",
+        )
+        return group, node_a, node_b
+
+    def test_grabs_all_nodes_sharing_an_origin_hash(self):
+        # Regression test for the SteelSeries Aerox 9: two devnodes share the
+        # same origin_hash. The button is emitted on only one of them, but we
+        # cannot know which in advance, so the injector must grab and start a
+        # read loop on BOTH. Previously the hash-keyed dict collapsed them into
+        # a single entry and the injector read from the wrong one.
+        group, node_a, node_b = self._add_hash_colliding_aerox_fixtures()
+        shared_hash = node_a.get_device_hash()
+        self.assertEqual(shared_hash, node_b.get_device_hash())
+
+        preset = Preset()
+        preset.add(
+            Mapping.from_combination(
+                InputCombination(
+                    [
+                        InputConfig(
+                            type=EV_KEY,
+                            code=evdev.ecodes.KEY_8,
+                            origin_hash=shared_hash,
+                        )
+                    ]
+                ),
+                "keyboard",
+                "a",
+            )
+        )
+
+        self.initialize_injector(group, preset)
+        self.injector.context = Context(preset, {}, {}, self.mapping_parser)
+
+        grabbed = self.injector._grab_devices()
+        # both hash-colliding nodes are grabbed (and get a read loop), keyed by
+        # their distinct paths rather than collapsed by the shared hash.
+        self.assertEqual(len(grabbed), 2)
+        self.assertIn(node_a.path, grabbed)
+        self.assertIn(node_b.path, grabbed)
 
     def test_get_udev_name(self):
         self.injector = Injector(

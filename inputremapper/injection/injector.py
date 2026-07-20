@@ -46,7 +46,7 @@ from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from inputremapper.logging.logger import logger
-from inputremapper.utils import get_device_hash, DeviceHash
+from inputremapper.utils import get_device_hash
 
 CapabilitiesDict = Dict[int, List[int]]
 
@@ -221,21 +221,38 @@ class Injector(multiprocessing.Process):
 
     """Process internal stuff."""
 
-    def _find_input_device(
-        self, input_config: InputConfig
-    ) -> Optional[evdev.InputDevice]:
-        """find the InputDevice specified by the InputConfig
+    def _find_input_devices(self, input_config: InputConfig) -> List[evdev.InputDevice]:
+        """Find all InputDevices the InputConfig's origin_hash points to.
 
-        ensures the devices supports the type and code specified by the InputConfig"""
-        devices_by_hash = {get_device_hash(device): device for device in self._devices}
+        The origin_hash records the exact /dev/input/eventXX node an event was
+        observed on while the mapping was created. Because get_device_hash
+        incorporates the device's capabilities, a matching hash guarantees the
+        node still has the same capabilities it had back then, so it is always
+        the correct node to read from.
 
-        # mypy thinks None is the wrong type for dict.get()
-        if device := devices_by_hash.get(input_config.origin_hash):  # type: ignore
-            if input_config.code in device.capabilities(absinfo=False).get(
-                input_config.type, []
-            ):
-                return device
-        return None
+        Two things this intentionally handles:
+
+        1. Multiple matches. get_device_hash is md5(capabilities + name), which
+           is *not* unique per devnode: some hardware (e.g. SteelSeries wireless
+           mice) exposes several event nodes with byte-identical capabilities
+           and name, so they share an origin_hash. The actual event may be
+           emitted on any one of them and we cannot tell in advance which, so we
+           must read from all of them. Returning only one (as a hash-keyed dict
+           would) makes the injector grab the wrong twin and silently miss the
+           event.
+
+        2. No capability gate. We do NOT additionally require that
+           input_config.code is listed in a node's advertised capabilities.
+           Some nodes emit codes that are not in their static capabilities;
+           requiring the capability would discard a valid origin_hash and let
+           _update_preset fall back to a different node that merely advertises
+           the code but never receives the event.
+        """
+        return [
+            device
+            for device in self._devices
+            if get_device_hash(device) == input_config.origin_hash
+        ]
 
     def _find_input_device_fallback(
         self, input_config: InputConfig
@@ -267,8 +284,14 @@ class Injector(multiprocessing.Process):
         logger.error(f"Could not find input for {input_config}")
         return None
 
-    def _grab_devices(self) -> Dict[DeviceHash, evdev.InputDevice]:
-        """Grab all InputDevices that match a mappings' origin_hash."""
+    def _grab_devices(self) -> Dict[str, evdev.InputDevice]:
+        """Grab all InputDevices that match a mappings' origin_hash.
+
+        Keyed by device path, not by device hash: multiple devnodes can share
+        an origin_hash (see _find_input_devices), and all of them need to be
+        grabbed and read from. Keying by hash would collapse such collisions
+        into a single node and miss events emitted on the others.
+        """
         # use a dict because the InputDevice is not directly hashable
         needed_devices = {}
         input_configs = set()
@@ -280,16 +303,15 @@ class Injector(multiprocessing.Process):
 
         # find all unique input_device's
         for input_config in input_configs:
-            if not (device := self._find_input_device(input_config)):
-                # there is no point in trying the fallback because
-                # self._update_preset already did that.
-                continue
-            needed_devices[device.path] = device
+            # there is no point in trying the fallback because
+            # self._update_preset already did that.
+            for device in self._find_input_devices(input_config):
+                needed_devices[device.path] = device
 
         grabbed_devices = {}
         for device in needed_devices.values():
             if device := self._grab_device(device):
-                grabbed_devices[get_device_hash(device)] = device
+                grabbed_devices[device.path] = device
 
         return grabbed_devices
 
@@ -302,7 +324,7 @@ class Injector(multiprocessing.Process):
                 mappings_by_input[input_config].append(mapping)
 
         for input_config in mappings_by_input:
-            if self._find_input_device(input_config):
+            if self._find_input_devices(input_config):
                 continue
 
             if not (device := self._find_input_device_fallback(input_config)):
@@ -449,15 +471,24 @@ class Injector(multiprocessing.Process):
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down forever
         sources = self._grab_devices()
+        # sources is keyed by path so every grabbed devnode gets its own read
+        # loop below. The Context however is keyed by device hash, because events
+        # are matched and forwarded based on their origin_hash. Devnodes that
+        # share a hash (see _find_input_devices) are interchangeable for the
+        # Context, so one entry per unique hash is enough.
+        source_devices = {}
         forward_devices = {}
-        for device_hash, device in sources.items():
-            forward_devices[device_hash] = self._create_forwarding_device(device)
+        for device in sources.values():
+            device_hash = get_device_hash(device)
+            if device_hash not in forward_devices:
+                source_devices[device_hash] = device
+                forward_devices[device_hash] = self._create_forwarding_device(device)
 
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
         self.context = Context(
             self.preset,
-            sources,
+            source_devices,
             forward_devices,
             self.mapping_parser,
         )
@@ -472,11 +503,12 @@ class Injector(multiprocessing.Process):
         numlock_state = is_numlock_on()
         coroutines = []
 
-        for device_hash in sources:
-            # actually doing things
+        for source in sources.values():
+            # one read loop per devnode. Nodes that share a device hash each
+            # get their own reader, so an event emitted on any of them is read.
             event_reader = EventReader(
                 self.context,
-                sources[device_hash],
+                source,
                 self._stop_event,
             )
             coroutines.append(event_reader.run())
