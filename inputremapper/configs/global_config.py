@@ -35,6 +35,7 @@ NONE = "none"
 INITIAL_CONFIG = {
     "version": VERSION,
     "autoload": {},
+    "systray": False,
 }
 
 
@@ -84,6 +85,15 @@ class GlobalConfig:
             raise ValueError("Expected group_key and preset to not be None")
 
         return self._config.get("autoload", {}).get(group_key) == preset
+
+    def get_systray(self) -> bool:
+        """Check if system tray icon is enabled."""
+        return self._config.get("systray", False)
+
+    def set_systray(self, enabled: bool):
+        """Set whether system tray icon is enabled."""
+        self._config["systray"] = enabled
+        self._save_config()
 
     def load_config(self, path: str | None = None):
         """Load the config from the file system.
