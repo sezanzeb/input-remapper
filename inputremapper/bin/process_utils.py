@@ -16,23 +16,41 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import List, Optional
 import psutil
 
 
 class ProcessUtils:
     @staticmethod
-    def count_python_processes(name: str) -> int:
+    def _find_matching_processes(
+        name: str, extra_match: Optional[str] = None
+    ) -> List[psutil.Process]:
         # This is somewhat complicated, because there might also be a "sudo <name>"
         # process.
-        count = 0
-        pids = psutil.pids()
-        for pid in pids:
+        matches = []
+        for pid in psutil.pids():
             try:
                 process = psutil.Process(pid)
                 cmdline = process.cmdline()
                 if len(cmdline) >= 2 and "python" in cmdline[0] and name in cmdline[1]:
-                    count += 1
+                    if extra_match is None or extra_match in cmdline:
+                        matches.append(process)
             except Exception:  # noqa: S110
                 pass
+        return matches
 
+    @staticmethod
+    def count_python_processes(name: str, extra_match: Optional[str] = None) -> int:
+        return len(ProcessUtils._find_matching_processes(name, extra_match))
+
+    @staticmethod
+    def terminate_python_processes(name: str, extra_match: Optional[str] = None) -> int:
+        """Terminate all matching processes. Returns how many were signaled."""
+        count = 0
+        for process in ProcessUtils._find_matching_processes(name, extra_match):
+            try:
+                process.terminate()
+                count += 1
+            except Exception:  # noqa: S110
+                pass
         return count
