@@ -207,9 +207,7 @@ class Preset(Generic[MappingModel]):
     def is_valid(self) -> bool:
         return False not in [mapping.is_valid() for mapping in self]
 
-    def get_mapping(
-        self, combination: InputCombination | None
-    ) -> MappingModel | None:
+    def get_mapping(self, combination: InputCombination | None) -> MappingModel | None:
         """Return the Mapping that is mapped to this InputCombination."""
         if not combination:
             return None

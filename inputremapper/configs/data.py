@@ -19,7 +19,6 @@
 
 """Get stuff from /usr/share/input-remapper, depending on the prefix."""
 
-
 import os
 
 from inputremapper.installation_info import DATA_DIR

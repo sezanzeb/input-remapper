@@ -19,7 +19,6 @@
 
 """Figure out the user."""
 
-
 import getpass
 import os
 import pwd

@@ -19,7 +19,6 @@
 
 """All components that control a single preset."""
 
-
 from __future__ import annotations
 
 from collections import defaultdict

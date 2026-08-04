@@ -445,9 +445,7 @@ class InputCombination(tuple[InputConfig, ...]):
         """Check if there is any analog input in self."""
         return True in tuple(i.defines_analog_input for i in self)
 
-    def find_analog_input_config(
-        self, type_: int | None = None
-    ) -> InputConfig | None:
+    def find_analog_input_config(self, type_: int | None = None) -> InputConfig | None:
         """Return the first event that defines an analog input."""
         for input_config in self:
             if input_config.defines_analog_input and (

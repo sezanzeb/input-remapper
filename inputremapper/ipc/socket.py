@@ -39,7 +39,6 @@ It still appears to be a bit overkill to use a socket considering pipes
 are much easier to handle.
 """
 
-
 # Issues:
 # - Tests don't pass with Server and Client instead of Pipe for reader-client
 #   and service communication or something

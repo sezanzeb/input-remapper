@@ -21,6 +21,7 @@
 Only write changes to disk, if there actually are changes. Otherwise, file-modification
 dates are destroyed.
 """
+
 from __future__ import annotations
 
 import copy

@@ -19,7 +19,6 @@
 
 """Components used in multiple places."""
 
-
 from __future__ import annotations
 
 from gi.repository import Gtk

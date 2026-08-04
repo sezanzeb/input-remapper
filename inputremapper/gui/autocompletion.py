@@ -19,7 +19,6 @@
 
 """Autocompletion for the editor."""
 
-
 import re
 
 from evdev.ecodes import EV_KEY

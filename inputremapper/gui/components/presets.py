@@ -19,7 +19,6 @@
 
 """All components that are visible on the page that shows all the presets."""
 
-
 from __future__ import annotations
 
 from gi.repository import Gtk

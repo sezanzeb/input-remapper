@@ -19,7 +19,6 @@
 
 """Share a dictionary across processes."""
 
-
 import atexit
 import multiprocessing
 import select

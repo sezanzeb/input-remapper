@@ -18,6 +18,7 @@
 
 
 """Keeps injecting keycodes in the background based on the preset."""
+
 from __future__ import annotations
 
 import asyncio
@@ -219,9 +220,7 @@ class Injector(multiprocessing.Process):
 
     """Process internal stuff."""
 
-    def _find_input_device(
-        self, input_config: InputConfig
-    ) -> evdev.InputDevice | None:
+    def _find_input_device(self, input_config: InputConfig) -> evdev.InputDevice | None:
         """find the InputDevice specified by the InputConfig
 
         ensures the devices supports the type and code specified by the InputConfig"""

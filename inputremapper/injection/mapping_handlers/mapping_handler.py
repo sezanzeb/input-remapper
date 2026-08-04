@@ -57,6 +57,7 @@ Step 2 and 3:
  - KeyHandler
  - MacroHandler
 """
+
 from __future__ import annotations
 
 import enum

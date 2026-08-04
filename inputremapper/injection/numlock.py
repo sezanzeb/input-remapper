@@ -23,7 +23,6 @@ For unknown reasons the numlock status can change when starting injections,
 which is why these functions exist.
 """
 
-
 import re
 import subprocess
 

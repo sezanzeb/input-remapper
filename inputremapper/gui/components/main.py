@@ -19,7 +19,6 @@
 
 """Components that wrap everything."""
 
-
 from __future__ import annotations
 
 from gi.repository import Gtk, Pango

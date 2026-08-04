@@ -20,7 +20,6 @@
 
 """Path constants to be used."""
 
-
 import os
 import shutil
 
