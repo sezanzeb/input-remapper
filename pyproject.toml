@@ -3,7 +3,7 @@ name = "input-remapper"
 version = "2.2.1"
 description = "A tool to change the mapping of your input device buttons"
 authors = [
-    { name = "Sezanzeb", email = "b8x45ygc9@mozmail.com" },
+    { name = "Sezanzeb", email = "4t1pzast9@mozmail.com" },
 ]
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
