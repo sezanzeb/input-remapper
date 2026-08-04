@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -25,7 +24,6 @@ import os
 import subprocess
 import sys
 from enum import Enum
-from typing import Optional
 
 import gi
 
@@ -34,7 +32,7 @@ from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
-from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
+from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
 
@@ -154,7 +152,7 @@ class InputRemapperControlBin:
         self,
         command: str,
         device: str,
-        config_dir: Optional[str],
+        config_dir: str | None,
         preset: str,
     ) -> None:
         """Commands that require a running daemon."""

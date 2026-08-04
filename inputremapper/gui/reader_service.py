@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2023 sezanzeb <proxima@hip70890b.de>
 #
@@ -47,20 +46,20 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
-from typing import Set, List, Tuple
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
+from evdev.ecodes import EV_ABS, EV_KEY, EV_REL, REL_HWHEEL, REL_WHEEL
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping, KnownUinput
-from inputremapper.groups import _Groups, _Group
+from inputremapper.configs.mapping import KnownUinput, Mapping
+from inputremapper.groups import _Group, _Groups
+from inputremapper.gui.forward_to_ui_handler import ForwardToUIHandler
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    NotifyCallback,
     MappingHandler,
+    NotifyCallback,
 )
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.input_event import InputEvent
@@ -68,7 +67,6 @@ from inputremapper.ipc.pipe import Pipe
 from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
 from inputremapper.utils import get_device_hash
-from inputremapper.gui.forward_to_ui_handler import ForwardToUIHandler
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"
@@ -118,13 +116,13 @@ class ReaderService:
         self._commands_pipe = Pipe(self.get_pipe_paths()[1])
         self._pipe = multiprocessing.Pipe()
 
-        self._tasks: Set[asyncio.Task] = set()
+        self._tasks: set[asyncio.Task] = set()
         self._stop_event = asyncio.Event()
 
         self._results_pipe.send({"type": MSG_STATUS, "message": "ready"})
 
     @staticmethod
-    def get_pipe_paths() -> Tuple[str, str]:
+    def get_pipe_paths() -> tuple[str, str]:
         """Get the path where the pipe can be found."""
         return (
             f"/tmp/input-remapper-{UserUtils.home}/reader-results",
@@ -275,7 +273,7 @@ class ReaderService:
                 device = evdev.InputDevice(path)
             except (FileNotFoundError, OSError):
                 logger.error('Could not find "%s"', path)
-                return None
+                return
 
             capabilities = device.capabilities(absinfo=False)
             if (
@@ -299,7 +297,7 @@ class ReaderService:
         self._tasks = set()
         self._stop_event.clear()
 
-    def _create_event_pipeline(self, sources: List[evdev.InputDevice]) -> ContextDummy:
+    def _create_event_pipeline(self, sources: list[evdev.InputDevice]) -> ContextDummy:
         """Create a custom event pipeline for each event code in the capabilities.
 
         Instead of sending the events to an uinput they will be sent to the frontend.
@@ -422,7 +420,7 @@ class ContextDummy:
     def add_handler(self, input_config: InputConfig, handler: MappingHandler):
         self._notify_callbacks[input_config.input_match_hash].append(handler.notify)
 
-    def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
+    def get_notify_callbacks(self, input_event: InputEvent) -> list[NotifyCallback]:
         return self._notify_callbacks[input_event.input_match_hash]
 
     def reset(self):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -39,7 +38,7 @@ import asyncio
 import json
 import os
 import time
-from typing import Optional, AsyncIterator, Union
+from collections.abc import AsyncIterator
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.logging.logger import logger
@@ -59,8 +58,8 @@ class Pipe:
         self._unread = []
         self._created_at = time.time()
 
-        self._transport: Optional[asyncio.ReadTransport] = None
-        self._async_iterator: Optional[AsyncIterator] = None
+        self._transport: asyncio.ReadTransport | None = None
+        self._async_iterator: AsyncIterator | None = None
 
         paths = (f"{path}r", f"{path}w")
 
@@ -135,7 +134,7 @@ class Pipe:
 
         return parsed[1]
 
-    def send(self, message: Union[str, int, float, dict, list, tuple]):
+    def send(self, message: str | float | dict | list | tuple):
         """Write a serializable object to the pipe."""
         dump = json.dumps((time.time(), message))
         # there aren't any newlines supposed to be,

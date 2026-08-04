@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -20,55 +19,49 @@
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import re
+from collections.abc import Callable, Sequence
 from functools import partial
 from typing import (
     TYPE_CHECKING,
-    Optional,
-    Union,
-    Literal,
-    Sequence,
-    Dict,
-    Callable,
-    List,
     Any,
-    Tuple,
+    Literal,
 )
 
-from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
+from evdev.ecodes import EV_ABS, EV_KEY, EV_REL
 from gi.repository import Gtk
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     MappingData,
-    UIMapping,
     MappingType,
+    UIMapping,
 )
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.validation_errors import (
-    pydantify,
-    MissingMacroOrKeyError,
     MacroButTypeOrCodeSetError,
-    SymbolAndCodeMismatchError,
+    MissingMacroOrKeyError,
     MissingOutputAxisError,
-    WrongMappingTypeForKeyError,
     OutputSymbolVariantError,
+    SymbolAndCodeMismatchError,
+    WrongMappingTypeForKeyError,
+    pydantify,
 )
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.components.output_type_names import OutputTypeNames
-from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
+from inputremapper.gui.data_manager import DEFAULT_PRESET_NAME, DataManager
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
 from inputremapper.gui.messages.message_data import (
+    CombinationRecorded,
+    DoStackSwitch,
     PresetData,
     StatusData,
-    CombinationRecorded,
     UserConfirmRequest,
-    DoStackSwitch,
 )
-from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, CTX_MAPPING
+from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_MAPPING, CTX_WARNING
 from inputremapper.injection.injector import (
     InjectorState,
     InjectorStateMessage,
@@ -93,7 +86,7 @@ class Controller:
     ) -> None:
         self.message_broker = message_broker
         self.data_manager = data_manager
-        self.gui: Optional[UserInterface] = None
+        self.gui: UserInterface | None = None
 
         self.button_left_warn = False
         self._attach_to_events()
@@ -158,7 +151,7 @@ class Controller:
         combination = self._auto_use_as_analog(data.combination)
         self.update_combination(combination)
 
-    def _format_status_bar_validation_errors(self) -> Optional[Tuple[str, str]]:
+    def _format_status_bar_validation_errors(self) -> tuple[str, str] | None:
         if not self.data_manager.active_preset:
             return None
 
@@ -273,7 +266,7 @@ class Controller:
         return error_message
 
     @staticmethod
-    def _get_ui_error_strings(mapping: UIMapping) -> List[str]:
+    def _get_ui_error_strings(mapping: UIMapping) -> list[str]:
         """Get a human readable error message from a mapping error."""
         validation_error = mapping.get_error()
 
@@ -316,7 +309,7 @@ class Controller:
         self.data_manager.create_preset(self.data_manager.get_available_preset_name())
         return self.data_manager.get_newest_preset_name()
 
-    def get_a_group(self) -> Optional[str]:
+    def get_a_group(self) -> str | None:
         """Attempts to get the group with the newest preset
         returns any if that fails."""
         try:
@@ -393,7 +386,7 @@ class Controller:
     def move_input_config_in_combination(
         self,
         input_config: InputConfig,
-        direction: Union[Literal["up"], Literal["down"]],
+        direction: Literal["up", "down"],
     ):
         """Move the active_input_config up or down in the input_combination of the
         active_mapping."""
@@ -560,7 +553,7 @@ class Controller:
 
     def update_mapping(self, **changes):
         """Update the active_mapping with the given keywords and values."""
-        if "mapping_type" in changes.keys():
+        if "mapping_type" in changes:
             if not (changes := self._change_mapping_type(changes)):
                 # we need to synchronize the gui
                 self.data_manager.publish_mapping()
@@ -712,7 +705,7 @@ class Controller:
             self.show_status(CTX_ERROR, msg, tooltip)
 
         assert self.data_manager.active_preset  # make mypy happy
-        state_calls: Dict[InjectorState, Callable] = {
+        state_calls: dict[InjectorState, Callable] = {
             InjectorState.RUNNING: running,
             InjectorState.ERROR: partial(
                 self.show_status,
@@ -758,8 +751,8 @@ class Controller:
     def show_status(
         self,
         ctx_id: int,
-        msg: Optional[str] = None,
-        tooltip: Optional[str] = None,
+        msg: str | None = None,
+        tooltip: str | None = None,
     ):
         """Send a status message to the ui to show it in the status-bar."""
         self.message_broker.publish(StatusData(ctx_id, msg, tooltip))
@@ -790,7 +783,7 @@ class Controller:
         """Focus the given component."""
         self.gui.window.set_focus(component)
 
-    def _change_mapping_type(self, changes: Dict[str, Any]):
+    def _change_mapping_type(self, changes: dict[str, Any]):
         """Query the user to update the mapping in order to change the mapping type."""
         mapping = self.data_manager.active_mapping
 
@@ -813,7 +806,7 @@ class Controller:
                 if input_config.defines_analog_input
             ]:
                 # there is no analog input configured, let's try to autoconfigure it
-                inputs: List[InputConfig] = list(mapping.input_combination)
+                inputs: list[InputConfig] = list(mapping.input_combination)
                 for i, input_config in enumerate(inputs):
                     if input_config.type in [EV_ABS, EV_REL]:
                         inputs[i] = input_config.modify(analog_threshold=0)

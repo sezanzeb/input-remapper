@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -17,10 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple
 
 import evdev
-from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE, ABS_Z, ABS_RZ
+from evdev.ecodes import ABS_BRAKE, ABS_GAS, ABS_RZ, ABS_Z, EV_ABS
 
 from inputremapper.input_event import InputEvent
 
@@ -30,7 +28,7 @@ def calculate_trigger_point(
     event: InputEvent,
     analog_threshold: int,
     source: evdev.InputDevice,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Calculate the threshold and resting-point of the axis.
 
     If an EV_ABS events value suprasses the threshold, it should be considered pressed.

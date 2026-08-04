@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -17,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, Dict, List
 
 from inputremapper import exceptions
 from inputremapper.configs.input_config import InputCombination
@@ -37,7 +35,7 @@ class KeyHandler(MappingHandler):
     """Injects the target key if notified."""
 
     _active: bool
-    _maps_to: Tuple[int, int]
+    _maps_to: tuple[int, int]
 
     def __init__(
         self,
@@ -61,9 +59,9 @@ class KeyHandler(MappingHandler):
         return f"KeyHandler to {name} {self._maps_to} on {self.mapping.target_uinput}"
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return []
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
@@ -86,5 +84,5 @@ class KeyHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return True
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         return {InputCombination(self.input_configs): HandlerEnums.combination}

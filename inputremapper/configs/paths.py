@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -24,7 +23,6 @@
 
 import os
 import shutil
-from typing import List, Union, Optional
 
 from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
@@ -53,7 +51,7 @@ class PathUtils:
             shutil.chown(path, user=UserUtils.user)
 
     @staticmethod
-    def touch(path: Union[str, os.PathLike], log=True):
+    def touch(path: str | os.PathLike, log=True):
         """Create an empty file and all its parent dirs, give it to the user."""
         if str(path).endswith("/"):
             raise ValueError(f"Expected path to not end with a slash: {path}")
@@ -90,7 +88,7 @@ class PathUtils:
         PathUtils.chown(path)
 
     @staticmethod
-    def split_all(path: Union[os.PathLike, str]) -> List[str]:
+    def split_all(path: os.PathLike | str) -> list[str]:
         """Split the path into its segments."""
         parts = []
         while True:
@@ -130,7 +128,7 @@ class PathUtils:
         return group_name
 
     @staticmethod
-    def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = None):
+    def get_preset_path(group_name: str | None = None, preset: str | None = None):
         """Get a path to the stored preset, or to store a preset to."""
         presets_base = os.path.join(PathUtils.config_path(), "presets")
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -19,12 +18,10 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from gi.repository import Gtk
 
 from inputremapper.gui.components.common import FlowBoxEntry, FlowBoxWrapper
-from inputremapper.gui.components.editor import ICON_PRIORITIES, ICON_NAMES
+from inputremapper.gui.components.editor import ICON_NAMES, ICON_PRIORITIES
 from inputremapper.gui.components.main import Stack
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
@@ -32,9 +29,9 @@ from inputremapper.gui.messages.message_broker import (
     MessageType,
 )
 from inputremapper.gui.messages.message_data import (
-    GroupsData,
-    GroupData,
     DoStackSwitch,
+    GroupData,
+    GroupsData,
 )
 from inputremapper.logging.logger import logger
 
@@ -51,7 +48,7 @@ class DeviceGroupEntry(FlowBoxEntry):
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        icon_name: Optional[str],
+        icon_name: str | None,
         group_key: str,
     ):
         super().__init__(

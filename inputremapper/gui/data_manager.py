@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -21,16 +20,15 @@ import glob
 import os
 import re
 import time
-from typing import Optional, List, Tuple, Set
 
 from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import UIMapping, MappingData
+from inputremapper.configs.keyboard_layout import KeyboardLayout
+from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.keyboard_layout import KeyboardLayout
 from inputremapper.daemon import DaemonProxy
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Group
@@ -39,10 +37,10 @@ from inputremapper.gui.messages.message_broker import (
     MessageBroker,
 )
 from inputremapper.gui.messages.message_data import (
-    UInputsData,
+    CombinationUpdate,
     GroupData,
     PresetData,
-    CombinationUpdate,
+    UInputsData,
 )
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
@@ -85,9 +83,9 @@ class DataManager:
         self._config = config
         self._config.load_config()
 
-        self._active_preset: Optional[Preset[UIMapping]] = None
-        self._active_mapping: Optional[UIMapping] = None
-        self._active_input_config: Optional[InputConfig] = None
+        self._active_preset: Preset[UIMapping] | None = None
+        self._active_mapping: UIMapping | None = None
+        self._active_input_config: InputConfig | None = None
 
     def publish_group(self):
         """Send active group to the MessageBroker.
@@ -157,30 +155,30 @@ class DataManager:
         self.message_broker.publish(InjectorStateMessage(self.get_state()))
 
     @property
-    def active_group(self) -> Optional[_Group]:
+    def active_group(self) -> _Group | None:
         """The currently loaded group."""
         return self._reader_client.group
 
     @property
-    def active_preset(self) -> Optional[Preset[UIMapping]]:
+    def active_preset(self) -> Preset[UIMapping] | None:
         """The currently loaded preset."""
         return self._active_preset
 
     @property
-    def active_mapping(self) -> Optional[UIMapping]:
+    def active_mapping(self) -> UIMapping | None:
         """The currently loaded mapping."""
         return self._active_mapping
 
     @property
-    def active_input_config(self) -> Optional[InputConfig]:
+    def active_input_config(self) -> InputConfig | None:
         """The currently loaded event."""
         return self._active_input_config
 
-    def get_group_keys(self) -> Tuple[GroupKey, ...]:
+    def get_group_keys(self) -> tuple[GroupKey, ...]:
         """Get all group keys (plugged devices)."""
         return tuple(group.key for group in self._reader_client.groups.get_groups())
 
-    def get_preset_names(self) -> Tuple[Name, ...]:
+    def get_preset_names(self) -> tuple[Name, ...]:
         """Get all preset names for active_group and current user sorted by age."""
         if not self.active_group:
             raise DataManagementError("Cannot find presets: Group is not set")
@@ -196,7 +194,7 @@ class DataManager:
         presets.reverse()
         return tuple(presets)
 
-    def get_mappings(self) -> Optional[List[MappingData]]:
+    def get_mappings(self) -> list[MappingData] | None:
         """All mappings from the active_preset."""
         if not self._active_preset:
             return None
@@ -589,7 +587,7 @@ class DataManager:
         """Tell the service to refresh its config path."""
         self._daemon.set_config_dir(self._config.get_dir())
 
-    def do_when_injector_state(self, states: Set[InjectorState], callback):
+    def do_when_injector_state(self, states: set[InjectorState], callback):
         """Run callback once the injector state is one of states."""
         start = time.time()
 

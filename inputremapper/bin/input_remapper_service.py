@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -20,7 +19,6 @@
 """Starts injecting keycodes based on the configuration."""
 
 import sys
-
 from argparse import ArgumentParser
 
 from inputremapper.configs.global_config import GlobalConfig

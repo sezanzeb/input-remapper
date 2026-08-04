@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -21,25 +20,24 @@ import asyncio
 import math
 import time
 from functools import partial
-from typing import Dict, Tuple, Optional, List
 
 import evdev
 from evdev.ecodes import (
-    EV_REL,
     EV_ABS,
-    REL_WHEEL,
+    EV_REL,
     REL_HWHEEL,
-    REL_WHEEL_HI_RES,
     REL_HWHEEL_HI_RES,
+    REL_WHEEL,
+    REL_WHEEL_HI_RES,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
-    Mapping,
-    REL_XY_SCALING,
-    WHEEL_SCALING,
-    WHEEL_HI_RES_SCALING,
     DEFAULT_REL_RATE,
+    REL_XY_SCALING,
+    WHEEL_HI_RES_SCALING,
+    WHEEL_SCALING,
+    Mapping,
 )
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -47,7 +45,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
     MappingHandler,
 )
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import EventActions, InputEvent
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
@@ -59,7 +57,7 @@ class AbsToRelHandler(MappingHandler):
     _value: float  # the current output value
     _running: bool  # if the run method is active
     _stop: bool  # if the run loop should return
-    _transform: Optional[Transformation]
+    _transform: Transformation | None
 
     def __init__(
         self,
@@ -106,9 +104,9 @@ class AbsToRelHandler(MappingHandler):
         )
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return []
 
     def notify(
@@ -176,7 +174,7 @@ class AbsToRelHandler(MappingHandler):
     def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False  # cannot have a sub-handler
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         if self.needs_wrapping():
             return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}
@@ -216,7 +214,7 @@ class AbsToRelHandler(MappingHandler):
 
         self._running = False
 
-    async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
+    async def _run_wheel_output(self, codes: tuple[int, int]) -> None:
         """Start injecting wheel events.
 
         made to inject both REL_WHEEL and REL_WHEEL_HI_RES events, because otherwise

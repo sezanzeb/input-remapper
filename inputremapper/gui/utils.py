@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -20,10 +19,10 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import List, Callable, Dict, Optional
 
-from gi.repository import Gtk, GLib, Gdk
+from gi.repository import Gdk, GLib, Gtk
 
 from inputremapper.logging.logger import logger
 
@@ -40,20 +39,20 @@ CTX_MAPPING = 5
 @dataclass()
 class DebounceInfo:
     # constant after register:
-    function: Optional[Callable]
+    function: Callable | None
     other: object
     key: int
 
     # can change when called again:
     args: list
     kwargs: dict
-    glib_timeout: Optional[int]
+    glib_timeout: int | None
 
 
 class DebounceManager:
     """Stops all debounced functions if needed."""
 
-    debounce_infos: Dict[int, DebounceInfo] = {}
+    debounce_infos: dict[int, DebounceInfo] = {}
 
     def _register(self, other, function):
         debounce_info = DebounceInfo(
@@ -68,7 +67,7 @@ class DebounceManager:
         self.debounce_infos[key] = debounce_info
         return debounce_info
 
-    def get(self, other: object, function: Callable) -> Optional[DebounceInfo]:
+    def get(self, other: object, function: Callable) -> DebounceInfo | None:
         """Find the debounce_info that matches the given callable."""
         key = self._get_key(other, function)
         return self.debounce_infos.get(key)
@@ -225,7 +224,7 @@ class Colors:
     fallback_font = Gdk.RGBA(0.20, 0.20, 0.20, 1)
 
     @staticmethod
-    def get_color(names: List[str], fallback: Gdk.RGBA) -> Gdk.RGBA:
+    def get_color(names: list[str], fallback: Gdk.RGBA) -> Gdk.RGBA:
         """Get theme colors. Provide multiple names for fallback purposes."""
         for name in names:
             found, color = Gtk.StyleContext().lookup_color(name)

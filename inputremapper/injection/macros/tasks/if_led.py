@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -21,8 +20,8 @@
 from __future__ import annotations
 
 from evdev.ecodes import (
-    LED_NUML,
     LED_CAPSL,
+    LED_NUML,
 )
 
 from inputremapper.injection.macros.argument import ArgumentConfig

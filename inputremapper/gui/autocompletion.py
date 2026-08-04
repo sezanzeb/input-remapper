@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -22,12 +21,11 @@
 
 
 import re
-from typing import Dict, Optional, List, Tuple
 
 from evdev.ecodes import EV_KEY
-from gi.repository import Gdk, Gtk, GLib, GObject
+from gi.repository import Gdk, GLib, GObject, Gtk
 
-from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
+from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
 from inputremapper.configs.mapping import MappingData
 from inputremapper.gui.components.editor import CodeEditor
 from inputremapper.gui.controller import Controller
@@ -42,7 +40,7 @@ FUNCTION_NAMES = [name for name in Parser.TASK_CLASSES.keys() if len(name) > 1]
 # no deprecated functions
 FUNCTION_NAMES.remove("ifeq")
 
-Capabilities = Dict[int, List]
+Capabilities = dict[int, list]
 
 
 def _get_left_text(iter_: Gtk.TextIter) -> str:
@@ -79,7 +77,7 @@ def get_incomplete_function_name(iter_: Gtk.TextIter) -> str:
     return match[1]
 
 
-def get_incomplete_parameter(iter_: Gtk.TextIter) -> Optional[str]:
+def get_incomplete_parameter(iter_: Gtk.TextIter) -> str | None:
     """Get the parameter that is written left to the TextIter."""
     left_text = _get_left_text(iter_)
 
@@ -98,7 +96,7 @@ def get_incomplete_parameter(iter_: Gtk.TextIter) -> Optional[str]:
     return match[1]
 
 
-def propose_symbols(text_iter: Gtk.TextIter, codes: List[int]) -> List[Tuple[str, str]]:
+def propose_symbols(text_iter: Gtk.TextIter, codes: list[int]) -> list[tuple[str, str]]:
     """Find key names that match the input at the cursor and are mapped to the codes."""
     incomplete_name = get_incomplete_parameter(text_iter)
 
@@ -116,7 +114,7 @@ def propose_symbols(text_iter: Gtk.TextIter, codes: List[int]) -> List[Tuple[str
     ]
 
 
-def propose_function_names(text_iter: Gtk.TextIter) -> List[Tuple[str, str]]:
+def propose_function_names(text_iter: Gtk.TextIter) -> list[tuple[str, str]]:
     """Find function names that match the input at the cursor."""
     incomplete_name = get_incomplete_function_name(text_iter)
 
@@ -129,7 +127,7 @@ def propose_function_names(text_iter: Gtk.TextIter) -> List[Tuple[str, str]]:
     # - ("key", "key(symbol)")
     # - ("repeat", "repeat(repeats, macro)")
     # etc.
-    function_names: List[Tuple[str, str]] = []
+    function_names: list[tuple[str, str]] = []
 
     for name in FUNCTION_NAMES:
         if incomplete_name in name.lower() and incomplete_name != name.lower():
@@ -157,7 +155,7 @@ class Autocompletion(Gtk.Popover):
     """
 
     __gtype_name__ = "Autocompletion"
-    _target_uinput: Optional[str] = None
+    _target_uinput: str | None = None
 
     def __init__(
         self,
@@ -185,8 +183,8 @@ class Autocompletion(Gtk.Popover):
         self.code_editor = code_editor
         self.controller = controller
         self.message_broker = message_broker
-        self._uinputs: Optional[Dict[str, Capabilities]] = None
-        self._target_key_capabilities: List[int] = []
+        self._uinputs: dict[str, Capabilities] | None = None
+        self._target_key_capabilities: list[int] = []
 
         self.scrolled_window = Gtk.ScrolledWindow(
             min_content_width=200,

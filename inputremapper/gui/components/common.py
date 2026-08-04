@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -23,13 +22,9 @@
 
 from __future__ import annotations
 
-
 from gi.repository import Gtk
 
-from typing import Optional
-
 from inputremapper.configs.mapping import MappingData
-
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -52,7 +47,7 @@ class FlowBoxEntry(Gtk.ToggleButton):
         message_broker: MessageBroker,
         controller: Controller,
         name: str,
-        icon_name: Optional[str] = None,
+        icon_name: str | None = None,
     ):
         super().__init__()
         self.icon_name = icon_name
@@ -106,7 +101,7 @@ class FlowBoxWrapper:
     def __init__(self, flowbox: Gtk.FlowBox):
         self._gui = flowbox
 
-    def show_active_entry(self, name: Optional[str]):
+    def show_active_entry(self, name: str | None):
         """Activate the togglebutton that matches the name."""
         for child in self._gui.get_children():
             flow_box_entry: FlowBoxEntry = child.get_children()[0]

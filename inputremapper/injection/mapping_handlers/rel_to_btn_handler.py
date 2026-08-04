@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -19,7 +18,6 @@
 
 import asyncio
 import time
-from typing import List
 
 import evdev
 from evdev.ecodes import EV_REL
@@ -30,7 +28,7 @@ from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
 )
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import EventActions, InputEvent
 from inputremapper.logging.logger import logger
 
 
@@ -66,9 +64,9 @@ class RelToBtnHandler(MappingHandler):
         return f'RelToBtnHandler for "{self._input_config}"'
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return [self._sub_handler]
 
     async def _stage_release(

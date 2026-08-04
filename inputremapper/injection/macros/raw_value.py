@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -19,7 +18,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
-from typing import Union
 
 from inputremapper.injection.macros.macro import Macro
 
@@ -32,4 +30,4 @@ class RawValue:
     Child-macros are passed as Macro objects though.
     """
 
-    value: Union[str, Macro]
+    value: str | Macro

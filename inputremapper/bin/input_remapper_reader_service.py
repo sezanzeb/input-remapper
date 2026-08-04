@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -30,7 +29,7 @@ from argparse import ArgumentParser
 from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.groups import _Groups
 from inputremapper.gui.reader_service import ReaderService
-from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
+from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from inputremapper.logging.logger import logger
 
 

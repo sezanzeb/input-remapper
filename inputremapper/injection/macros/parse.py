@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -23,7 +22,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, Any, Type, TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.macro import Macro
@@ -34,7 +33,7 @@ from inputremapper.injection.macros.tasks.event import EventTask
 from inputremapper.injection.macros.tasks.hold import HoldTask
 from inputremapper.injection.macros.tasks.hold_keys import HoldKeysTask
 from inputremapper.injection.macros.tasks.if_eq import IfEqTask
-from inputremapper.injection.macros.tasks.if_led import IfNumlockTask, IfCapslockTask
+from inputremapper.injection.macros.tasks.if_led import IfCapslockTask, IfNumlockTask
 from inputremapper.injection.macros.tasks.if_single import IfSingleTask
 from inputremapper.injection.macros.tasks.if_tap import IfTapTask
 from inputremapper.injection.macros.tasks.ifeq import DeprecatedIfEqTask
@@ -44,8 +43,8 @@ from inputremapper.injection.macros.tasks.key_up import KeyUpTask
 from inputremapper.injection.macros.tasks.mod_tap import ModTapTask
 from inputremapper.injection.macros.tasks.modify import ModifyTask
 from inputremapper.injection.macros.tasks.mouse import MouseTask
-from inputremapper.injection.macros.tasks.parallel import ParallelTask
 from inputremapper.injection.macros.tasks.mouse_xy import MouseXYTask
+from inputremapper.injection.macros.tasks.parallel import ParallelTask
 from inputremapper.injection.macros.tasks.repeat import RepeatTask
 from inputremapper.injection.macros.tasks.set import SetTask
 from inputremapper.injection.macros.tasks.toggle import ToggleTask
@@ -54,8 +53,8 @@ from inputremapper.injection.macros.tasks.wheel import WheelTask
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
-    from inputremapper.injection.context import Context
     from inputremapper.configs.mapping import Mapping
+    from inputremapper.injection.context import Context
 
 
 class Parser:
@@ -188,8 +187,8 @@ class Parser:
 
     @staticmethod
     def _validate_keyword_argument_names(
-        keyword_args: Dict[str, Any],
-        task_class: Type[Task],
+        keyword_args: dict[str, Any],
+        task_class: type[Task],
     ) -> None:
         for keyword_arg in keyword_args:
             for argument in task_class.argument_configs:
@@ -201,10 +200,10 @@ class Parser:
     @staticmethod
     def _parse_recurse(
         code: str,
-        context: Optional[Context],
+        context: Context | None,
         mapping: Mapping,
         verbose: bool,
-        macro_instance: Optional[Macro] = None,
+        macro_instance: Macro | None = None,
         depth: int = 0,
     ) -> RawValue:
         """Handle a subset of the macro, e.g. one parameter or function call.
@@ -274,8 +273,8 @@ class Parser:
         raw_string_args = Parser._extract_args(inner)
 
         # parse and sort the params
-        positional_args: List[RawValue] = []
-        keyword_args: Dict[str, RawValue] = {}
+        positional_args: list[RawValue] = []
+        keyword_args: dict[str, RawValue] = {}
         for param in raw_string_args:
             key, value = Parser._split_keyword_arg(param)
             parsed = Parser._parse_recurse(
@@ -358,8 +357,8 @@ class Parser:
     def _validate_num_args(
         code: str,
         task_name: str,
-        task_class: Type[Task],
-        raw_string_args: List[str],
+        task_class: type[Task],
+        raw_string_args: list[str],
     ) -> None:
         min_args, max_args = task_class.get_num_parameters()
         num_provided_args = len(raw_string_args)

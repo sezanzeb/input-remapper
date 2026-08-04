@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -22,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Any, Union, List, Literal, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal
 
 from evdev._ecodes import EV_KEY
 
@@ -36,8 +35,8 @@ from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.variable import Variable
 
 if TYPE_CHECKING:
-    from inputremapper.injection.macros.raw_value import RawValue
     from inputremapper.configs.mapping import Mapping
+    from inputremapper.injection.macros.raw_value import RawValue
 
 
 class ArgumentFlags(Enum):
@@ -52,9 +51,9 @@ class ArgumentFlags(Enum):
 class ArgumentConfig:
     """Definition what kind of arguments a task may take."""
 
-    position: Union[int, Literal[ArgumentFlags.spread]]
+    position: int | Literal[ArgumentFlags.spread]
     name: str
-    types: List[Optional[Type]]
+    types: list[type | None]
     is_symbol: bool = False
     default: Any = ArgumentFlags.required
 
@@ -75,13 +74,13 @@ class ArgumentConfig:
 class Argument(ArgumentConfig):
     """Validation of variables and access to their value for Tasks during runtime."""
 
-    _variable: Optional[Variable] = None
+    _variable: Variable | None = None
 
     # If the position is set to ArgumentFlags.spread, then _variables will be filled
     # with all remaining positional arguments that were passed to a task.
-    _variables: List[Variable]
+    _variables: list[Variable]
 
-    _mapping: Optional[Mapping] = None
+    _mapping: Mapping | None = None
 
     def __init__(
         self,
@@ -104,7 +103,7 @@ class Argument(ArgumentConfig):
         self._mapping = mapping
         self._variables = []
 
-    def initialize_variables(self, raw_values: List[RawValue]) -> None:
+    def initialize_variables(self, raw_values: list[RawValue]) -> None:
         """If the macro is supposed to contain multiple variables, set them.
         Should be done during parsing."""
         assert len(self._variables) == 0
@@ -148,7 +147,7 @@ class Argument(ArgumentConfig):
 
         return value
 
-    def get_values(self) -> List[Any]:
+    def get_values(self) -> list[Any]:
         """To ask for the current values of the variables during runtime."""
         assert self.is_spread(), f"Use .{self.get_value.__name__}()"
 
@@ -304,7 +303,7 @@ class Argument(ArgumentConfig):
             return False
 
     def _type_error_factory(self, value: Any) -> MacroError:
-        formatted_types: List[str] = []
+        formatted_types: list[str] = []
 
         for type_ in self.types:
             if type_ is None:

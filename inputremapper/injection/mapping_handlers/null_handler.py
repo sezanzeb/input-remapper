@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -17,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, List
 
 import evdev
 
@@ -35,7 +33,7 @@ class NullHandler(MappingHandler):
     def __str__(self):
         return f"NullHandler for {self.mapping.input_combination}<{id(self)}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return []
 
     def needs_wrapping(self) -> bool:
@@ -43,7 +41,7 @@ class NullHandler(MappingHandler):
             input_.defines_analog_input for input_ in self.mapping.input_combination
         ]
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         if not self.mapping.input_combination.defines_analog_input:
             return {self.mapping.input_combination: HandlerEnums.combination}
 

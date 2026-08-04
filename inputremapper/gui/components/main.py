@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -30,7 +29,7 @@ from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_data import StatusData, DoStackSwitch
+from inputremapper.gui.messages.message_data import DoStackSwitch, StatusData
 from inputremapper.gui.utils import CTX_ERROR, CTX_MAPPING, CTX_WARNING
 
 

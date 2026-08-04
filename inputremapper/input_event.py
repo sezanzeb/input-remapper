@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -20,13 +19,14 @@
 from __future__ import annotations
 
 import enum
+from collections.abc import Hashable
 from dataclasses import dataclass
-from typing import Tuple, Optional, Hashable, Literal
+from typing import Literal
 
 import evdev
 from evdev import ecodes
 
-from inputremapper.utils import get_evdev_constant_name, DeviceHash
+from inputremapper.utils import DeviceHash, get_evdev_constant_name
 
 
 class EventActions(enum.Enum):
@@ -55,10 +55,10 @@ class InputEvent:
     # (They need types for the dataclass to allow them in the constructor)
     pressed: bool | None = None  # haven't figured out yet, depends on threshold config
     direction: int = 1  # -1 for joystick left, +1 for joystick right and buttons
-    actions: Tuple[EventActions, ...] = ()
-    origin_hash: Optional[DeviceHash] = None
+    actions: tuple[EventActions, ...] = ()
+    origin_hash: DeviceHash | None = None
 
-    def __eq__(self, other: InputEvent | evdev.InputEvent | Tuple[int, int, int]):
+    def __eq__(self, other: InputEvent | evdev.InputEvent | tuple[int, int, int]):
         # useful in tests
         if isinstance(other, InputEvent) or isinstance(other, evdev.InputEvent):
             return self.event_tuple == (other.type, other.code, other.value)
@@ -109,7 +109,7 @@ class InputEvent:
     def from_event(
         cls,
         event: evdev.InputEvent,
-        origin_hash: Optional[DeviceHash] = None,
+        origin_hash: DeviceHash | None = None,
     ) -> InputEvent:
         """Create a InputEvent from another InputEvent or evdev.InputEvent."""
         try:
@@ -129,8 +129,8 @@ class InputEvent:
     @classmethod
     def from_tuple(
         cls,
-        event_tuple: Tuple[int, int, int],
-        origin_hash: Optional[DeviceHash] = None,
+        event_tuple: tuple[int, int, int],
+        origin_hash: DeviceHash | None = None,
     ) -> InputEvent:
         """Create a InputEvent from a (type, code, value) tuple."""
         # use this as rarely as possible. Construct objects early on and pass them
@@ -152,7 +152,7 @@ class InputEvent:
         )
 
     @classmethod
-    def abs(cls, code: int, value: int, origin_hash: Optional[DeviceHash] = None):
+    def abs(cls, code: int, value: int, origin_hash: DeviceHash | None = None):
         """Create an abs event, like joystick movements."""
         return cls.validate_event(
             cls(
@@ -166,7 +166,7 @@ class InputEvent:
         )
 
     @classmethod
-    def rel(cls, code: int, value: int, origin_hash: Optional[str] = None):
+    def rel(cls, code: int, value: int, origin_hash: str | None = None):
         """Create a rel event, like mouse movements."""
         return cls.validate_event(
             cls(
@@ -180,7 +180,7 @@ class InputEvent:
         )
 
     @classmethod
-    def key(cls, code: int, value: Literal[0, 1], origin_hash: Optional[str] = None):
+    def key(cls, code: int, value: Literal[0, 1], origin_hash: str | None = None):
         """Create a key event, like keyboard keys or gamepad buttons.
 
         A value of 1 means "press", a value of 0 means "release".
@@ -197,12 +197,12 @@ class InputEvent:
         )
 
     @property
-    def type_and_code(self) -> Tuple[int, int]:
+    def type_and_code(self) -> tuple[int, int]:
         """Event type, code."""
         return self.type, self.code
 
     @property
-    def event_tuple(self) -> Tuple[int, int, int]:
+    def event_tuple(self) -> tuple[int, int, int]:
         """Event type, code, value."""
         return self.type, self.code, self.value
 
@@ -232,7 +232,7 @@ class InputEvent:
         return f"InputEvent for {self.event_tuple} {name}"
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
     def timestamp(self):
         """Return the unix timestamp of when the event was seen."""
@@ -240,15 +240,15 @@ class InputEvent:
 
     def modify(
         self,
-        sec: Optional[int] = None,
-        usec: Optional[int] = None,
-        type_: Optional[int] = None,
-        code: Optional[int] = None,
-        value: Optional[int] = None,
-        pressed: Optional[bool] = None,
-        direction: Optional[int] = None,
-        actions: Optional[Tuple[EventActions, ...]] = None,
-        origin_hash: Optional[str] = None,
+        sec: int | None = None,
+        usec: int | None = None,
+        type_: int | None = None,
+        code: int | None = None,
+        value: int | None = None,
+        pressed: bool | None = None,
+        direction: int | None = None,
+        actions: tuple[EventActions, ...] | None = None,
+        origin_hash: str | None = None,
     ) -> InputEvent:
         """Return a new modified event."""
         return InputEvent(

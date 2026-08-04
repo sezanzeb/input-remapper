@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -26,8 +25,6 @@
 # pydantic only catches ValueError, TypeError, and AssertionError
 
 from __future__ import annotations
-
-from typing import Optional
 
 from evdev.ecodes import EV_KEY
 
@@ -119,7 +116,7 @@ class MissingOutputAxisError(ValueError):
 class MacroError(ValueError):
     """Macro syntax errors."""
 
-    def __init__(self, symbol: Optional[str] = None, msg="Error while parsing a macro"):
+    def __init__(self, symbol: str | None = None, msg="Error while parsing a macro"):
         self.symbol = symbol
         super().__init__(msg)
 

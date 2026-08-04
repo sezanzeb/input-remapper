@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -19,7 +18,8 @@
 
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
-from typing import TYPE_CHECKING, Dict, Hashable, Tuple, List
+from collections.abc import Hashable
+from typing import TYPE_CHECKING
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -28,8 +28,8 @@ from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
@@ -42,13 +42,13 @@ class CombinationHandler(MappingHandler):
     """Keeps track of a combination and notifies a sub handler."""
 
     # map of InputEvent.input_match_hash -> bool , keep track of the combination state
-    _pressed_keys: Dict[Hashable, bool]
+    _pressed_keys: dict[Hashable, bool]
     # the last update we sent to a sub-handler. If this is true, the output key is
     # still being held down.
     _output_previously_active: bool
     _sub_handler: MappingHandler
     _handled_input_hashes: list[Hashable]
-    _requires_a_release: Dict[Tuple[int, int], bool]
+    _requires_a_release: dict[tuple[int, int], bool]
 
     def __init__(
         self,
@@ -78,18 +78,18 @@ class CombinationHandler(MappingHandler):
 
     def __str__(self):
         return (
-            f'CombinationHandler for "{str(self.mapping.input_combination)}" '
+            f'CombinationHandler for "{self.mapping.input_combination!s}" '
             f"{tuple(t for t in self._pressed_keys.keys())}"
         )
 
     def __repr__(self):
         description = (
-            f'CombinationHandler for "{repr(self.mapping.input_combination)}" '
+            f'CombinationHandler for "{self.mapping.input_combination!r}" '
             f"{tuple(t for t in self._pressed_keys.keys())}"
         )
         return f"<{description} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return [self._sub_handler]
 
     def notify(
@@ -243,7 +243,7 @@ class CombinationHandler(MappingHandler):
             origin_hash = input_config.origin_hash
             if origin_hash is None:
                 logger.error(
-                    f"Can't forward due to missing origin_hash in {repr(input_config)}"
+                    f"Can't forward due to missing origin_hash in {input_config!r}"
                 )
                 continue
 
@@ -263,7 +263,7 @@ class CombinationHandler(MappingHandler):
             [event for event in self.input_configs if not event.defines_analog_input]
         )
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         return_dict = {}
         for config in self.input_configs:
             if config.type == EV_ABS and not config.defines_analog_input:

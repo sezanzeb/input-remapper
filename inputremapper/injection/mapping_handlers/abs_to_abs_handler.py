@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -17,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, Optional, Dict, List
 
 import evdev
 from evdev.ecodes import EV_ABS
@@ -31,7 +29,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
     MappingHandler,
 )
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import EventActions, InputEvent
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
@@ -40,8 +38,8 @@ class AbsToAbsHandler(MappingHandler):
     """Handler which transforms EV_ABS to EV_ABS events."""
 
     _map_axis: InputConfig  # the InputConfig for the axis we map
-    _output_axis: Tuple[int, int]  # the (type, code) of the output axis
-    _transform: Optional[Transformation]
+    _output_axis: tuple[int, int]  # the (type, code) of the output axis
+    _transform: Transformation | None
     _target_absinfo: evdev.AbsInfo
 
     def __init__(
@@ -79,9 +77,9 @@ class AbsToAbsHandler(MappingHandler):
         )
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return []
 
     def notify(
@@ -146,7 +144,7 @@ class AbsToAbsHandler(MappingHandler):
     def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False  # cannot have a sub-handler
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         if self.needs_wrapping():
             return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -23,10 +22,9 @@ from __future__ import annotations
 import copy
 import json
 import os
-from typing import Optional
 
 from inputremapper.configs.paths import PathUtils
-from inputremapper.logging.logger import logger, VERSION
+from inputremapper.logging.logger import VERSION, logger
 from inputremapper.user import UserUtils
 
 MOUSE = "mouse"
@@ -51,12 +49,12 @@ class GlobalConfig:
         """The folder containing this config."""
         return os.path.split(self.path)[0]
 
-    def get_autoload_preset(self, group_key: str) -> Optional[str]:
+    def get_autoload_preset(self, group_key: str) -> str | None:
         # modifications are only allowed via the setter, because it needs to write
         # the config file too. Therefore return a copy to prevent inconsistencies.
         return copy.deepcopy(self._config["autoload"].get(group_key))
 
-    def set_autoload_preset(self, group_key: str, preset: Optional[str]):
+    def set_autoload_preset(self, group_key: str, preset: str | None):
         """Set a preset to be automatically applied on start.
 
         Parameters
@@ -80,14 +78,14 @@ class GlobalConfig:
         """Get tuples of (device, preset)."""
         return self._config.get("autoload", {}).items()
 
-    def is_autoloaded(self, group_key: Optional[str], preset: Optional[str]):
+    def is_autoloaded(self, group_key: str | None, preset: str | None):
         """Should this preset be loaded automatically?"""
         if group_key is None or preset is None:
             raise ValueError("Expected group_key and preset to not be None")
 
         return self._config.get("autoload", {}).get(group_key) == preset
 
-    def load_config(self, path: Optional[str] = None):
+    def load_config(self, path: str | None = None):
         """Load the config from the file system.
         Parameters
         ----------

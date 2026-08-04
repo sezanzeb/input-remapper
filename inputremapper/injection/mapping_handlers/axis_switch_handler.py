@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -17,20 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Tuple, Hashable, List
+from collections.abc import Hashable
 
 import evdev
 
-from inputremapper.configs.input_config import InputCombination
-from inputremapper.configs.input_config import InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
+    ContextProtocol,
     HandlerEnums,
     MappingHandler,
-    ContextProtocol,
 )
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import EventActions, InputEvent
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_device_hash
 
@@ -50,7 +48,7 @@ class AxisSwitchHandler(MappingHandler):
     """
 
     _map_axis: InputConfig  # the InputConfig for the axis we switch on or off
-    _trigger_keys: Tuple[Hashable, ...]  # all events that can switch the axis
+    _trigger_keys: tuple[Hashable, ...]  # all events that can switch the axis
     _active: bool  # whether the axis is on or off
     _last_value: int  # the value of the last axis event that arrived
     _axis_source: evdev.InputDevice  # the cached source of the axis input events
@@ -87,9 +85,9 @@ class AxisSwitchHandler(MappingHandler):
         return f"AxisSwitchHandler for {self._map_axis.type_and_code}"
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return [self._sub_handler]
 
     def _handle_key_input(self, event: InputEvent):
@@ -183,7 +181,7 @@ class AxisSwitchHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return True
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         combination = [
             config for config in self.input_configs if not config.defines_analog_input
         ]

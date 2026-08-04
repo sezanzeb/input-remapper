@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -24,23 +23,24 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import List, Optional, Dict, Union, Callable, Literal, Set
+from collections.abc import Callable
+from typing import Literal
 
 import cairo
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    EV_REL,
+    BTN_EXTRA,
     BTN_LEFT,
     BTN_MIDDLE,
     BTN_RIGHT,
-    BTN_EXTRA,
     BTN_SIDE,
+    EV_ABS,
+    EV_KEY,
+    EV_REL,
 )
-from gi.repository import Gtk, GtkSource, Gdk
+from gi.repository import Gdk, Gtk, GtkSource
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.keyboard_layout import keyboard_layout, XKB_KEYCODE_OFFSET
+from inputremapper.configs.keyboard_layout import XKB_KEYCODE_OFFSET, keyboard_layout
 from inputremapper.configs.mapping import MappingData, MappingType
 from inputremapper.groups import DeviceType
 from inputremapper.gui.components.output_type_names import OutputTypeNames
@@ -51,16 +51,16 @@ from inputremapper.gui.messages.message_broker import (
     MessageType,
 )
 from inputremapper.gui.messages.message_data import (
-    UInputsData,
-    PresetData,
     CombinationUpdate,
+    PresetData,
+    UInputsData,
 )
-from inputremapper.gui.utils import HandlerDisabled, Colors
+from inputremapper.gui.utils import Colors, HandlerDisabled
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_evdev_constant_name
 
-Capabilities = Dict[int, List]
+Capabilities = dict[int, list]
 
 SET_KEY_FIRST = _("Record the input first")
 
@@ -90,7 +90,7 @@ class TargetSelection:
     For example "keyboard" or "gamepad".
     """
 
-    _mapping: Optional[MappingData] = None
+    _mapping: MappingData | None = None
 
     def __init__(
         self,
@@ -189,7 +189,7 @@ class MappingListBox:
                 if row.combination == combination:
                     self._gui.select_row(row)
 
-    def _on_gtk_mapping_selected(self, _, row: Optional[MappingSelectionLabel]):
+    def _on_gtk_mapping_selected(self, _, row: MappingSelectionLabel | None):
         if not row:
             return
         self._controller.load_mapping(row.combination)
@@ -204,7 +204,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        name: Optional[str],
+        name: str | None,
         combination: InputCombination,
     ):
         super().__init__()
@@ -329,8 +329,8 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
 class GdkEventRecorder:
     """Records events delivered by GDK, similar to the ReaderService/ReaderClient."""
 
-    _combination: List[int]
-    _pressed: Set[int]
+    _combination: list[int]
+    _pressed: set[int]
 
     __gtype_name__ = "GdkEventRecorder"
 
@@ -546,8 +546,8 @@ class RequireActiveMapping:
         self._default_tooltip = self._widget.get_tooltip_text()
         self._require_recorded_input = require_recorded_input
 
-        self._active_preset: Optional[PresetData] = None
-        self._active_mapping: Optional[MappingData] = None
+        self._active_preset: PresetData | None = None
+        self._active_mapping: MappingData | None = None
 
         message_broker.subscribe(MessageType.preset, self._on_preset)
         message_broker.subscribe(MessageType.mapping, self._on_mapping)
@@ -765,7 +765,7 @@ class CombinationListbox:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = listbox
-        self._combination: Optional[InputCombination] = None
+        self._combination: InputCombination | None = None
 
         self._message_broker.subscribe(
             MessageType.mapping,
@@ -821,7 +821,7 @@ class AnalogInputSwitch:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = gui
-        self._input_config: Optional[InputConfig] = None
+        self._input_config: InputConfig | None = None
 
         self._gui.connect("state-set", self._on_gtk_toggle)
         self._message_broker.subscribe(MessageType.selected_event, self._on_event)
@@ -855,7 +855,7 @@ class TriggerThresholdInput:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = gui
-        self._input_config: Optional[InputConfig] = None
+        self._input_config: InputConfig | None = None
 
         self._gui.set_increments(1, 1)
         self._gui.connect("value-changed", self._on_gtk_changed)
@@ -969,10 +969,10 @@ class OutputAxisSelector:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = gui
-        self._uinputs: Dict[str, Capabilities] = {}
+        self._uinputs: dict[str, Capabilities] = {}
         self.model = Gtk.ListStore(str, str)
 
-        self._current_target: Optional[str] = None
+        self._current_target: str | None = None
 
         self._gui.set_model(self.model)
         renderer_text = Gtk.CellRendererText()
@@ -984,7 +984,7 @@ class OutputAxisSelector:
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
         self._message_broker.subscribe(MessageType.uinputs, self._on_uinputs_message)
 
-    def _set_model(self, target: Optional[str]):
+    def _set_model(self, target: str | None):
         if target == self._current_target:
             return
 
@@ -1099,7 +1099,7 @@ class TransformationDrawArea:
         self._controller = controller
         self._gui = gui
 
-        self._transformation: Callable[[Union[float, int]], float] = lambda x: x
+        self._transformation: Callable[[float | int], float] = lambda x: x
 
         self._gui.connect("draw", self._on_gtk_draw)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)

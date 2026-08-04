@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -33,9 +32,9 @@ from inputremapper.gui.messages.message_broker import (
     MessageType,
 )
 from inputremapper.gui.messages.message_data import (
+    DoStackSwitch,
     GroupData,
     PresetData,
-    DoStackSwitch,
 )
 from inputremapper.logging.logger import logger
 

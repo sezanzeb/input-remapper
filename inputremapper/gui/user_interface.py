@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -20,9 +19,9 @@
 
 """User Interface."""
 
-from typing import Dict, Callable
+from collections.abc import Callable
 
-from gi.repository import Gtk, GtkSource, Gdk, GObject
+from gi.repository import Gdk, GObject, Gtk, GtkSource
 
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.input_config import InputCombination
@@ -31,24 +30,24 @@ from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components.common import Breadcrumbs
 from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.components.editor import (
-    MappingListBox,
-    TargetSelection,
-    CodeEditor,
-    RecordingToggle,
-    RecordingStatus,
-    AutoloadSwitch,
-    ReleaseCombinationSwitch,
-    CombinationListbox,
     AnalogInputSwitch,
-    TriggerThresholdInput,
-    OutputAxisSelector,
-    ReleaseTimeoutInput,
-    TransformationDrawArea,
-    Sliders,
-    RelativeInputCutoffInput,
-    KeyAxisStackSwitcher,
-    RequireActiveMapping,
+    AutoloadSwitch,
+    CodeEditor,
+    CombinationListbox,
     GdkEventRecorder,
+    KeyAxisStackSwitcher,
+    MappingListBox,
+    OutputAxisSelector,
+    RecordingStatus,
+    RecordingToggle,
+    RelativeInputCutoffInput,
+    ReleaseCombinationSwitch,
+    ReleaseTimeoutInput,
+    RequireActiveMapping,
+    Sliders,
+    TargetSelection,
+    TransformationDrawArea,
+    TriggerThresholdInput,
 )
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.presets import PresetSelection
@@ -64,7 +63,7 @@ from inputremapper.gui.utils import (
     gtk_iteration,
 )
 from inputremapper.injection.injector import InjectorStateMessage
-from inputremapper.logging.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
+from inputremapper.logging.logger import COMMIT_HASH, EVDEV_VERSION, VERSION, logger
 
 # https://cjenkins.wordpress.com/2012/05/08/use-gtksourceview-widget-in-glade/
 GObject.type_register(GtkSource.View)
@@ -90,7 +89,7 @@ class UserInterface:
         self.controller = controller
 
         # all shortcuts executed when ctrl+...
-        self.shortcuts: Dict[int, Callable] = {
+        self.shortcuts: dict[int, Callable] = {
             Gdk.KEY_q: self.controller.close,
             Gdk.KEY_r: self.controller.refresh_groups,
             Gdk.KEY_Delete: self.controller.stop_injecting,
@@ -98,7 +97,7 @@ class UserInterface:
         }
 
         # stores the ids for all the listeners attached to the gui
-        self.gtk_listeners: Dict[Callable, int] = {}
+        self.gtk_listeners: dict[Callable, int] = {}
 
         self.message_broker.subscribe(MessageType.terminate, lambda _: self.close())
 

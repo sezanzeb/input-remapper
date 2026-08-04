@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -55,7 +54,6 @@ import os
 import select
 import socket
 import time
-from typing import Union
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.logging.logger import logger
@@ -127,7 +125,7 @@ class Base:
                     if attempts == 2 or not self.reconnect():
                         return
 
-            except (socket.timeout, BlockingIOError):
+            except (TimeoutError, BlockingIOError):
                 break
 
         split = messages.split(END)
@@ -165,7 +163,7 @@ class Base:
         self._receive_new_messages()
         return len(self._unread) > 0
 
-    def send(self, message: Union[str, int, float, dict, list, tuple]):
+    def send(self, message: str | float | dict | list | tuple):
         """Send json-serializable messages."""
         dump = bytes(json.dumps((time.time(), message)), ENCODING)
         self.unsent.append(dump)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -29,21 +28,22 @@ import json
 import os
 import re
 import shutil
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, Tuple, Dict, List, Optional, TypedDict
+from typing import TypedDict
 
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    EV_REL,
-    ABS_X,
-    ABS_Y,
     ABS_RX,
     ABS_RY,
+    ABS_X,
+    ABS_Y,
+    EV_ABS,
+    EV_KEY,
+    EV_REL,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL_HI_RES,
     REL_X,
     REL_Y,
-    REL_WHEEL_HI_RES,
-    REL_HWHEEL_HI_RES,
 )
 from packaging import version
 
@@ -54,15 +54,15 @@ from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import Parser
-from inputremapper.logging.logger import logger, VERSION
+from inputremapper.logging.logger import VERSION, logger
 from inputremapper.user import UserUtils
 
 
 class Config(TypedDict):
-    input_combination: Optional[InputCombination]
+    input_combination: InputCombination | None
     target_uinput: str
     output_type: int
-    output_code: Optional[int]
+    output_code: int | None
 
 
 class Migrations:
@@ -105,7 +105,7 @@ class Migrations:
 
     def all_presets(
         self,
-    ) -> Iterator[Tuple[os.PathLike, Dict | List]]:
+    ) -> Iterator[tuple[os.PathLike, dict | list]]:
         """Get all presets for all groups as list."""
         if not os.path.exists(PathUtils.get_preset_path()):
             return
@@ -513,4 +513,3 @@ class Migrations:
         except Exception as error:
             logger.debug("Failed to remove deprecated logfiles: %s", str(error))
             # this migration is not important. Continue
-            pass

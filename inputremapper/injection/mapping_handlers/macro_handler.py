@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -19,7 +18,7 @@
 
 import asyncio
 import traceback
-from typing import Dict, Callable, Tuple, List
+from collections.abc import Callable
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
@@ -51,7 +50,7 @@ class MacroHandler(MappingHandler):
         context: ContextProtocol,
     ):
         super().__init__(combination, mapping, global_uinputs)
-        self._pressed_keys: Dict[Tuple[int, int], int] = {}
+        self._pressed_keys: dict[tuple[int, int], int] = {}
         self._active = False
         assert self.mapping.output_symbol is not None
         self._macro = Parser.parse(self.mapping.output_symbol, context, mapping)
@@ -60,9 +59,9 @@ class MacroHandler(MappingHandler):
         return f"MacroHandler maps to {self._macro} on {self.mapping.target_uinput}"
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return []
 
     async def run_macro(self, handler: Callable):
@@ -113,9 +112,9 @@ class MacroHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return True
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         return {InputCombination(self.input_configs): HandlerEnums.combination}
 
-    def _remember_pressed_keys(self, event: Tuple[int, int, int]) -> None:
+    def _remember_pressed_keys(self, event: tuple[int, int, int]) -> None:
         type, code, value = event
         self._pressed_keys[(type, code)] = value

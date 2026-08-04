@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -23,15 +22,10 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Iterator
 from typing import (
-    Tuple,
-    Dict,
-    List,
-    Optional,
-    Iterator,
-    Type,
-    TypeVar,
     Generic,
+    TypeVar,
     overload,
 )
 
@@ -50,27 +44,27 @@ class Preset(Generic[MappingModel]):
 
     # workaround for typing: https://github.com/python/mypy/issues/4236
     @overload
-    def __init__(self: Preset[Mapping], path: Optional[os.PathLike] = None): ...
+    def __init__(self: Preset[Mapping], path: os.PathLike | None = None): ...
 
     @overload
     def __init__(
         self,
-        path: Optional[os.PathLike] = None,
-        mapping_factory: Type[MappingModel] = ...,
+        path: os.PathLike | None = None,
+        mapping_factory: type[MappingModel] = ...,
     ): ...
 
     def __init__(
         self,
-        path: Optional[os.PathLike] = None,
+        path: os.PathLike | None = None,
         mapping_factory=Mapping,
     ) -> None:
-        self._mappings: Dict[InputCombination, MappingModel] = {}
+        self._mappings: dict[InputCombination, MappingModel] = {}
         # a copy of mappings for keeping track of changes
-        self._saved_mappings: Dict[InputCombination, MappingModel] = {}
-        self._path: Optional[os.PathLike] = path
+        self._saved_mappings: dict[InputCombination, MappingModel] = {}
+        self._path: os.PathLike | None = path
 
         # the mapping class which is used by load()
-        self._mapping_factory: Type[MappingModel] = mapping_factory
+        self._mapping_factory: type[MappingModel] = mapping_factory
 
     def __iter__(self) -> Iterator[MappingModel]:
         """Iterate over Mapping objects."""
@@ -108,7 +102,6 @@ class Preset(Generic[MappingModel]):
                 "unable to remove non-existing mapping with combination = %s",
                 combination,
             )
-            pass
 
     def add(self, mapping: MappingModel) -> None:
         """Add a mapping to the preset."""
@@ -215,8 +208,8 @@ class Preset(Generic[MappingModel]):
         return False not in [mapping.is_valid() for mapping in self]
 
     def get_mapping(
-        self, combination: Optional[InputCombination]
-    ) -> Optional[MappingModel]:
+        self, combination: InputCombination | None
+    ) -> MappingModel | None:
         """Return the Mapping that is mapped to this InputCombination."""
         if not combination:
             return None
@@ -239,7 +232,7 @@ class Preset(Generic[MappingModel]):
         ]:
             return False
 
-        values: List[str | Tuple[int, int] | None] = []
+        values: list[str | tuple[int, int] | None] = []
         for mapping in self:
             if mapping.output_symbol is None:
                 continue
@@ -268,8 +261,8 @@ class Preset(Generic[MappingModel]):
             return
         self._saved_mappings = self._get_mappings_from_disc()
 
-    def _get_mappings_from_disc(self) -> Dict[InputCombination, MappingModel]:
-        mappings: Dict[InputCombination, MappingModel] = {}
+    def _get_mappings_from_disc(self) -> dict[InputCombination, MappingModel]:
+        mappings: dict[InputCombination, MappingModel] = {}
         if not self.path:
             logger.debug("unable to read preset without a path set Preset.path first")
             return mappings
@@ -308,17 +301,17 @@ class Preset(Generic[MappingModel]):
         return mappings
 
     @property
-    def path(self) -> Optional[os.PathLike]:
+    def path(self) -> os.PathLike | None:
         return self._path
 
     @path.setter
-    def path(self, path: Optional[os.PathLike]):
+    def path(self, path: os.PathLike | None):
         if path != self.path:
             self._path = path
             self._update_saved_mappings()
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """The name of the preset."""
         if self.path:
             return os.path.basename(self.path).split(".")[0]

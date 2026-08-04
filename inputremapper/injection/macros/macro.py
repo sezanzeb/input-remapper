@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -22,16 +21,17 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List, Callable, Optional, TYPE_CHECKING
 import multiprocessing
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
-    from inputremapper.injection.macros.task import Task
-    from inputremapper.injection.context import Context
     from inputremapper.configs.mapping import Mapping
+    from inputremapper.injection.context import Context
+    from inputremapper.injection.macros.task import Task
 
 InjectEventCallback = Callable[[int, int, int], None]
 
@@ -52,9 +52,9 @@ class Macro:
 
     def __init__(
         self,
-        code: Optional[str],
-        context: Optional[Context] = None,
-        mapping: Optional[Mapping] = None,
+        code: str | None,
+        context: Context | None = None,
+        mapping: Mapping | None = None,
     ):
         """Create a macro instance that can be populated with tasks.
 
@@ -71,7 +71,7 @@ class Macro:
 
         # List of coroutines that will be called sequentially.
         # This is the compiled code
-        self.tasks: List[Task] = []
+        self.tasks: list[Task] = []
 
         self.running = False
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -23,12 +22,13 @@ from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import logging
 import time
-from typing import cast, Type, TYPE_CHECKING, List, Tuple
-from evdev.ecodes import EV_ABS, EV_KEY, EV_REL, ABS_HAT0X, ABS_HAT0Y
+from typing import TYPE_CHECKING, cast
+
+from evdev.ecodes import ABS_HAT0X, ABS_HAT0Y, EV_ABS, EV_KEY, EV_REL
 
 from inputremapper.input_event import InputEvent
+from inputremapper.installation_info import COMMIT_HASH, VERSION
 from inputremapper.logging.formatter import ColorfulFormatter
-from inputremapper.installation_info import VERSION, COMMIT_HASH
 
 if TYPE_CHECKING:
     from inputremapper.injection.mapping_handler import MappingHandler
@@ -95,7 +95,7 @@ class Logger(logging.Logger):
         self,
         mapping_handler: MappingHandler,
         indent=0,
-    ) -> List[Tuple[str, int]]:
+    ) -> list[tuple[str, int]]:
         lines_and_indent = [
             (str(mapping_handler), indent),
         ]
@@ -143,7 +143,7 @@ class Logger(logging.Logger):
             handler.setFormatter(ColorfulFormatter(debug))
 
     @classmethod
-    def bootstrap_logger(cls: Type[Logger]) -> Logger:
+    def bootstrap_logger(cls: type[Logger]) -> Logger:
         # https://github.com/python/typeshed/issues/1801
         logging.setLoggerClass(cls)
         logger = cast(Logger, logging.getLogger("input-remapper"))

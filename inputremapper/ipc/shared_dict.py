@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -21,11 +20,12 @@
 """Share a dictionary across processes."""
 
 
-import psutil
 import atexit
 import multiprocessing
 import select
-from typing import Optional, Any
+from typing import Any
+
+import psutil
 
 from inputremapper.logging.logger import logger
 
@@ -109,7 +109,7 @@ class SharedDict:
 
             self.pipe[1].send(("set", key, value))
 
-    def ping(self, timeout: Optional[int] = None) -> bool:
+    def ping(self, timeout: int | None = None) -> bool:
         """Return true if the process can be pinged."""
         with self.lock:
             if not self.is_alive():
