@@ -35,7 +35,7 @@ from inputremapper.injection.macros.parse import Parser
 from inputremapper.logging.logger import logger
 
 # no deprecated shorthand function-names
-FUNCTION_NAMES = [name for name in Parser.TASK_CLASSES.keys() if len(name) > 1]
+FUNCTION_NAMES = [name for name in Parser.TASK_CLASSES if len(name) > 1]
 # no deprecated functions
 FUNCTION_NAMES.remove("ifeq")
 

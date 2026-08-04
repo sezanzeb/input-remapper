@@ -119,7 +119,7 @@ class KeyboardLayout:
     def _use_linux_evdev_symbols(self):
         """Look up the evdev constant names and use them."""
         for name, ecode in evdev.ecodes.ecodes.items():
-            if name.startswith("KEY") or name.startswith("BTN"):
+            if name.startswith(("KEY", "BTN")):
                 self._set(name, ecode)
 
     def populate(self):

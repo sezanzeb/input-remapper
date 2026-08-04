@@ -79,13 +79,13 @@ class CombinationHandler(MappingHandler):
     def __str__(self):
         return (
             f'CombinationHandler for "{self.mapping.input_combination!s}" '
-            f"{tuple(t for t in self._pressed_keys.keys())}"
+            f"{tuple(t for t in self._pressed_keys)}"
         )
 
     def __repr__(self):
         description = (
             f'CombinationHandler for "{self.mapping.input_combination!r}" '
-            f"{tuple(t for t in self._pressed_keys.keys())}"
+            f"{tuple(t for t in self._pressed_keys)}"
         )
         return f"<{description} at {hex(id(self))}>"
 

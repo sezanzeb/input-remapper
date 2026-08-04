@@ -91,7 +91,7 @@ class Preset(Generic[MappingModel]):
             )
 
         for permutation in combination.get_permutations():
-            if permutation in self._mappings.keys():
+            if permutation in self._mappings:
                 combination = permutation
                 break
         try:
@@ -246,7 +246,7 @@ class Preset(Generic[MappingModel]):
         self, new: InputCombination, old: InputCombination
     ) -> None:
         for permutation in new.get_permutations():
-            if permutation in self._mappings.keys() and permutation != old:
+            if permutation in self._mappings and permutation != old:
                 raise KeyError("combination already exists in the preset")
         self._mappings[new] = self._mappings.pop(old)
 

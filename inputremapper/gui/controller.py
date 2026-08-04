@@ -233,11 +233,11 @@ class Controller:
                 "The input specifies an analog axis, but no output axis is selected."
             )
             if mapping.output_symbol is not None:
-                event = [
+                event = next(
                     event
                     for event in mapping.input_combination
                     if event.defines_analog_input
-                ][0]
+                )
                 error_message += _(
                     "\nIf you mean to create a key or macro mapping "
                     "go to the advanced input configuration"
@@ -837,9 +837,7 @@ class Controller:
 
         if changes["mapping_type"] == MappingType.KEY_MACRO.value:
             try:
-                analog_input = tuple(
-                    filter(lambda i: i.defines_analog_input, mapping.input_combination)
-                )[0]
+                analog_input = next(filter(lambda i: i.defines_analog_input, mapping.input_combination))
             except IndexError:
                 changes["output_type"] = None
                 changes["output_code"] = None

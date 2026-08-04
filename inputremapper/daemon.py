@@ -105,10 +105,7 @@ class AutoloadHistory:
         # seconds in my case.
         now = time.time()
         threshold = 15  # seconds
-        if self._autoload_history[group_key][0] < now - threshold:
-            return True
-
-        return False
+        return self._autoload_history[group_key][0] < now - threshold
 
 
 class DaemonProxy(Protocol):  # pragma: no cover

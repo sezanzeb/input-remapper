@@ -78,7 +78,7 @@ class ForwardToUIHandler(MappingHandler):
             return True
 
         # These defaults work with EV_KEY and EV_REL
-        pressed = False if event.value == 0 else True
+        pressed = event.value != 0
         direction = 1 if event.value >= 0 else -1
 
         # Because joysticks aren't as precise, they wiggle and their value might not be

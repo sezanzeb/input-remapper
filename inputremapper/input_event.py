@@ -60,7 +60,7 @@ class InputEvent:
 
     def __eq__(self, other: InputEvent | evdev.InputEvent | tuple[int, int, int]):
         # useful in tests
-        if isinstance(other, InputEvent) or isinstance(other, evdev.InputEvent):
+        if isinstance(other, (InputEvent, evdev.InputEvent)):
             return self.event_tuple == (other.type, other.code, other.value)
         if isinstance(other, tuple):
             return self.event_tuple == other
@@ -78,10 +78,7 @@ class InputEvent:
         # As long as we haven't checked it using the analog thresholds and such,
         # assume that anything != 0 means it is pressed.'
 
-        if self.value == 0:
-            return False
-
-        return True
+        return self.value != 0
 
     @staticmethod
     def validate_event(event):

@@ -91,7 +91,7 @@ class DeviceGroupSelection(FlowBoxWrapper):
 
         for group_key, types in data.groups.items():
             if len(types) > 0:
-                device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
+                device_type = min(types, key=ICON_PRIORITIES.index)
                 icon_name = ICON_NAMES[device_type]
             else:
                 icon_name = None

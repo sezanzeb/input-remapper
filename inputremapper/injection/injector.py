@@ -257,7 +257,7 @@ class Injector(multiprocessing.Process):
         if len(candidates) > 1:
             # there is more than on input device which can be used for this
             # event we choose only one determined by the ranking
-            return sorted(candidates, key=lambda d: ranking.index(classify(d)))[0]
+            return min(candidates, key=lambda d: ranking.index(classify(d)))
         if len(candidates) == 1:
             return candidates.pop()
 
@@ -416,7 +416,7 @@ class Injector(multiprocessing.Process):
                 self._msg_pipe[0].send(InjectorState.UPGRADE_EVDEV)
                 sys.exit(12)
 
-            raise e
+            raise
         return forward_to
 
     def run(self) -> None:
@@ -493,7 +493,7 @@ class Injector(multiprocessing.Process):
             # the loop might have been stopped via a `CLOSE` message,
             # which causes the error message below. This is expected behavior
             if str(error) != "Event loop stopped before Future completed.":
-                raise error
+                raise
         except OSError as error:
             logger.error("Failed to run injector coroutines: %s", str(error))
 

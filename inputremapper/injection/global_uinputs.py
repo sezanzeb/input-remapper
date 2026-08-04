@@ -124,7 +124,7 @@ class GlobalUInputs:
     def prepare_all(self):
         """Generate UInputs."""
         for name, events in DEFAULT_UINPUTS.items():
-            if name in self.devices.keys():
+            if name in self.devices:
                 continue
 
             self.devices[name] = self._uinput_factory(

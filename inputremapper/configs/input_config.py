@@ -32,6 +32,8 @@ try:
 except ImportError:
     from pydantic import BaseModel, root_validator, validator
 
+from typing_extensions import Self
+
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logging.logger import logger
@@ -336,7 +338,7 @@ class InputCombination(tuple[InputConfig, ...]):
 
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
-    def __new__(cls, configs: InputCombinationInit) -> InputCombination:
+    def __new__(cls, configs: InputCombinationInit) -> Self:
         """Create a new InputCombination.
 
         Examples

@@ -102,10 +102,7 @@ def _is_gamepad(capabilities):
     abs_capabilities = capabilities.get(EV_ABS, [])
     if evdev.ecodes.ABS_X not in abs_capabilities:
         return False
-    if evdev.ecodes.ABS_Y not in abs_capabilities:
-        return False
-
-    return True
+    return evdev.ecodes.ABS_Y in abs_capabilities
 
 
 def _is_mouse(capabilities):
@@ -124,31 +121,22 @@ def _is_mouse(capabilities):
         return False
 
     # and a mouse click button
-    if BTN_LEFT not in capabilities.get(EV_KEY, []):
-        return False
-
-    return True
+    return BTN_LEFT in capabilities.get(EV_KEY, [])
 
 
 def _is_graphics_tablet(capabilities):
     """Check if the capabilities represent those of a graphics tablet."""
-    if BTN_STYLUS in capabilities.get(EV_KEY, []):
-        return True
-    return False
+    return BTN_STYLUS in capabilities.get(EV_KEY, [])
 
 
 def _is_touchpad(capabilities):
     """Check if the capabilities represent those of a touchpad."""
-    if ABS_MT_POSITION_X in capabilities.get(EV_ABS, []):
-        return True
-    return False
+    return ABS_MT_POSITION_X in capabilities.get(EV_ABS, [])
 
 
 def _is_keyboard(capabilities):
     """Check if the capabilities represent those of a keyboard."""
-    if KEY_A in capabilities.get(EV_KEY, []):
-        return True
-    return False
+    return KEY_A in capabilities.get(EV_KEY, [])
 
 
 def _is_camera(capabilities):
@@ -288,7 +276,7 @@ class _Group:
         """
         # There might be multiple groups with the same name here when two
         # similar devices are connected to the computer.
-        self.name: str = sorted(names, key=len)[0]
+        self.name: str = min(names, key=len)
 
         self.key = key
 
@@ -317,7 +305,7 @@ class _Group:
     def dumps(self):
         """Return a string representing this object."""
         return json.dumps(
-            dict(paths=self.paths, names=self.names, types=self.types, key=self.key),
+            {"paths": self.paths, "names": self.names, "types": self.types, "key": self.key},
         )
 
     @classmethod
@@ -450,7 +438,7 @@ class _FindGroups(threading.Thread):
             devs = [entry[1] for entry in group]
 
             # generate a human readable key
-            shortest_name = sorted(names, key=len)[0]
+            shortest_name = min(names, key=len)
             key = shortest_name
             i = 2
             while key in used_keys:
@@ -464,7 +452,7 @@ class _FindGroups(threading.Thread):
                 paths=devs,
                 names=names,
                 types=sorted(
-                    list({item[2] for item in group if item[2] != DeviceType.UNKNOWN})
+                    {item[2] for item in group if item[2] != DeviceType.UNKNOWN}
                 ),
             )
 

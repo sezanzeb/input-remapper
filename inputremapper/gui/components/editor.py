@@ -113,7 +113,7 @@ class TargetSelection:
 
     def _on_uinputs_changed(self, data: UInputsData):
         target_store = Gtk.ListStore(str)
-        for uinput in data.uinputs.keys():
+        for uinput in data.uinputs:
             target_store.append([uinput])
 
         self._gui.set_model(target_store)
