@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -26,7 +25,7 @@ import tracemalloc
 from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.fixture_pipes import create_fixture_pipes, remove_fixture_pipes
 from tests.lib.is_service_running import is_service_running
-from tests.lib.logger import update_inputremapper_verbosity, logger
+from tests.lib.logger import logger, update_inputremapper_verbosity
 from tests.lib.patches import create_patches
 
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -20,12 +19,11 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 import traceback
 import tracemalloc
 import warnings
-import logging
-
 
 tracemalloc.start()
 

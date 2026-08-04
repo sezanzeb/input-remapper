@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -18,8 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from tests.lib.tmp import tmp
-
 import logging
 import os
 import shutil
@@ -29,10 +26,11 @@ import evdev
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.logging.logger import (
-    logger,
     ColorfulFormatter,
+    logger,
 )
 from tests.lib.test_setup import test_setup
+from tests.lib.tmp import tmp
 
 
 def add_filehandler(log_path: str, debug: bool) -> None:

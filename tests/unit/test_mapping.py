@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -22,14 +21,14 @@ import unittest
 from functools import partial
 
 from evdev.ecodes import (
-    EV_REL,
-    REL_X,
     EV_KEY,
-    REL_Y,
-    REL_WHEEL,
-    REL_WHEEL_HI_RES,
+    EV_REL,
     KEY_1,
     KEY_ESC,
+    REL_WHEEL,
+    REL_WHEEL_HI_RES,
+    REL_X,
+    REL_Y,
 )
 
 try:
@@ -37,9 +36,9 @@ try:
 except ImportError:
     from pydantic import ValidationError
 
-from inputremapper.configs.mapping import Mapping, UIMapping, MappingType
-from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
+from inputremapper.configs.mapping import Mapping, MappingType, UIMapping
 from inputremapper.gui.messages.message_broker import MessageType
 from tests.lib.test_setup import test_setup
 

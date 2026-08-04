@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -22,25 +21,25 @@ import asyncio
 import unittest
 
 from evdev.ecodes import (
-    EV_ABS,
-    EV_REL,
     ABS_X,
     ABS_Y,
-    REL_X,
-    REL_Y,
+    EV_ABS,
+    EV_REL,
     REL_HWHEEL,
+    REL_HWHEEL_HI_RES,
     REL_WHEEL,
     REL_WHEEL_HI_RES,
-    REL_HWHEEL_HI_RES,
+    REL_X,
+    REL_Y,
 )
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
-    Mapping,
-    REL_XY_SCALING,
     DEFAULT_REL_RATE,
+    REL_XY_SCALING,
+    Mapping,
 )
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import fixtures
 from tests.lib.test_setup import test_setup

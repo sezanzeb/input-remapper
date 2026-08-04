@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -22,7 +21,7 @@ import dataclasses
 import functools
 import itertools
 import unittest
-from typing import Iterable, List
+from collections.abc import Iterable
 
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from tests.lib.test_setup import test_setup
@@ -53,7 +52,7 @@ class TestAxisTransformation(unittest.TestCase):
             yield self.InitArgs(*args)
 
     @staticmethod
-    def scale_to_range(min_, max_, x=(-1, -0.2, 0, 0.6, 1)) -> List[float]:
+    def scale_to_range(min_, max_, x=(-1, -0.2, 0, 0.6, 1)) -> list[float]:
         """Scale values between -1 and 1 up, such that they are between min and max."""
         half_range = (max_ - min_) / 2
         return [float_x * half_range + min_ + half_range for float_x in x]

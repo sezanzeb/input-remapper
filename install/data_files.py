@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -23,7 +22,6 @@
 import glob
 import os
 import shutil
-
 
 DATA_DIR = "usr/share/input-remapper"
 

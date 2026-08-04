@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -24,19 +23,18 @@ import unittest
 import gi
 
 from inputremapper.gui.autocompletion import (
-    get_incomplete_parameter,
     get_incomplete_function_name,
+    get_incomplete_parameter,
 )
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkSource", "4")
 gi.require_version("GLib", "2.0")
-from gi.repository import Gtk, Gdk
+from gi.repository import Gdk, Gtk
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.gui.utils import gtk_iteration
-
 from tests.lib.test_setup import test_setup
 from tests.system.gui.gui_test_base import GuiTestBase
 

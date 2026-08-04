@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -37,11 +36,12 @@ ubuntu 25.04 root: ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/l
 ubuntu 25.04 udev: ['/usr/bin', '/lib/python313.zip', '/lib/python3.13', '/lib/python3.13/lib-dynload', '/lib/python3/dist-packages']
 """
 
-import sys
 import os
-import subprocess
-import shutil
 import re
+import shutil
+import subprocess
+import sys
+
 import tomllib
 
 from install.data_files import DATA_DIR
@@ -144,8 +144,7 @@ def build_input_remapper_module(root: str) -> None:
     # purpose of merging it into / later. So regardless of root, we use the same
     # package_dir.
     package_dir = _get_packages_dir()
-    if package_dir.startswith("/"):
-        package_dir = package_dir[1:]
+    package_dir = package_dir.removeprefix("/")
 
     target = os.path.join(root, package_dir)
 

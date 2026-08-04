@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -27,20 +26,20 @@ from unittest.mock import MagicMock
 
 import evdev
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    EV_REL,
     ABS_X,
-    REL_X,
     BTN_LEFT,
     BTN_RIGHT,
+    EV_ABS,
+    EV_KEY,
+    EV_REL,
     KEY_A,
-    REL_Y,
     REL_WHEEL,
+    REL_X,
+    REL_Y,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping, DEFAULT_REL_RATE, KnownUinput
+from inputremapper.configs.mapping import DEFAULT_REL_RATE, KnownUinput, Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
@@ -60,7 +59,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import EventActions, InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.fixtures import fixtures
 from tests.lib.patches import InputDevice

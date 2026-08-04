@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -21,6 +20,7 @@
 from __future__ import annotations
 
 import tempfile
+
 from tests.lib.logger import logger
 
 # When it gets garbage collected it cleans up the temporary directory so it needs to

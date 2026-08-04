@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -24,7 +23,6 @@ from __future__ import annotations
 
 import multiprocessing
 from multiprocessing.connection import Connection
-from typing import Dict, Tuple
 
 from tests.lib.fixtures import Fixture
 from tests.lib.logger import logger
@@ -32,7 +30,7 @@ from tests.lib.logger import logger
 uinput_write_history = []
 # for tests that makes the injector create its processes
 uinput_write_history_pipe = multiprocessing.Pipe()
-pending_events: Dict[Fixture, Tuple[Connection, Connection]] = {}
+pending_events: dict[Fixture, tuple[Connection, Connection]] = {}
 
 
 def read_write_history_pipe():

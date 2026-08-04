@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -21,7 +20,7 @@
 
 import unittest
 
-from evdev._ecodes import EV_ABS, ABS_X, BTN_WEST, BTN_Y, EV_KEY, KEY_A
+from evdev._ecodes import ABS_X, BTN_WEST, BTN_Y, EV_ABS, EV_KEY, KEY_A
 
 from inputremapper.utils import get_evdev_constant_name
 from tests.lib.test_setup import test_setup

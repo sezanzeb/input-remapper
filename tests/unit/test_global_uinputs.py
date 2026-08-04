@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -22,8 +21,8 @@ import unittest
 
 import evdev
 from evdev.ecodes import (
-    KEY_A,
     ABS_X,
+    KEY_A,
 )
 
 from inputremapper.exceptions import EventNotHandled, UinputNotAvailable

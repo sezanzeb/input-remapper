@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -31,7 +30,7 @@ from tests.lib.test_setup import is_service_running
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-from inputremapper.daemon import Daemon, DAEMON
+from inputremapper.daemon import DAEMON, Daemon
 from tests.lib.test_setup import test_setup
 
 

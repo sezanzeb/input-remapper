@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -22,30 +21,29 @@ import json
 import os
 import time
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import evdev
 from evdev._ecodes import EV_ABS
-from evdev.ecodes import EV_KEY, KEY_B, KEY_A, ABS_X, BTN_A, BTN_B
+from evdev.ecodes import ABS_X, BTN_A, BTN_B, EV_KEY, KEY_A, KEY_B
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.daemon import Daemon, DAEMON
+from inputremapper.daemon import DAEMON, Daemon
 from inputremapper.groups import groups
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.injector import InjectorState
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
-from tests.lib.fixtures import Fixture
-from tests.lib.fixtures import fixtures
+from tests.lib.fixtures import Fixture, fixtures
 from tests.lib.logger import logger
 from tests.lib.pipes import push_events, uinput_write_history_pipe
-from tests.lib.test_setup import test_setup, is_service_running
+from tests.lib.test_setup import is_service_running, test_setup
 from tests.lib.tmp import tmp
 
 

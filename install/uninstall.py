@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -21,9 +20,9 @@
 """Remove a system-wide input-remapper installation."""
 
 import os
-import sys
 import shutil
 import subprocess
+import sys
 
 from install.data_files import get_data_files
 

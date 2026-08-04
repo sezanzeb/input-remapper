@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -22,32 +21,32 @@
 import unittest
 
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    EV_REL,
-    BTN_C,
-    BTN_B,
+    ABS_HAT0X,
+    ABS_HAT0Y,
+    ABS_RY,
+    ABS_X,
     BTN_A,
+    BTN_B,
+    BTN_BACK,
+    BTN_C,
+    BTN_EXTRA,
+    BTN_FORWARD,
     BTN_LEFT,
     BTN_MIDDLE,
     BTN_RIGHT,
     BTN_SIDE,
-    BTN_EXTRA,
-    BTN_FORWARD,
-    BTN_BACK,
     BTN_TASK,
-    REL_X,
-    REL_Y,
-    REL_WHEEL,
-    REL_HWHEEL,
-    ABS_RY,
-    ABS_X,
-    ABS_HAT0Y,
-    ABS_HAT0X,
+    EV_ABS,
+    EV_KEY,
+    EV_REL,
     KEY_A,
+    KEY_LEFTCTRL,
     KEY_LEFTSHIFT,
     KEY_RIGHTALT,
-    KEY_LEFTCTRL,
+    REL_HWHEEL,
+    REL_WHEEL,
+    REL_X,
+    REL_Y,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig

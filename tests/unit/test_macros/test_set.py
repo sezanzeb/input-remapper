@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -20,16 +19,15 @@
 
 
 import unittest
-import time
 
-from evdev.ecodes import EV_KEY, KEY_A
+from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.macros.parse import Parser
 from tests.lib.test_setup import test_setup
-from tests.unit.test_macros.macro_test_base import MacroTestBase, DummyMapping
+from tests.unit.test_macros.macro_test_base import DummyMapping, MacroTestBase
 
 
 @test_setup

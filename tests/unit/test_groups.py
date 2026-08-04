@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -26,11 +25,11 @@ import evdev
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.groups import (
-    _FindGroups,
-    groups,
-    classify,
     DeviceType,
+    _FindGroups,
     _Group,
+    classify,
+    groups,
     is_inputremapper_device,
 )
 from tests.lib.fixtures import fixtures, keyboard_keys

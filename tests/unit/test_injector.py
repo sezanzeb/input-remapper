@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -32,44 +31,45 @@ from unittest import mock
 
 import evdev
 from evdev.ecodes import (
-    EV_REL,
-    EV_KEY,
-    EV_ABS,
     ABS_HAT0X,
+    ABS_VOLUME,
+    ABS_X,
+    BTN_A,
+    EV_ABS,
+    EV_KEY,
+    EV_REL,
     KEY_A,
     REL_HWHEEL,
-    BTN_A,
-    ABS_X,
-    ABS_VOLUME,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.preset import Preset
 from inputremapper.configs.keyboard_layout import (
-    keyboard_layout,
     DISABLE_CODE,
     DISABLE_NAME,
+    keyboard_layout,
 )
-from inputremapper.groups import groups, classify, DeviceType
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.preset import Preset
+from inputremapper.groups import DeviceType, classify, groups
 from inputremapper.injection.context import Context
 from inputremapper.injection.injector import (
     Injector,
-    is_in_capabilities,
     InjectorState,
-    get_udev_name,
     get_forward_name,
     get_forward_phys,
+    get_udev_name,
+    is_in_capabilities,
 )
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.input_event import InputEvent
-
 from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import fixtures
-from tests.lib.fixtures import keyboard_keys
+from tests.lib.fixtures import fixtures, keyboard_keys
 from tests.lib.patches import uinputs
-from tests.lib.pipes import read_write_history_pipe, push_events
-from tests.lib.pipes import uinput_write_history_pipe
+from tests.lib.pipes import (
+    push_events,
+    read_write_history_pipe,
+    uinput_write_history_pipe,
+)
 from tests.lib.test_setup import test_setup
 
 

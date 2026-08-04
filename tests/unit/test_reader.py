@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -24,31 +23,30 @@ import multiprocessing
 import os
 import time
 import unittest
-from typing import List, Optional
 from unittest import mock
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
     ABS_HAT0X,
-    KEY_COMMA,
+    ABS_X,
+    BTN_LEFT,
     BTN_TOOL_DOUBLETAP,
+    EV_ABS,
+    EV_KEY,
+    EV_REL,
     KEY_A,
+    KEY_COMMA,
+    REL_HWHEEL,
     REL_WHEEL,
     REL_X,
-    ABS_X,
-    REL_HWHEEL,
-    BTN_LEFT,
-    EV_REL,
 )
 
 from inputremapper.configs.input_config import (
+    DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
     InputCombination,
     InputConfig,
-    DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
 )
-from inputremapper.groups import _Groups, DeviceType
+from inputremapper.groups import DeviceType, _Groups
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     Signal,
@@ -57,15 +55,14 @@ from inputremapper.gui.messages.message_data import CombinationRecorded
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import (
-    ReaderService,
-    ContextDummy,
     RELEASE_TIMEOUT,
+    ContextDummy,
+    ReaderService,
 )
-from inputremapper.injection.global_uinputs import GlobalUInputs, UInput, FrontendUInput
+from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs, UInput
 from inputremapper.input_event import InputEvent
 from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
-from tests.lib.fixtures import fixtures
-from tests.lib.fixtures import new_event
+from tests.lib.fixtures import fixtures, new_event
 from tests.lib.pipes import push_event, push_events
 from tests.lib.spy import spy
 from tests.lib.test_setup import test_setup
@@ -82,7 +79,7 @@ GITHUB_WORKFLOW_TIMEOUT_SLACK = 0.2 if os.getenv("GITHUB_ACTIONS") == "true" els
 
 class Listener:
     def __init__(self):
-        self.calls: List = []
+        self.calls: list = []
 
     def __call__(self, data):
         self.calls.append(data)
@@ -113,7 +110,7 @@ class TestReaderAsyncio(unittest.IsolatedAsyncioTestCase):
         except (BrokenPipeError, OSError):
             pass
 
-    async def create_reader_service(self, groups: Optional[_Groups] = None):
+    async def create_reader_service(self, groups: _Groups | None = None):
         # this will cause pending events to be copied over to the reader-service
         # process
         if not groups:
@@ -195,7 +192,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
             if self.reader_service_process.is_alive():
                 self.reader_service_process.terminate()
 
-    def create_reader_service(self, groups: Optional[_Groups] = None):
+    def create_reader_service(self, groups: _Groups | None = None):
         # this will cause pending events to be copied over to the reader-service
         # process
         if not groups:

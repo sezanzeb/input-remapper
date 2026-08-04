@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -21,7 +20,7 @@
 
 import unittest
 
-from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
+from inputremapper.injection.numlock import ensure_numlock, is_numlock_on, set_numlock
 from tests.lib.test_setup import test_setup
 
 

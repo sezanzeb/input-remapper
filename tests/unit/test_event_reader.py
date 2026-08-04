@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -25,18 +24,18 @@ from unittest.mock import MagicMock, patch
 
 import evdev
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    BTN_A,
-    ABS_X,
-    ABS_Y,
     ABS_RX,
     ABS_RY,
+    ABS_X,
+    ABS_Y,
+    BTN_A,
+    EV_ABS,
+    EV_KEY,
     EV_REL,
-    REL_X,
-    REL_Y,
     REL_HWHEEL_HI_RES,
     REL_WHEEL_HI_RES,
+    REL_X,
+    REL_Y,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig

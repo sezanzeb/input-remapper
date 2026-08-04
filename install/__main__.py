@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -33,17 +32,16 @@ So instead, input-remapper uses a custom python solution. Hopefulls this works w
 enough to prevent all ModuleNotFoundErrors in the future.
 """
 
-import shutil
+import argparse
 import os
+import shutil
 import sys
 from enum import Enum
 
 from install.check_dependencies import check_dependencies
 from install.data_files import build_data_files
-from install.module import build_input_remapper_module
 from install.language import make_lang
-
-import argparse
+from install.module import build_input_remapper_module
 
 
 class Components(str, Enum):
@@ -64,13 +62,14 @@ def parse_args():
     )
     parser.add_argument(
         "--components",
-        type=str, nargs='+',
+        type=str,
+        nargs="+",
         help=(
-            f'A list of components to install. Default: --components '
-            f'{Components.python_module.value} {Components.data_files.value}'
+            f"A list of components to install. Default: --components "
+            f"{Components.python_module.value} {Components.data_files.value}"
         ),
         default=[Components.python_module, Components.data_files],
-        metavar="COMPONENT"
+        metavar="COMPONENT",
     )
     args = parser.parse_args()
     return args
