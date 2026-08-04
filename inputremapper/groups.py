@@ -305,7 +305,12 @@ class _Group:
     def dumps(self):
         """Return a string representing this object."""
         return json.dumps(
-            {"paths": self.paths, "names": self.names, "types": self.types, "key": self.key},
+            {
+                "paths": self.paths,
+                "names": self.names,
+                "types": self.types,
+                "key": self.key,
+            },
         )
 
     @classmethod

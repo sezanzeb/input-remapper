@@ -375,10 +375,7 @@ class Migrations:
                     )
                     migrated_preset.add(mapping)
 
-            if (
-                "gamepad" in old_preset
-                and "joystick" in old_preset["gamepad"]
-            ):
+            if "gamepad" in old_preset and "joystick" in old_preset["gamepad"]:
                 joystick_dict = old_preset["gamepad"]["joystick"]
                 left_purpose = joystick_dict.get("left_purpose")
                 right_purpose = joystick_dict.get("right_purpose")

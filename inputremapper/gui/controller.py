@@ -837,7 +837,9 @@ class Controller:
 
         if changes["mapping_type"] == MappingType.KEY_MACRO.value:
             try:
-                analog_input = next(filter(lambda i: i.defines_analog_input, mapping.input_combination))
+                analog_input = next(
+                    filter(lambda i: i.defines_analog_input, mapping.input_combination)
+                )
             except IndexError:
                 changes["output_type"] = None
                 changes["output_code"] = None
