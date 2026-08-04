@@ -92,12 +92,14 @@ class TestParsing(MacroTestBase):
             re.sub(
                 r"\s",
                 "",
-                Parser.remove_comments("""
-            # a
-            b
-            # c
-            d
-        """),
+                Parser.remove_comments(
+                    """
+                        # a
+                        b
+                        # c
+                        d
+                    """
+                ),
             ),
             "bd",
         )
