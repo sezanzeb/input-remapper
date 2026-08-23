@@ -26,10 +26,7 @@ import subprocess
 import sys
 from enum import Enum
 
-import gi
-
-gi.require_version("GLib", "2.0")
-from gi.repository import GLib
+from dasbus.error import DBusError
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
@@ -232,8 +229,8 @@ class InputRemapperControlBin:
     def _quit(self) -> None:
         try:
             self.daemon.quit()
-        except GLib.GError as error:
-            if "NoReply" in str(error):
+        except DBusError as error:
+            if error.dbus_name == "org.freedesktop.DBus.Error.NoReply":
                 # The daemon is expected to terminate, so there won't be a reply.
                 return
 
