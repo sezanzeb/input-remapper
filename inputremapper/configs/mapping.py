@@ -82,6 +82,10 @@ from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.utils import get_evdev_constant_name
+from inputremapper.configs.gamepad_symbols import (
+    is_gamepad_axis_symbol,
+    get_gamepad_axis_info,
+)
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ancient pydantic 1.2
@@ -297,6 +301,11 @@ class UIMapping(BaseModel):
         if self.output_code is not None and self.output_type is not None:
             return self.output_type, self.output_code
 
+        if is_gamepad_axis_symbol(self.output_symbol):
+            axis_info = get_gamepad_axis_info(self.output_symbol)
+            if axis_info:
+                return EV_ABS, axis_info[0]
+
         if self.output_symbol and not Parser.is_this_a_macro(self.output_symbol):
             return EV_KEY, keyboard_layout.get(self.output_symbol)
 
@@ -398,6 +407,10 @@ class Mapping(UIMapping):
         if symbol == DISABLE_NAME:
             return values
 
+        if is_gamepad_axis_symbol(symbol):
+            values["target_uinput"] = "gamepad"
+            return values
+
         if Parser.is_this_a_macro(symbol):
             mapping_mock = namedtuple("Mapping", values.keys())(**values)
             # raises MacroError
@@ -490,6 +503,9 @@ class Mapping(UIMapping):
 
         if mapping_type is None:
             # Empty mapping most likely
+            return values
+
+        if is_gamepad_axis_symbol(output_symbol):
             return values
 
         if not defines_analog_input and mapping_type != MappingType.KEY_MACRO.value:

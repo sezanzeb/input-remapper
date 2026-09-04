@@ -43,8 +43,157 @@
     color: alpha(currentColor, 0.5);
 }
 
-/*
-@theme_bg_color
-@theme_selected_bg_color
-@theme_base_color
-*/
+/* PES / Xbox Gamepad Styling */
+.pes-container {
+    padding: 10px;
+}
+
+.pes-header-bar {
+    margin-bottom: 8px;
+}
+
+.pes-column {
+    min-width: 125px;
+}
+
+.pes-row {
+    margin-bottom: 3px;
+}
+
+/* PES Gamepad Circular Button Badges (All Circular) */
+.pes-badge {
+    min-width: 26px;
+    min-height: 26px;
+    border-radius: 13px;
+    padding: 0px;
+    margin: 0px;
+    font-weight: bold;
+    font-size: 8pt;
+    background-color: #23272e;
+    color: #ffffff;
+    border: 1px solid #4a5260;
+}
+
+.pes-badge-trigger {
+    background-color: #132733;
+    border-color: #00bcd4;
+    color: #00e5ff;
+}
+
+.pes-badge-bumper {
+    background-color: #22272e;
+    border-color: #7b889b;
+    color: #ffffff;
+}
+
+.pes-badge-dpad {
+    background-color: #15261d;
+    border-color: #00c853;
+    color: #00ff88;
+}
+
+.pes-badge-ls {
+    background-color: #2a2012;
+    border-color: #ff9100;
+    color: #ffa000;
+}
+
+.pes-badge-rs {
+    background-color: #241a2c;
+    border-color: #ba68c8;
+    color: #ce93d8;
+}
+
+.pes-badge-menu {
+    background-color: #22252a;
+    border-color: #64748b;
+    color: #cbd5e1;
+}
+
+.pes-badge-a {
+    background-color: #107c10;
+    border-color: #1ba51b;
+    color: #ffffff;
+}
+
+.pes-badge-b {
+    background-color: #c42b1c;
+    border-color: #e83b2a;
+    color: #ffffff;
+}
+
+.pes-badge-x {
+    background-color: #0067b8;
+    border-color: #1a86d9;
+    color: #ffffff;
+}
+
+.pes-badge-y {
+    background-color: #e59400;
+    border-color: #ffaa00;
+    color: #111111;
+}
+
+/* PES Input Box (Entry Button) - Compact & GTK Native Theme Styled */
+.pes-entry-btn {
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+    font-size: 8.5pt;
+    font-weight: bold;
+    border: 1px solid @borders;
+    border-radius: 4px;
+    min-width: 85px;
+    min-height: 22px;
+    padding: 0px 4px;
+}
+
+.pes-entry-btn:hover {
+    border-color: alpha(currentColor, 0.4);
+    background-color: alpha(currentColor, 0.05);
+}
+
+.pes-entry-recording {
+    background-color: rgba(255, 51, 102, 0.18);
+    color: #ff3366;
+    border: 2px solid #ff3366;
+}
+
+.pes-entry-mapped {
+    border-color: #48b9c7;
+    color: #48b9c7;
+    background-color: rgba(72, 185, 199, 0.12);
+}
+
+/* Center Controller Touch Hotspots */
+.xbox-touch-hotspot {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    padding: 0px;
+    margin: 0px;
+    box-shadow: none;
+}
+
+.xbox-touch-hotspot:hover {
+    background-color: rgba(0, 255, 136, 0.25);
+    border: 2px solid #00ff88;
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.7);
+}
+
+.xbox-touch-hotspot-recording {
+    background-color: rgba(255, 0, 85, 0.45);
+    border: 2px solid #ff0055;
+    box-shadow: 0 0 16px #ff0055;
+}
+
+.xbox-touch-hotspot-rect {
+    border-radius: 6px;
+}
+
+/* Bottom "Opciones predeterminadas" button */
+.pes-default-btn {
+    font-size: 9pt;
+    padding: 6px 16px;
+}
+
+

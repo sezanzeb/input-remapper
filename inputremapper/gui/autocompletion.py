@@ -28,6 +28,7 @@ from evdev.ecodes import EV_KEY
 from gi.repository import Gdk, Gtk, GLib, GObject
 
 from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
+from inputremapper.configs.gamepad_symbols import GAMEPAD_AXIS_DEFINITIONS
 from inputremapper.configs.mapping import MappingData
 from inputremapper.gui.components.editor import CodeEditor
 from inputremapper.gui.controller import Controller
@@ -107,7 +108,7 @@ def propose_symbols(text_iter: Gtk.TextIter, codes: List[int]) -> List[Tuple[str
 
     incomplete_name = incomplete_name.lower()
 
-    names = list(keyboard_layout.list_names(codes=codes)) + [DISABLE_NAME]
+    names = list(keyboard_layout.list_names(codes=codes)) + [DISABLE_NAME] + list(GAMEPAD_AXIS_DEFINITIONS.keys())
 
     return [
         (name, name)

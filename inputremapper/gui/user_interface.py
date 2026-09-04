@@ -53,6 +53,7 @@ from inputremapper.gui.components.editor import (
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.suspend_button import SuspendButton
+from inputremapper.gui.components.xbox_mapper import XboxVisualMapper
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
@@ -161,7 +162,15 @@ class UserInterface:
             show_preset=True,
         )
 
-        Stack(message_broker, controller, self.get("main_stack"))
+        self.main_stack = self.get("main_stack")
+        Stack(message_broker, controller, self.main_stack)
+        XboxVisualMapper(
+            message_broker,
+            controller,
+            self.get("gamepad_visual_box"),
+            self.window,
+            self.main_stack,
+        )
         RecordingToggle(message_broker, controller, self.get("key_recording_toggle"))
         StatusBar(
             message_broker,
@@ -252,6 +261,13 @@ class UserInterface:
         self.get("delete_preset").connect(
             "clicked", lambda *_: self.controller.delete_preset()
         )
+        editor_btn_box = self.get("delete_preset").get_parent()
+        if editor_btn_box:
+            btn_xbox = Gtk.Button(label="Xbox Gamepad")
+            btn_xbox.set_tooltip_text("Switch to visual Xbox Gamepad mapper")
+            btn_xbox.connect("clicked", lambda *_: self.main_stack.set_visible_child_name("XboxGamepad"))
+            editor_btn_box.pack_start(btn_xbox, True, True, 0)
+            btn_xbox.show_all()
         self.get("copy_preset").connect(
             "clicked", lambda *_: self.controller.copy_preset()
         )

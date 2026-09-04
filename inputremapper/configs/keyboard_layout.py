@@ -135,6 +135,29 @@ class KeyboardLayout:
 
         self._use_linux_evdev_symbols()
 
+        # Xbox controller button aliases and DPAD
+        xbox_aliases = {
+            "BTN_A": 304,
+            "BTN_B": 305,
+            "BTN_X": 307,
+            "BTN_Y": 308,
+            "BTN_LB": 310,
+            "BTN_RB": 311,
+            "BTN_LT": 312,
+            "BTN_RT": 313,
+            "BTN_BACK": 314,
+            "BTN_START": 315,
+            "BTN_GUIDE": 316,
+            "BTN_L3": 317,
+            "BTN_R3": 318,
+            "BTN_DPAD_UP": 544,
+            "BTN_DPAD_DOWN": 545,
+            "BTN_DPAD_LEFT": 546,
+            "BTN_DPAD_RIGHT": 547,
+        }
+        for name, code in xbox_aliases.items():
+            self._set(name, code)
+
         self._set(DISABLE_NAME, DISABLE_CODE)
 
     def update(self, mapping: dict):
