@@ -127,8 +127,8 @@ class ReaderService:
     def get_pipe_paths() -> Tuple[str, str]:
         """Get the path where the pipe can be found."""
         return (
-            f"/tmp/input-remapper-{UserUtils.home}/reader-results",
-            f"/tmp/input-remapper-{UserUtils.home}/reader-commands",
+            f"/tmp/input-remapper-{UserUtils.user}/reader-results",
+            f"/tmp/input-remapper-{UserUtils.user}/reader-commands",
         )
 
     @staticmethod
