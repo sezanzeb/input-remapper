@@ -219,11 +219,10 @@ class MappingParser:
         if mapping.output_type == EV_KEY:
             return HandlerEnums.key
 
-        if mapping.output_type == EV_ABS:
-            return HandlerEnums.btn2abs
-
         input_event = self._maps_axis(mapping.input_combination)
         if not input_event:
+            if mapping.output_type == EV_ABS:
+                return HandlerEnums.btn2abs
             raise MappingParsingError(
                 f"This {mapping = } does not map to an axis, key or macro",
                 mapping=Mapping,

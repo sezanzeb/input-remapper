@@ -108,7 +108,11 @@ def propose_symbols(text_iter: Gtk.TextIter, codes: List[int]) -> List[Tuple[str
 
     incomplete_name = incomplete_name.lower()
 
-    names = list(keyboard_layout.list_names(codes=codes)) + [DISABLE_NAME] + list(GAMEPAD_AXIS_DEFINITIONS.keys())
+    names = (
+        list(keyboard_layout.list_names(codes=codes))
+        + [DISABLE_NAME]
+        + list(GAMEPAD_AXIS_DEFINITIONS.keys())
+    )
 
     return [
         (name, name)

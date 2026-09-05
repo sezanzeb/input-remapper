@@ -33,7 +33,7 @@ _ACTIVE_AXIS_PRESSES: Dict[Tuple[str, int], Dict[int, int]] = defaultdict(dict)
 
 class BtnToAbsHandler(MappingHandler):
     """Maps a button/key press to an analog axis position (Stick or Trigger).
-    
+
     Supports simultaneous axis movement (e.g. diagonal movement: W + D)
     and smoothly transitions when one key is released.
     """

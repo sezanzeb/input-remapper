@@ -6,7 +6,7 @@
 from __future__ import annotations
 import os
 import subprocess
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 
@@ -25,21 +25,63 @@ from inputremapper.utils import get_device_hash
 
 KEY_NAMES: Dict[int, str] = {
     1: "ESC",
-    2: "1", 3: "2", 4: "3", 5: "4", 6: "5", 7: "6", 8: "7", 9: "8", 10: "9", 11: "0",
+    2: "1",
+    3: "2",
+    4: "3",
+    5: "4",
+    6: "5",
+    7: "6",
+    8: "7",
+    9: "8",
+    10: "9",
+    11: "0",
     14: "BACKSPACE",
     15: "TAB",
-    16: "Q", 17: "W", 18: "E", 19: "R", 20: "T", 21: "Y", 22: "U", 23: "I", 24: "O", 25: "P",
+    16: "Q",
+    17: "W",
+    18: "E",
+    19: "R",
+    20: "T",
+    21: "Y",
+    22: "U",
+    23: "I",
+    24: "O",
+    25: "P",
     28: "ENTER",
     29: "CTRL IZQ",
-    30: "A", 31: "S", 32: "D", 33: "F", 34: "G", 35: "H", 36: "J", 37: "K", 38: "L",
+    30: "A",
+    31: "S",
+    32: "D",
+    33: "F",
+    34: "G",
+    35: "H",
+    36: "J",
+    37: "K",
+    38: "L",
     42: "SHIFT IZQ",
-    44: "Z", 45: "X", 46: "C", 47: "V", 48: "B", 49: "N", 50: "M",
+    44: "Z",
+    45: "X",
+    46: "C",
+    47: "V",
+    48: "B",
+    49: "N",
+    50: "M",
     54: "SHIFT DER",
     56: "ALT IZQ",
     57: "ESPACIO",
     58: "BLOQ MAYUS",
-    59: "F1", 60: "F2", 61: "F3", 62: "F4", 63: "F5", 64: "F6",
-    65: "F7", 66: "F8", 67: "F9", 68: "F10", 87: "F11", 88: "F12",
+    59: "F1",
+    60: "F2",
+    61: "F3",
+    62: "F4",
+    63: "F5",
+    64: "F6",
+    65: "F7",
+    66: "F8",
+    67: "F9",
+    68: "F10",
+    87: "F11",
+    88: "F12",
     97: "CTRL DER",
     100: "ALT GR",
     103: "🡹 ARRIBA",
@@ -116,7 +158,13 @@ class XboxVisualMapper:
             ("rs_up", "Right Stick Up", "R▲", "pes-badge-rs", "STICK_RIGHT_UP"),
             ("rs_left", "Right Stick Left", "R◄", "pes-badge-rs", "STICK_RIGHT_LEFT"),
             ("rs_down", "Right Stick Down", "R▼", "pes-badge-rs", "STICK_RIGHT_DOWN"),
-            ("rs_right", "Right Stick Right", "R►", "pes-badge-rs", "STICK_RIGHT_RIGHT"),
+            (
+                "rs_right",
+                "Right Stick Right",
+                "R►",
+                "pes-badge-rs",
+                "STICK_RIGHT_RIGHT",
+            ),
             ("rs_click", "Right Stick Click (R3)", "R3", "pes-badge-rs", "BTN_THUMBR"),
             ("start", "Menu / Start Button", "≡", "pes-badge-menu", "BTN_START"),
         ]
@@ -157,7 +205,9 @@ class XboxVisualMapper:
 
         self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
         self._message_broker.subscribe(MessageType.groups, self._on_groups_changed)
-        self._message_broker.subscribe(MessageType.injector_state, self._on_injector_state)
+        self._message_broker.subscribe(
+            MessageType.injector_state, self._on_injector_state
+        )
 
     def _get_image_path(self) -> str:
         """Finds the SVG controller image."""
@@ -209,7 +259,9 @@ class XboxVisualMapper:
 
         # Apply button
         self._btn_apply = Gtk.Button(label="Apply")
-        img_apply = Gtk.Image.new_from_icon_name("media-playback-start", Gtk.IconSize.BUTTON)
+        img_apply = Gtk.Image.new_from_icon_name(
+            "media-playback-start", Gtk.IconSize.BUTTON
+        )
         self._btn_apply.set_image(img_apply)
         self._btn_apply.set_always_show_image(True)
         self._btn_apply.set_tooltip_text("Start injecting")
@@ -218,7 +270,9 @@ class XboxVisualMapper:
 
         # Stop button
         self._btn_stop = Gtk.Button(label="Stop")
-        img_stop = Gtk.Image.new_from_icon_name("media-playback-stop", Gtk.IconSize.BUTTON)
+        img_stop = Gtk.Image.new_from_icon_name(
+            "media-playback-stop", Gtk.IconSize.BUTTON
+        )
         self._btn_stop.set_image(img_stop)
         self._btn_stop.set_always_show_image(True)
         self._btn_stop.set_sensitive(False)
@@ -286,11 +340,15 @@ class XboxVisualMapper:
         autoload_label.set_margin_bottom(7)
         grid.attach(autoload_label, 0, 2, 1, 1)
 
-        autoload_content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        autoload_content_box = Gtk.Box(
+            orientation=Gtk.Orientation.HORIZONTAL, spacing=16
+        )
         self._autoload_switch = Gtk.Switch()
         self._autoload_switch.set_halign(Gtk.Align.START)
         self._autoload_switch.set_valign(Gtk.Align.CENTER)
-        self._autoload_switch.set_tooltip_text("Activate this to load the preset next time the device connects or when logging in")
+        self._autoload_switch.set_tooltip_text(
+            "Activate this to load the preset next time the device connects or when logging in"
+        )
         AutoloadSwitch(self._message_broker, self._controller, self._autoload_switch)
         autoload_content_box.pack_start(self._autoload_switch, False, False, 0)
 
@@ -430,7 +488,9 @@ class XboxVisualMapper:
         btn_defaults = Gtk.Button(label="Default Options")
         btn_defaults.get_style_context().add_class("pes-default-btn")
         btn_defaults.set_size_request(self.DISP_W, 36)
-        btn_defaults.set_tooltip_text("Reset controls to recommended gaming defaults (WASD, Space, etc.)")
+        btn_defaults.set_tooltip_text(
+            "Reset controls to recommended gaming defaults (WASD, Space, etc.)"
+        )
         btn_defaults.connect("clicked", self._on_default_options_clicked)
         center_col.pack_start(btn_defaults, False, False, 0)
 
@@ -481,7 +541,10 @@ class XboxVisualMapper:
         badge.set_markup(f"<b>{badge_text}</b>")
         event_box.add(badge)
         event_box.set_tooltip_text(f"{name}\nClick to assign key")
-        event_box.connect("button-press-event", lambda _, ev, s=symbol: self._on_entry_btn_press(ev, s))
+        event_box.connect(
+            "button-press-event",
+            lambda _, ev, s=symbol: self._on_entry_btn_press(ev, s),
+        )
         row.pack_start(event_box, False, False, 0)
 
         # Compact Entry Button (Key display)
@@ -490,7 +553,10 @@ class XboxVisualMapper:
         entry_btn.set_can_focus(False)
         entry_btn.set_size_request(88, 22)
         entry_btn.set_tooltip_text(f"{name}\nClick to change. Right-click to clear.")
-        entry_btn.connect("button-press-event", lambda _, ev, s=symbol: self._on_entry_btn_press(ev, s))
+        entry_btn.connect(
+            "button-press-event",
+            lambda _, ev, s=symbol: self._on_entry_btn_press(ev, s),
+        )
 
         self._entry_buttons[symbol] = entry_btn
         row.pack_start(entry_btn, False, False, 0)
@@ -526,7 +592,9 @@ class XboxVisualMapper:
             f"<span color='#ff3366'><b>▶ Press a key on your keyboard to assign '{symbol}' (or Escape to cancel)...</b></span>"
         )
 
-        self._key_listener_id = self._window.connect("key-press-event", self._on_window_key_press)
+        self._key_listener_id = self._window.connect(
+            "key-press-event", self._on_window_key_press
+        )
 
     def _cancel_recording(self):
         """Cancels listening mode."""
@@ -621,7 +689,8 @@ class XboxVisualMapper:
         to_remove = [
             m.input_combination
             for m in preset
-            if getattr(m, "output_symbol", None) == target_symbol and m.input_combination
+            if getattr(m, "output_symbol", None) == target_symbol
+            and m.input_combination
         ]
         for comb in to_remove:
             preset.remove(comb)
@@ -660,41 +729,36 @@ class XboxVisualMapper:
 
         defaults = {
             # Left Stick (Movement WASD)
-            "STICK_LEFT_UP": 17,       # W
-            "STICK_LEFT_LEFT": 30,     # A
-            "STICK_LEFT_DOWN": 31,     # S
-            "STICK_LEFT_RIGHT": 32,    # D
-            "BTN_THUMBL": 42,          # Left Shift
-
+            "STICK_LEFT_UP": 17,  # W
+            "STICK_LEFT_LEFT": 30,  # A
+            "STICK_LEFT_DOWN": 31,  # S
+            "STICK_LEFT_RIGHT": 32,  # D
+            "BTN_THUMBL": 42,  # Left Shift
             # D-Pad (Arrows)
-            "DPAD_UP": 103,            # Up
-            "DPAD_LEFT": 105,          # Left
-            "DPAD_DOWN": 108,          # Down
-            "DPAD_RIGHT": 106,         # Right
-
+            "DPAD_UP": 103,  # Up
+            "DPAD_LEFT": 105,  # Left
+            "DPAD_DOWN": 108,  # Down
+            "DPAD_RIGHT": 106,  # Right
             # Face Buttons (Space, C, X, Z)
-            "BTN_A": 57,               # Space
-            "BTN_B": 46,               # C
-            "BTN_X": 45,               # X
-            "BTN_Y": 44,               # Z
-
+            "BTN_A": 57,  # Space
+            "BTN_B": 46,  # C
+            "BTN_X": 45,  # X
+            "BTN_Y": 44,  # Z
             # Shoulders & Triggers
-            "BTN_TL": 16,              # Q (LB)
-            "BTN_TR": 18,              # E (RB)
-            "TRIGGER_LEFT": 2,         # 1 (LT)
-            "TRIGGER_RIGHT": 3,        # 2 (RT)
-
+            "BTN_TL": 16,  # Q (LB)
+            "BTN_TR": 18,  # E (RB)
+            "TRIGGER_LEFT": 2,  # 1 (LT)
+            "TRIGGER_RIGHT": 3,  # 2 (RT)
             # Right Stick (I, J, K, L, R)
-            "STICK_RIGHT_UP": 23,      # I
-            "STICK_RIGHT_LEFT": 36,    # J
-            "STICK_RIGHT_DOWN": 37,    # K
-            "STICK_RIGHT_RIGHT": 38,   # L
-            "BTN_THUMBR": 19,          # R
-
+            "STICK_RIGHT_UP": 23,  # I
+            "STICK_RIGHT_LEFT": 36,  # J
+            "STICK_RIGHT_DOWN": 37,  # K
+            "STICK_RIGHT_RIGHT": 38,  # L
+            "BTN_THUMBR": 19,  # R
             # Menu & Guide
-            "BTN_SELECT": 15,          # Tab (Back)
-            "BTN_START": 28,           # Enter (Start)
-            "BTN_MODE": 59,            # F1 (Guide)
+            "BTN_SELECT": 15,  # Tab (Back)
+            "BTN_START": 28,  # Enter (Start)
+            "BTN_MODE": 59,  # F1 (Guide)
         }
 
         preset.empty()
@@ -744,7 +808,9 @@ class XboxVisualMapper:
         for sym, hotspot in self._hotspot_buttons.items():
             if sym in mapped_symbols:
                 code, key_name = mapped_symbols[sym]
-                hotspot.set_tooltip_text(f"{sym}\nMapped to: [{key_name}]\nClick to change")
+                hotspot.set_tooltip_text(
+                    f"{sym}\nMapped to: [{key_name}]\nClick to change"
+                )
             else:
                 hotspot.set_tooltip_text(f"{sym}\nUnassigned\nClick to assign key")
 
@@ -784,7 +850,9 @@ class XboxVisualMapper:
         """Updates live status and button text."""
         is_running = msg.state in (InjectorState.RUNNING, "RUNNING")
         if is_running:
-            self._status_label.set_markup("<span color='#107c10'><b>🟢 Active</b></span>")
+            self._status_label.set_markup(
+                "<span color='#107c10'><b>🟢 Active</b></span>"
+            )
             self._btn_apply.set_sensitive(False)
             self._btn_stop.set_sensitive(True)
         else:

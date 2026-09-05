@@ -169,8 +169,14 @@ class EventReader:
         if event.type == evdev.ecodes.EV_KEY:
             if event.code in (evdev.ecodes.KEY_LEFTCTRL, evdev.ecodes.KEY_RIGHTCTRL):
                 self._ctrl_down = event.value > 0
-            elif event.code == evdev.ecodes.KEY_DELETE and event.value == 1 and getattr(self, "_ctrl_down", False):
-                logger.info("Emergency stop shortcut (Ctrl + Delete) detected in EventReader")
+            elif (
+                event.code == evdev.ecodes.KEY_DELETE
+                and event.value == 1
+                and getattr(self, "_ctrl_down", False)
+            ):
+                logger.info(
+                    "Emergency stop shortcut (Ctrl + Delete) detected in EventReader"
+                )
                 self.stop()
                 return
 

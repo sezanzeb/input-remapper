@@ -265,7 +265,10 @@ class UserInterface:
         if editor_btn_box:
             btn_xbox = Gtk.Button(label="Xbox Gamepad")
             btn_xbox.set_tooltip_text("Switch to visual Xbox Gamepad mapper")
-            btn_xbox.connect("clicked", lambda *_: self.main_stack.set_visible_child_name("XboxGamepad"))
+            btn_xbox.connect(
+                "clicked",
+                lambda *_: self.main_stack.set_visible_child_name("XboxGamepad"),
+            )
             editor_btn_box.pack_start(btn_xbox, True, True, 0)
             btn_xbox.show_all()
         self.get("copy_preset").connect(
