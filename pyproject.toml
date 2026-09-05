@@ -27,6 +27,7 @@ include = ["inputremapper*"]
 Homepage = "https://github.com/sezanzeb/input-remapper"
 
 [tool.ruff.lint]
+select = ["E", "F"]
 # Because of gi.require_version we get this a lot
 ignore = ["E402"]
 # Lots of unused imports in
