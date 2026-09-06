@@ -11,7 +11,7 @@ build_deb() {
   find ./build -empty -delete
 
   cp ./DEBIAN build/deb -r
-  dpkg-deb -Z gzip -b build/deb dist/input-remapper-2.2.1.deb
+  dpkg-deb -Z gzip -b build/deb dist/input-remapper-2.2.2.deb
 }
 
 build_deb

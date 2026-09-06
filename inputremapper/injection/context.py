@@ -76,6 +76,7 @@ class Context:
     _handlers: EventPipelines
     _forward_devices: Dict[DeviceHash, evdev.UInput]
     _source_devices: Dict[DeviceHash, evdev.InputDevice]
+    block_unmapped_keys: bool
 
     def __init__(
         self,
@@ -84,6 +85,7 @@ class Context:
         forward_devices: Dict[DeviceHash, evdev.UInput],
         mapping_parser: MappingParser,
     ) -> None:
+        self.block_unmapped_keys = getattr(preset, "block_unmapped_keys", False)
         if len(forward_devices) == 0:
             logger.warning("forward_devices not set")
 

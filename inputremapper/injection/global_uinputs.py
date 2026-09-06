@@ -34,7 +34,10 @@ DEFAULT_UINPUTS = {
         evdev.ecodes.EV_KEY: list(evdev.ecodes.KEY.keys() & evdev.ecodes.keys.keys())
     },
     "gamepad": {
-        evdev.ecodes.EV_KEY: [*range(0x130, 0x13F)],  # BTN_SOUTH - BTN_THUMBR
+        evdev.ecodes.EV_KEY: [
+            *range(0x130, 0x13F),  # BTN_SOUTH - BTN_THUMBR
+            *range(0x220, 0x224),  # BTN_DPAD_UP - BTN_DPAD_RIGHT
+        ],
         evdev.ecodes.EV_ABS: [
             *(
                 (i, evdev.AbsInfo(0, MIN_ABS, MAX_ABS, 0, 0, 0))

@@ -40,6 +40,7 @@ from evdev import ecodes
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.gamepad_symbols import is_gamepad_axis_symbol
 from inputremapper.logging.logger import logger
 
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
@@ -71,6 +72,34 @@ class Preset(Generic[MappingModel]):
 
         # the mapping class which is used by load()
         self._mapping_factory: Type[MappingModel] = mapping_factory
+        self._block_unmapped_keys: Optional[bool] = None
+        self._saved_block_unmapped_keys: Optional[bool] = None
+
+    @property
+    def block_unmapped_keys(self) -> bool:
+        """Whether unmapped keys are deactivated."""
+        if self._block_unmapped_keys is not None:
+            return self._block_unmapped_keys
+        return self.is_gamepad_preset()
+
+    @block_unmapped_keys.setter
+    def block_unmapped_keys(self, value: Optional[bool]) -> None:
+        self._block_unmapped_keys = value
+
+    def is_gamepad_preset(self) -> bool:
+        """Check if any mapping targets a gamepad."""
+        for mapping in self:
+            if mapping.target_uinput == "gamepad":
+                return True
+            if mapping.output_symbol and (
+                is_gamepad_axis_symbol(mapping.output_symbol)
+                or mapping.output_symbol.startswith("BTN_")
+                or mapping.output_symbol.startswith("TRIGGER_")
+                or mapping.output_symbol.startswith("DPAD_")
+                or mapping.output_symbol.startswith("STICK_")
+            ):
+                return True
+        return False
 
     def __iter__(self) -> Iterator[MappingModel]:
         """Iterate over Mapping objects."""
@@ -86,7 +115,10 @@ class Preset(Generic[MappingModel]):
 
     def has_unsaved_changes(self) -> bool:
         """Check if there are unsaved changed."""
-        return self._mappings != self._saved_mappings
+        return (
+            self._mappings != self._saved_mappings
+            or self._block_unmapped_keys != self._saved_block_unmapped_keys
+        )
 
     def remove(self, combination: InputCombination) -> None:
         """Remove a mapping from the preset by providing the InputCombination."""
@@ -129,11 +161,13 @@ class Preset(Generic[MappingModel]):
         for mapping in self._mappings.values():
             mapping.remove_combination_changed_callback()
         self._mappings = {}
+        self._block_unmapped_keys = None
 
     def clear(self) -> None:
         """Remove all mappings and also self.path."""
         self.empty()
         self._saved_mappings = {}
+        self._saved_block_unmapped_keys = None
         self.path = None
 
     def load(self) -> None:
@@ -143,8 +177,9 @@ class Preset(Generic[MappingModel]):
         if not self.path or not os.path.exists(self.path):
             raise FileNotFoundError(f'Tried to load non-existing preset "{self.path}"')
 
-        self._saved_mappings = self._get_mappings_from_disc()
         self.empty()
+        self._saved_mappings = self._get_mappings_from_disc()
+        self._saved_block_unmapped_keys = self._block_unmapped_keys
         for mapping in self._saved_mappings.values():
             # use the public add method to make sure
             # the _combination_changed_callback is attached
@@ -179,6 +214,10 @@ class Preset(Generic[MappingModel]):
         logger.info("Saving preset to %s", self.path)
 
         preset_list = []
+        if self._block_unmapped_keys is not None:
+            preset_list.append(
+                {"__metadata__": {"block_unmapped_keys": self._block_unmapped_keys}}
+            )
         saved_mappings = {}
         for mapping in self:
             if not mapping.is_valid():
@@ -210,6 +249,7 @@ class Preset(Generic[MappingModel]):
             file.write("\n")
 
         self._saved_mappings = saved_mappings
+        self._saved_block_unmapped_keys = self._block_unmapped_keys
 
     def is_valid(self) -> bool:
         return False not in [mapping.is_valid() for mapping in self]
@@ -285,6 +325,7 @@ class Preset(Generic[MappingModel]):
                 logger.error("unable to decode json file: %s", self.path)
                 return mappings
 
+        self._block_unmapped_keys = None
         for mapping_dict in preset_list:
             if not isinstance(mapping_dict, dict):
                 logger.error(
@@ -292,6 +333,12 @@ class Preset(Generic[MappingModel]):
                     type(mapping_dict),
                     mapping_dict,
                 )
+                continue
+
+            if "__metadata__" in mapping_dict:
+                meta = mapping_dict["__metadata__"]
+                if isinstance(meta, dict) and "block_unmapped_keys" in meta:
+                    self._block_unmapped_keys = bool(meta["block_unmapped_keys"])
                 continue
 
             try:

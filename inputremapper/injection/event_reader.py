@@ -74,6 +74,7 @@ class EventReader:
         self._source = source
         self.context = context
         self.stop_event = stop_event
+        self._ctrl_down = False
 
     def stop(self):
         """Stop the reader."""
@@ -157,11 +158,28 @@ class EventReader:
 
     def forward(self, event: InputEvent) -> None:
         """Forward an event, which injects it unmodified."""
+        if getattr(self.context, "block_unmapped_keys", False):
+            return
+
         forward_to = self.context.get_forward_uinput(self._device_hash)
         logger.write(event, forward_to)
         forward_to.write(*event.event_tuple)
 
     async def handle(self, event: InputEvent) -> None:
+        if event.type == evdev.ecodes.EV_KEY:
+            if event.code in (evdev.ecodes.KEY_LEFTCTRL, evdev.ecodes.KEY_RIGHTCTRL):
+                self._ctrl_down = event.value > 0
+            elif (
+                event.code == evdev.ecodes.KEY_DELETE
+                and event.value == 1
+                and getattr(self, "_ctrl_down", False)
+            ):
+                logger.info(
+                    "Emergency stop shortcut (Ctrl + Delete) detected in EventReader"
+                )
+                self.stop()
+                return
+
         if event.type == evdev.ecodes.EV_KEY and event.value == 2:
             # button-hold event. Environments (gnome, etc.) create them on
             # their own for the injection-fake-device if the release event

@@ -48,6 +48,8 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     ContextProtocol,
     MappingHandler,
 )
+from inputremapper.injection.mapping_handlers.btn_to_abs_handler import BtnToAbsHandler
+from inputremapper.configs.gamepad_symbols import is_gamepad_axis_symbol
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
@@ -66,7 +68,7 @@ mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     HandlerEnums.btn2rel: None,  # can be a macro
     HandlerEnums.rel2rel: RelToRelHandler,
     HandlerEnums.abs2rel: AbsToRelHandler,
-    HandlerEnums.btn2abs: None,  # can be a macro
+    HandlerEnums.btn2abs: BtnToAbsHandler,
     HandlerEnums.rel2abs: RelToAbsHandler,
     HandlerEnums.abs2abs: AbsToAbsHandler,
     HandlerEnums.combination: CombinationHandler,
@@ -209,6 +211,9 @@ class MappingParser:
             if Parser.is_this_a_macro(mapping.output_symbol):
                 return HandlerEnums.macro
 
+            if is_gamepad_axis_symbol(mapping.output_symbol):
+                return HandlerEnums.btn2abs
+
             return HandlerEnums.key
 
         if mapping.output_type == EV_KEY:
@@ -216,6 +221,8 @@ class MappingParser:
 
         input_event = self._maps_axis(mapping.input_combination)
         if not input_event:
+            if mapping.output_type == EV_ABS:
+                return HandlerEnums.btn2abs
             raise MappingParsingError(
                 f"This {mapping = } does not map to an axis, key or macro",
                 mapping=Mapping,

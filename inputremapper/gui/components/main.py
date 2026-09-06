@@ -40,6 +40,7 @@ class Stack:
     devices_page = 0
     presets_page = 1
     editor_page = 2
+    xbox_page = 3
 
     def __init__(
         self,

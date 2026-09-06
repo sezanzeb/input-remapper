@@ -59,7 +59,14 @@ class PresetEntry(FlowBoxEntry):
     def _on_gtk_toggle(self, *_, **__):
         logger.debug('Selecting preset "%s"', self.preset_name)
         self._controller.load_preset(self.preset_name)
-        self.message_broker.publish(DoStackSwitch(Stack.editor_page))
+        preset = self._controller.data_manager.active_preset
+        has_gamepad = preset and any(
+            getattr(m, "target_uinput", None) == "gamepad" for m in preset
+        )
+        if has_gamepad or "xbox" in self.preset_name.lower():
+            self.message_broker.publish(DoStackSwitch(Stack.xbox_page))
+        else:
+            self.message_broker.publish(DoStackSwitch(Stack.editor_page))
 
 
 class PresetSelection(FlowBoxWrapper):

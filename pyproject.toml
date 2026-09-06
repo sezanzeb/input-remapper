@@ -1,6 +1,6 @@
 [project]
 name = "input-remapper"
-version = "2.2.1"
+version = "2.2.2"
 description = "A tool to change the mapping of your input device buttons"
 authors = [
     { name = "Sezanzeb", email = "b8x45ygc9@mozmail.com" },
@@ -27,8 +27,9 @@ include = ["inputremapper*"]
 Homepage = "https://github.com/sezanzeb/input-remapper"
 
 [tool.ruff.lint]
-# Because of gi.require_version we get this a lot
-ignore = ["E402"]
+select = ["E", "F"]
+# Because of gi.require_version we get this a lot. Black handles line lengths.
+ignore = ["E402", "E501"]
 # Lots of unused imports in
 exclude = ["install/check_dependencies.py"]
 
