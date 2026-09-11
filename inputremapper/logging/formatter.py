@@ -121,7 +121,7 @@ class ColorfulFormatter(logging.Formatter):
 
         process_color = self._word_to_color(f"{os.getpid()}{sys.argv[0]}")
 
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.now(tz=datetime.timezone.utc)
         return (
             f'{now.strftime("%H:%M:%S.%f")} '
             f"\033[38;5;{process_color}m"  # color
