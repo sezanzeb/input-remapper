@@ -840,7 +840,7 @@ class Controller:
                 analog_input = next(
                     filter(lambda i: i.defines_analog_input, mapping.input_combination)
                 )
-            except IndexError:
+            except StopIteration:
                 changes["output_type"] = None
                 changes["output_code"] = None
                 return changes
