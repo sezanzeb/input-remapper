@@ -46,7 +46,7 @@ from inputremapper.gui.data_manager import DataManager
 from inputremapper.gui.gettext import LOCALE_DIR, _
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.reader_client import ReaderClient
-from inputremapper.gui.reader_service import ReaderService
+from inputremapper.gui.reader_service import ReaderService, ReaderServiceError
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from inputremapper.logging.logger import logger
@@ -137,7 +137,7 @@ class InputRemapperGtkBin:
 
         try:
             ReaderService.pkexec_reader_service()
-        except Exception as e:  # noqa: BLE001
+        except ReaderServiceError as e:
             logger.error(e)
             sys.exit(11)
 

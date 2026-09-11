@@ -69,8 +69,8 @@ class AbsToRelHandler(MappingHandler):
         super().__init__(combination, mapping, global_uinputs)
 
         # find the input event we are supposed to map
-        assert (map_axis := combination.find_analog_input_config(type_=EV_ABS))
-        self._map_axis = map_axis
+        self._map_axis = combination.find_analog_input_config(type_=EV_ABS)
+        assert self._map_axis
 
         self._value = 0
         self._running = False

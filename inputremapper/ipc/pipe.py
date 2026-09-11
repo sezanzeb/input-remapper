@@ -92,7 +92,7 @@ class Pipe:
             os.open(paths[1], os.O_WRONLY | os.O_NONBLOCK),
         )
 
-        self._handles = (open(self._fds[0], "r"), open(self._fds[1], "w"))
+        self._handles = (open(self._fds[0], "r"), open(self._fds[1], "w"))  # noqa: SIM115
 
         # clear the pipe of any contents, to avoid leftover messages from breaking
         # the reader-client or reader-service

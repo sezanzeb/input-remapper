@@ -227,11 +227,12 @@ class Injector(multiprocessing.Process):
         devices_by_hash = {get_device_hash(device): device for device in self._devices}
 
         # mypy thinks None is the wrong type for dict.get()
-        if device := devices_by_hash.get(input_config.origin_hash):  # type: ignore
-            if input_config.code in device.capabilities(absinfo=False).get(
+        device = devices_by_hash.get(input_config.origin_hash)  # type: ignore
+        if device and input_config.code in device.capabilities(absinfo=False).get(
                 input_config.type, []
             ):
-                return device
+            return device
+
         return None
 
     def _find_input_device_fallback(

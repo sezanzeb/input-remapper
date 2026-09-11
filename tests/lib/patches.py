@@ -101,7 +101,7 @@ class InputDevice:
         logger.info('%s "%s" "%s" %s', msg, self.name, self.path, key)
 
     def absinfo(self, *args):
-        raise Exception("Ubuntus version of evdev doesn't support .absinfo")
+        raise AssertionError("Ubuntus version of evdev doesn't support .absinfo")
 
     def grab(self):
         logger.info("grab %s %s", self.name, self.path)
@@ -295,7 +295,7 @@ def patch_os_system():
             # because it
             # - will open a window for user input
             # - has no knowledge of the fixtures and patches
-            raise Exception("Write patches to avoid running pkexec stuff")
+            raise AssertionError("Write patches to avoid running pkexec stuff")
         return original_system(command)
 
     return patch.object(os, "system", system)

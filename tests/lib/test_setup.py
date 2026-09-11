@@ -61,7 +61,7 @@ def test_setup(cls):
 
         if is_service_running():
             # let tests control daemon existance
-            raise Exception("Expected the service not to be running already.")
+            raise AssertionError("Expected the service not to be running already.")
 
         create_fixture_pipes()
 

@@ -27,8 +27,10 @@ include = ["inputremapper*"]
 Homepage = "https://github.com/sezanzeb/input-remapper"
 
 [tool.ruff.lint]
-# Because of gi.require_version we get this a lot
-ignore = ["E402"]
+# E402: With gi.require_version we get this a lot
+# RUF012: Now is not a good moment to refactor this. Maybe later
+# BLE001: Bad practice, but hard to fix in hindsight
+ignore = ["E402", "RUF012", "BLE001"]
 # Lots of unused imports in
 exclude = ["install/check_dependencies.py"]
 

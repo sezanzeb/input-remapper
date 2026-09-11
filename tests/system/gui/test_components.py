@@ -389,7 +389,7 @@ class TestMappingListbox(ComponentBaseTest):
             if label.is_selected():
                 return label
 
-        raise Exception("Expected one MappingSelectionLabel to be selected")
+        raise AssertionError("Expected one MappingSelectionLabel to be selected")
 
     def select_row(self, combination: InputCombination):
         def select(label_: MappingSelectionLabel):
@@ -1169,7 +1169,7 @@ class TestCombinationListbox(ComponentBaseTest):
             if entry.is_selected():
                 return entry
 
-        raise Exception("Expected one InputConfigEntry to be selected")
+        raise AssertionError("Expected one InputConfigEntry to be selected")
 
     def select_row(self, input_cfg: InputConfig):
         for entry in self.gui.get_children():

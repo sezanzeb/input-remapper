@@ -86,7 +86,7 @@ class Macro:
             Will receive int type, code and value for an event to write
         """
         if not callable(callback):
-            raise ValueError("handler is not callable")
+            raise TypeError("handler is not callable")
 
         if self.running:
             logger.error('Tried to run already running macro "%s"', self.code)
@@ -101,8 +101,6 @@ class Macro:
                 coroutine = task.run(callback)
                 if asyncio.iscoroutine(coroutine):
                     await coroutine
-        except Exception:
-            raise
         finally:
             # done
             self.running = False

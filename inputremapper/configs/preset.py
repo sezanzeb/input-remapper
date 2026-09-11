@@ -287,7 +287,7 @@ class Preset(Generic[MappingModel]):
 
             try:
                 mapping = self._mapping_factory(**mapping_dict)
-            except Exception as error:
+            except ValidationError as error:
                 logger.error(
                     "failed to Validate mapping for %s: %s",
                     mapping_dict.get("input_combination"),

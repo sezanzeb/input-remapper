@@ -81,6 +81,10 @@ MSG_STATUS = "status"
 RELEASE_TIMEOUT = 0.3
 
 
+class ReaderServiceError(Exception):
+    """Raised when the reader-service fails to start."""
+
+
 class ReaderService:
     """Service that only reads events and is supposed to run as root.
 
@@ -169,7 +173,9 @@ class ReaderService:
         exit_code = os.system(cmd)
 
         if exit_code != 0:
-            raise Exception(f"Failed to start the reader-service, code {exit_code}")
+            raise ReaderServiceError(
+                f"Failed to start the reader-service, code {exit_code}"
+            )
 
     async def run(self) -> None:
         """Start doing stuff."""

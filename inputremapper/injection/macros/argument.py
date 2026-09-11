@@ -174,7 +174,7 @@ class Argument(ArgumentConfig):
         Fails for constants."""
         assert self._variable is not None
         if self._variable.const:
-            raise Exception("Can't set value of a constant")
+            raise ValueError("Can't set value of a constant")
 
         self._variable.set_value(value)
 
