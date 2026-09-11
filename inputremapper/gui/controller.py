@@ -238,18 +238,20 @@ class Controller:
                     for event in mapping.input_combination
                     if event.defines_analog_input
                 )
-                error_message += _(
-                    "\nIf you mean to create a key or macro mapping "
-                    "go to the advanced input configuration"
-                    ' and set a "Trigger Threshold" for '
-                    f'"{event.description()}"'
+                error_message += (
+                    _(
+                        "\nIf you mean to create a key or macro mapping "
+                        "go to the advanced input configuration"
+                        ' and set a "Trigger Threshold" for "%s"'
+                    )
+                    % event.description()
                 )
             return error_message
 
         if pydantify(WrongMappingTypeForKeyError) in error_type:
-            error_message = _(
-                "The input specifies a key, but the output type is not "
-                f'"{OutputTypeNames.key_or_macro}".'
+            error_message = (
+                _('The input specifies a key, but the output type is not "%s".')
+                % OutputTypeNames.key_or_macro
             )
 
             if mapping.output_type in (EV_ABS, EV_REL):
@@ -553,12 +555,13 @@ class Controller:
 
     def update_mapping(self, **changes):
         """Update the active_mapping with the given keywords and values."""
-        if "mapping_type" in changes:
-            if not (changes := self._change_mapping_type(changes)):
-                # we need to synchronize the gui
-                self.data_manager.publish_mapping()
-                self.data_manager.publish_event()
-                return
+        if "mapping_type" in changes and not (
+            changes := self._change_mapping_type(changes)
+        ):
+            # we need to synchronize the gui
+            self.data_manager.publish_mapping()
+            self.data_manager.publish_event()
+            return
 
         self.data_manager.update_mapping(**changes)
         self.save()
@@ -645,16 +648,18 @@ class Controller:
             self.show_status(CTX_ERROR, _("You need to add mappings first"))
             return
 
-        if not self.button_left_warn:
-            if self.data_manager.active_preset.dangerously_mapped_btn_left():
-                self.show_status(
-                    CTX_ERROR,
-                    "This would disable your click button",
-                    "Map a button to BTN_LEFT to avoid this.\n"
-                    "To overwrite this warning, press apply again.",
-                )
-                self.button_left_warn = True
-                return
+        if (
+            not self.button_left_warn
+            and self.data_manager.active_preset.dangerously_mapped_btn_left()
+        ):
+            self.show_status(
+                CTX_ERROR,
+                "This would disable your click button",
+                "Map a button to BTN_LEFT to avoid this.\n"
+                "To overwrite this warning, press apply again.",
+            )
+            self.button_left_warn = True
+            return
 
         # todo: warn about unreleased keys
         self.button_left_warn = False

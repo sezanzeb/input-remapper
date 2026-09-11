@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Hashable, Iterable
-from typing import Union
 
 from evdev import ecodes
 
@@ -327,10 +326,7 @@ class InputConfig(BaseModel):
         underscore_attrs_are_private = True
 
 
-InputCombinationInit = Union[
-    Iterable[dict[str, str | int]],
-    Iterable[InputConfig],
-]
+InputCombinationInit = Iterable[dict[str, str | int]] | Iterable[InputConfig]
 
 
 class InputCombination(tuple[InputConfig, ...]):

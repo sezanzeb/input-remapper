@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -320,25 +321,28 @@ class InputRemapperControlBin:
 
     def _num_logged_in_users(self) -> int:
         """Check how many users are logged in."""
-        who = subprocess.run(["who"], stdout=subprocess.PIPE).stdout.decode()
+        who = subprocess.run(
+            ["who"],
+            stdout=subprocess.PIPE,
+            check=False,
+        ).stdout.decode()
         return len([user for user in who.split("\n") if user.strip() != ""])
 
     def _is_systemd_finished(self) -> bool:
         """Check if systemd finished booting."""
         try:
             systemd_analyze = subprocess.run(
-                ["systemd-analyze"], stdout=subprocess.PIPE
+                ["systemd-analyze"],
+                stdout=subprocess.PIPE,
+                check=False,
             )
         except FileNotFoundError:
             # probably not systemd, lets assume true to not block input-remapper for good
             # on certain installations
             return True
 
-        if "finished" in systemd_analyze.stdout.decode():
-            # it writes into stderr otherwise or something
-            return True
-
-        return False
+        # it writes into stderr otherwise or something
+        return "finished" in systemd_analyze.stdout.decode()
 
     def boot_finished(self) -> bool:
         """Check if booting is completed."""

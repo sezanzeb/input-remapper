@@ -229,8 +229,8 @@ class Injector(multiprocessing.Process):
         # mypy thinks None is the wrong type for dict.get()
         device = devices_by_hash.get(input_config.origin_hash)  # type: ignore
         if device and input_config.code in device.capabilities(absinfo=False).get(
-                input_config.type, []
-            ):
+            input_config.type, []
+        ):
             return device
 
         return None

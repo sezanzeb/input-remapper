@@ -21,7 +21,7 @@ from __future__ import annotations
 import enum
 from collections import namedtuple
 from collections.abc import Callable
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 
 from evdev.ecodes import (
     EV_ABS,
@@ -121,9 +121,7 @@ class MappingType(str, enum.Enum):
     ANALOG = "analog"
 
 
-CombinationChangedCallback = Optional[
-    Callable[[InputCombination, InputCombination], None]
-]
+CombinationChangedCallback = Callable[[InputCombination, InputCombination], None] | None
 MappingModel = TypeVar("MappingModel", bound="UIMapping")
 
 
@@ -466,10 +464,9 @@ class Mapping(UIMapping):
             # we have a symbol: no type and code is fine
             return values
 
-        if Parser.is_this_a_macro(symbol):
-            # disallow output type and code for macros
-            if type_ is not None or code is not None:
-                raise MacroButTypeOrCodeSetError()
+        # disallow output type and code for macros
+        if Parser.is_this_a_macro(symbol) and type_ is not None or code is not None:
+            raise MacroButTypeOrCodeSetError()
 
         if code is not None and code != keyboard_layout.get(symbol) or type_ != EV_KEY:
             raise SymbolAndCodeMismatchError(symbol, code)

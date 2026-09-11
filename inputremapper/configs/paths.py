@@ -136,12 +136,11 @@ class PathUtils:
 
         group_name = PathUtils.sanitize_path_component(group_name)
 
-        if preset is not None:
-            # the extension of the preset should not be shown in the ui.
-            # if a .json extension arrives this place, it has not been
-            # stripped away properly prior to this.
-            if not preset.endswith(".json"):
-                preset = f"{preset}.json"
+        # the extension of the preset should not be shown in the ui.
+        # if a .json extension arrives this place, it has not been
+        # stripped away properly prior to this.
+        if preset is not None and not preset.endswith(".json"):
+            preset = f"{preset}.json"
 
         if preset is None:
             return os.path.join(presets_base, group_name)
