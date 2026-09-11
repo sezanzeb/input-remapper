@@ -137,7 +137,7 @@ class InputRemapperGtkBin:
 
         try:
             ReaderService.pkexec_reader_service()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(e)
             sys.exit(11)
 

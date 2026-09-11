@@ -508,6 +508,6 @@ class Migrations:
             PathUtils.remove(f"{UserUtils.home}/.log/input-remapper")
             PathUtils.remove("/var/log/input-remapper")
             PathUtils.remove("/var/log/input-remapper-control")
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             logger.debug("Failed to remove deprecated logfiles: %s", str(error))
             # this migration is not important. Continue

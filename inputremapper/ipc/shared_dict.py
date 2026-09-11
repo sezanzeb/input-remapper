@@ -131,8 +131,7 @@ class SharedDict:
         except psutil.NoSuchProcess:
             return False
 
-        if proc.status() == psutil.STATUS_ZOMBIE:
-            return False
+        return proc.status() != psutil.STATUS_ZOMBIE
 
         # Alternative:
         # If the process freezes or dies, the pipe may presumably get full and .send
@@ -141,8 +140,6 @@ class SharedDict:
         # ready = select.select([], [self.pipe[1]], [], 0)
         # if not ready[1]:
         #     return False
-
-        return True
 
     def _stop(self) -> None:
         """Stop the managing process."""

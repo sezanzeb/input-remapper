@@ -161,10 +161,10 @@ logger = Logger.bootstrap_logger()
 
 EVDEV_VERSION = None
 try:
-    from importlib.metadata import version
+    from importlib.metadata import PackageNotFoundError, version
 
     EVDEV_VERSION = version("evdev")
-except Exception as error:
+except PackageNotFoundError as error:
     logger.info("Could not figure out the evdev version")
     logger.debug(error)
 
