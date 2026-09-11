@@ -17,7 +17,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-
 import evdev
 from evdev.ecodes import ABS_BRAKE, ABS_GAS, ABS_RZ, ABS_Z, EV_ABS
 
