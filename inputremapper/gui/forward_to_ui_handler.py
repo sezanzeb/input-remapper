@@ -101,20 +101,21 @@ class ForwardToUIHandler(MappingHandler):
 
         self._last_event = event
 
-        logger.debug("Sending %s to frontend", event)
+        message = {
+            "sec": event.sec,
+            "usec": event.usec,
+            "type": event.type,
+            "code": event.code,
+            "value": event.value,
+            "pressed": pressed,
+            "direction": direction,
+            "origin_hash": event.origin_hash,
+        }
+        logger.debug("Sending %s to frontend", message)
         self.pipe.send(
             {
                 "type": MSG_EVENT,
-                "message": {
-                    "sec": event.sec,
-                    "usec": event.usec,
-                    "type": event.type,
-                    "code": event.code,
-                    "value": event.value,
-                    "pressed": pressed,
-                    "direction": direction,
-                    "origin_hash": event.origin_hash,
-                },
+                "message": message,
             }
         )
         return True

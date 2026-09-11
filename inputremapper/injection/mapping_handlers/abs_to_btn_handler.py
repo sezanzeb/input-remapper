@@ -73,7 +73,7 @@ class AbsToBtnHandler(MappingHandler):
         analog_threshold = self._input_config.analog_threshold
         assert analog_threshold is not None
 
-        threshold, mid_point = calculate_trigger_point(
+        trigger_offset, mid_point = calculate_trigger_point(
             event,
             analog_threshold,
             source,
@@ -88,6 +88,7 @@ class AbsToBtnHandler(MappingHandler):
 
         # For dpads, the threshold is 1, but so is the max value. So <= and >= it is.
         # If this is dumb, change the threhsold to be a float.
+        threshold = trigger_offset + mid_point
         pressed = value >= threshold if want_positive else value <= threshold
 
         '''print(f"""abs_to_btn

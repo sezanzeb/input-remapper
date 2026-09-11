@@ -23,9 +23,7 @@ from evdev.ecodes import ABS_X, ABS_Z, EV_ABS, EV_KEY
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.mapping import (
-    Mapping,
-)
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import fixtures
