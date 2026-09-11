@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,7 +20,7 @@
 from __future__ import annotations
 
 from tests.lib.fixtures import fixtures
-from tests.lib.pipes import setup_pipe, close_pipe
+from tests.lib.pipes import close_pipe, setup_pipe
 
 
 def create_fixture_pipes():

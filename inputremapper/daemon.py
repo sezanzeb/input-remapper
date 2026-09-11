@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -29,11 +28,11 @@ import os
 import sys
 import time
 from pathlib import PurePath
-from typing import Dict, Optional, Protocol
+from typing import Protocol
 
 import gi
-from dasbus.error import DBusError
 from dasbus.connection import SystemMessageBus
+from dasbus.error import DBusError
 from dasbus.identifier import DBusServiceIdentifier
 from dasbus.loop import EventLoop
 
@@ -106,10 +105,7 @@ class AutoloadHistory:
         # seconds in my case.
         now = time.time()
         threshold = 15  # seconds
-        if self._autoload_history[group_key][0] < now - threshold:
-            return True
-
-        return False
+        return self._autoload_history[group_key][0] < now - threshold
 
 
 class DaemonProxy(Protocol):  # pragma: no cover
@@ -210,9 +206,9 @@ class Daemon:
         self.global_uinputs = global_uinputs
         self.mapping_parser = mapping_parser
 
-        self.injectors: Dict[str, Injector] = {}
+        self.injectors: dict[str, Injector] = {}
         self.suspended = False
-        self.suspended_presets: Dict[str, str] = {}
+        self.suspended_presets: dict[str, str] = {}
 
         self.config_dir = None
 
@@ -235,7 +231,7 @@ class Daemon:
         macro_variables.start()
 
     @classmethod
-    def connect(cls, fallback: bool = True) -> Optional[DaemonProxy]:
+    def connect(cls, fallback: bool = True) -> DaemonProxy | None:
         """Get a proxy to start and stop injecting keystrokes.
 
         Parameters
@@ -305,7 +301,7 @@ class Daemon:
         logger.debug("Running daemon")
         loop.run()
 
-    def refresh(self, group_key: Optional[str] = None) -> None:
+    def refresh(self, group_key: str | None = None) -> None:
         """Refresh groups if the specified group is unknown.
 
         Parameters

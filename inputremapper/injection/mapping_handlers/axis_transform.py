@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,7 +17,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
-from typing import Dict, Union
 
 
 class Transformation:
@@ -27,8 +25,8 @@ class Transformation:
     def __init__(
         self,
         # if input values are > max_, the return value will be > 1
-        max_: Union[int, float],
-        min_: Union[int, float],
+        max_: float,
+        min_: float,
         deadzone: float,
         gain: float = 1,
         expo: float = 0,
@@ -38,9 +36,9 @@ class Transformation:
         self._deadzone = deadzone
         self._gain = gain
         self._expo = expo
-        self._cache: Dict[float, float] = {}
+        self._cache: dict[float, float] = {}
 
-    def __call__(self, /, x: Union[int, float]) -> float:
+    def __call__(self, /, x: float) -> float:
         if x not in self._cache:
             y = (
                 self._calc_qubic(self._flatten_deadzone(self._normalize(x)))
@@ -58,7 +56,7 @@ class Transformation:
         self._min = min_
         self._max = max_
 
-    def _normalize(self, x: Union[int, float]) -> float:
+    def _normalize(self, x: float) -> float:
         """Move and scale x to be between -1 and 1
         return: x
         """

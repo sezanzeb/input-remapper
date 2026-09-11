@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,7 +20,7 @@
 import json
 import re
 import subprocess
-from typing import Optional, List, Iterable, Tuple
+from collections.abc import Iterable
 
 import evdev
 
@@ -44,9 +43,9 @@ LAZY_LOAD = None
 class KeyboardLayout:
     """Stores information about all available keycodes."""
 
-    _mapping: Optional[dict] = LAZY_LOAD
-    _xmodmap: Optional[List[Tuple[str, str]]] = LAZY_LOAD
-    _case_insensitive_mapping: Optional[dict] = LAZY_LOAD
+    _mapping: dict | None = LAZY_LOAD
+    _xmodmap: list[tuple[str, str]] | None = LAZY_LOAD
+    _case_insensitive_mapping: dict | None = LAZY_LOAD
 
     def __getattribute__(self, wanted: str):
         """To lazy load keyboard_layout info only when needed.
@@ -67,7 +66,7 @@ class KeyboardLayout:
 
         return object.__getattribute__(self, wanted)
 
-    def list_names(self, codes: Optional[Iterable[int]] = None) -> List[str]:
+    def list_names(self, codes: Iterable[int] | None = None) -> list[str]:
         """Get all possible names in the mapping, optionally filtered by codes.
 
         Parameters
@@ -120,7 +119,7 @@ class KeyboardLayout:
     def _use_linux_evdev_symbols(self):
         """Look up the evdev constant names and use them."""
         for name, ecode in evdev.ecodes.ecodes.items():
-            if name.startswith("KEY") or name.startswith("BTN"):
+            if name.startswith(("KEY", "BTN")):
                 self._set(name, ecode)
 
     def populate(self):
@@ -158,7 +157,7 @@ class KeyboardLayout:
         self._mapping[str(name)] = code
         self._case_insensitive_mapping[str(name).lower()] = name
 
-    def get(self, name: str) -> Optional[int]:
+    def get(self, name: str) -> int | None:
         """Return the code mapped to the key."""
         # the correct casing should be shown when asking the keyboard_layout
         # for stuff. indexing case insensitive to support old presets.

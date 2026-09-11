@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -20,11 +19,10 @@
 
 import os.path
 import unittest
-from typing import List
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
 import gi
-from evdev.ecodes import EV_ABS, ABS_X, ABS_Y, ABS_RX
+from evdev.ecodes import ABS_RX, ABS_X, ABS_Y, EV_ABS
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.injector import InjectorState
@@ -32,34 +30,34 @@ from inputremapper.injection.injector import InjectorState
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import Mapping, MappingData, UIMapping
+from inputremapper.configs.paths import PathUtils
+from inputremapper.configs.preset import Preset
 from inputremapper.groups import _Groups
+from inputremapper.gui.controller import MAPPING_DEFAULTS, Controller
+from inputremapper.gui.data_manager import DEFAULT_PRESET_NAME, DataManager
+from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
 from inputremapper.gui.messages.message_data import (
-    GroupsData,
-    GroupData,
-    PresetData,
-    StatusData,
     CombinationRecorded,
     CombinationUpdate,
+    GroupData,
+    GroupsData,
+    PresetData,
+    StatusData,
     UserConfirmRequest,
 )
 from inputremapper.gui.reader_client import ReaderClient
-from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
-from inputremapper.gui.gettext import _
-from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
-from inputremapper.configs.mapping import UIMapping, MappingData, Mapping
-from tests.lib.spy import spy
-from tests.lib.patches import FakeDaemonProxy
+from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, gtk_iteration
+from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from tests.lib.fixtures import fixtures, prepare_presets
-from inputremapper.configs.global_config import GlobalConfig
-from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
-from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
-from inputremapper.configs.paths import PathUtils
-from inputremapper.configs.preset import Preset
+from tests.lib.patches import FakeDaemonProxy
+from tests.lib.spy import spy
 from tests.lib.test_setup import test_setup
 
 
@@ -127,7 +125,7 @@ class TestController(unittest.TestCase):
         )
 
     def test_on_init_should_provide_groups(self):
-        calls: List[GroupsData] = []
+        calls: list[GroupsData] = []
 
         def f(groups):
             calls.append(groups)
@@ -140,7 +138,7 @@ class TestController(unittest.TestCase):
         )
 
     def test_on_init_should_provide_a_group(self):
-        calls: List[GroupData] = []
+        calls: list[GroupData] = []
 
         def f(data):
             calls.append(data)
@@ -150,7 +148,7 @@ class TestController(unittest.TestCase):
         self.assertGreaterEqual(len(calls), 1)
 
     def test_on_init_should_provide_a_preset(self):
-        calls: List[PresetData] = []
+        calls: list[PresetData] = []
 
         def f(data):
             calls.append(data)
@@ -162,7 +160,7 @@ class TestController(unittest.TestCase):
     def test_on_init_should_provide_a_mapping(self):
         """Only if there is one."""
         prepare_presets()
-        calls: List[MappingData] = []
+        calls: list[MappingData] = []
 
         def f(data):
             calls.append(data)
@@ -173,7 +171,7 @@ class TestController(unittest.TestCase):
 
     def test_on_init_should_provide_a_default_mapping(self):
         """If there is no real preset available"""
-        calls: List[MappingData] = []
+        calls: list[MappingData] = []
 
         def f(data):
             calls.append(data)
@@ -191,7 +189,7 @@ class TestController(unittest.TestCase):
     def test_on_load_group_should_provide_mapping(self):
         """If there is one"""
         prepare_presets()
-        calls: List[MappingData] = []
+        calls: list[MappingData] = []
 
         def f(data):
             calls.append(data)
@@ -202,7 +200,7 @@ class TestController(unittest.TestCase):
 
     def test_on_load_group_should_provide_default_mapping(self):
         """If there is none."""
-        calls: List[MappingData] = []
+        calls: list[MappingData] = []
 
         def f(data):
             calls.append(data)
@@ -217,7 +215,7 @@ class TestController(unittest.TestCase):
         """If there is one."""
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
-        calls: List[MappingData] = []
+        calls: list[MappingData] = []
 
         def f(data):
             calls.append(data)
@@ -230,7 +228,7 @@ class TestController(unittest.TestCase):
         """If there is none."""
         Preset(PathUtils.get_preset_path("Foo Device", "bar")).save()
         self.data_manager.load_group("Foo Device 2")
-        calls: List[MappingData] = []
+        calls: list[MappingData] = []
 
         def f(data):
             calls.append(data)
@@ -563,7 +561,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
 
-        calls: List[MappingData] = []
+        calls: list[MappingData] = []
 
         def f(data):
             calls.append(data)
@@ -648,7 +646,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
-        calls: List[CombinationUpdate] = []
+        calls: list[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
@@ -672,7 +670,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
-        calls: List[CombinationUpdate] = []
+        calls: list[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
@@ -775,7 +773,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
-        calls: List[CombinationUpdate] = []
+        calls: list[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
@@ -812,7 +810,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
-        calls: List[CombinationUpdate] = []
+        calls: list[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
@@ -830,7 +828,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
-        calls: List[CombinationUpdate] = []
+        calls: list[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
@@ -856,7 +854,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination([InputConfig(type=1, code=3)]))
 
-        calls: List[CombinationUpdate] = []
+        calls: list[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
@@ -880,7 +878,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.create_preset("foo")
         self.data_manager.load_preset("foo")
-        calls: List[StatusData] = []
+        calls: list[StatusData] = []
 
         def f(data):
             calls.append(data)
@@ -907,7 +905,7 @@ class TestController(unittest.TestCase):
             target_uinput="keyboard",
             output_symbol="a",
         )
-        calls: List[StatusData] = []
+        calls: list[StatusData] = []
 
         def f(data):
             calls.append(data)
@@ -967,7 +965,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        calls: List[StatusData] = []
+        calls: list[StatusData] = []
 
         def f(data):
             calls.append(data)
@@ -984,7 +982,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        calls: List[StatusData] = []
+        calls: list[StatusData] = []
 
         def f(data):
             calls.append(data)
@@ -1018,7 +1016,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        calls: List[StatusData] = []
+        calls: list[StatusData] = []
 
         def f(data):
             calls.append(data)
@@ -1039,7 +1037,7 @@ class TestController(unittest.TestCase):
 
         mock = MagicMock(return_value=InjectorState.RUNNING)
         self.data_manager.get_state = mock
-        calls: List[StatusData] = []
+        calls: list[StatusData] = []
 
         def f(data):
             calls.append(data)

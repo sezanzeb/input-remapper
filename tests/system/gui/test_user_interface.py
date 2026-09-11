@@ -8,13 +8,13 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gdk, GLib, Gtk
 
-from inputremapper.gui.utils import gtk_iteration
+from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import MappingData
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
-from inputremapper.configs.mapping import MappingData
-from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.gui.utils import gtk_iteration
 from tests.lib.test_setup import test_setup
 
 

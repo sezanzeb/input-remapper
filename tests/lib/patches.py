@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,29 +20,29 @@
 from __future__ import annotations
 
 import asyncio
+import atexit
 import copy
 import os
 import subprocess
 import time
 from pickle import UnpicklingError
 from unittest.mock import patch
-import atexit
 
 import evdev
 
 from inputremapper.utils import get_evdev_constant_name
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import Fixture, fixtures, new_event
+from tests.lib.logger import logger
 from tests.lib.pipes import (
-    setup_pipe,
+    pending_events,
     push_events,
+    setup_pipe,
     uinput_write_history,
     uinput_write_history_pipe,
-    pending_events,
 )
-from tests.lib.xmodmap import xmodmap
 from tests.lib.tmp import tmp
-from tests.lib.logger import logger
+from tests.lib.xmodmap import xmodmap
 
 
 def patch_paths():
@@ -102,7 +101,7 @@ class InputDevice:
         logger.info('%s "%s" "%s" %s', msg, self.name, self.path, key)
 
     def absinfo(self, *args):
-        raise Exception("Ubuntus version of evdev doesn't support .absinfo")
+        raise AssertionError("Ubuntus version of evdev doesn't support .absinfo")
 
     def grab(self):
         logger.info("grab %s %s", self.name, self.path)
@@ -296,7 +295,7 @@ def patch_os_system():
             # because it
             # - will open a window for user input
             # - has no knowledge of the fixtures and patches
-            raise Exception("Write patches to avoid running pkexec stuff")
+            raise AssertionError("Write patches to avoid running pkexec stuff")
         return original_system(command)
 
     return patch.object(os, "system", system)

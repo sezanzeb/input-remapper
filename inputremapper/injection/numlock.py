@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -23,7 +22,6 @@
 For unknown reasons the numlock status can change when starting injections,
 which is why these functions exist.
 """
-
 
 import re
 import subprocess

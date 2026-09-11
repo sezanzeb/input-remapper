@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -23,7 +22,8 @@
 import asyncio
 import os
 import traceback
-from typing import AsyncIterator, Protocol, Set, List
+from collections.abc import AsyncIterator
+from typing import Protocol
 
 import evdev
 
@@ -33,15 +33,15 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
-from inputremapper.utils import get_device_hash, DeviceHash
+from inputremapper.utils import DeviceHash, get_device_hash
 
 
 class Context(Protocol):
-    listeners: Set[EventListener]
+    listeners: set[EventListener]
 
     def reset(self): ...
 
-    def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]: ...
+    def get_notify_callbacks(self, input_event: InputEvent) -> list[NotifyCallback]: ...
 
     def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput: ...
 

@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -19,7 +18,6 @@
 
 import asyncio
 import time
-from typing import List
 
 import evdev
 from evdev.ecodes import EV_REL
@@ -30,7 +28,7 @@ from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
 )
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import EventActions, InputEvent
 from inputremapper.logging.logger import logger
 
 
@@ -66,9 +64,9 @@ class RelToBtnHandler(MappingHandler):
         return f'RelToBtnHandler for "{self._input_config}"'
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return [self._sub_handler]
 
     async def _stage_release(
@@ -108,7 +106,8 @@ class RelToBtnHandler(MappingHandler):
         if event.input_match_hash != self._input_config.input_match_hash:
             return False
 
-        assert (threshold := self._input_config.analog_threshold)
+        threshold = self._input_config.analog_threshold
+        assert threshold
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
             # The axis is below the threshold. Either ignore or release the key

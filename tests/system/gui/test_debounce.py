@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -23,14 +22,12 @@ import unittest
 
 import gi
 
-
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkSource", "4")
 gi.require_version("GLib", "2.0")
 
-from inputremapper.gui.utils import gtk_iteration, debounce, debounce_manager
-
+from inputremapper.gui.utils import debounce, debounce_manager, gtk_iteration
 from tests.lib.test_setup import test_setup
 
 

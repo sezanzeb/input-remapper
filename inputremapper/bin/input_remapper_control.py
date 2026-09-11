@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -25,7 +25,6 @@ import os
 import subprocess
 import sys
 from enum import Enum
-from typing import Optional
 
 import gi
 
@@ -34,7 +33,7 @@ from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.migrations import Migrations
-from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
+from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
 
@@ -154,7 +153,7 @@ class InputRemapperControlBin:
         self,
         command: str,
         device: str,
-        config_dir: Optional[str],
+        config_dir: str | None,
         preset: str,
     ) -> None:
         """Commands that require a running daemon."""
@@ -322,25 +321,28 @@ class InputRemapperControlBin:
 
     def _num_logged_in_users(self) -> int:
         """Check how many users are logged in."""
-        who = subprocess.run(["who"], stdout=subprocess.PIPE).stdout.decode()
+        who = subprocess.run(
+            ["who"],
+            stdout=subprocess.PIPE,
+            check=False,
+        ).stdout.decode()
         return len([user for user in who.split("\n") if user.strip() != ""])
 
     def _is_systemd_finished(self) -> bool:
         """Check if systemd finished booting."""
         try:
             systemd_analyze = subprocess.run(
-                ["systemd-analyze"], stdout=subprocess.PIPE
+                ["systemd-analyze"],
+                stdout=subprocess.PIPE,
+                check=False,
             )
         except FileNotFoundError:
             # probably not systemd, lets assume true to not block input-remapper for good
             # on certain installations
             return True
 
-        if "finished" in systemd_analyze.stdout.decode():
-            # it writes into stderr otherwise or something
-            return True
-
-        return False
+        # it writes into stderr otherwise or something
+        return "finished" in systemd_analyze.stdout.decode()
 
     def boot_finished(self) -> bool:
         """Check if booting is completed."""

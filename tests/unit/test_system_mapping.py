@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -26,8 +25,8 @@ from unittest.mock import patch
 
 from evdev.ecodes import BTN_LEFT, KEY_A
 
+from inputremapper.configs.keyboard_layout import XMODMAP_FILENAME, KeyboardLayout
 from inputremapper.configs.paths import PathUtils
-from inputremapper.configs.keyboard_layout import KeyboardLayout, XMODMAP_FILENAME
 from tests.lib.test_setup import test_setup
 
 

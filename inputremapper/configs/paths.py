@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,10 +20,8 @@
 
 """Path constants to be used."""
 
-
 import os
 import shutil
-from typing import List, Union, Optional
 
 from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
@@ -53,7 +50,7 @@ class PathUtils:
             shutil.chown(path, user=UserUtils.user)
 
     @staticmethod
-    def touch(path: Union[str, os.PathLike], log=True):
+    def touch(path: str | os.PathLike, log=True):
         """Create an empty file and all its parent dirs, give it to the user."""
         if str(path).endswith("/"):
             raise ValueError(f"Expected path to not end with a slash: {path}")
@@ -90,7 +87,7 @@ class PathUtils:
         PathUtils.chown(path)
 
     @staticmethod
-    def split_all(path: Union[os.PathLike, str]) -> List[str]:
+    def split_all(path: os.PathLike | str) -> list[str]:
         """Split the path into its segments."""
         parts = []
         while True:
@@ -130,7 +127,7 @@ class PathUtils:
         return group_name
 
     @staticmethod
-    def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = None):
+    def get_preset_path(group_name: str | None = None, preset: str | None = None):
         """Get a path to the stored preset, or to store a preset to."""
         presets_base = os.path.join(PathUtils.config_path(), "presets")
 
@@ -139,12 +136,11 @@ class PathUtils:
 
         group_name = PathUtils.sanitize_path_component(group_name)
 
-        if preset is not None:
-            # the extension of the preset should not be shown in the ui.
-            # if a .json extension arrives this place, it has not been
-            # stripped away properly prior to this.
-            if not preset.endswith(".json"):
-                preset = f"{preset}.json"
+        # the extension of the preset should not be shown in the ui.
+        # if a .json extension arrives this place, it has not been
+        # stripped away properly prior to this.
+        if preset is not None and not preset.endswith(".json"):
+            preset = f"{preset}.json"
 
         if preset is None:
             return os.path.join(presets_base, group_name)

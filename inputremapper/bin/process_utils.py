@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -33,7 +32,7 @@ class ProcessUtils:
                 cmdline = process.cmdline()
                 if len(cmdline) >= 2 and "python" in cmdline[0] and name in cmdline[1]:
                     count += 1
-            except Exception:
+            except Exception:  # noqa: S110
                 pass
 
         return count

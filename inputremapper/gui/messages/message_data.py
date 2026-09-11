@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,24 +17,24 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Dict, Tuple, Optional, Callable
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import MappingData
 from inputremapper.gui.messages.message_types import (
+    Capabilities,
+    DeviceTypes,
+    Key,
     MessageType,
     Name,
-    Capabilities,
-    Key,
-    DeviceTypes,
 )
 
 
 @dataclass(frozen=True)
 class UInputsData:
     message_type = MessageType.uinputs
-    uinputs: Dict[Name, Capabilities]
+    uinputs: dict[Name, Capabilities]
 
     def __str__(self):
         string = f"{self.__class__.__name__}(uinputs={self.uinputs})"
@@ -60,7 +59,7 @@ class GroupsData:
     """Message containing all available groups and their device types."""
 
     message_type = MessageType.groups
-    groups: Dict[Key, DeviceTypes]
+    groups: dict[Key, DeviceTypes]
 
 
 @dataclass(frozen=True)
@@ -69,7 +68,7 @@ class GroupData:
 
     message_type = MessageType.group
     group_key: str
-    presets: Tuple[str, ...]
+    presets: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -77,8 +76,8 @@ class PresetData:
     """Message with the active preset name and mapping names/combinations."""
 
     message_type = MessageType.preset
-    name: Optional[Name]
-    mappings: Optional[Tuple[MappingData, ...]]
+    name: Name | None
+    mappings: tuple[MappingData, ...] | None
     autoload: bool = False
 
 
@@ -88,8 +87,8 @@ class StatusData:
 
     message_type = MessageType.status_msg
     ctx_id: int
-    msg: Optional[str] = None
-    tooltip: Optional[str] = None
+    msg: str | None = None
+    tooltip: str | None = None
 
 
 @dataclass(frozen=True)

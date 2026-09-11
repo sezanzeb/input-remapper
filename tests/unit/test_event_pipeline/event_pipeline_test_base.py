@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -20,7 +19,7 @@
 
 import asyncio
 import unittest
-from typing import Iterable
+from collections.abc import Iterable
 
 import evdev
 
@@ -31,8 +30,8 @@ from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
-from tests.lib.logger import logger
 from tests.lib.fixtures import Fixture
+from tests.lib.logger import logger
 
 
 class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):

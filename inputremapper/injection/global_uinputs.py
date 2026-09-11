@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Union, Tuple, Optional, List, Type
 
 import evdev
 
@@ -36,16 +34,13 @@ DEFAULT_UINPUTS = {
     "gamepad": {
         evdev.ecodes.EV_KEY: [*range(0x130, 0x13F)],  # BTN_SOUTH - BTN_THUMBR
         evdev.ecodes.EV_ABS: [
-            *(
-                (i, evdev.AbsInfo(0, MIN_ABS, MAX_ABS, 0, 0, 0))
-                for i in range(0x00, 0x06)
-            ),
+            *((i, evdev.AbsInfo(0, MIN_ABS, MAX_ABS, 0, 0, 0)) for i in range(0x06)),
             *((i, evdev.AbsInfo(0, -1, 1, 0, 0, 0)) for i in range(0x10, 0x12)),
         ],  # 6-axis and 1 hat switch
     },
     "mouse": {
         evdev.ecodes.EV_KEY: [*range(0x110, 0x118)],  # BTN_LEFT - BTN_TASK
-        evdev.ecodes.EV_REL: [*range(0x00, 0x0D)],  # all REL axis
+        evdev.ecodes.EV_REL: [*range(0x0D)],  # all REL axis
     },
 }
 DEFAULT_UINPUTS["keyboard + mouse"] = {
@@ -60,14 +55,14 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
 
 
 class UInput(evdev.UInput):
-    _capabilities_cache: Optional[Dict] = None
+    _capabilities_cache: dict | None = None
 
     def __init__(self, *args, **kwargs):
         name = kwargs["name"]
         logger.debug('creating UInput device: "%s"', name)
         super().__init__(*args, **kwargs)
 
-    def can_emit(self, event: Tuple[int, int, int]):
+    def can_emit(self, event: tuple[int, int, int]):
         """Check if an event can be emitted by the UIinput.
 
         Wrong events might be injected if the group mappings are wrong,
@@ -84,7 +79,7 @@ class FrontendUInput:
     """Uinput which can not actually send events, for use in the frontend."""
 
     def __init__(self, *_, events=None, name="py-evdev-uinput", **__):
-        # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput  # noqa pylint: disable=line-too-long
+        # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
         self.events = events
         self.name = name
 
@@ -99,9 +94,9 @@ class GlobalUInputs:
 
     def __init__(
         self,
-        uinput_factory: Union[Type[UInput], Type[FrontendUInput]],
+        uinput_factory: type[UInput] | type[FrontendUInput],
     ):
-        self.devices: Dict[str, Union[UInput, FrontendUInput]] = {}
+        self.devices: dict[str, UInput | FrontendUInput] = {}
         self._uinput_factory = uinput_factory
 
     def __iter__(self):
@@ -114,7 +109,7 @@ class GlobalUInputs:
         return capabilities is not None and code in capabilities
 
     @staticmethod
-    def find_fitting_default_uinputs(type_: int, code: int) -> List[str]:
+    def find_fitting_default_uinputs(type_: int, code: int) -> list[str]:
         """Find the names of default uinputs that are able to emit this event."""
         return [
             uinput
@@ -129,7 +124,7 @@ class GlobalUInputs:
     def prepare_all(self):
         """Generate UInputs."""
         for name, events in DEFAULT_UINPUTS.items():
-            if name in self.devices.keys():
+            if name in self.devices:
                 continue
 
             self.devices[name] = self._uinput_factory(
@@ -156,7 +151,7 @@ class GlobalUInputs:
             events=DEFAULT_UINPUTS[name],
         )
 
-    def write(self, event: Tuple[int, int, int], target_uinput):
+    def write(self, event: tuple[int, int, int], target_uinput):
         """Write event to target uinput."""
         uinput = self.get_uinput(target_uinput)
         if not uinput:
@@ -172,7 +167,7 @@ class GlobalUInputs:
         uinput.write(*event)
         uinput.syn()
 
-    def get_uinput(self, name: str) -> Optional[evdev.UInput]:
+    def get_uinput(self, name: str) -> evdev.UInput | None:
         """UInput with name
 
         Or None if there is no uinput with this name.

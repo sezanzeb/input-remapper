@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -26,7 +25,7 @@ import tracemalloc
 from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.fixture_pipes import create_fixture_pipes, remove_fixture_pipes
 from tests.lib.is_service_running import is_service_running
-from tests.lib.logger import update_inputremapper_verbosity, logger
+from tests.lib.logger import logger, update_inputremapper_verbosity
 from tests.lib.patches import create_patches
 
 
@@ -62,7 +61,7 @@ def test_setup(cls):
 
         if is_service_running():
             # let tests control daemon existance
-            raise Exception("Expected the service not to be running already.")
+            raise AssertionError("Expected the service not to be running already.")
 
         create_fixture_pipes()
 

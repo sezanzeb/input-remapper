@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import List
 
 import evdev
 
@@ -28,7 +26,7 @@ from inputremapper.injection.mapping_handlers.abs_util import calculate_trigger_
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
 )
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import EventActions, InputEvent
 from inputremapper.utils import get_evdev_constant_name
 
 
@@ -58,9 +56,9 @@ class AbsToBtnHandler(MappingHandler):
         return f'AbsToBtnHandler for "{name}" ' f"{self._input_config.type_and_code}"
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return [self._sub_handler]
 
     def notify(

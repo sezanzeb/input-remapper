@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -20,15 +19,15 @@
 
 import unittest
 
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_X, ABS_Z
+from evdev.ecodes import ABS_X, ABS_Z, EV_ABS, EV_KEY
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.input_event import InputEvent
-from tests.lib.logger import logger
 from tests.lib.fixtures import fixtures
+from tests.lib.logger import logger
 from tests.lib.test_setup import test_setup
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
     EventPipelineTestBase,

@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,14 +20,10 @@ import os.path
 import re
 import traceback
 from collections import defaultdict, deque
+from collections.abc import Callable
 from typing import (
-    Callable,
-    Dict,
-    Set,
-    Protocol,
-    Tuple,
-    Deque,
     Any,
+    Protocol,
 )
 
 from inputremapper.gui.messages.message_types import MessageType
@@ -50,8 +45,8 @@ class MessageBroker:
     shorten_path = re.compile(r"inputremapper/")
 
     def __init__(self):
-        self._listeners: Dict[MessageType, Set[MessageListener]] = defaultdict(set)
-        self._messages: Deque[Tuple[Message, str, int]] = deque()
+        self._listeners: dict[MessageType, set[MessageListener]] = defaultdict(set)
+        self._messages: deque[tuple[Message, str, int]] = deque()
         self._publishing = False
 
     def publish(self, data: Message):
@@ -94,7 +89,7 @@ class MessageBroker:
         return self
 
     @staticmethod
-    def get_caller(position: int = 3) -> Tuple[str, int]:
+    def get_caller(position: int = 3) -> tuple[str, int]:
         """Extract a file and line from current stack and format for logging."""
         tb = traceback.extract_stack(limit=position)[0]
         return os.path.basename(tb.filename), tb.lineno or 0
@@ -116,5 +111,5 @@ class Signal:
     def __str__(self):
         return f"Signal: {self.message_type}"
 
-    def __eq__(self, other: Any):
+    def __eq__(self, other: object):
         return type(self) is type(other) and self.message_type == other.message_type
