@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -37,21 +36,20 @@ import multiprocessing
 import os
 import re
 import threading
-from typing import List, Optional
 
 import evdev
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    KEY_CAMERA,
-    EV_REL,
-    BTN_STYLUS,
     ABS_MT_POSITION_X,
-    REL_X,
-    KEY_A,
     BTN_LEFT,
-    REL_Y,
+    BTN_STYLUS,
+    EV_ABS,
+    EV_KEY,
+    EV_REL,
+    KEY_A,
+    KEY_CAMERA,
     REL_WHEEL,
+    REL_X,
+    REL_Y,
 )
 
 from inputremapper.configs.paths import PathUtils
@@ -104,10 +102,7 @@ def _is_gamepad(capabilities):
     abs_capabilities = capabilities.get(EV_ABS, [])
     if evdev.ecodes.ABS_X not in abs_capabilities:
         return False
-    if evdev.ecodes.ABS_Y not in abs_capabilities:
-        return False
-
-    return True
+    return evdev.ecodes.ABS_Y in abs_capabilities
 
 
 def _is_mouse(capabilities):
@@ -126,31 +121,22 @@ def _is_mouse(capabilities):
         return False
 
     # and a mouse click button
-    if BTN_LEFT not in capabilities.get(EV_KEY, []):
-        return False
-
-    return True
+    return BTN_LEFT in capabilities.get(EV_KEY, [])
 
 
 def _is_graphics_tablet(capabilities):
     """Check if the capabilities represent those of a graphics tablet."""
-    if BTN_STYLUS in capabilities.get(EV_KEY, []):
-        return True
-    return False
+    return BTN_STYLUS in capabilities.get(EV_KEY, [])
 
 
 def _is_touchpad(capabilities):
     """Check if the capabilities represent those of a touchpad."""
-    if ABS_MT_POSITION_X in capabilities.get(EV_ABS, []):
-        return True
-    return False
+    return ABS_MT_POSITION_X in capabilities.get(EV_ABS, [])
 
 
 def _is_keyboard(capabilities):
     """Check if the capabilities represent those of a keyboard."""
-    if KEY_A in capabilities.get(EV_KEY, []):
-        return True
-    return False
+    return KEY_A in capabilities.get(EV_KEY, [])
 
 
 def _is_camera(capabilities):
@@ -262,9 +248,9 @@ class _Group:
 
     def __init__(
         self,
-        paths: List[os.PathLike],
-        names: List[str],
-        types: List[DeviceType | str],
+        paths: list[os.PathLike],
+        names: list[str],
+        types: list[DeviceType | str],
         key: str,
     ):
         """Specify a group
@@ -290,7 +276,7 @@ class _Group:
         """
         # There might be multiple groups with the same name here when two
         # similar devices are connected to the computer.
-        self.name: str = sorted(names, key=len)[0]
+        self.name: str = min(names, key=len)
 
         self.key = key
 
@@ -298,7 +284,7 @@ class _Group:
         self.names = names
         self.types = [DeviceType(type_) for type_ in types]
 
-    def get_preset_path(self, preset: Optional[str] = None):
+    def get_preset_path(self, preset: str | None = None):
         """Get a path to the stored preset, or to store a preset to.
 
         This path is unique per device-model, not per group. Groups
@@ -306,8 +292,8 @@ class _Group:
         """
         return PathUtils.get_preset_path(self.name, preset)
 
-    def get_devices(self) -> List[evdev.InputDevice]:
-        devices: List[evdev.InputDevice] = []
+    def get_devices(self) -> list[evdev.InputDevice]:
+        devices: list[evdev.InputDevice] = []
         for path in self.paths:
             try:
                 devices.append(evdev.InputDevice(path))
@@ -319,7 +305,12 @@ class _Group:
     def dumps(self):
         """Return a string representing this object."""
         return json.dumps(
-            dict(paths=self.paths, names=self.names, types=self.types, key=self.key),
+            {
+                "paths": self.paths,
+                "names": self.names,
+                "types": self.types,
+                "key": self.key,
+            },
         )
 
     @classmethod
@@ -452,7 +443,7 @@ class _FindGroups(threading.Thread):
             devs = [entry[1] for entry in group]
 
             # generate a human readable key
-            shortest_name = sorted(names, key=len)[0]
+            shortest_name = min(names, key=len)
             key = shortest_name
             i = 2
             while key in used_keys:
@@ -466,7 +457,7 @@ class _FindGroups(threading.Thread):
                 paths=devs,
                 names=names,
                 types=sorted(
-                    list({item[2] for item in group if item[2] != DeviceType.UNKNOWN})
+                    {item[2] for item in group if item[2] != DeviceType.UNKNOWN}
                 ),
             )
 
@@ -483,7 +474,7 @@ class _Groups:
     """Contains and manages all groups."""
 
     def __init__(self):
-        self._groups: List[_Group] = None
+        self._groups: list[_Group] = None
 
     def refresh(self):
         """Look for devices and group them together.
@@ -506,7 +497,7 @@ class _Groups:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
 
-    def get_groups(self) -> List[_Group]:
+    def get_groups(self) -> list[_Group]:
         """Load groups and return them."""
         if self._groups is None:
             # To lazy load group info only when needed.
@@ -516,12 +507,12 @@ class _Groups:
 
         return list(self._groups)
 
-    def set_groups(self, new_groups: List[_Group]):
+    def set_groups(self, new_groups: list[_Group]):
         """Overwrite all groups."""
         logger.debug("Overwriting groups with %s", new_groups)
         self._groups = new_groups
 
-    def list_group_names(self) -> List[str]:
+    def list_group_names(self) -> list[str]:
         """Return a list of all 'name' properties of the groups."""
         return [
             group.name
@@ -540,10 +531,10 @@ class _Groups:
 
     def find(
         self,
-        name: Optional[str] = None,
-        key: Optional[str] = None,
-        path: Optional[str] = None,
-    ) -> Optional[_Group]:
+        name: str | None = None,
+        key: str | None = None,
+        path: str | None = None,
+    ) -> _Group | None:
         """Find a group that matches the provided parameters.
 
         Parameters

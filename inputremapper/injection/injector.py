@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -19,6 +18,7 @@
 
 
 """Keeps injecting keycodes in the background based on the preset."""
+
 from __future__ import annotations
 
 import asyncio
@@ -29,26 +29,25 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from multiprocessing.connection import Connection
-from typing import Dict, List, Optional, Tuple, Union
 
 import evdev
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.preset import Preset
 from inputremapper.groups import (
+    DeviceType,
     _Group,
     classify,
-    DeviceType,
 )
 from inputremapper.gui.messages.message_broker import MessageType
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
-from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
+from inputremapper.injection.numlock import ensure_numlock, is_numlock_on, set_numlock
 from inputremapper.logging.logger import logger
-from inputremapper.utils import get_device_hash, DeviceHash
+from inputremapper.utils import DeviceHash, get_device_hash
 
-CapabilitiesDict = Dict[int, List[int]]
+CapabilitiesDict = dict[int, list[int]]
 
 DEV_NAME = "input-remapper"
 
@@ -111,7 +110,7 @@ def get_forward_phys(source: evdev.InputDevice) -> str:
 @dataclass(frozen=True)
 class InjectorStateMessage:
     message_type = MessageType.injector_state
-    state: Union[InjectorState]
+    state: InjectorState
 
     def active(self) -> bool:
         return self.state in [InjectorState.RUNNING, InjectorState.STARTING]
@@ -130,11 +129,11 @@ class Injector(multiprocessing.Process):
 
     group: _Group
     preset: Preset
-    context: Optional[Context]
-    _devices: List[evdev.InputDevice]
+    context: Context | None
+    _devices: list[evdev.InputDevice]
     _state: InjectorState
-    _msg_pipe: Tuple[Connection, Connection]
-    _event_readers: List[EventReader]
+    _msg_pipe: tuple[Connection, Connection]
+    _event_readers: list[EventReader]
     _stop_event: asyncio.Event
 
     regrab_timeout = 0.2
@@ -221,25 +220,24 @@ class Injector(multiprocessing.Process):
 
     """Process internal stuff."""
 
-    def _find_input_device(
-        self, input_config: InputConfig
-    ) -> Optional[evdev.InputDevice]:
+    def _find_input_device(self, input_config: InputConfig) -> evdev.InputDevice | None:
         """find the InputDevice specified by the InputConfig
 
         ensures the devices supports the type and code specified by the InputConfig"""
         devices_by_hash = {get_device_hash(device): device for device in self._devices}
 
         # mypy thinks None is the wrong type for dict.get()
-        if device := devices_by_hash.get(input_config.origin_hash):  # type: ignore
-            if input_config.code in device.capabilities(absinfo=False).get(
-                input_config.type, []
-            ):
-                return device
+        device = devices_by_hash.get(input_config.origin_hash)  # type: ignore
+        if device and input_config.code in device.capabilities(absinfo=False).get(
+            input_config.type, []
+        ):
+            return device
+
         return None
 
     def _find_input_device_fallback(
         self, input_config: InputConfig
-    ) -> Optional[evdev.InputDevice]:
+    ) -> evdev.InputDevice | None:
         """find the InputDevice specified by the InputConfig fallback logic"""
         ranking = [
             DeviceType.KEYBOARD,
@@ -250,7 +248,7 @@ class Injector(multiprocessing.Process):
             DeviceType.CAMERA,
             DeviceType.UNKNOWN,
         ]
-        candidates: List[evdev.InputDevice] = [
+        candidates: list[evdev.InputDevice] = [
             device
             for device in self._devices
             if input_config.code
@@ -260,14 +258,14 @@ class Injector(multiprocessing.Process):
         if len(candidates) > 1:
             # there is more than on input device which can be used for this
             # event we choose only one determined by the ranking
-            return sorted(candidates, key=lambda d: ranking.index(classify(d)))[0]
+            return min(candidates, key=lambda d: ranking.index(classify(d)))
         if len(candidates) == 1:
             return candidates.pop()
 
         logger.error(f"Could not find input for {input_config}")
         return None
 
-    def _grab_devices(self) -> Dict[DeviceHash, evdev.InputDevice]:
+    def _grab_devices(self) -> dict[DeviceHash, evdev.InputDevice]:
         """Grab all InputDevices that match a mappings' origin_hash."""
         # use a dict because the InputDevice is not directly hashable
         needed_devices = {}
@@ -310,13 +308,13 @@ class Injector(multiprocessing.Process):
                 continue
 
             for mapping in mappings_by_input[input_config]:
-                combination: List[InputConfig] = list(mapping.input_combination)
+                combination: list[InputConfig] = list(mapping.input_combination)
                 device_hash = get_device_hash(device)
                 idx = combination.index(input_config)
                 combination[idx] = combination[idx].modify(origin_hash=device_hash)
                 mapping.input_combination = combination
 
-    def _grab_device(self, device: evdev.InputDevice) -> Optional[evdev.InputDevice]:
+    def _grab_device(self, device: evdev.InputDevice) -> evdev.InputDevice | None:
         """Try to grab the device, return None if not possible.
 
         Without grab, original events from it would reach the display server
@@ -328,7 +326,7 @@ class Injector(multiprocessing.Process):
                 device.grab()
                 logger.debug("Grab %s", device.path)
                 return device
-            except IOError as err:
+            except OSError as err:
                 # it might take a little time until the device is free if
                 # it was previously grabbed.
                 error = err
@@ -419,7 +417,7 @@ class Injector(multiprocessing.Process):
                 self._msg_pipe[0].send(InjectorState.UPGRADE_EVDEV)
                 sys.exit(12)
 
-            raise e
+            raise
         return forward_to
 
     def run(self) -> None:
@@ -496,7 +494,7 @@ class Injector(multiprocessing.Process):
             # the loop might have been stopped via a `CLOSE` message,
             # which causes the error message below. This is expected behavior
             if str(error) != "Event loop stopped before Future completed.":
-                raise error
+                raise
         except OSError as error:
             logger.error("Failed to run injector coroutines: %s", str(error))
 

@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -20,9 +19,10 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
+from collections.abc import Hashable, Iterable
 
 from evdev import ecodes
+
 from inputremapper.configs.paths import PathUtils
 from inputremapper.input_event import InputEvent
 
@@ -31,10 +31,12 @@ try:
 except ImportError:
     from pydantic import BaseModel, root_validator, validator
 
+from typing_extensions import Self
+
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logging.logger import logger
-from inputremapper.utils import get_evdev_constant_name, DeviceHash
+from inputremapper.utils import DeviceHash, get_evdev_constant_name
 
 # having shift in combinations modifies the configured output,
 # ctrl might not work at all
@@ -69,12 +71,12 @@ class InputConfig(BaseModel):
     # origin_hash is a hash to identify a specific /dev/input/eventXX device.
     # This solves a number of bugs when multiple devices have overlapping capabilities.
     # see utils.get_device_hash for the exact hashing function
-    origin_hash: Optional[DeviceHash] = None
+    origin_hash: DeviceHash | None = None
 
     # At which point is an analog input treated as "pressed". In percent (-99 to 99)
     # of the delta between a resting joystick and a maxed-out joystick.
     # Should be None if no analog input is configured.
-    analog_threshold: Optional[int] = None
+    analog_threshold: int | None = None
 
     def __str__(self):
         return f"InputConfig {get_evdev_constant_name(self.type, self.code)}"
@@ -108,7 +110,7 @@ class InputConfig(BaseModel):
         return not self.analog_threshold and self.type != ecodes.EV_KEY
 
     @property
-    def type_and_code(self) -> Tuple[int, int]:
+    def type_and_code(self) -> tuple[int, int]:
         """Event type, code."""
         return self.type, self.code
 
@@ -135,7 +137,7 @@ class InputConfig(BaseModel):
             f"{self._get_threshold_value() if not exclude_threshold else ''}".strip()
         )
 
-    def _get_mouse_button_name(self) -> Optional[str]:
+    def _get_mouse_button_name(self) -> str | None:
         """Get a human-readable description of a mouse-button. Only the first 7
         mouse buttons are in evdev and they often have misleading names there
         (eg it calls buttons 6 & 7 forward/back but usually that's buttons 5 & 4).
@@ -156,7 +158,7 @@ class InputConfig(BaseModel):
 
         return None
 
-    def _get_name(self) -> Optional[str]:
+    def _get_name(self) -> str | None:
         """Human-readable name (e.g. KEY_A) of the specified input event."""
 
         # prevent logging warnings for new/empty configs
@@ -165,7 +167,7 @@ class InputConfig(BaseModel):
 
         # must check if it's a mouse button *before* ecodes
         # because not all mouse buttons are in ecodes.
-        mouse_button_name: Optional[str] = self._get_mouse_button_name()
+        mouse_button_name: str | None = self._get_mouse_button_name()
         if mouse_button_name is not None:
             return mouse_button_name
 
@@ -266,10 +268,10 @@ class InputConfig(BaseModel):
 
     def modify(
         self,
-        type_: Optional[int] = None,
-        code: Optional[int] = None,
-        origin_hash: Optional[str] = None,
-        analog_threshold: Optional[int] = None,
+        type_: int | None = None,
+        code: int | None = None,
+        origin_hash: str | None = None,
+        analog_threshold: int | None = None,
     ) -> InputConfig:
         """Return a new modified event."""
         return InputConfig(
@@ -324,18 +326,15 @@ class InputConfig(BaseModel):
         underscore_attrs_are_private = True
 
 
-InputCombinationInit = Union[
-    Iterable[Dict[str, Union[str, int]]],
-    Iterable[InputConfig],
-]
+InputCombinationInit = Iterable[dict[str, str | int]] | Iterable[InputConfig]
 
 
-class InputCombination(Tuple[InputConfig, ...]):
+class InputCombination(tuple[InputConfig, ...]):
     """One or more InputConfigs used to trigger a mapping."""
 
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
-    def __new__(cls, configs: InputCombinationInit) -> InputCombination:
+    def __new__(cls, configs: InputCombinationInit) -> Self:
         """Create a new InputCombination.
 
         Examples
@@ -388,7 +387,7 @@ class InputCombination(Tuple[InputConfig, ...]):
             return init_arg
         return cls(init_arg)
 
-    def to_config(self) -> Tuple[Dict[str, int], ...]:
+    def to_config(self) -> tuple[dict[str, int], ...]:
         """Turn the object into a tuple of dicts."""
         return tuple(input_config.dict(exclude_defaults=True) for input_config in self)
 
@@ -444,9 +443,7 @@ class InputCombination(Tuple[InputConfig, ...]):
         """Check if there is any analog input in self."""
         return True in tuple(i.defines_analog_input for i in self)
 
-    def find_analog_input_config(
-        self, type_: Optional[int] = None
-    ) -> Optional[InputConfig]:
+    def find_analog_input_config(self, type_: int | None = None) -> InputConfig | None:
         """Return the first event that defines an analog input."""
         for input_config in self:
             if input_config.defines_analog_input and (
@@ -455,7 +452,7 @@ class InputCombination(Tuple[InputConfig, ...]):
                 return input_config
         return None
 
-    def get_permutations(self) -> List[InputCombination]:
+    def get_permutations(self) -> list[InputCombination]:
         """Get a list of EventCombinations representing all possible permutations.
 
         combining a + b + c should have the same result as b + a + c.

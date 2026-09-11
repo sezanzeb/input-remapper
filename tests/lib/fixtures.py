@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -24,7 +23,6 @@ import dataclasses
 import json
 import time
 from hashlib import md5
-from typing import Dict, Optional
 
 import evdev
 
@@ -45,11 +43,11 @@ keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
 @dataclasses.dataclass(frozen=True)
 class Fixture:
     path: str
-    capabilities: Dict = dataclasses.field(default_factory=dict)
+    capabilities: dict = dataclasses.field(default_factory=dict)
     name: str = "unset"
     info: evdev.device.DeviceInfo = evdev.device.DeviceInfo(None, None, None, None)
     phys: str = "unset"
-    group_key: Optional[str] = None
+    group_key: str | None = None
 
     # for joysticks and such
     min_abs: int = -(2**15)
@@ -305,7 +303,7 @@ class _Fixtures:
 
         return paths
 
-    def get(self, item) -> Optional[Fixture]:
+    def get(self, item) -> Fixture | None:
         try:
             return self.get_fixture(item)
         except KeyError:

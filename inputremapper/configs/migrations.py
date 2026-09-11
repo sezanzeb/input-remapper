@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,6 +21,7 @@
 Only write changes to disk, if there actually are changes. Otherwise, file-modification
 dates are destroyed.
 """
+
 from __future__ import annotations
 
 import copy
@@ -29,21 +29,22 @@ import json
 import os
 import re
 import shutil
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, Tuple, Dict, List, Optional, TypedDict
+from typing import TypedDict
 
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    EV_REL,
-    ABS_X,
-    ABS_Y,
     ABS_RX,
     ABS_RY,
+    ABS_X,
+    ABS_Y,
+    EV_ABS,
+    EV_KEY,
+    EV_REL,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL_HI_RES,
     REL_X,
     REL_Y,
-    REL_WHEEL_HI_RES,
-    REL_HWHEEL_HI_RES,
 )
 from packaging import version
 
@@ -54,15 +55,15 @@ from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import Parser
-from inputremapper.logging.logger import logger, VERSION
+from inputremapper.logging.logger import VERSION, logger
 from inputremapper.user import UserUtils
 
 
 class Config(TypedDict):
-    input_combination: Optional[InputCombination]
+    input_combination: InputCombination | None
     target_uinput: str
     output_type: int
-    output_code: Optional[int]
+    output_code: int | None
 
 
 class Migrations:
@@ -105,7 +106,7 @@ class Migrations:
 
     def all_presets(
         self,
-    ) -> Iterator[Tuple[os.PathLike, Dict | List]]:
+    ) -> Iterator[tuple[os.PathLike, dict | list]]:
         """Get all presets for all groups as list."""
         if not os.path.exists(PathUtils.get_preset_path()):
             return
@@ -137,7 +138,7 @@ class Migrations:
         with open(config_path, "r") as file:
             config = json.load(file)
 
-        if "version" in config.keys():
+        if "version" in config:
             return version.parse(config["version"])
 
         return version.parse("0.0.0")
@@ -183,9 +184,9 @@ class Migrations:
                 continue  # the preset must be at least 1.6-beta version
 
             changes = 0
-            if "mapping" in preset_structure.keys():
+            if "mapping" in preset_structure:
                 mapping = copy.deepcopy(preset_structure["mapping"])
-                for key in mapping.keys():
+                for key in mapping:
                     if key.count(",") == 1:
                         preset_structure["mapping"][f"{key},1"] = preset_structure[
                             "mapping"
@@ -248,7 +249,7 @@ class Migrations:
             if isinstance(preset_structure, list):
                 continue
 
-            if "mapping" not in preset_structure.keys():
+            if "mapping" not in preset_structure:
                 continue
 
             changed = False
@@ -289,7 +290,7 @@ class Migrations:
             if isinstance(preset_structure, list):
                 continue
 
-            if "mapping" not in preset_structure.keys():
+            if "mapping" not in preset_structure:
                 continue
 
             changed = False
@@ -351,7 +352,7 @@ class Migrations:
                 continue
 
             migrated_preset = Preset(old_preset_path, UIMapping)
-            if "mapping" in old_preset.keys():
+            if "mapping" in old_preset:
                 for combination, symbol_target in old_preset["mapping"].items():
                     logger.info(
                         'migrating from "%s: %s" to mapping dict',
@@ -374,10 +375,7 @@ class Migrations:
                     )
                     migrated_preset.add(mapping)
 
-            if (
-                "gamepad" in old_preset.keys()
-                and "joystick" in old_preset["gamepad"].keys()
-            ):
+            if "gamepad" in old_preset and "joystick" in old_preset["gamepad"]:
                 joystick_dict = old_preset["gamepad"]["joystick"]
                 left_purpose = joystick_dict.get("left_purpose")
                 right_purpose = joystick_dict.get("right_purpose")
@@ -513,4 +511,3 @@ class Migrations:
         except Exception as error:
             logger.debug("Failed to remove deprecated logfiles: %s", str(error))
             # this migration is not important. Continue
-            pass

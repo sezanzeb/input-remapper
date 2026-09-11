@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,7 +20,6 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
-from typing import Deque
 
 from evdev.ecodes import EV_KEY
 
@@ -65,7 +62,7 @@ class ModTapTask(Task):
 
     async def run(self, callback) -> None:
         tapping_term = self.get_argument("tapping_term").get_value() / 1000
-        jamming_asyncio_events: Deque[asyncio.Event] = deque()
+        jamming_asyncio_events: deque[asyncio.Event] = deque()
 
         async def listener(event: InputEvent) -> None:
             trigger = self.mapping.input_combination[-1]

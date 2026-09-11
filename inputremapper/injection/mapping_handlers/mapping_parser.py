@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -20,9 +19,9 @@
 """Functions to assemble the mapping handler tree."""
 
 from collections import defaultdict
-from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequence
+from collections.abc import Iterable, Sequence, Sized
 
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
+from evdev.ecodes import EV_ABS, EV_KEY, EV_REL
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import DISABLE_CODE, DISABLE_NAME
@@ -44,8 +43,8 @@ from inputremapper.injection.mapping_handlers.hierarchy_handler import Hierarchy
 from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    HandlerEnums,
     ContextProtocol,
+    HandlerEnums,
     MappingHandler,
 )
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
@@ -55,9 +54,9 @@ from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRel
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
-EventPipelines = Dict[InputConfig, Set[MappingHandler]]
+EventPipelines = dict[InputConfig, set[MappingHandler]]
 
-mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
+mapping_handler_classes: dict[HandlerEnums, type[MappingHandler] | None] = {
     # all available mapping_handlers
     HandlerEnums.abs2btn: AbsToBtnHandler,
     HandlerEnums.rel2btn: RelToBtnHandler,
@@ -159,7 +158,7 @@ class MappingParser:
         handler: MappingHandler,
         context: ContextProtocol,
         ignore_ranking=False,
-    ) -> List[MappingHandler]:
+    ) -> list[MappingHandler]:
         """Recursively wrap a handler with other handlers until the
         outer handler needs ranking or is finished wrapping.
         """
@@ -241,7 +240,7 @@ class MappingParser:
             f"the output of {mapping = } is unknown", mapping=Mapping
         )
 
-    def _maps_axis(self, combination: InputCombination) -> Optional[InputConfig]:
+    def _maps_axis(self, combination: InputCombination) -> InputConfig | None:
         """Whether this InputCombination contains an InputEvent that is treated as
         an axis and not a binary (key or button) event.
         """
@@ -252,8 +251,8 @@ class MappingParser:
 
     def _create_hierarchy_handlers(
         self,
-        handlers: Dict[InputCombination, Set[MappingHandler]],
-    ) -> Set[MappingHandler]:
+        handlers: dict[InputCombination, set[MappingHandler]],
+    ) -> set[MappingHandler]:
         """Sort handlers by input events and create Hierarchy handlers."""
         sorted_handlers = set()
         all_combinations = handlers.keys()
@@ -282,7 +281,7 @@ class MappingParser:
                 combinations_with_event,
                 event,
             )
-            sub_handlers: List[MappingHandler] = []
+            sub_handlers: list[MappingHandler] = []
             for combination in sorted_combinations:
                 sub_handlers.extend(handlers[combination])
 
@@ -302,9 +301,9 @@ class MappingParser:
 
     def _order_combinations(
         self,
-        combinations: List[InputCombination],
+        combinations: list[InputCombination],
         common_config: InputConfig,
-    ) -> List[InputCombination]:
+    ) -> list[InputCombination]:
         """Reorder the keys according to some rules.
 
         such that a combination a+b+c is in front of a+b which is in front of b
@@ -333,7 +332,7 @@ class MappingParser:
     def _ranges_with_constant_length(
         self,
         x: Sequence[Sized],
-    ) -> Iterable[Tuple[int, int]]:
+    ) -> Iterable[tuple[int, int]]:
         """Get all ranges of x for which the elements have constant length
 
         Parameters

@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -23,7 +21,7 @@
 import glob
 import os
 import subprocess
-from os.path import basename, splitext, join, dirname
+from os.path import basename, dirname, join, splitext
 
 
 def make_lang(root: str) -> None:

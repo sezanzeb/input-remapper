@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2023 sezanzeb <proxima@hip70890b.de>
 #
@@ -38,18 +37,17 @@ different input-events into simple on/off events and sends them to the gui.
 
 from __future__ import annotations
 
-
 import evdev
 from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.input_config import (
     DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
 )
+from inputremapper.injection.mapping_handlers.abs_util import calculate_trigger_point
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logging.logger import logger
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
-from inputremapper.injection.mapping_handlers.abs_util import calculate_trigger_point
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"
@@ -80,7 +78,7 @@ class ForwardToUIHandler(MappingHandler):
             return True
 
         # These defaults work with EV_KEY and EV_REL
-        pressed = False if event.value == 0 else True
+        pressed = event.value != 0
         direction = 1 if event.value >= 0 else -1
 
         # Because joysticks aren't as precise, they wiggle and their value might not be

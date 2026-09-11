@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,17 +21,16 @@ import asyncio
 import atexit
 import multiprocessing
 import os
+import sys
 import time
 import unittest
 from contextlib import contextmanager
-from typing import Tuple, List, Optional
 from unittest.mock import patch
 
 import evdev
 import gi
-import sys
 
-from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput, UInput
+from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from tests.lib.cleanup import cleanup
 from tests.lib.constants import EVENT_READ_TIMEOUT
@@ -43,26 +41,25 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkSource", "4")
 gi.require_version("GLib", "2.0")
-from gi.repository import Gtk, GLib, GtkSource
+from gi.repository import GLib, Gtk, GtkSource
 
-from inputremapper.configs.mapping import Mapping
+from inputremapper.bin.input_remapper_gtk import InputRemapperGtkBin
 from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import Mapping
+from inputremapper.daemon import Daemon, DaemonProxy
 from inputremapper.groups import _Groups
-from inputremapper.gui.data_manager import DataManager
-from inputremapper.gui.messages.message_broker import (
-    MessageBroker,
-)
 from inputremapper.gui.components.editor import (
     MappingSelectionLabel,
 )
 from inputremapper.gui.controller import Controller
+from inputremapper.gui.data_manager import DataManager
+from inputremapper.gui.messages.message_broker import (
+    MessageBroker,
+)
 from inputremapper.gui.reader_service import ReaderService
-from inputremapper.gui.utils import gtk_iteration
 from inputremapper.gui.user_interface import UserInterface
-from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.daemon import Daemon, DaemonProxy
-from inputremapper.bin.input_remapper_gtk import InputRemapperGtkBin
-
+from inputremapper.gui.utils import gtk_iteration
 
 # iterate a few times when Gtk.main() is called, but don't block
 # there and just continue to the tests while the UI becomes
@@ -73,7 +70,7 @@ Gtk.main = gtk_iteration
 Gtk.main_quit = lambda: None
 
 
-def launch() -> Tuple[
+def launch() -> tuple[
     UserInterface,
     Controller,
     DataManager,
@@ -334,7 +331,7 @@ class GuiTestBase(unittest.TestCase):
         self.code_editor.get_buffer().set_text("")
         return source_view
 
-    def get_selection_labels(self) -> List[MappingSelectionLabel]:
+    def get_selection_labels(self) -> list[MappingSelectionLabel]:
         return self.selection_label_listbox.get_children()
 
     def get_status_text(self):
@@ -365,7 +362,7 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
         return selection_label
 
-    def add_mapping(self, mapping: Optional[Mapping] = None):
+    def add_mapping(self, mapping: Mapping | None = None):
         self.controller.create_mapping()
         self.controller.load_mapping(InputCombination.empty_combination())
         gtk_iteration()

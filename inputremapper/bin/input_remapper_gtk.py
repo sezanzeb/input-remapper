@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -24,7 +24,6 @@ from __future__ import annotations
 import atexit
 import sys
 from argparse import ArgumentParser
-from typing import Tuple
 
 import gi
 
@@ -38,25 +37,25 @@ from gi.repository import Gtk
 # https://github.com/Nuitka/Nuitka/issues/607#issuecomment-650217096
 Gtk.init()
 
-from inputremapper.gui.gettext import _, LOCALE_DIR
-from inputremapper.gui.reader_service import ReaderService
-from inputremapper.daemon import DaemonProxy, Daemon
-from inputremapper.logging.logger import logger
-from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
-from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.gui.data_manager import DataManager
-from inputremapper.gui.user_interface import UserInterface
-from inputremapper.gui.controller import Controller
-from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
-from inputremapper.groups import _Groups
-from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.configs.global_config import GlobalConfig
+from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.migrations import Migrations
+from inputremapper.daemon import Daemon, DaemonProxy
+from inputremapper.groups import _Groups
+from inputremapper.gui.controller import Controller
+from inputremapper.gui.data_manager import DataManager
+from inputremapper.gui.gettext import LOCALE_DIR, _
+from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
+from inputremapper.gui.reader_client import ReaderClient
+from inputremapper.gui.reader_service import ReaderService, ReaderServiceError
+from inputremapper.gui.user_interface import UserInterface
+from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
+from inputremapper.logging.logger import logger
 
 
 class InputRemapperGtkBin:
     @staticmethod
-    def main() -> Tuple[
+    def main() -> tuple[
         UserInterface,
         Controller,
         DataManager,
@@ -77,7 +76,7 @@ class InputRemapperGtkBin:
         options = parser.parse_args(sys.argv[1:])
         logger.update_verbosity(options.debug)
         logger.log_info("input-remapper-gtk")
-        logger.debug("Using locale directory: {}".format(LOCALE_DIR))
+        logger.debug(f"Using locale directory: {LOCALE_DIR}")
 
         global_uinputs = GlobalUInputs(FrontendUInput)
 
@@ -139,7 +138,7 @@ class InputRemapperGtkBin:
 
         try:
             ReaderService.pkexec_reader_service()
-        except Exception as e:
+        except ReaderServiceError as e:
             logger.error(e)
             sys.exit(11)
 

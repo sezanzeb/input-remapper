@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -24,30 +23,30 @@ see gui.reader_service.ReaderService
 """
 
 import time
-from typing import Optional, List, Generator, Dict, Set
+from collections.abc import Generator
 
 import evdev
 from gi.repository import GLib
 
 from inputremapper.configs.input_config import (
-    InputCombination,
     DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
+    InputCombination,
 )
-from inputremapper.groups import _Groups, _Group
+from inputremapper.groups import _Group, _Groups
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import MessageBroker
 from inputremapper.gui.messages.message_data import (
-    GroupsData,
     CombinationRecorded,
+    GroupsData,
     StatusData,
 )
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_service import (
-    MSG_EVENT,
-    MSG_GROUPS,
-    CMD_TERMINATE,
     CMD_REFRESH_GROUPS,
     CMD_STOP_READING,
+    CMD_TERMINATE,
+    MSG_EVENT,
+    MSG_GROUPS,
     ReaderService,
 )
 from inputremapper.gui.utils import CTX_ERROR
@@ -76,9 +75,9 @@ class ReaderClient:
         self.groups = groups
         self.message_broker = message_broker
 
-        self.group: Optional[_Group] = None
+        self.group: _Group | None = None
 
-        self._recording_generator: Optional[RecordingGenerator] = None
+        self._recording_generator: RecordingGenerator | None = None
         self._results_pipe, self._commands_pipe = self.connect()
 
         self.attach_to_events()
@@ -225,8 +224,8 @@ class ReaderClient:
         It accumulates them into EventCombinations and sends those on the
         message_broker. It will stop once all keys or inputs are released.
         """
-        active: Set = set()
-        accumulator: List[InputEvent] = []
+        active: set = set()
+        accumulator: list[InputEvent] = []
         while True:
             event: InputEvent = yield
             if event.type_and_code in BLACKLISTED_EVENTS:
@@ -266,7 +265,7 @@ class ReaderClient:
                     )
                 )
 
-    def set_group(self, group: Optional[_Group]):
+    def set_group(self, group: _Group | None):
         """Set the group for which input events should be read later."""
         # TODO load the active_group from the controller instead?
         self.group = group
@@ -290,7 +289,7 @@ class ReaderClient:
 
     def publish_groups(self):
         """Announce all known groups."""
-        groups: Dict[str, List[str]] = {
+        groups: dict[str, list[str]] = {
             group.key: group.types or [] for group in self.groups.get_groups()
         }
         self.message_broker.publish(GroupsData(groups))

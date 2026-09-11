@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,10 +19,9 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List
 
 from inputremapper.injection.macros.argument import ArgumentConfig, ArgumentFlags
-from inputremapper.injection.macros.macro import Macro, InjectEventCallback
+from inputremapper.injection.macros.macro import InjectEventCallback, Macro
 from inputremapper.injection.macros.task import Task
 
 
@@ -40,6 +37,6 @@ class ParallelTask(Task):
     ]
 
     async def run(self, callback: InjectEventCallback) -> None:
-        macros: List[Macro] = self.get_argument("*macros").get_values()
+        macros: list[Macro] = self.get_argument("*macros").get_values()
         coroutines = [macro.run(callback) for macro in macros]
         await asyncio.gather(*coroutines)

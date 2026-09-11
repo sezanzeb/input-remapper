@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,15 +17,14 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from enum import Enum
-from typing import Dict, List
 
 from inputremapper.groups import DeviceType
 
 # useful type aliases
-Capabilities = Dict[int, List]
+Capabilities = dict[int, list]
 Name = str
 Key = str
-DeviceTypes = List[DeviceType]
+DeviceTypes = list[DeviceType]
 
 
 class MessageType(Enum):

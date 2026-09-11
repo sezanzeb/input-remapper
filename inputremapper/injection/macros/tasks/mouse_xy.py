@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,9 +19,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Union
 
-from evdev._ecodes import REL_Y, REL_X
+from evdev._ecodes import REL_X, REL_Y
 from evdev.ecodes import EV_REL
 
 from inputremapper.injection.macros.argument import ArgumentConfig
@@ -68,8 +65,8 @@ class MouseXYTask(Task):
     async def axis(
         self,
         code: int,
-        speed: Union[int, float],
-        fractional_acceleration: Union[int, float],
+        speed: float,
+        fractional_acceleration: float,
         callback: InjectEventCallback,
     ) -> None:
         acceleration = speed * fractional_acceleration

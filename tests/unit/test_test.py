@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -27,11 +26,11 @@ import unittest
 import evdev
 from evdev.ecodes import EV_ABS, EV_KEY
 
-from inputremapper.groups import groups, _Groups
+from inputremapper.groups import _Groups, groups
 from inputremapper.gui.messages.message_broker import MessageBroker
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
-from inputremapper.injection.global_uinputs import UInput, GlobalUInputs
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 from tests.lib.cleanup import cleanup
