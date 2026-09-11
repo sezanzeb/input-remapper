@@ -465,7 +465,7 @@ class Mapping(UIMapping):
             return values
 
         # disallow output type and code for macros
-        if Parser.is_this_a_macro(symbol) and type_ is not None or code is not None:
+        if Parser.is_this_a_macro(symbol) and (type_ is not None or code is not None):
             raise MacroButTypeOrCodeSetError()
 
         if code is not None and code != keyboard_layout.get(symbol) or type_ != EV_KEY:
