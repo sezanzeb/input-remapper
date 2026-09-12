@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -40,19 +39,22 @@ AppIndicator = None
 # Attempt AyatanaAppIndicator3 first (modern standard)
 try:
     gi.require_version("AyatanaAppIndicator3", "0.1")
-    from gi.repository import AyatanaAppIndicator3 as AppIndicator  # type: ignore[assignment, no-redef]
+    from gi.repository import (
+        AyatanaAppIndicator3 as AppIndicator,  # type: ignore[assignment, no-redef]
+    )
 
     HAS_APPINDICATOR = True
 except (ImportError, ValueError):
     # Fallback to older AppIndicator3
     try:
         gi.require_version("AppIndicator3", "0.1")
-        from gi.repository import AppIndicator3 as AppIndicator  # type: ignore[assignment, no-redef]
+        from gi.repository import (
+            AppIndicator3 as AppIndicator,  # type: ignore[assignment, no-redef]
+        )
 
         HAS_APPINDICATOR = True
     except (ImportError, ValueError):
         pass
-from typing import Dict, Optional, Tuple
 
 from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.configs.data import get_data_path
@@ -68,18 +70,18 @@ from inputremapper.logging.logger import logger
 class InputRemapperTrayBin:
     def __init__(self, global_config: GlobalConfig) -> None:
         self.global_config = global_config
-        self.daemon: Optional[DaemonProxy] = None
-        self.indicator: Optional[AppIndicator.Indicator] = None
+        self.daemon: DaemonProxy | None = None
+        self.indicator: AppIndicator.Indicator | None = None
         self.is_supported = HAS_APPINDICATOR
-        self.toggle_item: Optional[Gtk.MenuItem] = None
+        self.toggle_item: Gtk.MenuItem | None = None
 
         # Last known states to prevent redundant menu rebuilds during polling
-        self.last_suspended: Optional[bool] = None
-        self.last_states: Dict[str, Tuple[InjectorState, str]] = {}
+        self.last_suspended: bool | None = None
+        self.last_states: dict[str, tuple[InjectorState, str]] = {}
         self.poll_count = 0
-        self.last_config_mtime: Optional[float] = None
-        self.last_presets_mtimes: Dict[str, float] = {}
-        self.refresh_thread: Optional[threading.Thread] = None
+        self.last_config_mtime: float | None = None
+        self.last_presets_mtimes: dict[str, float] = {}
+        self.refresh_thread: threading.Thread | None = None
         self.refresh_lock = threading.Lock()
         self.gui_spawned = "--gui-spawned" in sys.argv
 
@@ -346,7 +348,7 @@ class InputRemapperTrayBin:
             try:
                 state = self.daemon.get_state(group_key)
                 running_preset = self.daemon.get_running_preset(group_key)
-            except Exception:
+            except Exception:  # noqa: S112
                 continue
 
             last = self.last_states.get(group_key)
@@ -356,7 +358,7 @@ class InputRemapperTrayBin:
 
     def _get_presets_mtimes(self) -> dict[str, float]:
         """Compute modification times for presets folder and subfolders to detect adds/removes."""
-        mtimes: Dict[str, float] = {}
+        mtimes: dict[str, float] = {}
         base_dir = PathUtils.get_preset_path("")
         if not os.path.exists(base_dir):
             return mtimes
@@ -367,7 +369,7 @@ class InputRemapperTrayBin:
                 sub_path = os.path.join(base_dir, item)
                 if os.path.isdir(sub_path):
                     mtimes[item] = os.path.getmtime(sub_path)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
         return mtimes
 
