@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <b8x45ygc9@mozmail.com>
 #
@@ -22,11 +21,11 @@
 from __future__ import annotations
 
 import subprocess
+
 import gi
 from gi.repository import Gtk
 
 from inputremapper.bin.process_utils import ProcessUtils
-
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
 from inputremapper.logging.logger import logger
@@ -68,7 +67,7 @@ class SettingsMenu:
                 ) > ProcessUtils.count_python_processes(
                     "input-remapper-tray", ["--gui-spawned"]
                 )
-            except Exception:
+            except Exception:  # noqa: S110
                 pass
 
         enabled = (
