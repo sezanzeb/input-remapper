@@ -35,7 +35,7 @@ from gi.repository import GLib, Gtk
 
 # Try importing AppIndicator
 HAS_APPINDICATOR = False
-AppIndicator: Any = None
+AppIndicator = None
 
 # Attempt AyatanaAppIndicator3 first (modern standard)
 try:
@@ -52,7 +52,7 @@ except (ImportError, ValueError):
         HAS_APPINDICATOR = True
     except (ImportError, ValueError):
         pass
-from typing import Any, Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.configs.data import get_data_path
@@ -66,12 +66,12 @@ from inputremapper.logging.logger import logger
 
 
 class InputRemapperTrayBin:
-    def __init__(self, global_config: GlobalConfig):
+    def __init__(self, global_config: GlobalConfig) -> None:
         self.global_config = global_config
         self.daemon: Optional[DaemonProxy] = None
-        self.indicator: Any = None
+        self.indicator: Optional[AppIndicator.Indicator] = None
         self.is_supported = HAS_APPINDICATOR
-        self.toggle_item: Any = None
+        self.toggle_item: Optional[Gtk.MenuItem] = None
 
         # Last known states to prevent redundant menu rebuilds during polling
         self.last_suspended: Optional[bool] = None
