@@ -54,6 +54,7 @@ except (ImportError, ValueError):
         pass
 from typing import Any, Dict, Optional, Tuple
 
+from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.paths import PathUtils
@@ -90,8 +91,6 @@ class InputRemapperTrayBin:
         tray.run()
 
     def run(self) -> None:
-        from inputremapper.bin.process_utils import ProcessUtils
-
         if ProcessUtils.count_python_processes("input-remapper-tray") >= 2:
             logger.info(
                 "Another input-remapper tray helper is already running. Exiting."
@@ -384,8 +383,6 @@ class InputRemapperTrayBin:
             logger.setLevel(old_level)
 
     def _on_show_activate(self, _widget) -> None:
-        from inputremapper.bin.process_utils import ProcessUtils
-
         if ProcessUtils.count_python_processes("input-remapper-gtk") > 0:
             logger.info("input-remapper-gtk is already running, not spawning a new one")
             return
@@ -394,8 +391,6 @@ class InputRemapperTrayBin:
         subprocess.Popen(["input-remapper-gtk"])
 
     def _on_exit_activate(self, _widget) -> None:
-        from inputremapper.bin.process_utils import ProcessUtils
-
         terminated = ProcessUtils.terminate_python_processes("input-remapper-gtk")
         if terminated:
             logger.info("Terminated %d running GUI process(es)", terminated)
