@@ -19,10 +19,12 @@
 
 """User Interface."""
 
+import subprocess
 from collections.abc import Callable
 
 from gi.repository import Gdk, GObject, Gtk, GtkSource
 
+from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import MappingData
@@ -52,7 +54,7 @@ from inputremapper.gui.components.editor import (
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.suspend_button import SuspendButton
-from inputremapper.gui.components.settings import SettingsMenu
+from inputremapper.gui.components.settings import HAS_APPINDICATOR, SettingsMenu
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
@@ -410,16 +412,11 @@ class UserInterface:
                 pass
 
     def on_gtk_close(self, *_):
-        from inputremapper.gui.components.settings import HAS_APPINDICATOR
-
         if (
             HAS_APPINDICATOR
             and self.controller.data_manager.global_config.get_systray()
         ):
             try:
-                import subprocess
-                from inputremapper.bin.process_utils import ProcessUtils
-
                 if ProcessUtils.count_python_processes("input-remapper-tray") == 0:
                     logger.info("Spawning detached system tray process")
                     subprocess.Popen(["input-remapper-tray", "--gui-spawned"])
@@ -431,8 +428,6 @@ class UserInterface:
 
         # If close to tray is disabled, terminate any running GUI-spawned tray helper process
         try:
-            from inputremapper.bin.process_utils import ProcessUtils
-
             terminated = ProcessUtils.terminate_python_processes(
                 "input-remapper-tray", "--gui-spawned"
             )
