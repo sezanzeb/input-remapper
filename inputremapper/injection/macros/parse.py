@@ -48,6 +48,7 @@ from inputremapper.injection.macros.tasks.parallel import ParallelTask
 from inputremapper.injection.macros.tasks.repeat import RepeatTask
 from inputremapper.injection.macros.tasks.set import SetTask
 from inputremapper.injection.macros.tasks.toggle import ToggleTask
+from inputremapper.injection.macros.tasks.while_eq import WhileEqTask
 from inputremapper.injection.macros.tasks.wait import WaitTask
 from inputremapper.injection.macros.tasks.wheel import WheelTask
 from inputremapper.logging.logger import logger
@@ -62,6 +63,7 @@ class Parser:
         "modify": ModifyTask,
         "repeat": RepeatTask,
         "toggle": ToggleTask,
+        "while_eq": WhileEqTask,
         "key": KeyTask,
         "key_down": KeyDownTask,
         "key_up": KeyUpTask,
