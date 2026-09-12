@@ -429,7 +429,7 @@ class UserInterface:
         # If close to tray is disabled, terminate any running GUI-spawned tray helper process
         try:
             terminated = ProcessUtils.terminate_python_processes(
-                "input-remapper-tray", "--gui-spawned"
+                "input-remapper-tray", ["--gui-spawned"]
             )
             if terminated:
                 logger.info(

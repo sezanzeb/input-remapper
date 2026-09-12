@@ -66,7 +66,7 @@ class SettingsMenu:
                 is_standalone_running = ProcessUtils.count_python_processes(
                     "input-remapper-tray"
                 ) > ProcessUtils.count_python_processes(
-                    "input-remapper-tray", "--gui-spawned"
+                    "input-remapper-tray", ["--gui-spawned"]
                 )
             except Exception:
                 pass
