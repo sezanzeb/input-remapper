@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,7 +21,7 @@
 
 import sys
 from hashlib import md5
-from typing import Optional, NewType
+from typing import NewType
 
 import evdev
 
@@ -44,7 +43,7 @@ def get_device_hash(device: evdev.InputDevice) -> DeviceHash:
     return DeviceHash(md5(s.encode()).hexdigest().lower())
 
 
-def get_evdev_constant_name(type_: Optional[int], code: Optional[int], *_) -> str:
+def get_evdev_constant_name(type_: int | None, code: int | None, *_) -> str:
     """Handy function to get the evdev constant name for display purposes.
 
     Returns "unknown" for unknown events.

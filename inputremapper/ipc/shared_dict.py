@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -20,12 +19,12 @@
 
 """Share a dictionary across processes."""
 
-
-import psutil
 import atexit
 import multiprocessing
 import select
-from typing import Optional, Any
+from typing import Any
+
+import psutil
 
 from inputremapper.logging.logger import logger
 
@@ -109,7 +108,7 @@ class SharedDict:
 
             self.pipe[1].send(("set", key, value))
 
-    def ping(self, timeout: Optional[int] = None) -> bool:
+    def ping(self, timeout: int | None = None) -> bool:
         """Return true if the process can be pinged."""
         with self.lock:
             if not self.is_alive():
@@ -132,8 +131,7 @@ class SharedDict:
         except psutil.NoSuchProcess:
             return False
 
-        if proc.status() == psutil.STATUS_ZOMBIE:
-            return False
+        return proc.status() != psutil.STATUS_ZOMBIE
 
         # Alternative:
         # If the process freezes or dies, the pipe may presumably get full and .send
@@ -142,8 +140,6 @@ class SharedDict:
         # ready = select.select([], [self.pipe[1]], [], 0)
         # if not ready[1]:
         #     return False
-
-        return True
 
     def _stop(self) -> None:
         """Stop the managing process."""

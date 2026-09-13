@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -24,7 +23,7 @@ import collections
 import os
 import time
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from inputremapper.bin.input_remapper_control import InputRemapperControlBin
 from inputremapper.configs.global_config import GlobalConfig
@@ -33,11 +32,11 @@ from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
-from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
+from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
+from tests.lib.logger import logger
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp
-from tests.lib.logger import logger
 
 options = collections.namedtuple(
     "options",

@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,7 +20,7 @@ from __future__ import annotations
 
 import asyncio
 from itertools import chain
-from typing import List, Dict, TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING
 
 from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.argument import (
@@ -30,14 +28,14 @@ from inputremapper.injection.macros.argument import (
     ArgumentConfig,
     ArgumentFlags,
 )
-from inputremapper.injection.macros.macro import Macro, InjectEventCallback
+from inputremapper.injection.macros.macro import InjectEventCallback, Macro
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
-    from inputremapper.injection.mapping_handlers.mapping_handler import EventListener
-    from inputremapper.injection.macros.raw_value import RawValue
-    from inputremapper.injection.context import Context
     from inputremapper.configs.mapping import Mapping
+    from inputremapper.injection.context import Context
+    from inputremapper.injection.macros.raw_value import RawValue
+    from inputremapper.injection.mapping_handlers.mapping_handler import EventListener
 
 
 class Task:
@@ -46,20 +44,20 @@ class Task:
     A macro like `key(a).key(b)` will contain two instances of this class.
     """
 
-    argument_configs: List[ArgumentConfig]
-    arguments: Dict[str, Argument]
+    argument_configs: list[ArgumentConfig]
+    arguments: dict[str, Argument]
     mapping: Mapping
 
     # The context is None during frontend-parsing/validation I believe
-    context: Optional[Context]
+    context: Context | None
 
-    child_macros: List[Macro]
+    child_macros: list[Macro]
 
     def __init__(
         self,
-        positional_args: List[RawValue],
-        keyword_args: Dict[str, RawValue],
-        context: Optional[Context],
+        positional_args: list[RawValue],
+        keyword_args: dict[str, RawValue],
+        context: Context | None,
         mapping: Mapping,
     ) -> None:
         self.context = context
@@ -111,11 +109,11 @@ class Task:
         return [argument_config.name for argument_config in cls.argument_configs]
 
     @classmethod
-    def get_num_parameters(cls) -> Tuple[int, Union[int, float]]:
+    def get_num_parameters(cls) -> tuple[int, int | float]:
         """Get the number of required parameters and the maximum number of parameters."""
         min_num_args = 0
         argument_configs = cls.argument_configs
-        max_num_args: Union[int, float] = len(argument_configs)
+        max_num_args: int | float = len(argument_configs)
         for argument_config in argument_configs:
             if argument_config.position == ArgumentFlags.spread:
                 # 0 or more
@@ -167,10 +165,10 @@ class Task:
 
     def _initialize_spread_arg(
         self,
-        positional_args: List[RawValue],
+        positional_args: list[RawValue],
     ) -> None:
         """Put all positional arguments that aren't used into the spread argument."""
-        spread_argument: Optional[Argument] = None
+        spread_argument: Argument | None = None
         for argument in self.arguments.values():
             if argument.position == ArgumentFlags.spread:
                 spread_argument = argument
@@ -189,7 +187,7 @@ class Task:
 
         spread_argument.initialize_variables(remaining_positional_args)
 
-    def _find_argument_by_position(self, position: int) -> Optional[Argument]:
+    def _find_argument_by_position(self, position: int) -> Argument | None:
         for argument in self.arguments.values():
             if argument.position == position:
                 return argument
@@ -208,8 +206,8 @@ class Task:
     def _initialize_argument(
         self,
         argument: Argument,
-        keyword_args: Dict[str, RawValue],
-        positional_args: List[RawValue],
+        keyword_args: dict[str, RawValue],
+        positional_args: list[RawValue],
     ) -> None:
         if argument.position == ArgumentFlags.spread:
             # Will get all the remaining positional arguments afterward.

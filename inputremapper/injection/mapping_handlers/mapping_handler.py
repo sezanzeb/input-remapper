@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -58,10 +57,11 @@ Step 2 and 3:
  - KeyHandler
  - MacroHandler
 """
+
 from __future__ import annotations
 
 import enum
-from typing import Dict, Protocol, Set, Optional, List
+from typing import Protocol
 
 import evdev
 
@@ -80,7 +80,7 @@ class EventListener(Protocol):
 class ContextProtocol(Protocol):
     """The parts from context needed for handlers."""
 
-    listeners: Set[EventListener]
+    listeners: set[EventListener]
 
     def get_forward_uinput(self, origin_hash) -> evdev.UInput:
         pass
@@ -128,8 +128,8 @@ class MappingHandler:
     mapping: Mapping
     # all input events this handler cares about
     # should always be a subset of mapping.input_combination
-    input_configs: List[InputConfig]
-    _sub_handler: Optional[MappingHandler]
+    input_configs: list[InputConfig]
+    _sub_handler: MappingHandler | None
 
     # https://bugs.python.org/issue44807
     def __init__(
@@ -182,10 +182,10 @@ class MappingHandler:
         """If this handler needs ranking and wrapping with a HierarchyHandler."""
         return False
 
-    def rank_by(self) -> Optional[InputCombination]:
+    def rank_by(self) -> InputCombination | None:
         """The combination for which this handler needs ranking."""
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         """A dict of InputCombination -> HandlerEnums.
 
         for each InputCombination this handler should be wrapped
@@ -209,5 +209,5 @@ class MappingHandler:
         # has in its input_configs InputCombination
         self.input_configs.remove(input_config)
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return []

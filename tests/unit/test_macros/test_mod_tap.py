@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 import evdev
-from evdev.ecodes import KEY_A, EV_KEY, KEY_B, KEY_LEFTSHIFT, KEY_C
+from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C, KEY_LEFTSHIFT
 
 from inputremapper.configs.input_config import InputConfig
 from inputremapper.configs.mapping import Mapping
@@ -19,7 +19,7 @@ from tests.lib.fixtures import fixtures
 from tests.lib.patches import InputDevice
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
-from tests.unit.test_macros.macro_test_base import MacroTestBase, DummyMapping
+from tests.unit.test_macros.macro_test_base import DummyMapping, MacroTestBase
 
 
 @test_setup

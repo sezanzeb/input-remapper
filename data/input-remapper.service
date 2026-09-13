@@ -8,6 +8,7 @@ After=dbus.service
 Type=dbus
 BusName=inputremapper.Control
 ExecStart=/usr/bin/input-remapper-service
+ExecStop=/usr/bin/input-remapper-control --command quit
 
 [Install]
 WantedBy=default.target

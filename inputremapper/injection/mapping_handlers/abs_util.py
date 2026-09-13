@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,10 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple
 
 import evdev
-from evdev.ecodes import EV_ABS, ABS_GAS, ABS_BRAKE, ABS_Z, ABS_RZ
+from evdev.ecodes import ABS_BRAKE, ABS_GAS, ABS_RZ, ABS_Z, EV_ABS
 
 from inputremapper.input_event import InputEvent
 
@@ -30,12 +28,11 @@ def calculate_trigger_point(
     event: InputEvent,
     analog_threshold: int,
     source: evdev.InputDevice,
-) -> Tuple[float, float]:
-    """Calculate the threshold and resting-point of the axis.
+) -> tuple[float, float]:
+    """Calculate the trigger_offset and resting-point of the axis.
 
+    The threshold would be the trigger_offset from the resting-point/middle in both directions.
     If an EV_ABS events value suprasses the threshold, it should be considered pressed.
-
-    The threshold is the offset from the resting-point/middle in both directions.
 
     The resting point might be the middle value for a joystick: 0, *128*, 256 or
     -128, *0*, 128. Or it might be the minimum value of the shoulder triggers: *0* 256.
@@ -54,11 +51,11 @@ def calculate_trigger_point(
         )
 
     if event.code in [ABS_GAS, ABS_BRAKE, ABS_Z, ABS_RZ]:
-        threshold = abs_max * analog_threshold / 100
+        trigger_offset = abs_max * analog_threshold / 100
         # For the L/R triggers, there is only one direction, and the resting
         # position is the same as the min_abs.
         middle = abs_min
-        return threshold, middle
+        return trigger_offset, middle
 
     half_range = (abs_max - abs_min) / 2
     middle = half_range + abs_min
@@ -67,6 +64,4 @@ def calculate_trigger_point(
     # -128 to 128. half_range is 128. middle is 0. trigger_offset is 64 (and above)
     # 0 to 128. half_range is 64. middle is 64. trigger_offset is 96 (and above)
 
-    # threshold, middle
-    threshold = middle + trigger_offset
-    return threshold, middle
+    return trigger_offset, middle

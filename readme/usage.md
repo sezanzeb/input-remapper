@@ -238,7 +238,7 @@ A input configuration is a dictionary with some or all of the following paramete
 | Parameter        | Default | Type                   | Description                                                         |
 |------------------|---------|------------------------|---------------------------------------------------------------------|
 | type             | -       | int                    | Input Event Type                                                    |
-| code             | -       | int                    | Input Evnet Code                                                    |
+| code             | -       | int                    | Input Event Code                                                    |
 | origin_hash      | None    | hex (string formatted) | A unique identifier for the device which emits the described event. |
 | analog_threshold | None    | int                    | The threshold above which a input axis triggers the mapping.        |
 

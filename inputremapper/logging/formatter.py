@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,8 +21,7 @@
 import logging
 import os
 import sys
-from datetime import datetime
-from typing import Dict
+from datetime import datetime, timezone
 
 
 class ColorfulFormatter(logging.Formatter):
@@ -39,13 +37,13 @@ class ColorfulFormatter(logging.Formatter):
         super().__init__()
 
         self.debug_mode = debug_mode
-        self.file_color_mapping: Dict[str, int] = {}
+        self.file_color_mapping: dict[str, int] = {}
 
         # see https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
         self.allowed_colors = []
-        for r in range(0, 6):
-            for g in range(0, 6):
-                for b in range(0, 6):
+        for r in range(6):
+            for g in range(6):
+                for b in range(6):
                     # https://stackoverflow.com/a/596243
                     brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b
                     if brightness < 1:
@@ -123,8 +121,9 @@ class ColorfulFormatter(logging.Formatter):
 
         process_color = self._word_to_color(f"{os.getpid()}{sys.argv[0]}")
 
-        return (  # noqa
-            f'{datetime.now().strftime("%H:%M:%S.%f")} '
+        now = datetime.now(tz=timezone.utc)
+        return (
+            f'{now.strftime("%H:%M:%S.%f")} '
             f"\033[38;5;{process_color}m"  # color
             f"{os.getpid()} "
             f"{self._get_process_name()} "

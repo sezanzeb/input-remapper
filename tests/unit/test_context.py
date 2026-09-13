@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,12 +21,12 @@ import unittest
 from unittest.mock import patch
 
 from evdev.ecodes import (
-    EV_REL,
-    EV_ABS,
     ABS_X,
     ABS_Y,
-    REL_WHEEL_HI_RES,
+    EV_ABS,
+    EV_REL,
     REL_HWHEEL_HI_RES,
+    REL_WHEEL_HI_RES,
 )
 
 from inputremapper.configs.input_config import InputCombination
@@ -104,7 +103,7 @@ class TestContext(unittest.TestCase):
         }
 
         self.assertEqual(
-            set([event.input_match_hash for event in expected_num_callbacks.keys()]),
+            set([event.input_match_hash for event in expected_num_callbacks]),
             set(context._notify_callbacks.keys()),
         )
         for input_event, num_callbacks in expected_num_callbacks.items():

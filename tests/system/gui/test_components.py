@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -20,7 +19,6 @@
 
 import time
 import unittest
-from typing import Optional, Tuple, Union
 from unittest.mock import MagicMock, call
 
 import evdev
@@ -31,59 +29,58 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
-from gi.repository import Gtk, GLib, GtkSource, Gdk
+from gi.repository import Gdk, GLib, Gtk, GtkSource
 
-from tests.lib.spy import spy
-from tests.lib.logger import logger
-
-from inputremapper.gui.controller import Controller
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import XKB_KEYCODE_OFFSET
-from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration
+from inputremapper.configs.mapping import MappingData
+from inputremapper.groups import DeviceType
+from inputremapper.gui.components.common import Breadcrumbs, FlowBoxEntry
+from inputremapper.gui.components.device_groups import (
+    DeviceGroupEntry,
+    DeviceGroupSelection,
+)
+from inputremapper.gui.components.editor import (
+    AnalogInputSwitch,
+    AutoloadSwitch,
+    CodeEditor,
+    CombinationListbox,
+    GdkEventRecorder,
+    InputConfigEntry,
+    KeyAxisStackSwitcher,
+    MappingListBox,
+    MappingSelectionLabel,
+    OutputAxisSelector,
+    RecordingStatus,
+    RecordingToggle,
+    RelativeInputCutoffInput,
+    ReleaseCombinationSwitch,
+    ReleaseTimeoutInput,
+    RequireActiveMapping,
+    Sliders,
+    TargetSelection,
+    TransformationDrawArea,
+    TriggerThresholdInput,
+)
+from inputremapper.gui.components.main import Stack, StatusBar
+from inputremapper.gui.components.presets import PresetSelection
+from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
 from inputremapper.gui.messages.message_data import (
-    UInputsData,
-    GroupsData,
-    GroupData,
-    PresetData,
-    StatusData,
     CombinationUpdate,
     DoStackSwitch,
+    GroupData,
+    GroupsData,
+    PresetData,
+    StatusData,
+    UInputsData,
 )
-from inputremapper.groups import DeviceType
-from inputremapper.gui.components.editor import (
-    TargetSelection,
-    MappingListBox,
-    MappingSelectionLabel,
-    CodeEditor,
-    RecordingToggle,
-    AutoloadSwitch,
-    ReleaseCombinationSwitch,
-    CombinationListbox,
-    InputConfigEntry,
-    AnalogInputSwitch,
-    TriggerThresholdInput,
-    ReleaseTimeoutInput,
-    OutputAxisSelector,
-    KeyAxisStackSwitcher,
-    Sliders,
-    TransformationDrawArea,
-    RelativeInputCutoffInput,
-    RecordingStatus,
-    RequireActiveMapping,
-    GdkEventRecorder,
-)
-from inputremapper.gui.components.main import Stack, StatusBar
-from inputremapper.gui.components.common import FlowBoxEntry, Breadcrumbs
-from inputremapper.gui.components.presets import PresetSelection
-from inputremapper.gui.components.device_groups import (
-    DeviceGroupEntry,
-    DeviceGroupSelection,
-)
-from inputremapper.configs.mapping import MappingData
-from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration
+from tests.lib.logger import logger
+from tests.lib.spy import spy
 from tests.lib.test_setup import test_setup
 
 
@@ -132,7 +129,7 @@ class FlowBoxTestUtils:
             flow_box_entry.set_active(flow_box_entry.name == name)
 
     @staticmethod
-    def get_active_entry(flow_box: Gtk.FlowBox) -> Union[DeviceGroupEntry, None]:
+    def get_active_entry(flow_box: Gtk.FlowBox) -> DeviceGroupEntry | None:
         """Find the currently selected DeviceGroupEntry."""
         children = flow_box.get_children()
 
@@ -392,7 +389,7 @@ class TestMappingListbox(ComponentBaseTest):
             if label.is_selected():
                 return label
 
-        raise Exception("Expected one MappingSelectionLabel to be selected")
+        raise AssertionError("Expected one MappingSelectionLabel to be selected")
 
     def select_row(self, combination: InputCombination):
         def select(label_: MappingSelectionLabel):
@@ -1013,7 +1010,7 @@ class TestStatusBar(ComponentBaseTest):
     def get_text(self) -> str:
         return self.gui.get_message_area().get_children()[0].get_text()
 
-    def get_tooltip(self) -> Optional[str]:
+    def get_tooltip(self) -> str | None:
         return self.gui.get_tooltip_text()
 
     def test_starts_empty(self):
@@ -1172,7 +1169,7 @@ class TestCombinationListbox(ComponentBaseTest):
             if entry.is_selected():
                 return entry
 
-        raise Exception("Expected one InputConfigEntry to be selected")
+        raise AssertionError("Expected one InputConfigEntry to be selected")
 
     def select_row(self, input_cfg: InputConfig):
         for entry in self.gui.get_children():
@@ -1423,10 +1420,10 @@ class TestOutputAxisSelector(ComponentBaseTest):
             )
         )
 
-    def set_active_selection(self, selection: Tuple):
+    def set_active_selection(self, selection: tuple):
         self.gui.set_active_id(f"{selection[0]}, {selection[1]}")
 
-    def get_active_selection(self) -> Tuple[int, int]:
+    def get_active_selection(self) -> tuple[int, int]:
         return tuple(int(i) for i in self.gui.get_active_id().split(","))  # type: ignore
 
     def test_updates_mapping(self):
@@ -1594,7 +1591,7 @@ class TestSliders(ComponentBaseTest):
         )
 
     @staticmethod
-    def get_range(range: Gtk.Range) -> Tuple[int, int]:
+    def get_range(range: Gtk.Range) -> tuple[int, int]:
         """the Gtk.Range, has no get_range method. this is a workaround"""
         v = range.get_value()
         range.set_value(-(2**16))

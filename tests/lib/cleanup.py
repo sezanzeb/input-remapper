@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -34,10 +33,10 @@ from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
 from tests.lib.patches import uinputs
 from tests.lib.pipes import (
-    uinput_write_history_pipe,
-    uinput_write_history,
     pending_events,
     setup_pipe,
+    uinput_write_history,
+    uinput_write_history_pipe,
 )
 from tests.lib.tmp import tmp
 
@@ -81,9 +80,9 @@ def quick_cleanup(log=True):
     # TODO no:
     # Reminder: before patches are applied in test.py, no inputremapper module
     # may be imported. So tests.lib imports them just-in-time in functions instead.
-    from inputremapper.injection.macros.macro import macro_variables
     from inputremapper.configs.keyboard_layout import keyboard_layout
     from inputremapper.gui.utils import debounce_manager
+    from inputremapper.injection.macros.macro import macro_variables
 
     if log:
         logger.info("Quick cleanup...")

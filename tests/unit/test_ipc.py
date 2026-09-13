@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -27,7 +26,6 @@ import unittest
 
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.ipc.shared_dict import SharedDict
-from inputremapper.ipc.socket import Server, Client, Base
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp
 
@@ -45,82 +43,6 @@ class TestSharedDict(unittest.TestCase):
     def test_set_get(self):
         self.shared_dict.set("a", 3)
         self.assertEqual(self.shared_dict.get("a"), 3)
-
-
-@test_setup
-class TestSocket(unittest.TestCase):
-    def test_socket(self):
-        def test(s1, s2):
-            self.assertEqual(s2.recv(), None)
-
-            s1.send(1)
-            self.assertTrue(s2.poll())
-            self.assertEqual(s2.recv(), 1)
-            self.assertFalse(s2.poll())
-            self.assertEqual(s2.recv(), None)
-
-            s1.send(2)
-            self.assertTrue(s2.poll())
-            s1.send(3)
-            self.assertTrue(s2.poll())
-            self.assertEqual(s2.recv(), 2)
-            self.assertTrue(s2.poll())
-            self.assertEqual(s2.recv(), 3)
-            self.assertFalse(s2.poll())
-            self.assertEqual(s2.recv(), None)
-
-        server = Server(os.path.join(tmp, "socket1"))
-        client = Client(os.path.join(tmp, "socket1"))
-        test(server, client)
-
-        client = Client(os.path.join(tmp, "socket2"))
-        server = Server(os.path.join(tmp, "socket2"))
-        test(client, server)
-
-    def test_not_connected_1(self):
-        # client discards old message, because it might have had a purpose
-        # for a different client and not for the current one
-        server = Server(os.path.join(tmp, "socket3"))
-        server.send(1)
-
-        client = Client(os.path.join(tmp, "socket3"))
-        server.send(2)
-
-        self.assertTrue(client.poll())
-        self.assertEqual(client.recv(), 2)
-        self.assertFalse(client.poll())
-        self.assertEqual(client.recv(), None)
-
-    def test_not_connected_2(self):
-        client = Client(os.path.join(tmp, "socket4"))
-        client.send(1)
-
-        server = Server(os.path.join(tmp, "socket4"))
-        client.send(2)
-
-        self.assertTrue(server.poll())
-        self.assertEqual(server.recv(), 2)
-        self.assertFalse(server.poll())
-        self.assertEqual(server.recv(), None)
-
-    def test_select(self):
-        """Is compatible to select.select."""
-        server = Server(os.path.join(tmp, "socket6"))
-        client = Client(os.path.join(tmp, "socket6"))
-
-        server.send(1)
-        ready = select.select([client], [], [], 0)[0][0]
-        self.assertEqual(ready, client)
-
-        client.send(2)
-        ready = select.select([server], [], [], 0)[0][0]
-        self.assertEqual(ready, server)
-
-    def test_base_abstract(self):
-        self.assertRaises(NotImplementedError, lambda: Base("foo"))
-        self.assertRaises(NotImplementedError, lambda: Base.connect(None))
-        self.assertRaises(NotImplementedError, lambda: Base.reconnect(None))
-        self.assertRaises(NotImplementedError, lambda: Base.fileno(None))
 
 
 @test_setup

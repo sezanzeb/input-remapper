@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -24,10 +22,10 @@ import math
 
 from evdev.ecodes import (
     EV_REL,
-    REL_WHEEL_HI_RES,
+    REL_HWHEEL,
     REL_HWHEEL_HI_RES,
     REL_WHEEL,
-    REL_HWHEEL,
+    REL_WHEEL_HI_RES,
 )
 
 from inputremapper.injection.macros.argument import ArgumentConfig
@@ -69,7 +67,7 @@ class WheelTask(Task):
             if not self.is_holding():
                 return
 
-            for i in range(0, 2):
+            for i in range(2):
                 float_value = value[i] * speed + remainder[i]
                 remainder[i] = math.fmod(float_value, 1)
                 if abs(float_value) >= 1:

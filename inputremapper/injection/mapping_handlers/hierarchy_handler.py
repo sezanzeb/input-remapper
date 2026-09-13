@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -17,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import List, Dict
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -25,8 +23,8 @@ from evdev.ecodes import EV_ABS, EV_REL
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
     HandlerEnums,
+    MappingHandler,
 )
 from inputremapper.input_event import InputEvent
 
@@ -42,7 +40,7 @@ class HierarchyHandler(MappingHandler):
 
     def __init__(
         self,
-        handlers: List[MappingHandler],
+        handlers: list[MappingHandler],
         input_config: InputConfig,
         global_uinputs: GlobalUInputs,
     ) -> None:
@@ -57,9 +55,9 @@ class HierarchyHandler(MappingHandler):
         return f"HierarchyHandler for {self._input_config}"
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return self.handlers
 
     def notify(
@@ -91,7 +89,7 @@ class HierarchyHandler(MappingHandler):
         for sub_handler in self.handlers:
             sub_handler.reset()
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         if (
             self._input_config.type == EV_ABS
             and not self._input_config.defines_analog_input

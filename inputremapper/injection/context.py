@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -23,7 +22,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import List, Dict, Set, Hashable
+from collections.abc import Hashable
 
 import evdev
 
@@ -33,8 +32,8 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     NotifyCallback,
 )
 from inputremapper.injection.mapping_handlers.mapping_parser import (
-    MappingParser,
     EventPipelines,
+    MappingParser,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
@@ -71,17 +70,17 @@ class Context:
         All entry points to the event pipeline sorted by InputEvent.type_and_code
     """
 
-    listeners: Set[EventListener]
-    _notify_callbacks: Dict[Hashable, List[NotifyCallback]]
+    listeners: set[EventListener]
+    _notify_callbacks: dict[Hashable, list[NotifyCallback]]
     _handlers: EventPipelines
-    _forward_devices: Dict[DeviceHash, evdev.UInput]
-    _source_devices: Dict[DeviceHash, evdev.InputDevice]
+    _forward_devices: dict[DeviceHash, evdev.UInput]
+    _source_devices: dict[DeviceHash, evdev.InputDevice]
 
     def __init__(
         self,
         preset: Preset,
-        source_devices: Dict[DeviceHash, evdev.InputDevice],
-        forward_devices: Dict[DeviceHash, evdev.UInput],
+        source_devices: dict[DeviceHash, evdev.InputDevice],
+        forward_devices: dict[DeviceHash, evdev.UInput],
         mapping_parser: MappingParser,
     ) -> None:
         if len(forward_devices) == 0:
@@ -113,7 +112,7 @@ class Context:
                 handler.notify for handler in handler_list
             )
 
-    def get_notify_callbacks(self, input_event: InputEvent) -> List[NotifyCallback]:
+    def get_notify_callbacks(self, input_event: InputEvent) -> list[NotifyCallback]:
         input_match_hash = input_event.input_match_hash
         return self._notify_callbacks[input_match_hash]
 
@@ -124,7 +123,7 @@ class Context:
     def get_source(self, key: DeviceHash) -> evdev.InputDevice:
         return self._source_devices[key]
 
-    def get_leds(self) -> Set[int]:
+    def get_leds(self) -> set[int]:
         """Get a set of LED_* ecodes that are currently on."""
         leds = set()
         for device in self._source_devices.values():

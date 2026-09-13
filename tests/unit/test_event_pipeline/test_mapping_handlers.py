@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -27,20 +26,20 @@ from unittest.mock import MagicMock
 
 import evdev
 from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    EV_REL,
     ABS_X,
-    REL_X,
     BTN_LEFT,
     BTN_RIGHT,
+    EV_ABS,
+    EV_KEY,
+    EV_REL,
     KEY_A,
-    REL_Y,
     REL_WHEEL,
+    REL_X,
+    REL_Y,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping, DEFAULT_REL_RATE, KnownUinput
+from inputremapper.configs.mapping import DEFAULT_REL_RATE, KnownUinput, Mapping
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
@@ -61,6 +60,7 @@ from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbs
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.gui.forward_to_ui_handler import ForwardToUIHandler
 from tests.lib.cleanup import cleanup
 from tests.lib.fixtures import fixtures
 from tests.lib.patches import InputDevice
@@ -115,7 +115,7 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
-            [InputConfig(type=3, code=5, analog_threshold=10)]
+            [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=30)]
         )
         self.global_uinputs = GlobalUInputs(UInput)
         self.global_uinputs.prepare_all()
@@ -128,6 +128,34 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
             ),
             global_uinputs=self.global_uinputs,
         )
+
+    def test_abs_joystick_0_to_256_ui_handler(self):
+        # Test a gamepad that has an abs range of 0 to 256, and that sends the
+        # result to the ui. This reproduces a bug that made recording such
+        # joysticks fail.
+        pipe = MagicMock()
+        get_message = lambda: pipe.send.call_args_list[-1][0][0]["message"]
+        ui_handler = ForwardToUIHandler(pipe)
+        self.handler.set_sub_handler(ui_handler)
+
+        # at 30% map to a
+        mapping_1 = Mapping.from_combination(
+            InputCombination(
+                [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=30)]
+            ),
+            output_symbol="a",
+        )
+        source = InputDevice(fixtures.gamepad_abs_0_to_256.path)
+
+        # 128 +25%, don't trigger
+        self.handler.notify(InputEvent.abs(ABS_X, 150), source=source)
+        self.assertEqual(pipe.send.call_count, 1)
+        self.assertEqual(get_message()["pressed"], False)
+
+        # 128 +50%, trigger a
+        self.handler.notify(InputEvent.abs(ABS_X, 192), source=source)
+        self.assertEqual(pipe.send.call_count, 2)
+        self.assertEqual(get_message()["pressed"], True)
 
 
 @test_setup

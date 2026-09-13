@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -22,28 +21,27 @@ import os
 import time
 import unittest
 from itertools import permutations
-from typing import List
 from unittest.mock import MagicMock, call
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import UIMapping, MappingData
+from inputremapper.configs.keyboard_layout import keyboard_layout
+from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
-from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
+from inputremapper.gui.data_manager import DEFAULT_PRESET_NAME, DataManager
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
 from inputremapper.gui.messages.message_data import (
-    GroupData,
     CombinationUpdate,
+    GroupData,
 )
 from inputremapper.gui.reader_client import ReaderClient
-from inputremapper.injection.global_uinputs import GlobalUInputs, FrontendUInput
+from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from tests.lib.fixtures import prepare_presets
 from tests.lib.patches import FakeDaemonProxy
 from tests.lib.test_setup import test_setup
@@ -51,7 +49,7 @@ from tests.lib.test_setup import test_setup
 
 class Listener:
     def __init__(self):
-        self.calls: List = []
+        self.calls: list = []
 
     def __call__(self, data):
         self.calls.append(data)
@@ -77,7 +75,7 @@ class TestDataManager(unittest.TestCase):
     def test_load_group_provides_presets(self):
         """we should get all preset of a group, when loading it"""
         prepare_presets()
-        response: List[GroupData] = []
+        response: list[GroupData] = []
 
         def listener(data: GroupData):
             response.append(data)
@@ -99,7 +97,7 @@ class TestDataManager(unittest.TestCase):
 
     def test_load_group_without_presets_provides_none(self):
         """We should get no presets when loading a group without presets."""
-        response: List[GroupData] = []
+        response: list[GroupData] = []
 
         def listener(data: GroupData):
             response.append(data)

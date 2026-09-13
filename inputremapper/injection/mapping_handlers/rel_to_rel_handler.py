@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,24 +17,23 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
-from typing import Dict, List
 
 import evdev
 from evdev.ecodes import (
     EV_REL,
-    REL_WHEEL,
     REL_HWHEEL,
-    REL_WHEEL_HI_RES,
     REL_HWHEEL_HI_RES,
+    REL_WHEEL,
+    REL_WHEEL_HI_RES,
 )
 
 from inputremapper import exceptions
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
-    Mapping,
     REL_XY_SCALING,
-    WHEEL_SCALING,
     WHEEL_HI_RES_SCALING,
+    WHEEL_SCALING,
+    Mapping,
 )
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -124,9 +122,9 @@ class RelToRelHandler(MappingHandler):
         )
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return []
 
     def _should_map(self, event: InputEvent):
@@ -208,8 +206,7 @@ class RelToRelHandler(MappingHandler):
             # based on 60hz. So the rate cancels out
             input_value /= REL_XY_SCALING
 
-        if abs(input_value) > self._max_observed_input:
-            self._max_observed_input = abs(input_value)
+        self._max_observed_input = max(self._max_observed_input, abs(input_value))
 
         # If _max_observed_input is wrong when the injection starts and the correct
         # value learned during runtime, results can be weird at the beginning.
@@ -271,7 +268,7 @@ class RelToRelHandler(MappingHandler):
     def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False  # cannot have a sub-handler
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         if self.needs_wrapping():
             return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}

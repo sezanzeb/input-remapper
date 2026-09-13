@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,7 +20,7 @@
 import os
 import time
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import gi
 
@@ -34,14 +33,13 @@ gi.require_version("GtkSource", "4")
 gi.require_version("GLib", "2.0")
 
 from inputremapper.configs.global_config import GlobalConfig
-from inputremapper.gui.utils import gtk_iteration
 from inputremapper.daemon import Daemon
-
+from inputremapper.gui.utils import gtk_iteration
 from tests.lib.test_setup import test_setup
 from tests.system.gui.gui_test_base import (
+    clean_up_gui_test,
     launch,
     start_reader_service,
-    clean_up_gui_test,
 )
 
 

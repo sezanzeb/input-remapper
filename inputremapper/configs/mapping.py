@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,15 +20,16 @@ from __future__ import annotations
 
 import enum
 from collections import namedtuple
-from typing import Optional, Callable, Tuple, TypeVar, Union, Any, Dict
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from evdev.ecodes import (
-    EV_KEY,
     EV_ABS,
+    EV_KEY,
     EV_REL,
-    REL_WHEEL,
     REL_HWHEEL,
     REL_HWHEEL_HI_RES,
+    REL_WHEEL,
     REL_WHEEL_HI_RES,
 )
 from packaging import version
@@ -38,44 +38,46 @@ from inputremapper.logging.logger import logger
 
 try:
     from pydantic.v1 import (
+        VERSION,
+        BaseConfig,
         BaseModel,
+        PositiveFloat,
         PositiveInt,
+        ValidationError,
         confloat,
         conint,
         root_validator,
         validator,
-        ValidationError,
-        PositiveFloat,
-        VERSION,
-        BaseConfig,
     )
 except ImportError:
     from pydantic import (
+        VERSION,
+        BaseConfig,
         BaseModel,
+        PositiveFloat,
         PositiveInt,
+        ValidationError,
         confloat,
         conint,
         root_validator,
         validator,
-        ValidationError,
-        PositiveFloat,
-        VERSION,
-        BaseConfig,
     )
 
+from typing_extensions import Self
+
 from inputremapper.configs.input_config import InputCombination
-from inputremapper.configs.keyboard_layout import keyboard_layout, DISABLE_NAME
+from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
 from inputremapper.configs.validation_errors import (
-    OutputSymbolUnknownError,
-    SymbolNotAvailableInTargetError,
-    OnlyOneAnalogInputError,
-    TriggerPointInRangeError,
-    OutputSymbolVariantError,
     MacroButTypeOrCodeSetError,
-    SymbolAndCodeMismatchError,
-    WrongMappingTypeForKeyError,
-    MissingOutputAxisError,
     MissingMacroOrKeyError,
+    MissingOutputAxisError,
+    OnlyOneAnalogInputError,
+    OutputSymbolUnknownError,
+    OutputSymbolVariantError,
+    SymbolAndCodeMismatchError,
+    SymbolNotAvailableInTargetError,
+    TriggerPointInRangeError,
+    WrongMappingTypeForKeyError,
 )
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
@@ -119,9 +121,7 @@ class MappingType(str, enum.Enum):
     ANALOG = "analog"
 
 
-CombinationChangedCallback = Optional[
-    Callable[[InputCombination, InputCombination], None]
-]
+CombinationChangedCallback = Callable[[InputCombination, InputCombination], None] | None
 MappingModel = TypeVar("MappingModel", bound="UIMapping")
 
 
@@ -152,17 +152,17 @@ class UIMapping(BaseModel):
     # The InputEvent or InputEvent combination which is mapped
     input_combination: InputCombination = InputCombination.empty_combination()
     # The UInput to which the mapped event will be sent
-    target_uinput: Optional[Union[str, KnownUinput]] = None
+    target_uinput: str | KnownUinput | None = None
 
     # Either `output_symbol` or `output_type` and `output_code` is required
     # Only set if output is "Key or Macro":
-    output_symbol: Optional[str] = None  # The symbol or macro string if applicable
+    output_symbol: str | None = None  # The symbol or macro string if applicable
     # "Analog Axis" or if preset edited manually to inject a code instead of a symbol:
-    output_type: Optional[int] = None  # The event type of the mapped event
-    output_code: Optional[int] = None  # The event code of the mapped event
+    output_type: int | None = None  # The event type of the mapped event
+    output_code: int | None = None  # The event code of the mapped event
 
-    name: Optional[str] = None
-    mapping_type: Optional[MappingType] = None
+    name: str | None = None
+    mapping_type: MappingType | None = None
 
     # if release events will be sent to the forwarded device as soon as a combination
     # triggers see also #229
@@ -195,7 +195,7 @@ class UIMapping(BaseModel):
 
     # callback which gets called if the input_combination is updated
     if not needs_workaround:
-        _combination_changed: Optional[CombinationChangedCallback] = None
+        _combination_changed: CombinationChangedCallback | None = None
 
     # use type: ignore, looks like a mypy bug related to:
     # https://github.com/samuelcolvin/pydantic/issues/2949
@@ -239,7 +239,7 @@ class UIMapping(BaseModel):
 
     if needs_workaround:
         # https://github.com/samuelcolvin/pydantic/issues/1383
-        def copy(self: MappingModel, *args, **kwargs) -> MappingModel:
+        def copy(self, *args, **kwargs) -> Self:
             kwargs["deep"] = True
             copy = super().copy(*args, **kwargs)
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
@@ -289,7 +289,7 @@ class UIMapping(BaseModel):
     def remove_combination_changed_callback(self):
         self._combination_changed = None
 
-    def get_output_type_code(self) -> Optional[Tuple[int, int]]:
+    def get_output_type_code(self) -> tuple[int, int] | None:
         """Returns the output_type and output_code if set,
         otherwise looks the output_symbol up in the keyboard_layout
         return None for unknown symbols and macros
@@ -310,7 +310,7 @@ class UIMapping(BaseModel):
         """If the mapping is valid."""
         return not self.get_error()
 
-    def get_error(self) -> Optional[ValidationError]:
+    def get_error(self) -> ValidationError | None:
         """The validation error or None."""
         try:
             Mapping(**self.dict())
@@ -464,17 +464,16 @@ class Mapping(UIMapping):
             # we have a symbol: no type and code is fine
             return values
 
-        if Parser.is_this_a_macro(symbol):
-            # disallow output type and code for macros
-            if type_ is not None or code is not None:
-                raise MacroButTypeOrCodeSetError()
+        # disallow output type and code for macros
+        if Parser.is_this_a_macro(symbol) and (type_ is not None or code is not None):
+            raise MacroButTypeOrCodeSetError()
 
         if code is not None and code != keyboard_layout.get(symbol) or type_ != EV_KEY:
             raise SymbolAndCodeMismatchError(symbol, code)
         return values
 
     @root_validator
-    def output_matches_input(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def output_matches_input(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Validate that an output type is an axis if we have an input axis.
         And vice versa."""
         assert isinstance(values.get("input_combination"), InputCombination)

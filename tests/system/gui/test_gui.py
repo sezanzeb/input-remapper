@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -21,26 +20,26 @@
 import os
 import time
 import unittest
-from typing import Tuple, Iterable
-from unittest.mock import patch, MagicMock, call
+from collections.abc import Iterable
+from unittest.mock import MagicMock, call, patch
 
 import evdev
 import gi
 from evdev.ecodes import (
-    EV_KEY,
     EV_ABS,
-    KEY_LEFTSHIFT,
-    KEY_A,
-    KEY_Q,
+    EV_KEY,
     EV_REL,
+    KEY_A,
+    KEY_LEFTSHIFT,
+    KEY_Q,
 )
 
 from inputremapper.input_event import InputEvent
-from tests.system.gui.test_components import FlowBoxTestUtils
 from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
 from tests.lib.spy import spy
+from tests.system.gui.test_components import FlowBoxTestUtils
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
@@ -48,22 +47,21 @@ gi.require_version("GtkSource", "4")
 gi.require_version("GLib", "2.0")
 from gi.repository import Gtk
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
+from inputremapper.gui.components.device_groups import DeviceGroupEntry
+from inputremapper.gui.components.editor import (
+    SET_KEY_FIRST,
+    CodeEditor,
+    MappingSelectionLabel,
+)
 from inputremapper.gui.messages.message_broker import (
     MessageType,
 )
-from inputremapper.gui.messages.message_data import StatusData, CombinationRecorded
-from inputremapper.gui.components.editor import (
-    MappingSelectionLabel,
-    SET_KEY_FIRST,
-    CodeEditor,
-)
-from inputremapper.gui.components.device_groups import DeviceGroupEntry
+from inputremapper.gui.messages.message_data import CombinationRecorded, StatusData
 from inputremapper.gui.utils import gtk_iteration
 from inputremapper.injection.injector import InjectorState
-from inputremapper.configs.input_config import InputCombination, InputConfig
-
 from tests.lib.test_setup import test_setup
 from tests.system.gui.gui_test_base import GuiTestBase, patch_confirm_delete
 
@@ -962,7 +960,7 @@ class TestGui(GuiTestBase):
         self.controller.load_group("Foo Device 2")
         gtk_iteration()
 
-        def add_mapping(combi: Iterable[Tuple[int, int, int]], symbol):
+        def add_mapping(combi: Iterable[tuple[int, int, int]], symbol):
             combi = [InputEvent(0, 0, *t) for t in combi]
             self.controller.create_mapping()
             gtk_iteration()

@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
-# Copyright (C) 2025 sezanzeb <b8x45ygc9@mozmail.com>
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
 # This file is part of input-remapper.
 #
@@ -18,26 +17,25 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-from typing import Tuple, Dict, Optional, List
 
 import evdev
 from evdev.ecodes import (
     EV_ABS,
     EV_REL,
-    REL_WHEEL,
     REL_HWHEEL,
     REL_HWHEEL_HI_RES,
+    REL_WHEEL,
     REL_WHEEL_HI_RES,
 )
 
 from inputremapper import exceptions
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
-    Mapping,
-    WHEEL_SCALING,
-    WHEEL_HI_RES_SCALING,
-    REL_XY_SCALING,
     DEFAULT_REL_RATE,
+    REL_XY_SCALING,
+    WHEEL_HI_RES_SCALING,
+    WHEEL_SCALING,
+    Mapping,
 )
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -45,7 +43,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
     MappingHandler,
 )
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import EventActions, InputEvent
 from inputremapper.logging.logger import logger
 
 
@@ -58,15 +56,15 @@ class RelToAbsHandler(MappingHandler):
     """
 
     _map_axis: InputConfig  # InputConfig for the relative movement we map
-    _output_axis: Tuple[int, int]  # the (type, code) of the output axis
+    _output_axis: tuple[int, int]  # the (type, code) of the output axis
     _transform: Transformation
     _target_absinfo: evdev.AbsInfo
 
     # infinite loop which centers the output when input stops
-    _recenter_loop: Optional[asyncio.Task]
+    _recenter_loop: asyncio.Task | None
     _moving: asyncio.Event  # event to notify the _recenter_loop
 
-    _previous_event: Optional[InputEvent]
+    _previous_event: InputEvent | None
     _observed_rate: float  # input events per second
 
     def __init__(
@@ -80,8 +78,8 @@ class RelToAbsHandler(MappingHandler):
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
-        assert (map_axis := combination.find_analog_input_config(type_=EV_REL))
-        self._map_axis = map_axis
+        self._map_axis = combination.find_analog_input_config(type_=EV_REL)
+        assert self._map_axis
 
         assert mapping.output_code is not None
         assert mapping.output_type == EV_ABS
@@ -115,9 +113,9 @@ class RelToAbsHandler(MappingHandler):
         )
 
     def __repr__(self):
-        return f"<{str(self)} at {hex(id(self))}>"
+        return f"<{self!s} at {hex(id(self))}>"
 
-    def get_children(self) -> List[MappingHandler]:
+    def get_children(self) -> list[MappingHandler]:
         return []
 
     def _observe_rate(self, event: InputEvent):
@@ -242,7 +240,7 @@ class RelToAbsHandler(MappingHandler):
     def set_sub_handler(self, handler: MappingHandler) -> None:
         assert False  # cannot have a sub-handler
 
-    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+    def wrap_with(self) -> dict[InputCombination, HandlerEnums]:
         if self.needs_wrapping():
             return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}
