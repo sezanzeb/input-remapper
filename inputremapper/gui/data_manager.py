@@ -87,6 +87,11 @@ class DataManager:
         self._active_mapping: UIMapping | None = None
         self._active_input_config: InputConfig | None = None
 
+    @property
+    def global_config(self) -> GlobalConfig:
+        """Get the global configuration object."""
+        return self._config
+
     def publish_group(self):
         """Send active group to the MessageBroker.
 
