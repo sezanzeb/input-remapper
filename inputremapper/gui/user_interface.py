@@ -420,23 +420,20 @@ class UserInterface:
                 if ProcessUtils.count_python_processes("input-remapper-tray") == 0:
                     logger.info("Spawning detached system tray process")
                     subprocess.Popen(["input-remapper-tray", "--gui-spawned"])
-            except Exception as e:
+            except OSError as e:
                 logger.error("Failed to spawn input-remapper-tray: %s", e)
 
             self.controller.close()
             return False
 
         # If close to tray is disabled, terminate any running GUI-spawned tray helper process
-        try:
-            terminated = ProcessUtils.terminate_python_processes(
-                "input-remapper-tray", ["--gui-spawned"]
+        terminated = ProcessUtils.terminate_python_processes(
+            "input-remapper-tray", ["--gui-spawned"]
+        )
+        if terminated:
+            logger.info(
+                "Terminated %d running GUI-spawned tray process(es)", terminated
             )
-            if terminated:
-                logger.info(
-                    "Terminated %d running GUI-spawned tray process(es)", terminated
-                )
-        except Exception as e:
-            logger.error("Failed to terminate input-remapper-tray: %s", e)
 
         self.controller.close()
 

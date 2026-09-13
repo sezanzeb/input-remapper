@@ -61,14 +61,11 @@ class SettingsMenu:
         # Detect if system tray was started standalone (independently of this GUI)
         is_standalone_running = False
         if HAS_APPINDICATOR:
-            try:
-                is_standalone_running = ProcessUtils.count_python_processes(
-                    "input-remapper-tray"
-                ) > ProcessUtils.count_python_processes(
-                    "input-remapper-tray", ["--gui-spawned"]
-                )
-            except Exception:  # noqa: S110
-                pass
+            is_standalone_running = ProcessUtils.count_python_processes(
+                "input-remapper-tray"
+            ) > ProcessUtils.count_python_processes(
+                "input-remapper-tray", ["--gui-spawned"]
+            )
 
         enabled = (
             HAS_APPINDICATOR
@@ -107,5 +104,5 @@ class SettingsMenu:
             if ProcessUtils.count_python_processes("input-remapper-tray") == 0:
                 logger.info("Spawning detached system tray process")
                 subprocess.Popen(["input-remapper-tray", "--gui-spawned"])
-        except Exception as e:
+        except OSError as e:
             logger.error("Failed to spawn input-remapper-tray: %s", e)
