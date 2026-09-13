@@ -61,11 +61,13 @@ from inputremapper.gui.reader_service import (
 )
 from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs, UInput
 from inputremapper.input_event import InputEvent
+from inputremapper.user import UserUtils
 from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
 from tests.lib.fixtures import fixtures, new_event
 from tests.lib.pipes import push_event, push_events
 from tests.lib.spy import spy
 from tests.lib.test_setup import test_setup
+from tests.lib.tmp import tmp
 
 CODE_1 = 100
 CODE_2 = 101
@@ -1076,6 +1078,33 @@ class TestReaderMultiprocessing(unittest.TestCase):
             cmd = mock_system.call_args[0][0]
             self.assertTrue(cmd.startswith(expected_cmd))
             self.assertNotIn("pkexec", cmd)
+
+    def test_get_pipe_paths_uses_username_not_home(self):
+        """get_pipe_paths must build its paths from UserUtils.user.
+
+        UserUtils.home is a full filesystem path, already patched to `tmp`
+        for the whole test suite (see tests/lib/patches.py). If
+        get_pipe_paths used UserUtils.home instead of UserUtils.user by
+        mistake, the result would nest that path inside another
+        "/tmp/input-remapper-..." segment instead of using a single,
+        well-formed username component — exactly the shape seen in #1282:
+        "/tmp/input-remapper-/tmp/input-remapper-test-f90v87ay/reader-
+        commandsr". UserUtils.user is patched here to a value distinct
+        from `tmp` specifically so this test can tell the two apart; if it
+        reused `tmp` for both, a broken and a correct implementation would
+        happen to produce the same string.
+        """
+        with patch.object(UserUtils, "user", "some-username"):
+            results_path, commands_path = ReaderService.get_pipe_paths()
+
+        self.assertEqual(
+            results_path, "/tmp/input-remapper-some-username/reader-results"
+        )
+        self.assertEqual(
+            commands_path, "/tmp/input-remapper-some-username/reader-commands"
+        )
+        self.assertNotIn(tmp, results_path)
+        self.assertNotIn(tmp, commands_path)
 
 
 if __name__ == "__main__":
