@@ -4,7 +4,7 @@ Development
 Contributions are very welcome, I will gladly review and discuss any merge requests.
 If you have questions about the code and architecture, feel free to
 [open an issue](https://github.com/sezanzeb/input-remapper/issues).
-This file should give an overview about some internals of input-remapper.
+This file should give an overview of some internals of input-remapper.
 
 All pull requests will at some point require unittests (see below for more info).
 The code coverage may only be improved, not decreased. It also has to be mostly
@@ -35,7 +35,7 @@ errors. Mypy checks for typing errors. Use black to format it.
 Automated tests
 ---------------
 
-You should be able to use your IDEs built in python unittest features to run tests.
+You should be able to use your IDE's built-in Python unittest features to run tests.
 But you can also run them from your console:
 
 ```bash
