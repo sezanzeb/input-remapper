@@ -119,6 +119,78 @@ class TestHoldKeys(MacroTestBase):
         self.assertEqual(self.result[6], (EV_KEY, keyboard_layout.get("b"), 0))
         self.assertEqual(self.result[7], (EV_KEY, keyboard_layout.get("a"), 0))
 
+    async def test_hold_keys_with_duplicates(self):
+        macro = Parser.parse(
+            "hold_keys(KEY_4, KEY_3, KEY_5, KEY_5, KEY_9)", self.context, DummyMapping
+        )
+
+        code_4 = keyboard_layout.get("KEY_4")
+        code_3 = keyboard_layout.get("KEY_3")
+        code_5 = keyboard_layout.get("KEY_5")
+        code_9 = keyboard_layout.get("KEY_9")
+
+        macro.press_trigger()
+        asyncio.ensure_future(macro.run(self.handler))
+        await asyncio.sleep(0.2)
+
+        # Duplicate KEY_5 should be released and re-pressed
+        self.assertListEqual(
+            self.result,
+            [
+                (EV_KEY, code_4, 1),
+                (EV_KEY, code_3, 1),
+                (EV_KEY, code_5, 1),
+                (EV_KEY, code_5, 0),
+                (EV_KEY, code_5, 1),
+                (EV_KEY, code_9, 1),
+            ],
+        )
+
+        macro.release_trigger()
+        await asyncio.sleep(0.2)
+
+        # Each unique code released once, in reverse order of first appearance
+        self.assertListEqual(
+            self.result[6:],
+            [
+                (EV_KEY, code_9, 0),
+                (EV_KEY, code_5, 0),
+                (EV_KEY, code_3, 0),
+                (EV_KEY, code_4, 0),
+            ],
+        )
+
+    async def test_plus_syntax_with_duplicates(self):
+        macro = Parser.parse("KEY_5 + KEY_5 + KEY_3", self.context, DummyMapping)
+
+        code_5 = keyboard_layout.get("KEY_5")
+        code_3 = keyboard_layout.get("KEY_3")
+
+        macro.press_trigger()
+        asyncio.ensure_future(macro.run(self.handler))
+        await asyncio.sleep(0.2)
+
+        self.assertListEqual(
+            self.result,
+            [
+                (EV_KEY, code_5, 1),
+                (EV_KEY, code_5, 0),
+                (EV_KEY, code_5, 1),
+                (EV_KEY, code_3, 1),
+            ],
+        )
+
+        macro.release_trigger()
+        await asyncio.sleep(0.2)
+
+        self.assertListEqual(
+            self.result[4:],
+            [
+                (EV_KEY, code_3, 0),
+                (EV_KEY, code_5, 0),
+            ],
+        )
+
     async def test_raises_error(self):
         self.assertRaises(
             MacroError, Parser.parse, "hold_keys(a, broken, b)", self.context

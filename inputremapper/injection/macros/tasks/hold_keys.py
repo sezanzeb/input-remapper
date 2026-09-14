@@ -42,12 +42,26 @@ class HoldKeysTask(Task):
 
         codes = [keyboard_layout.get(symbol) for symbol in symbols]
 
+        held_codes = set()
         for code in codes:
+            if code in held_codes:
+                # Release and re-press to support duplicate keys in a sequence
+                callback(EV_KEY, code, 0)
+                await self.keycode_pause()
             callback(EV_KEY, code, 1)
+            held_codes.add(code)
             await self.keycode_pause()
 
         await self._trigger_release_event.wait()
 
-        for code in codes[::-1]:
+        # Release each unique code once, in reverse order of first appearance
+        seen = set()
+        unique_codes_reversed = []
+        for code in reversed(codes):
+            if code not in seen:
+                seen.add(code)
+                unique_codes_reversed.append(code)
+
+        for code in unique_codes_reversed:
             callback(EV_KEY, code, 0)
             await self.keycode_pause()
