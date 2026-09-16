@@ -637,6 +637,25 @@ class TestDaemon(unittest.TestCase):
         )
         self.assertNotIn(group.key, self.daemon.suspended_presets)
 
+    def test_get_groups(self):
+        # make sure the devices are populated
+        groups.refresh()
+
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
+
+        dump = self.daemon.get_groups()
+        serialized = json.loads(dump)
+
+        # the daemon should serialize the currently known groups as a list of
+        # serialized group dicts
+        serialized_keys = [json.loads(entry)["key"] for entry in serialized]
+        expected_keys = [group.key for group in groups.get_groups()]
+        self.assertEqual(serialized_keys, expected_keys)
+
 
 if __name__ == "__main__":
     unittest.main()
