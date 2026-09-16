@@ -127,6 +127,8 @@ class DaemonProxy(Protocol):  # pragma: no cover
 
     def set_config_dir(self, config_dir: str) -> None: ...
 
+    def get_groups(self) -> str: ...
+
     def autoload(self) -> None: ...
 
     def autoload_single(self, group_key: str) -> None: ...
@@ -177,6 +179,9 @@ class Daemon:
                 </method>
                 <method name='set_config_dir'>
                     <arg type='s' name='config_dir' direction='in'/>
+                </method>
+                <method name='get_groups'>
+                    <arg type='s' name='response' direction='out'/>
                 </method>
                 <method name='autoload'>
                 </method>
@@ -323,6 +328,19 @@ class Daemon:
             time.sleep(0.1)
             groups.refresh()
             self.refreshed_devices_at = now
+
+    def get_groups(self) -> str:
+        """Return a serialized list of the currently known device groups.
+
+        Ensures the device list is up to date before returning it.
+        """
+        now = time.time()
+        if now - 10 > self.refreshed_devices_at:
+            logger.debug("Refreshing because last info is too old")
+            time.sleep(0.1)
+            groups.refresh()
+            self.refreshed_devices_at = now
+        return groups.dumps()
 
     def stop_injecting(self, group_key: str) -> None:
         """Stop injecting the preset mappings for a single device."""

@@ -30,6 +30,7 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
+from dasbus.error import DBusError
 from gi.repository import GLib, Gtk
 
 # Try importing AppIndicator
@@ -166,7 +167,7 @@ class InputRemapperTrayBin:
         menu.append(devices_item)
 
         # Populate connected devices
-        self._refresh_groups_silently()
+        self._load_groups()
         group_keys = [group.key for group in groups.get_groups()]
         current_states = {}
 
@@ -315,14 +316,23 @@ class InputRemapperTrayBin:
 
         return True
 
+    def _load_groups(self) -> None:
+        """Fetch the device groups from the daemon and load them locally."""
+        if self.daemon is None:
+            return
+        try:
+            groups.loads(self.daemon.get_groups())
+        except DBusError as e:
+            logger.error("Failed to fetch device groups: %s", e)
+
     def _refresh_groups_async(self) -> None:
-        """Runs the silent groups refresh in a background thread to prevent UI micro-stutters."""
+        """Runs the group refresh in a background thread to prevent UI micro-stutters."""
         if self.refresh_thread and self.refresh_thread.is_alive():
             return
 
         def run():
             with self.refresh_lock:
-                self._refresh_groups_silently()
+                self._load_groups()
             GLib.idle_add(self._on_groups_refreshed)
 
         self.refresh_thread = threading.Thread(target=run, daemon=True)
@@ -372,17 +382,6 @@ class InputRemapperTrayBin:
         except Exception:  # noqa: S110
             pass
         return mtimes
-
-    def _refresh_groups_silently(self) -> None:
-        """Call groups.refresh() temporarily raising the log level to silence debug discovery prints."""
-        import logging
-
-        old_level = logger.level
-        logger.setLevel(logging.WARNING)
-        try:
-            groups.refresh()
-        finally:
-            logger.setLevel(old_level)
 
     def _on_show_activate(self, _widget) -> None:
         if ProcessUtils.count_python_processes("input-remapper-gtk") > 0:

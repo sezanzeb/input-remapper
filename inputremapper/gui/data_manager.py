@@ -525,12 +525,12 @@ class DataManager:
             self._active_preset.save()
 
     def refresh_groups(self):
-        """Refresh the groups (plugged devices).
+        """Refresh the groups (plugged devices) via the daemon.
 
-        Should send "groups" message to MessageBroker this will not happen immediately
-        because the system might take a bit until the groups are available
+        The device scan happens in the daemon, which then serializes the
+        groups back over dbus to the GUI.
         """
-        self._reader_client.refresh_groups()
+        self._reader_client.update_groups(self._daemon.get_groups())
 
     def start_combination_recording(self):
         """Record user input.
