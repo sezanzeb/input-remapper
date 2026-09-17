@@ -47,6 +47,7 @@ class MessageType(Enum):
     combination_update = "combination_update"
     status_msg = "status_msg"
     injector_state = "injector_state"
+    suspend_changed = "suspend_changed"
 
     gui_focus_request = "gui_focus_request"
     user_confirm_request = "user_confirm_request"
