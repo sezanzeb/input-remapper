@@ -28,6 +28,7 @@ from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
 )
+from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.logging.logger import logger
 
@@ -52,6 +53,13 @@ class SuspendButton:
 
         # Initialize the toggled state and tooltip
         self._update_global_switch()
+
+        # Keep the button in sync when the suspend state changes elsewhere
+        # (e.g. from the system tray)
+        self._message_broker.subscribe(
+            MessageType.suspend_changed,
+            self._update_global_switch,
+        )
 
     def _update_global_switch(self, *_args) -> None:
         is_suspended = True
