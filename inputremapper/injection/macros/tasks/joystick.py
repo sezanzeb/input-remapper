@@ -45,8 +45,8 @@ class JoystickTaskBase(Task):
     that are still behind held down."""
 
     # Overwrite this in inheriting classes
-    x_code = ABS_X
-    y_code = ABS_Y
+    x_code: int | None = ABS_X
+    y_code: int | None = ABS_Y
 
     # For triggers and joysticks:
     # -5 to 5: 10
@@ -77,32 +77,37 @@ class JoystickTaskBase(Task):
         ),
     ]
 
+    def scale(self, arg_name: str) -> int:
+        # 1  -> 1   -> 65536 - 32768 = 32768
+        # 0  -> 0.5 -> 32768 - 32768 = 0
+        # -1 -> 0   -> 0     - 32768 = -32768
+        arg = self.get_argument(arg_name).get_value()
+        value = int((arg + 1) / 2 * self.abs_range + self.min_abs)
+
     async def run(self, callback) -> None:
         x_code = self.x_code
         y_code = self.y_code
 
-        x_arg = self.get_argument("x").get_value()
-        y_arg = self.get_argument("y").get_value()
-
-        # 1  -> 1   -> 65536 - 32768 = 32768
-        # 0  -> 0.5 -> 32768 - 32768 = 0
-        # -1 -> 0   -> 0     - 32768 = -32768
-        x_value = int((x_arg + 1) / 2 * self.abs_range + self.min_abs)
-        y_value = int((y_arg + 1) / 2 * self.abs_range + self.min_abs)
-
         # If a is mapped to left, and d to right, and both keys are pressed together,
         # it should result in an abs_x value of 0 (depending )
-        self.state[self.x_code] += x_value
-        self.state[self.y_code] += y_value
-        callback(EV_ABS, x_code, self.state[self.x_code])
-        callback(EV_ABS, y_code, self.state[self.y_code])
+
+        if x_code is not None:
+            self.state[self.x_code] += self.scale("x")
+            callback(EV_ABS, x_code, self.state[self.x_code])
+
+        if y_code is not None:
+            self.state[self.x_code] += self.scale("y")
+            callback(EV_ABS, y_code, self.state[self.y_code])
 
         await self._trigger_release_event.wait()
 
-        self.state[self.x_code] -= x_value
-        self.state[self.y_code] -= y_value
-        callback(EV_ABS, x_code, self.state[self.x_code])
-        callback(EV_ABS, y_code, self.state[self.y_code])
+        if x_code is not None:
+            self.state[self.x_code] -= self.scale("x")
+            callback(EV_ABS, x_code, self.state[self.x_code])
+
+        if y_code is not None:
+            self.state[self.x_code] -= self.scale("y")
+            callback(EV_ABS, y_code, self.state[self.y_code])
 
 
 class DPadTask(JoystickTaskBase):
@@ -138,9 +143,9 @@ class RightJoystickTask(JoystickTaskBase):
 
 class LeftTriggerTask(JoystickTaskBase):
     x_code = ABS_Z
-    y_code = -1
+    y_code = None
 
 
 class RightTriggerTask(JoystickTaskBase):
     x_code = ABS_RZ
-    y_code = -1
+    y_code = None

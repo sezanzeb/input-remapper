@@ -50,6 +50,7 @@ from inputremapper.injection.macros.tasks.set import SetTask
 from inputremapper.injection.macros.tasks.toggle import ToggleTask
 from inputremapper.injection.macros.tasks.wait import WaitTask
 from inputremapper.injection.macros.tasks.wheel import WheelTask
+from inputremapper.injection.macros.tasks.joystick import JoystickTaskBase
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
@@ -72,6 +73,7 @@ class Parser:
         "mouse": MouseTask,
         "mouse_xy": MouseXYTask,
         "wheel": WheelTask,
+        "left_joystick": JoystickTaskBase,
         "if_eq": IfEqTask,
         "if_numlock": IfNumlockTask,
         "if_capslock": IfCapslockTask,
@@ -348,7 +350,7 @@ class Parser:
                 raise MacroError(
                     code,
                     f'Expected a "." to follow after '
-                    f"{code[:closing_bracket_position + 1]}",
+                    f"{code[: closing_bracket_position + 1]}",
                 )
 
         return RawValue(value=macro_instance)
@@ -382,7 +384,7 @@ class Parser:
             return macro
 
         if "(" in macro or ")" in macro:
-            raise MacroError(macro, f'Mixing "+" and macros is unsupported: "{ macro}"')
+            raise MacroError(macro, f'Mixing "+" and macros is unsupported: "{macro}"')
 
         chunks = [chunk.strip() for chunk in macro.split("+")]
 
