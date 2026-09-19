@@ -21,25 +21,24 @@ from __future__ import annotations
 from collections import defaultdict
 
 from evdev.ecodes import (
-    ABS_X,
-    ABS_Y,
-    EV_ABS,
     ABS_HAT0X,
     ABS_HAT0Y,
     ABS_HAT1X,
     ABS_HAT1Y,
     ABS_HAT2X,
     ABS_HAT2Y,
-    ABS_Z,
-    ABS_RZ,
     ABS_RX,
     ABS_RY,
+    ABS_RZ,
+    ABS_X,
+    ABS_Y,
+    ABS_Z,
+    EV_ABS,
 )
 
-from inputremapper.configs.keyboard_layout import keyboard_layout
+from inputremapper.injection.global_uinputs import MAX_ABS, MIN_ABS
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task
-from inputremapper.injection.global_uinputs import MIN_ABS, MAX_ABS
 
 
 class JoystickTaskBase(Task):
@@ -61,7 +60,7 @@ class JoystickTaskBase(Task):
     # For anything else (dpads) overwrite this
 
     # Mutable, shared by all tasks in this process.
-    state = defaultdict(int)
+    state: dict[int, int] = defaultdict(int)
 
     # -1: min_abs
     # 0: center

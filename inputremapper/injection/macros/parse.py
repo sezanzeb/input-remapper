@@ -37,6 +37,15 @@ from inputremapper.injection.macros.tasks.if_led import IfCapslockTask, IfNumloc
 from inputremapper.injection.macros.tasks.if_single import IfSingleTask
 from inputremapper.injection.macros.tasks.if_tap import IfTapTask
 from inputremapper.injection.macros.tasks.ifeq import DeprecatedIfEqTask
+from inputremapper.injection.macros.tasks.joystick import (
+    DPad2Task,
+    DPad3Task,
+    DPadTask,
+    LeftJoystickTask,
+    LeftTriggerTask,
+    RightJoystickTask,
+    RightTriggerTask,
+)
 from inputremapper.injection.macros.tasks.key import KeyTask
 from inputremapper.injection.macros.tasks.key_down import KeyDownTask
 from inputremapper.injection.macros.tasks.key_up import KeyUpTask
@@ -50,15 +59,6 @@ from inputremapper.injection.macros.tasks.set import SetTask
 from inputremapper.injection.macros.tasks.toggle import ToggleTask
 from inputremapper.injection.macros.tasks.wait import WaitTask
 from inputremapper.injection.macros.tasks.wheel import WheelTask
-from inputremapper.injection.macros.tasks.joystick import (
-    DPadTask,
-    DPad2Task,
-    DPad3Task,
-    LeftJoystickTask,
-    RightJoystickTask,
-    LeftTriggerTask,
-    RightTriggerTask,
-)
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
