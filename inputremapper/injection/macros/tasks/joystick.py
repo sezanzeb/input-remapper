@@ -20,22 +20,26 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from evdev.ecodes import EV_KEY, ABS_X, ABS_Y, EV_ABS
+from evdev.ecodes import (
+    ABS_X,
+    ABS_Y,
+    EV_ABS,
+    ABS_HAT0X,
+    ABS_HAT0Y,
+    ABS_HAT1X,
+    ABS_HAT1Y,
+    ABS_HAT2X,
+    ABS_HAT2Y,
+    ABS_Z,
+    ABS_RZ,
+    ABS_RX,
+    ABS_RY,
+)
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task
 from inputremapper.injection.global_uinputs import MIN_ABS, MAX_ABS
-
-
-"""
-TODO:
-left_joystick
-right_joystick
-left_trigger
-right_trigger
-dpad
-"""
 
 
 class JoystickTaskBase(Task):
@@ -77,56 +81,52 @@ class JoystickTaskBase(Task):
         ),
     ]
 
-    def scale(self, arg_name: str) -> int:
+    def move(self, code, arg_name: str, callback, sign: int) -> None:
+        if code is None:
+            return
+
         # 1  -> 1   -> 65536 - 32768 = 32768
         # 0  -> 0.5 -> 32768 - 32768 = 0
         # -1 -> 0   -> 0     - 32768 = -32768
         arg = self.get_argument(arg_name).get_value()
-        value = int((arg + 1) / 2 * self.abs_range + self.min_abs)
-
-    async def run(self, callback) -> None:
-        x_code = self.x_code
-        y_code = self.y_code
+        value = int((arg + 1) / 2 * self.abs_range + self.min_abs) * sign
 
         # If a is mapped to left, and d to right, and both keys are pressed together,
         # it should result in an abs_x value of 0 (depending )
+        value += self.state[code]
+        value = min(MAX_ABS, value)
+        value = max(MIN_ABS, value)
+        self.state[code] = value
 
-        if x_code is not None:
-            self.state[self.x_code] += self.scale("x")
-            callback(EV_ABS, x_code, self.state[self.x_code])
+        callback(EV_ABS, code, value)
 
-        if y_code is not None:
-            self.state[self.x_code] += self.scale("y")
-            callback(EV_ABS, y_code, self.state[self.y_code])
+    async def run(self, callback) -> None:
+        self.move(self.x_code, "x", callback, 1)
+        self.move(self.y_code, "y", callback, 1)
 
         await self._trigger_release_event.wait()
 
-        if x_code is not None:
-            self.state[self.x_code] -= self.scale("x")
-            callback(EV_ABS, x_code, self.state[self.x_code])
-
-        if y_code is not None:
-            self.state[self.x_code] -= self.scale("y")
-            callback(EV_ABS, y_code, self.state[self.y_code])
+        self.move(self.x_code, "x", callback, -1)
+        self.move(self.y_code, "y", callback, -1)
 
 
 class DPadTask(JoystickTaskBase):
-    x_code = HAT0X
-    y_code = HAT0Y
+    x_code = ABS_HAT0X
+    y_code = ABS_HAT0Y
     min_abs = -1
     max_abs = 1
 
 
 class DPad2Task(JoystickTaskBase):
-    x_code = HAT1X
-    y_code = HAT1Y
+    x_code = ABS_HAT1X
+    y_code = ABS_HAT1Y
     min_abs = -1
     max_abs = 1
 
 
 class DPad3Task(JoystickTaskBase):
-    x_code = HAT2X
-    y_code = HAT2Y
+    x_code = ABS_HAT2X
+    y_code = ABS_HAT2Y
     min_abs = -1
     max_abs = 1
 

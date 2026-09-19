@@ -50,7 +50,15 @@ from inputremapper.injection.macros.tasks.set import SetTask
 from inputremapper.injection.macros.tasks.toggle import ToggleTask
 from inputremapper.injection.macros.tasks.wait import WaitTask
 from inputremapper.injection.macros.tasks.wheel import WheelTask
-from inputremapper.injection.macros.tasks.joystick import JoystickTaskBase
+from inputremapper.injection.macros.tasks.joystick import (
+    DPadTask,
+    DPad2Task,
+    DPad3Task,
+    LeftJoystickTask,
+    RightJoystickTask,
+    LeftTriggerTask,
+    RightTriggerTask,
+)
 from inputremapper.logging.logger import logger
 
 if TYPE_CHECKING:
@@ -73,7 +81,13 @@ class Parser:
         "mouse": MouseTask,
         "mouse_xy": MouseXYTask,
         "wheel": WheelTask,
-        "left_joystick": JoystickTaskBase,
+        "left_joystick": LeftJoystickTask,
+        "right_joystick": RightJoystickTask,
+        "left_trigger": LeftTriggerTask,
+        "right_trigger": RightTriggerTask,
+        "dpad_1": DPadTask,
+        "dpad_2": DPad2Task,
+        "dpad_3": DPad3Task,
         "if_eq": IfEqTask,
         "if_numlock": IfNumlockTask,
         "if_capslock": IfCapslockTask,
