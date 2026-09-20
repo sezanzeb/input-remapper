@@ -23,13 +23,15 @@ For unknown reasons the numlock status can change when starting injections,
 which is why these functions exist.
 """
 
+from typing import Callable
+
 import re
 import subprocess
 
 from inputremapper.logging.logger import logger
 
 
-def is_numlock_on():
+def is_numlock_on() -> bool | None:
     """Get the current state of the numlock."""
     try:
         xset_q = subprocess.check_output(
@@ -47,7 +49,7 @@ def is_numlock_on():
         return None
 
 
-def set_numlock(state):
+def set_numlock(state: bool | None) -> None:
     """Set the numlock to a given state of True or False."""
     if state is None:
         return
@@ -64,7 +66,7 @@ def set_numlock(state):
         logger.debug("numlockx not found")
 
 
-def ensure_numlock(func):
+def ensure_numlock(func: Callable) -> None:
     """Decorator to reset the numlock to its initial state afterwards."""
 
     def wrapped(*args, **kwargs):

@@ -117,7 +117,7 @@ class GlobalUInputs:
             if code in DEFAULT_UINPUTS[uinput].get(type_, [])
         ]
 
-    def reset(self):
+    def reset(self) -> None:
         self.devices = {}
         self.prepare_all()
 

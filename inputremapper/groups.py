@@ -224,7 +224,7 @@ def get_unique_key(device: evdev.InputDevice):
         f"{device.uniq}_"
         # deivce.phys if "/input..." is removed from it, because the first
         # chunk seems to be unique per hardware (if it's not completely empty)
-        f'{device.phys.split("/")[0] or "-"}'
+        f"{device.phys.split('/')[0] or '-'}"
     )
 
 
@@ -331,7 +331,7 @@ class _FindGroups(threading.Thread):
     slowing down the initialization.
     """
 
-    def __init__(self, pipe: multiprocessing.Pipe):
+    def __init__(self, pipe: multiprocessing.Pipe) -> None:
         """Construct the process.
 
         Parameters
@@ -342,7 +342,7 @@ class _FindGroups(threading.Thread):
         self.pipe = pipe
         super().__init__()
 
-    def run(self):
+    def run(self) -> None:
         """Do what get_groups describes."""
         # evdev needs asyncio to work
         loop = asyncio.new_event_loop()
@@ -473,10 +473,10 @@ class _FindGroups(threading.Thread):
 class _Groups:
     """Contains and manages all groups."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._groups: list[_Group] = None
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Look for devices and group them together.
 
         Since this needs to do some stuff with /dev and spawn processes the
@@ -520,12 +520,12 @@ class _Groups:
             if not group.name.startswith("input-remapper")
         ]
 
-    def dumps(self):
+    def dumps(self) -> str:
         """Create a deserializable string representation."""
         groups = self.get_groups()
         return json.dumps([group.dumps() for group in groups])
 
-    def loads(self, dump: str):
+    def loads(self, dump: str) -> None:
         """Load a serialized representation created via dumps."""
         self._groups = [_Group.loads(group) for group in json.loads(dump)]
 
