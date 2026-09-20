@@ -80,7 +80,7 @@ class JoystickTaskBase(Task):
         ),
     ]
 
-    def move(self, code, arg_name: str, callback, sign: int) -> None:
+    def move(self, code: int, arg_name: str, sign: int, callback) -> None:
         if code is None:
             return
 
@@ -100,13 +100,13 @@ class JoystickTaskBase(Task):
         callback(EV_ABS, code, value)
 
     async def run(self, callback) -> None:
-        self.move(self.x_code, "x", callback, 1)
-        self.move(self.y_code, "y", callback, 1)
+        self.move(self.x_code, "x", 1, callback)
+        self.move(self.y_code, "y", 1, callback)
 
         await self._trigger_release_event.wait()
 
-        self.move(self.x_code, "x", callback, -1)
-        self.move(self.y_code, "y", callback, -1)
+        self.move(self.x_code, "x", -1, callback)
+        self.move(self.y_code, "y", -1, callback)
 
 
 class DPadTask(JoystickTaskBase):
