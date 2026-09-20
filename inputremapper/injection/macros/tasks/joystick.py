@@ -39,6 +39,7 @@ from evdev.ecodes import (
 from inputremapper.injection.global_uinputs import MAX_ABS, MIN_ABS
 from inputremapper.injection.macros.argument import ArgumentConfig
 from inputremapper.injection.macros.task import Task
+from inputremapper.injection.macros.macro import InjectEventCallback
 
 
 class JoystickTaskBase(Task):
@@ -80,7 +81,13 @@ class JoystickTaskBase(Task):
         ),
     ]
 
-    def move(self, code: int, arg_name: str, sign: int, callback) -> None:
+    def move(
+        self,
+        code: int | None,
+        arg_name: str,
+        sign: int,
+        callback: InjectEventCallback,
+    ) -> None:
         if code is None:
             return
 
@@ -99,7 +106,7 @@ class JoystickTaskBase(Task):
 
         callback(EV_ABS, code, value)
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         self.move(self.x_code, "x", 1, callback)
         self.move(self.y_code, "y", 1, callback)
 
