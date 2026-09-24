@@ -201,7 +201,8 @@ class Mapping(BaseModel):
             new_combi = InputCombination.validate(value)
         except (ValueError, TypeError) as exception:
             raise ValidationError(
-                f"failed to Validate {value} as InputCombination", Mapping
+                [f"failed to Validate {value} as InputCombination"],
+                Mapping,
             ) from exception
 
         if new_combi == self.input_combination:
@@ -214,7 +215,8 @@ class Mapping(BaseModel):
     def __str__(self):
         return str(
             self.dict(
-                exclude_defaults=True, include={"input_combination", "target_uinput"}
+                exclude_defaults=True,
+                include={"input_combination", "target_uinput"},
             )
         )
 
@@ -287,13 +289,14 @@ class Mapping(BaseModel):
         """The validation errors."""
         # Do not leak anything pydantic into the rest of the code,
         # makes the c++ port harder. Just strings please.
+        errors = []
         try:
             Mapping(**self.dict()).assert_strict()
         except ValidationError as exception:
-            return self._str_pydantic_errors(exception.errors())
+            errors += self._str_pydantic_errors(exception.errors())
         except Exception as exception:
-            return [f'"{self.format_name()}": {str(exception)}']
-        return []
+            errors += [f'"{self.format_name()}": {str(exception)}']
+        return errors
 
     def _str_pydantic_errors(self, errors: list[ValidationError]) -> list[str]:
         """Turn pydantic errors into generic ValueError exceptions"""
@@ -444,7 +447,7 @@ class Mapping(BaseModel):
         # c++ port I'll have to move away from pydantic anyway.
         # The GUI allows incomplete mappings that still need some modification to
         # be valid.
-        # TODO regular methods please
+        # TODO don't pass `values` around
         values = self.dict()
         self._assert_output(values)
         self._assert_only_one_analog_input(values.get("input_combination"))
@@ -454,19 +457,17 @@ class Mapping(BaseModel):
         self._assert_output_matches_input(values)
         self._assert_idk(values)
 
-    @classmethod
-    def _assert_idk(cls, values) -> None:
+    def _assert_idk(self, values) -> None:
         # TODO check that input_combination is not empty? Would this mimic
         #  the (non-UI)Mapping properly?
         # input_combination: InputCombination
 
         if values.get("target_uinput") is None:
-            raise ValidationError("target_uinput not set")
+            raise ValueError("target_uinput not set", self)
 
         target_uinput: KnownUinput
 
-    @classmethod
-    def _assert_output(cls, values: dict[str, Any]) -> None:
+    def _assert_output(self, values: dict[str, Any]) -> None:
         symbol = values.get("output_symbol")
 
         if Parser.is_this_a_macro(symbol):
@@ -485,8 +486,7 @@ class Mapping(BaseModel):
         ):
             raise SymbolNotAvailableInTargetError(symbol, target)
 
-    @classmethod
-    def _assert_only_one_analog_input(cls, combination) -> None:
+    def _assert_only_one_analog_input(self, combination) -> None:
         """Check that the input_combination specifies a maximum of one
         analog to analog mapping
         """
@@ -494,8 +494,7 @@ class Mapping(BaseModel):
         if len(analog_events) > 1:
             raise OnlyOneAnalogInputError(analog_events)
 
-    @classmethod
-    def _assert_trigger_point_in_range(cls, combination: InputCombination) -> None:
+    def _assert_trigger_point_in_range(self, combination: InputCombination) -> None:
         """Check if the trigger point for mapping analog axis to buttons is valid."""
         for input_config in combination:
             if (
@@ -505,8 +504,7 @@ class Mapping(BaseModel):
             ):
                 raise TriggerPointInRangeError(input_config)
 
-    @classmethod
-    def _assert_output_symbol_variant(cls, values: dict[str, Any]) -> None:
+    def _assert_output_symbol_variant(self, values: dict[str, Any]) -> None:
         """Validate that either type and code or symbol are set for key output."""
         o_symbol = values.get("output_symbol")
         o_type = values.get("output_type")
@@ -514,8 +512,7 @@ class Mapping(BaseModel):
         if o_symbol is None and (o_type is None or o_code is None):
             raise OutputSymbolVariantError()
 
-    @classmethod
-    def _assert_output_integrity(cls, values: dict[str, Any]) -> None:
+    def _assert_output_integrity(self, values: dict[str, Any]) -> None:
         """Validate the output key configuration."""
         symbol = values.get("output_symbol")
         type_ = values.get("output_type")
@@ -536,8 +533,7 @@ class Mapping(BaseModel):
         if code is not None and code != keyboard_layout.get(symbol) or type_ != EV_KEY:
             raise SymbolAndCodeMismatchError(symbol, code)
 
-    @classmethod
-    def _assert_output_matches_input(cls, values: dict[str, Any]) -> None:
+    def _assert_output_matches_input(self, values: dict[str, Any]) -> None:
         """Validate that an output type is an axis if we have an input axis.
         And vice versa."""
         assert isinstance(values.get("input_combination"), InputCombination)

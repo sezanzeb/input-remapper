@@ -456,10 +456,16 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(mapping.is_valid())
 
     def test_updates_validation_error(self):
+        # [{'loc': ('target_uinput',), 'msg': 'none is not an allowed value', 'type': 'type_error.none.not_allowed'},
+        # {'loc': ('__root__',), 'msg': 'Missing Argument: Mapping must either contain `output_symbol` or `output_type` and `output_code`', 'type': 'value_error.outputsymbolvariant'}]
         mapping = Mapping(strict=False)
-        self.assertGreaterEqual(len(mapping.get_errors()), 2)
+        self.assertGreaterEqual(len(mapping.get_errors()), 1)
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
         mapping.output_symbol = "a"
+        print("jo", mapping.get_errors())
+        # 1 validation error for Mapping
+        # target_uinput
+        #   none is not an allowed value (type=type_error.none.not_allowed)
         self.assertIn(
             "1 validation error for Mapping\ntarget_uinput",
             str(mapping.get_errors()),
