@@ -48,7 +48,7 @@ class Preset:
     def __init__(
         self,
         path: os.PathLike | None = None,
-        strict: bool = False,
+        strict: bool = True,
     ) -> None:
         self._strict = strict
         self._mappings: dict[InputCombination, Mapping] = {}
@@ -207,6 +207,7 @@ class Preset:
             existing = self._mappings.get(permutation)
             if existing is not None:
                 return existing
+
         return None
 
     def dangerously_mapped_btn_left(self) -> bool:

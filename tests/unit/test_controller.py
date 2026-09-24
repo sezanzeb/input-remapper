@@ -51,6 +51,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     StatusData,
     UserConfirmRequest,
+    MappingData,
 )
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, gtk_iteration
@@ -167,7 +168,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.mapping, f)
         self.message_broker.signal(MessageType.init)
-        self.assertTrue(calls[-1].is_valid())
+        self.assertTrue(calls[-1].mapping.is_valid())
 
     def test_on_init_should_provide_a_default_mapping(self):
         """If there is no real preset available"""
@@ -179,7 +180,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.mapping, f)
         self.message_broker.signal(MessageType.init)
         for m in calls:
-            self.assertEqual(m, Mapping(**MAPPING_DEFAULTS))
+            self.assertEqual(m.mapping, Mapping(**MAPPING_DEFAULTS))
 
     def test_on_load_group_should_provide_preset(self):
         with patch.object(self.data_manager, "load_preset") as mock:
@@ -196,7 +197,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.mapping, f)
         self.controller.load_group(group_key="Foo Device 2")
-        self.assertTrue(calls[-1].is_valid())
+        self.assertTrue(calls[-1].mapping.is_valid())
 
     def test_on_load_group_should_provide_default_mapping(self):
         """If there is none."""
@@ -209,7 +210,7 @@ class TestController(unittest.TestCase):
 
         self.controller.load_group(group_key="Foo Device")
         for m in calls:
-            self.assertEqual(m, Mapping(**MAPPING_DEFAULTS))
+            self.assertEqual(m.mapping, Mapping(**MAPPING_DEFAULTS))
 
     def test_on_load_preset_should_provide_mapping(self):
         """If there is one."""
@@ -222,7 +223,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.mapping, f)
         self.controller.load_preset(name="preset2")
-        self.assertTrue(calls[-1].is_valid())
+        self.assertTrue(calls[-1].mapping.is_valid())
 
     def test_on_load_preset_should_provide_default_mapping(self):
         """If there is none."""
@@ -236,7 +237,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.mapping, f)
         self.controller.load_preset(name="bar")
         for m in calls:
-            self.assertEqual(m, Mapping(**MAPPING_DEFAULTS))
+            self.assertEqual(m.mapping, Mapping(**MAPPING_DEFAULTS))
 
     def test_on_delete_preset_asks_for_confirmation(self):
         prepare_presets()
@@ -569,7 +570,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.mapping, f)
         self.controller.create_mapping()
 
-        self.assertEqual(calls[-1], Mapping(**MAPPING_DEFAULTS))
+        self.assertEqual(calls[-1].mapping, Mapping(**MAPPING_DEFAULTS))
 
     def test_create_mapping_should_not_create_multiple_empty_mappings(self):
         prepare_presets()
@@ -1199,7 +1200,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
-            call(self.data_manager.active_mapping.get_bus_message()),
+            call(MappingData(self.data_manager.active_mapping)),
             call(InputConfig(type=1, code=3)),
         ]
         self.controller.update_input_config(
@@ -1273,7 +1274,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
-            call(self.data_manager.active_mapping.get_bus_message()),
+            call(MappingData(self.data_manager.active_mapping)),
             call(InputConfig(type=1, code=3)),
         ]
         self.controller.remove_event()
@@ -1372,7 +1373,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
-            call(self.data_manager.active_mapping.get_bus_message()),
+            call(MappingData(self.data_manager.active_mapping)),
             call(InputConfig(type=1, code=3)),
         ]
         self.controller.set_event_as_analog(True)
@@ -1396,7 +1397,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
-            call(self.data_manager.active_mapping.get_bus_message()),
+            call(MappingData(self.data_manager.active_mapping)),
             call(InputConfig(type=3, code=0, analog_threshold=10)),
         ]
         with patch.object(self.data_manager, "update_mapping", side_effect=KeyError):
@@ -1419,7 +1420,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
-            call(self.data_manager.active_mapping.get_bus_message()),
+            call(MappingData(self.data_manager.active_mapping)),
             call(InputConfig(type=3, code=0)),
         ]
         with patch.object(self.data_manager, "update_mapping", side_effect=KeyError):

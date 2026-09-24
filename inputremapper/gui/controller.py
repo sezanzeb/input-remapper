@@ -60,6 +60,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     StatusData,
     UserConfirmRequest,
+    MappingData,
 )
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_MAPPING, CTX_WARNING
 from inputremapper.injection.injector import (
@@ -145,7 +146,7 @@ class Controller:
             self.load_input_config(combination[0])
         else:
             # send an empty mapping to make sure the ui is reset to default values
-            self.message_broker.publish(Mapping(**MAPPING_DEFAULTS))
+            self.message_broker.publish(MappingData(Mapping(**MAPPING_DEFAULTS)))
 
     def _on_combination_recorded(self, data: CombinationRecorded):
         combination = self._auto_use_as_analog(data.combination)

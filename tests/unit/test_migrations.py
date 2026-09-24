@@ -316,7 +316,7 @@ class TestMigrations(unittest.TestCase):
             ),
         )
 
-        self.assertEqual(8, len(preset))
+        self.assertEqual(8, len(preset.get_mappings()))
 
     def test_migrate_otherwise(self):
         path = os.path.join(
@@ -447,7 +447,7 @@ class TestMigrations(unittest.TestCase):
         preset.load()
         # 2 mappings for mouse
         # 2 mappings for wheel
-        self.assertEqual(len(preset), 4)
+        self.assertEqual(len(preset.get_mappings()), 4)
         self.assertEqual(
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_X)])
@@ -533,7 +533,7 @@ class TestMigrations(unittest.TestCase):
         preset.load()
         # 2 mappings for mouse
         # 2 mappings for wheel
-        self.assertEqual(len(preset), 4)
+        self.assertEqual(len(preset.get_mappings()), 4)
         self.assertEqual(
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_RX)])

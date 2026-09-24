@@ -409,9 +409,13 @@ class TestMappingListbox(ComponentBaseTest):
 
     def test_activates_correct_row(self):
         self.message_broker.publish(
-            Mapping(
-                name="mapping1",
-                input_combination=InputCombination([InputConfig(type=1, code=KEY_C)]),
+            MappingData(
+                mapping=Mapping(
+                    name="mapping1",
+                    input_combination=InputCombination(
+                        [InputConfig(type=1, code=KEY_C)]
+                    ),
+                )
             )
         )
         selected = self.get_selected_row()
@@ -429,9 +433,13 @@ class TestMappingListbox(ComponentBaseTest):
 
     def test_avoids_infinite_recursion(self):
         self.message_broker.publish(
-            Mapping(
-                name="mapping1",
-                input_combination=InputCombination([InputConfig(type=1, code=KEY_C)]),
+            MappingData(
+                mapping=Mapping(
+                    name="mapping1",
+                    input_combination=InputCombination(
+                        [InputConfig(type=1, code=KEY_C)]
+                    ),
+                )
             )
         )
         self.controller_mock.load_mapping.assert_not_called()
@@ -598,28 +606,32 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
     def test_updates_name_when_mapping_changed_and_combination_matches(self):
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_B),
-                    )
-                ),
-                name="foo",
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_B),
+                        )
+                    ),
+                    name="foo",
+                )
             )
         )
         self.assertEqual(self.mapping_selection_label.label.get_label(), "foo")
 
     def test_ignores_mapping_when_combination_does_not_match(self):
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_C),
-                    )
-                ),
-                name="foo",
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_C),
+                        )
+                    ),
+                    name="foo",
+                )
             )
         )
         self.assertEqual(self.mapping_selection_label.label.get_label(), "a + b")
@@ -630,39 +642,45 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
         # load the mapping associated with the ListBoxRow
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_B),
-                    )
-                ),
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_B),
+                        )
+                    ),
+                )
             )
         )
         self.assertTrue(self.mapping_selection_label.edit_btn.get_visible())
 
         # load a different row
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_C),
-                    )
-                ),
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_C),
+                        )
+                    ),
+                )
             )
         )
         self.assertFalse(self.mapping_selection_label.edit_btn.get_visible())
 
     def test_enter_edit_mode_focuses_name_input(self):
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_B),
-                    )
-                ),
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_B),
+                        )
+                    ),
+                )
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -672,13 +690,15 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
     def test_enter_edit_mode_updates_visibility(self):
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_B),
-                    )
-                ),
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_B),
+                        )
+                    ),
+                )
             )
         )
         self.assert_selected()
@@ -689,13 +709,15 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
     def test_leaves_edit_mode_on_esc(self):
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_B),
-                    )
-                ),
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_B),
+                        )
+                    ),
+                )
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -712,13 +734,15 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
     def test_update_name(self):
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_B),
-                    )
-                ),
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_B),
+                        )
+                    ),
+                )
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -729,13 +753,15 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
     def test_name_input_contains_combination_when_name_not_set(self):
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_B),
-                    )
-                ),
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_B),
+                        )
+                    ),
+                )
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -743,14 +769,16 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
     def test_name_input_contains_name(self):
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_B),
-                    )
-                ),
-                name="foo",
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_B),
+                        )
+                    ),
+                    name="foo",
+                )
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -758,14 +786,16 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
     def test_removes_name_when_name_matches_combination(self):
         self.message_broker.publish(
-            Mapping(
-                input_combination=InputCombination(
-                    (
-                        InputConfig(type=1, code=KEY_A),
-                        InputConfig(type=1, code=KEY_B),
-                    )
-                ),
-                name="foo",
+            MappingData(
+                mapping=Mapping(
+                    input_combination=InputCombination(
+                        (
+                            InputConfig(type=1, code=KEY_A),
+                            InputConfig(type=1, code=KEY_B),
+                        )
+                    ),
+                    name="foo",
+                )
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -1159,9 +1189,7 @@ class TestCombinationListbox(ComponentBaseTest):
             )
         )
         self.message_broker.publish(
-            Mapping(
-                input_combination=combination.to_config(), target_uinput="keyboard"
-            )
+            Mapping(input_combination=combination.to_config(), target_uinput="keyboard")
         )
 
     def get_selected_row(self) -> InputConfigEntry:
@@ -1915,8 +1943,6 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.assertEqual(self.label_5.get_text(), "a + b")
 
         combination = InputCombination([InputConfig(type=1, code=KEY_A)])
-        self.message_broker.publish(
-            Mapping(name="qux", input_combination=combination)
-        )
+        self.message_broker.publish(Mapping(name="qux", input_combination=combination))
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  qux")
         self.assertEqual(self.label_5.get_text(), "qux")
