@@ -32,7 +32,7 @@ from gi.repository import Gtk
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping, MappingData, UIMapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.groups import _Groups
@@ -160,7 +160,7 @@ class TestController(unittest.TestCase):
     def test_on_init_should_provide_a_mapping(self):
         """Only if there is one."""
         prepare_presets()
-        calls: list[MappingData] = []
+        calls: list[Mapping] = []
 
         def f(data):
             calls.append(data)
@@ -171,7 +171,7 @@ class TestController(unittest.TestCase):
 
     def test_on_init_should_provide_a_default_mapping(self):
         """If there is no real preset available"""
-        calls: list[MappingData] = []
+        calls: list[Mapping] = []
 
         def f(data):
             calls.append(data)
@@ -179,7 +179,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.mapping, f)
         self.message_broker.signal(MessageType.init)
         for m in calls:
-            self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
+            self.assertEqual(m, Mapping(**MAPPING_DEFAULTS))
 
     def test_on_load_group_should_provide_preset(self):
         with patch.object(self.data_manager, "load_preset") as mock:
@@ -189,7 +189,7 @@ class TestController(unittest.TestCase):
     def test_on_load_group_should_provide_mapping(self):
         """If there is one"""
         prepare_presets()
-        calls: list[MappingData] = []
+        calls: list[Mapping] = []
 
         def f(data):
             calls.append(data)
@@ -200,7 +200,7 @@ class TestController(unittest.TestCase):
 
     def test_on_load_group_should_provide_default_mapping(self):
         """If there is none."""
-        calls: list[MappingData] = []
+        calls: list[Mapping] = []
 
         def f(data):
             calls.append(data)
@@ -209,13 +209,13 @@ class TestController(unittest.TestCase):
 
         self.controller.load_group(group_key="Foo Device")
         for m in calls:
-            self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
+            self.assertEqual(m, Mapping(**MAPPING_DEFAULTS))
 
     def test_on_load_preset_should_provide_mapping(self):
         """If there is one."""
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
-        calls: list[MappingData] = []
+        calls: list[Mapping] = []
 
         def f(data):
             calls.append(data)
@@ -228,7 +228,7 @@ class TestController(unittest.TestCase):
         """If there is none."""
         Preset(PathUtils.get_preset_path("Foo Device", "bar")).save()
         self.data_manager.load_group("Foo Device 2")
-        calls: list[MappingData] = []
+        calls: list[Mapping] = []
 
         def f(data):
             calls.append(data)
@@ -236,7 +236,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.mapping, f)
         self.controller.load_preset(name="bar")
         for m in calls:
-            self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
+            self.assertEqual(m, Mapping(**MAPPING_DEFAULTS))
 
     def test_on_delete_preset_asks_for_confirmation(self):
         prepare_presets()
@@ -561,7 +561,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
 
-        calls: list[MappingData] = []
+        calls: list[Mapping] = []
 
         def f(data):
             calls.append(data)
@@ -569,7 +569,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.mapping, f)
         self.controller.create_mapping()
 
-        self.assertEqual(calls[-1], UIMapping(**MAPPING_DEFAULTS))
+        self.assertEqual(calls[-1], Mapping(**MAPPING_DEFAULTS))
 
     def test_create_mapping_should_not_create_multiple_empty_mappings(self):
         prepare_presets()

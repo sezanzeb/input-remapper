@@ -25,7 +25,7 @@ from evdev.ecodes import EV_KEY
 from gi.repository import Gdk, GLib, GObject, Gtk
 
 from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
-from inputremapper.configs.mapping import MappingData
+from inputremapper.configs.mapping import Mapping
 from inputremapper.gui.components.editor import CodeEditor
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
@@ -406,8 +406,8 @@ class Autocompletion(Gtk.Popover):
         if self._target_uinput and self._uinputs:
             self._target_key_capabilities = self._uinputs[self._target_uinput][EV_KEY]
 
-    def _on_mapping_changed(self, mapping: MappingData):
-        self._target_uinput = mapping.target_uinput
+    def _on_mapping_changed(self, mapping_data: MappingData):
+        self._target_uinput = mapping_data.mapping.target_uinput
         self._update_capabilities()
 
     def _on_uinputs_changed(self, data: UInputsData):

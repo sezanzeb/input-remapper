@@ -50,7 +50,7 @@ from packaging import version
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.mapping import Mapping, UIMapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.global_uinputs import GlobalUInputs
@@ -351,7 +351,7 @@ class Migrations:
             if isinstance(old_preset, list):
                 continue
 
-            migrated_preset = Preset(old_preset_path, UIMapping)
+            migrated_preset = Preset(old_preset_path, Mapping)
             if "mapping" in old_preset:
                 for combination, symbol_target in old_preset["mapping"].items():
                     logger.info(
@@ -368,7 +368,7 @@ class Migrations:
                         )
                         continue
 
-                    mapping = UIMapping(
+                    mapping = Mapping(
                         input_combination=combination,
                         target_uinput=symbol_target[1],
                         output_symbol=symbol_target[0],

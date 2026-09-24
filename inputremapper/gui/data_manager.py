@@ -26,7 +26,7 @@ from gi.repository import GLib
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import KeyboardLayout
-from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.daemon import DaemonProxy
@@ -41,6 +41,7 @@ from inputremapper.gui.messages.message_data import (
     GroupData,
     PresetData,
     UInputsData,
+    MappingData,
 )
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
@@ -83,8 +84,8 @@ class DataManager:
         self._config = config
         self._config.load_config()
 
-        self._active_preset: Preset[UIMapping] | None = None
-        self._active_mapping: UIMapping | None = None
+        self._active_preset: Preset | None = None
+        self._active_mapping: Mapping | None = None
         self._active_input_config: InputConfig | None = None
 
     def publish_group(self):
@@ -95,7 +96,10 @@ class DataManager:
         outside DataManager.
         """
         self.message_broker.publish(
-            GroupData(self.active_group.key, self.get_preset_names())
+            GroupData(
+                self.active_group.key,
+                self.get_preset_names(),
+            )
         )
 
     def publish_preset(self):
@@ -107,7 +111,9 @@ class DataManager:
         """
         self.message_broker.publish(
             PresetData(
-                self.active_preset.name, self.get_mappings(), self.get_autoload()
+                self.active_preset.name,
+                self.get_mappings(),
+                self.get_autoload(),
             )
         )
 
@@ -119,7 +125,11 @@ class DataManager:
         outside DataManager.
         """
         if self.active_mapping:
-            self.message_broker.publish(self.active_mapping.get_bus_message())
+            self.message_broker.publish(
+                MappingData(
+                    self.active_mapping,
+                ),
+            )
 
     def publish_event(self):
         """Send active event to the MessageBroker.
@@ -160,12 +170,12 @@ class DataManager:
         return self._reader_client.group
 
     @property
-    def active_preset(self) -> Preset[UIMapping] | None:
+    def active_preset(self) -> Preset | None:
         """The currently loaded preset."""
         return self._active_preset
 
     @property
-    def active_mapping(self) -> UIMapping | None:
+    def active_mapping(self) -> Mapping | None:
         """The currently loaded mapping."""
         return self._active_mapping
 
@@ -194,16 +204,16 @@ class DataManager:
         presets.reverse()
         return tuple(presets)
 
-    def get_mappings(self) -> list[MappingData] | None:
+    def get_mappings(self) -> list[Mapping] | None:
         """All mappings from the active_preset."""
-        if not self._active_preset:
+        if self._active_preset is None:
             return None
 
-        return [mapping.get_bus_message() for mapping in self._active_preset]
+        return self._active_preset.get_mappings()
 
     def get_autoload(self) -> bool:
         """The autoload status of the active_preset."""
-        if not self.active_preset or not self.active_group:
+        if self.active_preset is None or not self.active_group:
             return False
         return self._config.is_autoloaded(
             self.active_group.key, self.active_preset.name
@@ -214,7 +224,7 @@ class DataManager:
 
         Will send "preset" message on the MessageBroker.
         """
-        if not self.active_preset or not self.active_group:
+        if self.active_preset is None or not self.active_group:
             raise DataManagementError("Cannot set autoload status: Preset is not set")
 
         if status:
@@ -315,7 +325,7 @@ class DataManager:
         logger.info('Loading preset "%s"', name)
 
         preset_path = PathUtils.get_preset_path(self.active_group.name, name)
-        preset = Preset(preset_path, mapping_factory=UIMapping)
+        preset = Preset(preset_path, strict=False)
         preset.load()
         self._active_input_config = None
         self._active_mapping = None
@@ -324,7 +334,7 @@ class DataManager:
 
     def load_mapping(self, combination: InputCombination):
         """Load a mapping. Will send "mapping" message on the MessageBroker."""
-        if not self._active_preset:
+        if self._active_preset is None:
             raise DataManagementError("Unable to load mapping. Preset is not set")
 
         mapping = self._active_preset.get_mapping(combination)
@@ -360,7 +370,7 @@ class DataManager:
 
         Will send "group" and then "preset" message on the MessageBroker
         """
-        if not self.active_preset or not self.active_group:
+        if self.active_preset is None or not self.active_group:
             raise DataManagementError("Unable rename preset: Preset is not set")
 
         if self.active_preset.path == PathUtils.get_preset_path(
@@ -374,7 +384,7 @@ class DataManager:
         new_path = PathUtils.get_preset_path(self.active_group.name, new_name)
         if os.path.exists(new_path):
             raise ValueError(
-                f"cannot rename {old_name} to " f"{new_name}, preset already exists"
+                f"cannot rename {old_name} to {new_name}, preset already exists"
             )
 
         logger.info('Moving "%s" to "%s"', old_path, new_path)
@@ -397,7 +407,7 @@ class DataManager:
         Will send "group" and "preset" message to the MessageBroker and load the copy
         """
         # todo: Do we want to load the copy here? or is this up to the controller?
-        if not self.active_preset or not self.active_group:
+        if self.active_preset is None or not self.active_group:
             raise DataManagementError("Unable to copy preset: Preset is not set")
 
         if self.active_preset.path == PathUtils.get_preset_path(
@@ -495,9 +505,9 @@ class DataManager:
 
         Will send "preset" message to the MessageBroker
         """
-        if not self._active_preset:
+        if self._active_preset is None:
             raise DataManagementError("Cannot create mapping: Preset is not set")
-        self._active_preset.add(UIMapping())
+        self._active_preset.add(Mapping())
         self.publish_preset()
 
     def delete_mapping(self):
@@ -516,7 +526,7 @@ class DataManager:
 
     def save(self):
         """Save the active preset."""
-        if self._active_preset:
+        if self._active_preset is not None:
             self._active_preset.save()
 
     def refresh_groups(self):
@@ -559,7 +569,7 @@ class DataManager:
         returns if the startup was successfully initialized.
         Will send "injector_state" message once the startup is complete.
         """
-        if not self.active_preset or not self.active_group:
+        if self.active_preset is None or not self.active_group:
             raise DataManagementError("Cannot start injection: Preset is not set")
 
         self._daemon.set_config_dir(self._config.get_dir())

@@ -24,7 +24,7 @@ from unittest.mock import patch
 from evdev.ecodes import EV_ABS, EV_KEY
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping, UIMapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from tests.lib.test_setup import test_setup
@@ -434,10 +434,11 @@ class TestPreset(unittest.TestCase):
 
     def test_save_load_with_invalid_mappings(self):
         ui_preset = Preset(
-            PathUtils.get_config_path("test.json"), mapping_factory=UIMapping
+            PathUtils.get_config_path("test.json"),
+            strict=False,
         )
 
-        ui_preset.add(UIMapping())
+        ui_preset.add(Mapping())
         self.assertFalse(ui_preset.is_valid())
 
         # make the mapping valid
@@ -446,9 +447,7 @@ class TestPreset(unittest.TestCase):
         m.target_uinput = "keyboard"
         self.assertTrue(ui_preset.is_valid())
 
-        m2 = UIMapping(
-            input_combination=InputCombination([InputConfig(type=1, code=2)])
-        )
+        m2 = Mapping(input_combination=InputCombination([InputConfig(type=1, code=2)]))
         ui_preset.add(m2)
         self.assertFalse(ui_preset.is_valid())
         ui_preset.save()

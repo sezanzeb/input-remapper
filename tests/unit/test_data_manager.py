@@ -26,7 +26,7 @@ from unittest.mock import MagicMock, call
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.exceptions import DataManagementError
@@ -163,7 +163,7 @@ class TestDataManager(unittest.TestCase):
             combination=InputCombination([InputConfig(type=1, code=1)])
         )
 
-        mapping: MappingData = listener.calls[0]
+        mapping: Mapping = listener.calls[0]
         control_preset = Preset(PathUtils.get_preset_path("Foo Device", "preset1"))
         control_preset.load()
         self.assertEqual(
@@ -541,7 +541,7 @@ class TestDataManager(unittest.TestCase):
         )
         self.data_manager.save()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"), Mapping)
         preset.load()
         mapping = preset.get_mapping(InputCombination([InputConfig(type=1, code=4)]))
         self.assertEqual(mapping.format_name(), "foo")
@@ -562,10 +562,10 @@ class TestDataManager(unittest.TestCase):
         )
         self.data_manager.save()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"), Mapping)
         preset.load()
         mapping = preset.get_mapping(InputCombination([InputConfig(type=1, code=4)]))
-        self.assertIsNotNone(mapping.get_error())
+        self.assertGreater(len(mapping.get_errors()), 0)
         self.assertEqual(mapping.output_symbol, "bar")
 
     def test_update_mapping_combination_sends_massage(self):
@@ -653,7 +653,7 @@ class TestDataManager(unittest.TestCase):
 
         self.assertEqual(listener.calls[0].name, "preset2")
         self.assertEqual(len(listener.calls[0].mappings), 3)
-        self.assertEqual(listener.calls[1], UIMapping())
+        self.assertEqual(listener.calls[1], Mapping())
 
     def test_cannot_create_mapping_without_preset(self):
         """adding a mapping if not preset is loaded

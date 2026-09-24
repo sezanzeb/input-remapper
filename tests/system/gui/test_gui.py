@@ -90,7 +90,7 @@ class TestGui(GuiTestBase):
     def assert_gui_clean(self):
         selection_labels = self.selection_label_listbox.get_children()
         self.assertEqual(len(selection_labels), 0)
-        self.assertEqual(len(self.data_manager.active_preset), 0)
+        self.assertEqual(self.data_manager.active_preset.get_number_of_mappings(), 0)
         self.assertEqual(
             FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset"
         )
@@ -202,7 +202,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset"
         )
-        self.assertEqual(len(self.data_manager.active_preset), 0)
+        self.assertEqual(self.data_manager.active_preset.get_number_of_mappings(), 0)
 
         # it creates the file for that right away. It may have been possible
         # to write it such that it doesn't (its empty anyway), but it does,
@@ -422,7 +422,7 @@ class TestGui(GuiTestBase):
 
         # there are now 2 mappings
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
-        self.assertEqual(len(self.data_manager.active_preset), 2)
+        self.assertEqual(self.data_manager.active_preset.get_number_of_mappings(), 2)
 
         # 2. record a combination for that mapping
         self.recording_toggle.set_active(True)
@@ -805,7 +805,7 @@ class TestGui(GuiTestBase):
             InputCombination([InputConfig(type=1, code=5)]),
         )
         self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
-        self.assertEqual(len(self.data_manager.active_preset), 1)
+        self.assertEqual(self.data_manager.active_preset.get_number_of_mappings(), 1)
 
         self.create_mapping_btn.clicked()
         gtk_iteration()
@@ -814,12 +814,12 @@ class TestGui(GuiTestBase):
             InputCombination.empty_combination(),
         )
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
-        self.assertEqual(len(self.data_manager.active_preset), 2)
+        self.assertEqual(self.data_manager.active_preset.get_number_of_mappings(), 2)
 
         self.create_mapping_btn.clicked()
         gtk_iteration()
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
-        self.assertEqual(len(self.data_manager.active_preset), 2)
+        self.assertEqual(self.data_manager.active_preset.get_number_of_mappings(), 2)
 
     def test_selection_labels_sort_alphabetically(self):
         self.controller.load_preset("preset1")
@@ -945,14 +945,14 @@ class TestGui(GuiTestBase):
     def test_remove_mapping(self):
         self.controller.load_preset("preset1")
         gtk_iteration()
-        self.assertEqual(len(self.data_manager.active_preset), 2)
+        self.assertEqual(self.data_manager.active_preset.get_number_of_mappings(), 2)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
 
         with patch_confirm_delete(self.user_interface):
             self.delete_mapping_btn.clicked()
             gtk_iteration()
 
-        self.assertEqual(len(self.data_manager.active_preset), 1)
+        self.assertEqual(self.data_manager.active_preset.get_number_of_mappings(), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
 
     def test_problematic_combination(self):

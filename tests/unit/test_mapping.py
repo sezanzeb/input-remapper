@@ -38,7 +38,7 @@ except ImportError:
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
-from inputremapper.configs.mapping import Mapping, MappingType, UIMapping
+from inputremapper.configs.mapping import Mapping, MappingType
 from inputremapper.gui.messages.message_broker import MessageType
 from tests.lib.test_setup import test_setup
 
@@ -438,14 +438,14 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
 
 @test_setup
-class TestUIMapping(unittest.IsolatedAsyncioTestCase):
+class TestMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """Should be able to initialize without throwing errors."""
-        UIMapping()
+        Mapping()
 
     def test_is_valid(self):
         """Should be invalid at first and become valid once all data is provided."""
-        mapping = UIMapping()
+        mapping = Mapping()
         self.assertFalse(mapping.is_valid())
 
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
@@ -455,30 +455,30 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(mapping.is_valid())
 
     def test_updates_validation_error(self):
-        mapping = UIMapping()
+        mapping = Mapping()
         self.assertGreaterEqual(len(mapping.get_error().errors()), 2)
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
         mapping.output_symbol = "a"
         self.assertIn(
             "1 validation error for Mapping\ntarget_uinput",
-            str(mapping.get_error()),
+            str(mapping.get_errors()),
         )
         mapping.target_uinput = "keyboard"
         self.assertTrue(mapping.is_valid())
-        self.assertIsNone(mapping.get_error())
+        self.assertGreater(len(mapping.get_error()), 0)
 
     def test_copy_returns_ui_mapping(self):
-        """Copy should also be a UIMapping with all the invalid data."""
-        mapping = UIMapping()
+        """Copy should also be a Mapping with all the invalid data."""
+        mapping = Mapping()
         mapping_2 = mapping.copy()
-        self.assertIsInstance(mapping_2, UIMapping)
+        self.assertIsInstance(mapping_2, Mapping)
         self.assertEqual(
             mapping_2.input_combination, InputCombination.empty_combination()
         )
         self.assertIsNone(mapping_2.output_symbol)
 
     def test_get_bus_massage(self):
-        mapping = UIMapping()
+        mapping = Mapping()
         mapping_2 = mapping.get_bus_message()
         self.assertEqual(mapping_2.message_type, MessageType.mapping)
 
@@ -492,7 +492,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(mapping.output_symbol, "a")
 
     def test_has_input_defined(self):
-        mapping = UIMapping()
+        mapping = Mapping()
         self.assertFalse(mapping.has_input_defined())
         mapping.input_combination = InputCombination([InputConfig(type=EV_KEY, code=1)])
         self.assertTrue(mapping.has_input_defined())

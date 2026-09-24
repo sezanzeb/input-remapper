@@ -63,7 +63,7 @@ class Macro:
         code
             The original parsed code, for logging purposes.
         context : Context
-        mapping : UIMapping
+        mapping : Mapping
         """
         self.code = code
         self.context = context

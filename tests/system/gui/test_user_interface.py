@@ -11,7 +11,7 @@ gi.require_version("GtkSource", "4")
 from gi.repository import Gdk, GLib, Gtk
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import MappingData
+from inputremapper.configs.mapping import Mapping
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.gui.utils import gtk_iteration
@@ -91,7 +91,7 @@ class TestUserInterface(unittest.TestCase):
 
     def test_combination_label_shows_combination(self):
         self.message_broker.publish(
-            MappingData(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_KEY, code=KEY_A)]
                 ),
@@ -104,7 +104,7 @@ class TestUserInterface(unittest.TestCase):
         self.assertEqual(label.get_opacity(), 1)
 
     def test_combination_label_shows_text_when_empty_mapping(self):
-        self.message_broker.publish(MappingData())
+        self.message_broker.publish(Mapping())
         gtk_iteration()
         label: Gtk.Label = self.user_interface.get("combination-label")
         self.assertEqual(label.get_text(), "no input configured")

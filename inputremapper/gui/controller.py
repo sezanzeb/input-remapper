@@ -32,9 +32,9 @@ from gi.repository import Gtk
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
-    MappingData,
+    Mapping,
     MappingType,
-    UIMapping,
+    Mapping,
 )
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.validation_errors import (
@@ -145,21 +145,21 @@ class Controller:
             self.load_input_config(combination[0])
         else:
             # send an empty mapping to make sure the ui is reset to default values
-            self.message_broker.publish(MappingData(**MAPPING_DEFAULTS))
+            self.message_broker.publish(Mapping(**MAPPING_DEFAULTS))
 
     def _on_combination_recorded(self, data: CombinationRecorded):
         combination = self._auto_use_as_analog(data.combination)
         self.update_combination(combination)
 
     def _format_status_bar_validation_errors(self) -> tuple[str, str] | None:
-        if not self.data_manager.active_preset:
+        if self.data_manager.active_preset is None:
             return None
 
         if self.data_manager.active_preset.is_valid():
             self.message_broker.publish(StatusData(CTX_MAPPING))
             return None
 
-        mappings = list(self.data_manager.active_preset)
+        mappings = self.data_manager.active_preset.get_mappings()
 
         # Move the selected (active) mapping to the front, so that it is checked first.
         active_mapping = self.data_manager.active_mapping
@@ -174,7 +174,7 @@ class Controller:
                 continue
 
             position = mapping.format_name()
-            error_strings = self._get_ui_error_strings(mapping)
+            error_strings = mapping.get_errors()
 
             if len(error_strings) == 0:
                 continue
@@ -205,101 +205,6 @@ class Controller:
             validation_result[0],
             validation_result[1],
         )
-
-    @staticmethod
-    def format_error_message(mapping, error_type, error_message: str) -> str:
-        """Check all the different error messages which are not useful for the user."""
-        # There is no more elegant way of comparing error_type with the base class.
-        # https://github.com/pydantic/pydantic/discussions/5112
-        if (
-            pydantify(MacroButTypeOrCodeSetError) in error_type
-            or pydantify(SymbolAndCodeMismatchError) in error_type
-        ) and mapping.input_combination.defines_analog_input:
-            return _(
-                "Remove the macro or key from the macro input field "
-                "when specifying an analog output"
-            )
-
-        if (
-            pydantify(MacroButTypeOrCodeSetError) in error_type
-            or pydantify(SymbolAndCodeMismatchError) in error_type
-        ) and not mapping.input_combination.defines_analog_input:
-            return _(
-                "Remove the Analog Output Axis when specifying a macro or key output"
-            )
-
-        if pydantify(MissingOutputAxisError) in error_type:
-            error_message = _(
-                "The input specifies an analog axis, but no output axis is selected."
-            )
-            if mapping.output_symbol is not None:
-                event = next(
-                    event
-                    for event in mapping.input_combination
-                    if event.defines_analog_input
-                )
-                error_message += (
-                    _(
-                        "\nIf you mean to create a key or macro mapping "
-                        "go to the advanced input configuration"
-                        ' and set a "Trigger Threshold" for "%s"'
-                    )
-                    % event.description()
-                )
-            return error_message
-
-        if pydantify(WrongMappingTypeForKeyError) in error_type:
-            error_message = (
-                _('The input specifies a key, but the output type is not "%s".')
-                % OutputTypeNames.key_or_macro
-            )
-
-            if mapping.output_type in (EV_ABS, EV_REL):
-                error_message += _(
-                    "\nIf you mean to create an analog axis mapping go to the "
-                    'advanced input configuration and set an input to "Use as Analog".'
-                )
-
-            return error_message
-
-        if pydantify(MissingMacroOrKeyError) in error_type:
-            return _("Missing macro or key")
-
-        return error_message
-
-    @staticmethod
-    def _get_ui_error_strings(mapping: UIMapping) -> list[str]:
-        """Get a human readable error message from a mapping error."""
-        validation_error = mapping.get_error()
-
-        if validation_error is None:
-            return []
-
-        formatted_errors = []
-
-        for error in validation_error.errors():
-            if pydantify(OutputSymbolVariantError) in error["type"]:
-                # this is rather internal, when this error appears in the gui, there is
-                # also always another more readable error at the same time that explains
-                # this problem.
-                continue
-
-            error_string = f'"{mapping.format_name()}": '
-            error_message = error["msg"]
-            error_location = error["loc"][0]
-            if error_location != "__root__":
-                error_string += f"{error_location}: "
-
-            # check all the different error messages which are not useful for the user
-            formatted_errors.append(
-                Controller.format_error_message(
-                    mapping,
-                    error["type"],
-                    error_message,
-                )
-            )
-
-        return formatted_errors
 
     def get_a_preset(self) -> str:
         """Attempts to get the newest preset in the current group
@@ -512,7 +417,7 @@ class Controller:
     def rename_preset(self, new_name: str):
         """Rename the active_preset."""
         if (
-            not self.data_manager.active_preset
+            self.data_manager.active_preset is None
             or not new_name
             or new_name == self.data_manager.active_preset.name
         ):
@@ -540,7 +445,7 @@ class Controller:
                 self.data_manager.load_preset(self.get_a_preset())
                 self.message_broker.publish(DoStackSwitch(1))
 
-        if not self.data_manager.active_preset:
+        if self.data_manager.active_preset is None:
             return
         msg = (
             _('Are you sure you want to delete the preset "%s"?')
@@ -642,7 +547,7 @@ class Controller:
 
     def start_injecting(self):
         """Inject the active_preset for the active_group."""
-        if len(self.data_manager.active_preset) == 0:
+        if self.data_manager.active_preset.get_number_of_mappings() == 0:
             logger.error(_("Cannot apply empty preset file"))
             # also helpful for first time use
             self.show_status(CTX_ERROR, _("You need to add mappings first"))
@@ -765,7 +670,7 @@ class Controller:
     def is_empty_mapping(self) -> bool:
         """Check if the active_mapping is empty."""
         return (
-            self.data_manager.active_mapping == UIMapping(**MAPPING_DEFAULTS)
+            self.data_manager.active_mapping == Mapping(**MAPPING_DEFAULTS)
             or self.data_manager.active_mapping is None
         )
 
@@ -801,7 +706,7 @@ class Controller:
         if changes["mapping_type"] == MappingType.ANALOG.value:
             msg = _("You are about to change the mapping to analog.")
             if mapping.output_symbol:
-                msg += _('\nThis will remove "{}" ' "from the text input!").format(
+                msg += _('\nThis will remove "{}" from the text input!').format(
                     mapping.output_symbol
                 )
 
