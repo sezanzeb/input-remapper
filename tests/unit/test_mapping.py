@@ -466,7 +466,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         )
         mapping.target_uinput = "keyboard"
         self.assertTrue(mapping.is_valid())
-        self.assertGreater(len(mapping.get_errors()), 0)
+        self.assertEqual(len(mapping.get_errors()), 0)
 
     def test_copy_returns_ui_mapping(self):
         """Copy should also be a Mapping with all the invalid data."""

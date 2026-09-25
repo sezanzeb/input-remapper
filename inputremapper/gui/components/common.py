@@ -23,13 +23,12 @@ from __future__ import annotations
 
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import Mapping
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_data import GroupData, PresetData
+from inputremapper.gui.messages.message_data import GroupData, MappingData, PresetData
 from inputremapper.gui.utils import HandlerDisabled
 
 

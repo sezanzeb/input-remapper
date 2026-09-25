@@ -34,17 +34,8 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     Mapping,
     MappingType,
-    Mapping,
 )
 from inputremapper.configs.paths import PathUtils
-from inputremapper.configs.validation_errors import (
-    MacroButTypeOrCodeSetError,
-    MissingMacroOrKeyError,
-    MissingOutputAxisError,
-    OutputSymbolVariantError,
-    SymbolAndCodeMismatchError,
-    WrongMappingTypeForKeyError,
-)
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DEFAULT_PRESET_NAME, DataManager
 from inputremapper.gui.gettext import _
@@ -55,10 +46,10 @@ from inputremapper.gui.messages.message_broker import (
 from inputremapper.gui.messages.message_data import (
     CombinationRecorded,
     DoStackSwitch,
+    MappingData,
     PresetData,
     StatusData,
     UserConfirmRequest,
-    MappingData,
 )
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_MAPPING, CTX_WARNING
 from inputremapper.injection.injector import (

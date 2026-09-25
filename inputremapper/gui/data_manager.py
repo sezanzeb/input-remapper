@@ -39,9 +39,9 @@ from inputremapper.gui.messages.message_broker import (
 from inputremapper.gui.messages.message_data import (
     CombinationUpdate,
     GroupData,
+    MappingData,
     PresetData,
     UInputsData,
-    MappingData,
 )
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs

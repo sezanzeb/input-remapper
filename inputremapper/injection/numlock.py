@@ -23,10 +23,9 @@ For unknown reasons the numlock status can change when starting injections,
 which is why these functions exist.
 """
 
-from typing import Callable
-
 import re
 import subprocess
+from collections.abc import Callable
 
 from inputremapper.logging.logger import logger
 

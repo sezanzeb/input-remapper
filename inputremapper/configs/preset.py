@@ -22,19 +22,8 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Iterator
-from typing import (
-    Generic,
-    TypeVar,
-    overload,
-)
 
 from evdev import ecodes
-
-try:
-    from pydantic.v1 import ValidationError
-except ImportError:
-    from pydantic import ValidationError
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping

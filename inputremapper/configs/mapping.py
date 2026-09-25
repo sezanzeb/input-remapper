@@ -21,7 +21,7 @@ from __future__ import annotations
 import enum
 from collections import namedtuple
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any
 
 from evdev.ecodes import (
     EV_ABS,
@@ -32,7 +32,6 @@ from evdev.ecodes import (
     REL_WHEEL,
     REL_WHEEL_HI_RES,
 )
-from packaging import version
 
 from inputremapper.logging.logger import logger
 
@@ -51,7 +50,6 @@ try:
     )
 except ImportError:
     from pydantic import (
-        VERSION,
         BaseConfig,
         BaseModel,
         PositiveFloat,
@@ -60,10 +58,8 @@ except ImportError:
         confloat,
         conint,
         root_validator,
-        validator,
     )
 
-from typing_extensions import Self
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
@@ -80,12 +76,11 @@ from inputremapper.configs.validation_errors import (
     WrongMappingTypeForKeyError,
     pydantify,
 )
+from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.utils import get_evdev_constant_name
-from inputremapper.gui.components.output_type_names import OutputTypeNames
-
 
 EMPTY_MAPPING_NAME: str = _("Empty Mapping")
 
@@ -297,7 +292,7 @@ class Mapping(BaseModel):
         except ValidationError as exception:
             errors += self._str_pydantic_errors(exception.errors())
         except ValueError as exception:
-            errors += [f'"{self.format_name()}": {str(exception)}']
+            errors += [f'"{self.format_name()}": {exception!s}']
         return errors
 
     def _str_pydantic_errors(self, errors: list[ValidationError]) -> list[str]:
@@ -312,7 +307,7 @@ class Mapping(BaseModel):
                 continue
 
             # TODO is this code ever reached?
-            raise ValueError("jo")
+            raise RuntimeError("jo")
             formatted = self.format_error_message(
                 self,
                 error["type"],
@@ -435,32 +430,35 @@ class Mapping(BaseModel):
         # be valid.
         # TODO don't pass `values` around
         values = self.dict()
-        self._assert_output(values)
-        self._assert_only_one_analog_input(values.get("input_combination"))
-        self._assert_trigger_point_in_range(values.get("input_combination"))
-        self._assert_output_symbol_variant(values)
-        self._assert_output_integrity(values)
-        self._assert_output_matches_input(values)
-        self._assert_idk(values)
+        self._assert_output()
+        self._assert_only_one_analog_input()
+        self._assert_trigger_point_in_range()
+        self._assert_output_symbol_variant()
+        self._assert_output_integrity()
+        self._assert_output_matches_input()
+        self._assert_idk()
 
-    def _assert_idk(self, values) -> None:
+    def _assert_idk(self) -> None:
         # TODO check that input_combination is not empty? Would this mimic
         #  the (non-UI)Mapping properly?
         # input_combination: InputCombination
 
-        if values.get("target_uinput") is None:
+        if self.target_uinput is None:
             raise ValueError("target_uinput not set")
 
         target_uinput: KnownUinput
 
-    def _assert_output(self, values: dict[str, Any]) -> None:
-        symbol = values.get("output_symbol")
+    def _assert_output(self) -> None:
+        symbol = self.output_symbol
 
         if symbol == DISABLE_NAME:
-            return values
+            return
 
         if Parser.is_this_a_macro(symbol):
-            mapping_mock = namedtuple("Mapping", values.keys())(**values)
+            # Just attempt to parse to check if it is valid, this is not where the
+            # actual parsing for the macro execution happens.
+            # TODO why create a mapping_mock?
+            mapping_mock = self.copy()
             # raises MacroError
             Parser.parse(symbol, mapping=mapping_mock, verbose=False)
             return
@@ -469,22 +467,24 @@ class Mapping(BaseModel):
         if code is None:
             raise OutputSymbolUnknownError(symbol)
 
-        target = values.get("target_uinput")
+        target = self.target_uinput
         if target is not None and not GlobalUInputs.can_default_uinput_emit(
             target, EV_KEY, code
         ):
             raise SymbolNotAvailableInTargetError(symbol, target)
 
-    def _assert_only_one_analog_input(self, combination) -> None:
+    def _assert_only_one_analog_input(self) -> None:
         """Check that the input_combination specifies a maximum of one
         analog to analog mapping
         """
+        combination = self.input_combination
         analog_events = [event for event in combination if event.defines_analog_input]
         if len(analog_events) > 1:
             raise OnlyOneAnalogInputError(analog_events)
 
-    def _assert_trigger_point_in_range(self, combination: InputCombination) -> None:
+    def _assert_trigger_point_in_range(self) -> None:
         """Check if the trigger point for mapping analog axis to buttons is valid."""
+        combination = self.input_combination
         for input_config in combination:
             if (
                 input_config.type == EV_ABS
@@ -493,19 +493,19 @@ class Mapping(BaseModel):
             ):
                 raise TriggerPointInRangeError(input_config)
 
-    def _assert_output_symbol_variant(self, values: dict[str, Any]) -> None:
+    def _assert_output_symbol_variant(self) -> None:
         """Validate that either type and code or symbol are set for key output."""
-        o_symbol = values.get("output_symbol")
-        o_type = values.get("output_type")
-        o_code = values.get("output_code")
+        o_symbol = self.output_symbol
+        o_type = self.output_type
+        o_code = self.output_code
         if o_symbol is None and (o_type is None or o_code is None):
             raise OutputSymbolVariantError()
 
-    def _assert_output_integrity(self, values: dict[str, Any]) -> None:
+    def _assert_output_integrity(self) -> None:
         """Validate the output key configuration."""
-        symbol = values.get("output_symbol")
-        type_ = values.get("output_type")
-        code = values.get("output_code")
+        symbol = self.output_symbol
+        type_ = self.output_type
+        code = self.output_code
         if symbol is None:
             # If symbol is "", then validate_symbol changes it to None
             # type and code can be anything
@@ -522,18 +522,18 @@ class Mapping(BaseModel):
         if code is not None and code != keyboard_layout.get(symbol) or type_ != EV_KEY:
             raise SymbolAndCodeMismatchError(symbol, code)
 
-    def _assert_output_matches_input(self, values: dict[str, Any]) -> None:
+    def _assert_output_matches_input(self) -> None:
         """Validate that an output type is an axis if we have an input axis.
         And vice versa."""
-        assert isinstance(values.get("input_combination"), InputCombination)
-        combination: InputCombination = values["input_combination"]
+        assert isinstance(self.input_combination, InputCombination)
+        combination: InputCombination = self.input_combination
 
         analog_input_config = combination.find_analog_input_config()
         defines_analog_input = analog_input_config is not None
-        output_type = values.get("output_type")
-        output_code = values.get("output_code")
-        mapping_type = values.get("mapping_type")
-        output_symbol = values.get("output_symbol")
+        output_type = self.output_type
+        output_code = self.output_code
+        mapping_type = self.mapping_type
+        output_symbol = self.output_symbol
         output_key_set = output_symbol or (output_type == EV_KEY and output_code)
 
         if mapping_type is None:

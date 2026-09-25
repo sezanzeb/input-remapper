@@ -51,6 +51,7 @@ from inputremapper.gui.messages.message_broker import (
 )
 from inputremapper.gui.messages.message_data import (
     CombinationUpdate,
+    MappingData,
     PresetData,
     UInputsData,
 )
