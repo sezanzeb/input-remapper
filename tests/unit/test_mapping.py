@@ -456,23 +456,17 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(mapping.is_valid())
 
     def test_updates_validation_error(self):
-        # [{'loc': ('target_uinput',), 'msg': 'none is not an allowed value', 'type': 'type_error.none.not_allowed'},
-        # {'loc': ('__root__',), 'msg': 'Missing Argument: Mapping must either contain `output_symbol` or `output_type` and `output_code`', 'type': 'value_error.outputsymbolvariant'}]
         mapping = Mapping(strict=False)
         self.assertGreaterEqual(len(mapping.get_errors()), 1)
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
         mapping.output_symbol = "a"
-        print("jo", mapping.get_errors())
-        # 1 validation error for Mapping
-        # target_uinput
-        #   none is not an allowed value (type=type_error.none.not_allowed)
         self.assertIn(
-            "1 validation error for Mapping\ntarget_uinput",
+            "target_uinput not set",
             str(mapping.get_errors()),
         )
         mapping.target_uinput = "keyboard"
         self.assertTrue(mapping.is_valid())
-        self.assertGreater(len(mapping.get_error()), 0)
+        self.assertGreater(len(mapping.get_errors()), 0)
 
     def test_copy_returns_ui_mapping(self):
         """Copy should also be a Mapping with all the invalid data."""
@@ -491,7 +485,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(mapping_2.message_type, MessageType.mapping)
 
         with self.assertRaises(TypeError):
-            # the massage should be immutable
+            # the message should be immutable
             mapping_2.mapping.output_symbol = "a"
 
         self.assertIsNone(mapping_2.output_symbol)

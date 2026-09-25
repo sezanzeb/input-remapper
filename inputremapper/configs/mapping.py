@@ -78,11 +78,13 @@ from inputremapper.configs.validation_errors import (
     SymbolNotAvailableInTargetError,
     TriggerPointInRangeError,
     WrongMappingTypeForKeyError,
+    pydantify,
 )
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.utils import get_evdev_constant_name
+from inputremapper.gui.components.output_type_names import OutputTypeNames
 
 
 EMPTY_MAPPING_NAME: str = _("Empty Mapping")
@@ -294,7 +296,7 @@ class Mapping(BaseModel):
             Mapping(**self.dict()).assert_strict()
         except ValidationError as exception:
             errors += self._str_pydantic_errors(exception.errors())
-        except Exception as exception:
+        except ValueError as exception:
             errors += [f'"{self.format_name()}": {str(exception)}']
         return errors
 
@@ -309,8 +311,10 @@ class Mapping(BaseModel):
                 # this problem.
                 continue
 
-            formatted = format_error_message(
-                mapping,
+            # TODO is this code ever reached?
+            raise ValueError("jo")
+            formatted = self.format_error_message(
+                self,
                 error["type"],
                 error["msg"],
             )
@@ -423,24 +427,6 @@ class Mapping(BaseModel):
 
         return values
 
-    @classmethod
-    def from_combination(
-        cls,
-        input_combination=None,
-        target_uinput="keyboard",
-        output_symbol="a",
-    ):
-        """Convenient function to get a valid mapping."""
-        if not input_combination:
-            input_combination = [{"type": 99, "code": 99, "analog_threshold": 99}]
-
-        mapping = cls(
-            input_combination=input_combination,
-            target_uinput=target_uinput,
-            output_symbol=output_symbol,
-        )
-        return mapping
-
     def assert_strict(self) -> None:
         """Raise an error if the mapping is not perfectly complete for the service."""
         # I suspect this doesn't fit pydantics patterns anymore, but for a potential
@@ -463,12 +449,15 @@ class Mapping(BaseModel):
         # input_combination: InputCombination
 
         if values.get("target_uinput") is None:
-            raise ValueError("target_uinput not set", self)
+            raise ValueError("target_uinput not set")
 
         target_uinput: KnownUinput
 
     def _assert_output(self, values: dict[str, Any]) -> None:
         symbol = values.get("output_symbol")
+
+        if symbol == DISABLE_NAME:
+            return values
 
         if Parser.is_this_a_macro(symbol):
             mapping_mock = namedtuple("Mapping", values.keys())(**values)

@@ -20,6 +20,7 @@ from tests.lib.patches import InputDevice
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
 from tests.unit.test_macros.macro_test_base import DummyMapping, MacroTestBase
+from tests.lib.mapping_from_combination import mapping_from_combination
 
 
 @test_setup
@@ -38,7 +39,7 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
         self.target_uinput = self.global_uinputs.get_uinput("keyboard")
         self.mapping_parser = MappingParser(self.global_uinputs)
 
-        self.mapping = Mapping.from_combination(
+        self.mapping = mapping_from_combination(
             input_combination=[
                 InputConfig(
                     type=EV_KEY,
@@ -319,7 +320,7 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
         # asyncio to do that stuff later, and continues reading.
 
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=[
                     InputConfig(
                         type=EV_KEY,

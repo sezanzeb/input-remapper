@@ -89,6 +89,9 @@ class Preset:
 
     def add(self, mapping: Mapping) -> None:
         """Add a mapping to the preset."""
+        if self._strict:
+            mapping.assert_strict()
+
         for permutation in mapping.input_combination.get_permutations():
             if permutation in self._mappings:
                 raise KeyError(

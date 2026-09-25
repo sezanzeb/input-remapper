@@ -38,6 +38,7 @@ from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.test_setup import test_setup
+from tests.lib.mapping_from_combination import mapping_from_combination
 
 
 @test_setup
@@ -59,19 +60,19 @@ class TestContext(unittest.TestCase):
         preset.add(Mapping(**cfg))  # abs y -> wheel
 
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination.from_tuples((1, 31)), "keyboard", "key(a)"
             )
         )
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination.from_tuples((1, 32)), "keyboard", "b"
             )
         )
 
         # overlapping combination for (1, 32, 1)
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination.from_tuples((1, 32), (1, 33), (1, 34)),
                 "keyboard",
                 "c",
@@ -80,7 +81,7 @@ class TestContext(unittest.TestCase):
 
         # map abs x to key "b"
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination.from_tuples((EV_ABS, ABS_X, 20)),
                 "keyboard",
                 "d",
@@ -121,7 +122,7 @@ class TestContext(unittest.TestCase):
 
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination.from_tuples((1, 31)),
                 "keyboard",
                 "key(a)",

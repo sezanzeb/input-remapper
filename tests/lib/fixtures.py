@@ -31,6 +31,7 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from tests.lib.logger import logger
+from tests.lib.mapping_from_combination import mapping_from_combination
 
 # input-remapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
@@ -391,25 +392,25 @@ def prepare_presets():
     """
     preset1 = Preset(PathUtils.get_preset_path("Foo Device", "preset1"))
     preset1.add(
-        Mapping.from_combination(
+        mapping_from_combination(
             InputCombination.from_tuples((1, 1)),
             output_symbol="b",
         )
     )
-    preset1.add(Mapping.from_combination(InputCombination.from_tuples((1, 2))))
+    preset1.add(mapping_from_combination(InputCombination.from_tuples((1, 2))))
     preset1.save()
 
     time.sleep(0.1)
     preset2 = Preset(PathUtils.get_preset_path("Foo Device", "preset2"))
-    preset2.add(Mapping.from_combination(InputCombination.from_tuples((1, 3))))
-    preset2.add(Mapping.from_combination(InputCombination.from_tuples((1, 4))))
+    preset2.add(mapping_from_combination(InputCombination.from_tuples((1, 3))))
+    preset2.add(mapping_from_combination(InputCombination.from_tuples((1, 4))))
     preset2.save()
 
     # make sure the timestamp of preset 3 is the newest,
     # so that it will be automatically loaded by the GUI
     time.sleep(0.1)
     preset3 = Preset(PathUtils.get_preset_path("Foo Device", "preset3"))
-    preset3.add(Mapping.from_combination(InputCombination.from_tuples((1, 5))))
+    preset3.add(mapping_from_combination(InputCombination.from_tuples((1, 5))))
     preset3.save()
 
     with open(PathUtils.get_config_path("config.json"), "w") as file:

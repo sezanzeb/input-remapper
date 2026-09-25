@@ -351,7 +351,7 @@ class Migrations:
             if isinstance(old_preset, list):
                 continue
 
-            migrated_preset = Preset(old_preset_path, Mapping)
+            migrated_preset = Preset(old_preset_path, strict=False)
             if "mapping" in old_preset:
                 for combination, symbol_target in old_preset["mapping"].items():
                     logger.info(

@@ -44,10 +44,8 @@ from inputremapper.configs.validation_errors import (
     OutputSymbolVariantError,
     SymbolAndCodeMismatchError,
     WrongMappingTypeForKeyError,
-    pydantify,
 )
 from inputremapper.exceptions import DataManagementError
-from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.data_manager import DEFAULT_PRESET_NAME, DataManager
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (

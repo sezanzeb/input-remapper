@@ -65,6 +65,7 @@ from tests.lib.cleanup import cleanup
 from tests.lib.fixtures import fixtures
 from tests.lib.patches import InputDevice
 from tests.lib.test_setup import test_setup
+from tests.lib.mapping_from_combination import mapping_from_combination
 
 
 class BaseTests:
@@ -139,7 +140,7 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.set_sub_handler(ui_handler)
 
         # at 30% map to a
-        mapping_1 = Mapping.from_combination(
+        mapping_1 = mapping_from_combination(
             InputCombination(
                 [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=30)]
             ),
