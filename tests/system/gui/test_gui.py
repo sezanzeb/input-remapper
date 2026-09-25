@@ -1071,6 +1071,34 @@ class TestGui(GuiTestBase):
         self.assertFalse(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
+    def test_displays_multiple_mapping_errors(self):
+        status = self.user_interface.get("status_bar")
+        error_icon = self.user_interface.get("error_status_icon")
+        warning_icon = self.user_interface.get("warning_status_icon")
+
+        with (
+            patch.object(
+                self.data_manager.active_preset,
+                "is_valid",
+                return_value=False,
+            ),
+            patch.object(
+                Mapping,
+                "get_readable_strict_errors",
+                return_value=["first error", "second error"],
+            ),
+        ):
+            self.controller._publish_mapping_errors_as_status_msg()
+            gtk_iteration()
+
+        self.assertIn("2 Mapping errors at", self.get_status_text())
+        self.assertEqual(
+            status.get_tooltip_text(),
+            "– first error\n– second error",
+        )
+        self.assertTrue(error_icon.get_visible())
+        self.assertFalse(warning_icon.get_visible())
+
     def test_no_validation_tooltip_for_empty_mappings(self):
         self.controller.load_preset("preset1")
         self.throttle(20)

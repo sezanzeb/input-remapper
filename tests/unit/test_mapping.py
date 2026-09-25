@@ -457,16 +457,16 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_updates_validation_error(self):
         mapping = Mapping(strict=False)
-        self.assertGreaterEqual(len(mapping.get_errors()), 1)
+        self.assertGreaterEqual(len(mapping.get_readable_strict_errors()), 1)
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
         mapping.output_symbol = "a"
         self.assertIn(
             "target_uinput not set",
-            str(mapping.get_errors()),
+            str(mapping.get_readable_strict_errors()),
         )
         mapping.target_uinput = "keyboard"
         self.assertTrue(mapping.is_valid())
-        self.assertEqual(len(mapping.get_errors()), 0)
+        self.assertEqual(len(mapping.get_readable_strict_errors()), 0)
 
     def test_copy_returns_ui_mapping(self):
         """Copy should also be a Mapping with all the invalid data."""
@@ -499,6 +499,19 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(mapping.has_input_defined())
         mapping.input_combination = InputCombination([InputConfig(type=EV_KEY, code=1)])
         self.assertTrue(mapping.has_input_defined())
+
+    def test_multiple_errors(self):
+        mapping = Mapping(strict=False)
+        mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
+
+        # errors:
+        mapping.output_symbol = "unknown1234"
+        mapping.target_uinput = None
+
+        errors = mapping.get_readable_strict_errors()
+        self.assertEqual(len(errors), 2)
+        self.assertIsInstance(errors[0], str)
+        self.assertIsInstance(errors[1], str)
 
 
 if __name__ == "__main__":

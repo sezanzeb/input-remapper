@@ -570,7 +570,7 @@ class TestDataManager(unittest.TestCase):
         )
         preset.load()
         mapping = preset.get_mapping(InputCombination([InputConfig(type=1, code=4)]))
-        self.assertGreater(len(mapping.get_errors()), 0)
+        self.assertGreater(len(mapping.get_readable_strict_errors()), 0)
         self.assertEqual(mapping.output_symbol, "bar")
 
     def test_update_mapping_combination_sends_massage(self):

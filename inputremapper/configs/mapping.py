@@ -74,7 +74,6 @@ from inputremapper.configs.validation_errors import (
     SymbolNotAvailableInTargetError,
     TriggerPointInRangeError,
     WrongMappingTypeForKeyError,
-    pydantify,
 )
 from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.gettext import _
@@ -210,7 +209,7 @@ class Mapping(BaseModel):
         super().__setattr__("input_combination", new_combi)
 
     def __str__(self):
-        return str(
+        return "Mapping " + str(
             self.dict(
                 exclude_defaults=True,
                 include={"input_combination", "target_uinput"},
@@ -280,52 +279,12 @@ class Mapping(BaseModel):
 
     def is_valid(self) -> bool:
         """If the mapping is valid."""
-        return len(self.get_errors()) == 0
+        return len(self.get_readable_strict_errors()) == 0
 
-    def get_errors(self) -> list[str]:
-        """The validation errors."""
-        # Do not leak anything pydantic into the rest of the code,
-        # makes the c++ port harder. Just strings please.
-        errors = []
-        try:
-            Mapping(**self.dict()).assert_strict()
-        except ValidationError as exception:
-            errors += self._str_pydantic_errors(exception.errors())
-        except ValueError as exception:
-            errors += [f'"{self.format_name()}": {exception!s}']
-        return errors
-
-    def _str_pydantic_errors(self, errors: list[ValidationError]) -> list[str]:
-        """Turn pydantic errors into generic ValueError exceptions"""
-        result = []
-
-        for error in errors:
-            if pydantify(OutputSymbolVariantError) in error["type"]:
-                # this is rather internal, when this error appears in the gui, there is
-                # also always another more readable error at the same time that explains
-                # this problem.
-                continue
-
-            # TODO is this code ever reached?
-            raise RuntimeError("jo")
-            formatted = self.format_error_message(
-                self,
-                error["type"],
-                error["msg"],
-            )
-
-            result.append(formatted)
-
-        return result
-
-    @staticmethod
-    def format_error_message(self, error_type, error_message: str) -> str:
+    def _format_error_message(self, error: ValueError) -> str:
         """Check all the different error messages which are not useful for the user."""
-        # There is no more elegant way of comparing error_type with the base class.
-        # https://github.com/pydantic/pydantic/discussions/5112
         if (
-            pydantify(MacroButTypeOrCodeSetError) in error_type
-            or pydantify(SymbolAndCodeMismatchError) in error_type
+            error is MacroButTypeOrCodeSetError or error is SymbolAndCodeMismatchError
         ) and self.input_combination.defines_analog_input:
             return _(
                 "Remove the macro or key from the macro input field "
@@ -333,14 +292,13 @@ class Mapping(BaseModel):
             )
 
         if (
-            pydantify(MacroButTypeOrCodeSetError) in error_type
-            or pydantify(SymbolAndCodeMismatchError) in error_type
+            error is MacroButTypeOrCodeSetError or error is SymbolAndCodeMismatchError
         ) and not self.input_combination.defines_analog_input:
             return _(
                 "Remove the Analog Output Axis when specifying a macro or key output"
             )
 
-        if pydantify(MissingOutputAxisError) in error_type:
+        if error is MissingOutputAxisError:
             error_message = _(
                 "The input specifies an analog axis, but no output axis is selected."
             )
@@ -360,7 +318,7 @@ class Mapping(BaseModel):
                 )
             return error_message
 
-        if pydantify(WrongMappingTypeForKeyError) in error_type:
+        if error is WrongMappingTypeForKeyError:
             error_message = (
                 _('The input specifies a key, but the output type is not "%s".')
                 % OutputTypeNames.key_or_macro
@@ -374,10 +332,10 @@ class Mapping(BaseModel):
 
             return error_message
 
-        if pydantify(MissingMacroOrKeyError) in error_type:
+        if error is MissingMacroOrKeyError:
             return _("Missing macro or key")
 
-        return error_message
+        return str(error)
 
     @root_validator
     def validate_mapping_type(cls, values):
@@ -422,14 +380,38 @@ class Mapping(BaseModel):
 
         return values
 
+    def get_readable_strict_errors(self) -> list[str]:
+        """Human readable strict validation errors."""
+        # Do not leak anything pydantic into the rest of the code,
+        # makes the c++ port harder. Just strings please.
+        methods = [
+            # Same calls as in self.assert_strict
+            self._assert_output,
+            self._assert_only_one_analog_input,
+            self._assert_trigger_point_in_range,
+            self._assert_output_symbol_variant,
+            self._assert_output_integrity,
+            self._assert_output_matches_input,
+            self._assert_idk,
+        ]
+
+        errors = []
+        for method in methods:
+            try:
+                method()
+            except ValueError as error:
+                errors.append(self._format_error_message(error))
+
+        return errors
+
     def assert_strict(self) -> None:
         """Raise an error if the mapping is not perfectly complete for the service."""
         # I suspect this doesn't fit pydantics patterns anymore, but for a potential
         # c++ port I'll have to move away from pydantic anyway.
         # The GUI allows incomplete mappings that still need some modification to
         # be valid.
-        # TODO don't pass `values` around
-        values = self.dict()
+
+        # same calls as in self.get_readable_strict_errors
         self._assert_output()
         self._assert_only_one_analog_input()
         self._assert_trigger_point_in_range()

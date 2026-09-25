@@ -164,7 +164,7 @@ class Controller:
                 continue
 
             position = mapping.format_name()
-            error_strings = mapping.get_errors()
+            error_strings = mapping.get_readable_strict_errors()
 
             if len(error_strings) == 0:
                 continue
