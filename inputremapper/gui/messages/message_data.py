@@ -38,6 +38,7 @@ class MappingData:
     # Use controller.update_mapping instead.
     # Used to be immutable, but for architecture simplifications it isn't anymore.
     mapping: Mapping
+    # TODO maybe mapping can be copied with allow_mutation set to False in __init__
 
 
 @dataclass(frozen=True)

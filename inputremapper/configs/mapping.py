@@ -110,7 +110,6 @@ class MappingType(str, enum.Enum):
     ANALOG = "analog"
 
 
-# TODO remove
 CombinationChangedCallback = Callable[[InputCombination, InputCombination], None] | None
 
 
@@ -182,17 +181,20 @@ class Mapping(BaseModel):
     # callback which gets called if the input_combination is updated
     _combination_changed: CombinationChangedCallback | None = None
 
-    # TODO remove, somehow. call stuff manually instead of registering a callback
-    def __setattr__(self, key: str, value: Any):
-        """Call the combination changed callback
-        if we are about to update the input_combination
-        """
-        if key != "input_combination" or self._combination_changed is None:
-            super().__setattr__(key, value)
+    def __setattr__(self, key: str, value: Any) -> None:
+        if key == "input_combination":
+            # Pydantic does not expose the old value to validators, so here is a hacky
+            # __setattr__ solution.
+            self._validate_input_combination(value)
             return
 
-        # the new combination is not yet validated
+        super().__setattr__(key, value)
+
+    def _validate_input_combination(self, value) -> None:
+        """Call the combination changed callback, if we are about to update the input
+        combination."""
         try:
+            # The new combination is not yet validated
             new_combi = InputCombination.validate(value)
         except (ValueError, TypeError) as exception:
             raise ValidationError(
@@ -200,11 +202,10 @@ class Mapping(BaseModel):
                 Mapping,
             ) from exception
 
-        if new_combi == self.input_combination:
-            return
+        if self._combination_changed is not None:
+            # raises a keyError if the combination or a permutation is already mapped
+            self._combination_changed(new_combi, self.input_combination)
 
-        # raises a keyError if the combination or a permutation is already mapped
-        self._combination_changed(new_combi, self.input_combination)
         super().__setattr__("input_combination", new_combi)
 
     def __str__(self):
