@@ -19,9 +19,8 @@
 from __future__ import annotations
 
 import enum
-from collections import namedtuple
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any
 
 from evdev.ecodes import (
     EV_ABS,
@@ -32,13 +31,9 @@ from evdev.ecodes import (
     REL_WHEEL,
     REL_WHEEL_HI_RES,
 )
-from packaging import version
-
-from inputremapper.logging.logger import logger
 
 try:
     from pydantic.v1 import (
-        VERSION,
         BaseConfig,
         BaseModel,
         PositiveFloat,
@@ -47,11 +42,9 @@ try:
         confloat,
         conint,
         root_validator,
-        validator,
     )
 except ImportError:
     from pydantic import (
-        VERSION,
         BaseConfig,
         BaseModel,
         PositiveFloat,
@@ -60,10 +53,7 @@ except ImportError:
         confloat,
         conint,
         root_validator,
-        validator,
     )
-
-from typing_extensions import Self
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
@@ -79,17 +69,12 @@ from inputremapper.configs.validation_errors import (
     TriggerPointInRangeError,
     WrongMappingTypeForKeyError,
 )
+from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.gettext import _
-from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import Parser
+from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
-
-# TODO: remove pydantic VERSION check as soon as we no longer support
-#  Ubuntu 20.04 and with it the ancient pydantic 1.2
-
-needs_workaround = version.parse(str(VERSION)) < version.parse("1.7.1")
-
 
 EMPTY_MAPPING_NAME: str = _("Empty Mapping")
 
@@ -122,7 +107,6 @@ class MappingType(str, enum.Enum):
 
 
 CombinationChangedCallback = Callable[[InputCombination, InputCombination], None] | None
-MappingModel = TypeVar("MappingModel", bound="UIMapping")
 
 
 class Cfg(BaseConfig):
@@ -132,21 +116,16 @@ class Cfg(BaseConfig):
     json_encoders = {InputCombination: lambda v: v.json_key()}
 
 
-class ImmutableCfg(Cfg):
-    allow_mutation = False
-
-
-class UIMapping(BaseModel):
+class Mapping(BaseModel):
     """Holds all the data for mapping an input action to an output action.
 
-    The Preset contains multiple UIMappings.
+    The Preset contains multiple Mappings.
 
     This mapping does not validate the structure of the mapping or macros, only basic
     values. It is meant to be used in the GUI where invalid mappings are expected.
     """
 
-    if needs_workaround:
-        __slots__ = ("_combination_changed",)
+    Config = Cfg
 
     # Required attributes
     # The InputEvent or InputEvent combination which is mapped
@@ -193,57 +172,10 @@ class UIMapping(BaseModel):
     # instead wait until it dropped for loger than release_timeout below the threshold
     force_release_timeout: bool = False
 
+    # Attributes starting with an underscore are excluded by pydantic in .dict,
+    # so they aren't saved to disk.
     # callback which gets called if the input_combination is updated
-    if not needs_workaround:
-        _combination_changed: CombinationChangedCallback | None = None
-
-    # use type: ignore, looks like a mypy bug related to:
-    # https://github.com/samuelcolvin/pydantic/issues/2949
-    def __init__(self, **kwargs):  # type: ignore
-        super().__init__(**kwargs)
-        if needs_workaround:
-            object.__setattr__(self, "_combination_changed", None)
-
-    def __setattr__(self, key: str, value: Any):
-        """Call the combination changed callback
-        if we are about to update the input_combination
-        """
-        if key != "input_combination" or self._combination_changed is None:
-            if key == "_combination_changed" and needs_workaround:
-                object.__setattr__(self, "_combination_changed", value)
-                return
-            super().__setattr__(key, value)
-            return
-
-        # the new combination is not yet validated
-        try:
-            new_combi = InputCombination.validate(value)
-        except (ValueError, TypeError) as exception:
-            raise ValidationError(
-                f"failed to Validate {value} as InputCombination", UIMapping
-            ) from exception
-
-        if new_combi == self.input_combination:
-            return
-
-        # raises a keyError if the combination or a permutation is already mapped
-        self._combination_changed(new_combi, self.input_combination)
-        super().__setattr__("input_combination", new_combi)
-
-    def __str__(self):
-        return str(
-            self.dict(
-                exclude_defaults=True, include={"input_combination", "target_uinput"}
-            )
-        )
-
-    if needs_workaround:
-        # https://github.com/samuelcolvin/pydantic/issues/1383
-        def copy(self, *args, **kwargs) -> Self:
-            kwargs["deep"] = True
-            copy = super().copy(*args, **kwargs)
-            object.__setattr__(copy, "_combination_changed", self._combination_changed)
-            return copy
+    _combination_changed: CombinationChangedCallback | None = None
 
     def format_name(self) -> str:
         """Get the custom-name or a readable representation of the combination."""
@@ -308,19 +240,214 @@ class UIMapping(BaseModel):
 
     def is_valid(self) -> bool:
         """If the mapping is valid."""
-        return not self.get_error()
+        return len(self.get_readable_strict_errors()) == 0
 
-    def get_error(self) -> ValidationError | None:
-        """The validation error or None."""
-        try:
-            Mapping(**self.dict())
-        except ValidationError as exception:
-            return exception
-        return None
+    def get_readable_strict_errors(self) -> list[str]:
+        """Human readable strict validation errors."""
+        # Do not leak anything pydantic into the rest of the code,
+        # makes the c++ port harder. Just strings please.
+        errors = []
+        for method in self._get_strict_assertions():
+            try:
+                method()
+            except ValueError as error:
+                errors.append(self._format_error_message(error))
 
-    def get_bus_message(self) -> MappingData:
-        """Return an immutable copy for use in the message broker."""
-        return MappingData(**self.dict())
+        return errors
+
+    def assert_strict(self) -> None:
+        """Raise an error if the mapping is not perfectly complete for the service."""
+        # I suspect this doesn't fit pydantics patterns anymore, but for a potential
+        # c++ port I'll have to move away from pydantic anyway.
+        # The GUI allows incomplete mappings that still need some modification to
+        # be valid.
+        for method in self._get_strict_assertions():
+            method()
+
+    def _get_strict_assertions(self):
+        return [
+            self._assert_output,
+            self._assert_only_one_analog_input,
+            self._assert_trigger_point_in_range,
+            self._assert_output_symbol_variant,
+            self._assert_output_integrity,
+            self._assert_output_matches_input,
+            self._assert_target_uinput,
+            self._assert_input_combination_set,
+        ]
+
+    def _assert_input_combination_set(self) -> None:
+        if self.input_combination == InputCombination.empty_combination():
+            raise ValueError("no input combination is set")
+
+    def _assert_target_uinput(self) -> None:
+        if self.target_uinput is None:
+            raise ValueError("target_uinput not set")
+
+    def _assert_output(self) -> None:
+        symbol = self.output_symbol
+
+        if symbol == DISABLE_NAME:
+            return
+
+        if symbol is None:
+            # possibly analog output
+            return
+
+        if Parser.is_this_a_macro(symbol):
+            # Just attempt to parse to check if it is valid, this is not where the
+            # actual parsing for the macro execution happens.
+            # TODO why create a mapping_mock?
+            mapping_mock = self.copy()
+            # raises MacroError
+            Parser.parse(symbol, mapping=mapping_mock, verbose=False)
+            return
+
+        code = keyboard_layout.get(symbol)
+        if code is None:
+            raise OutputSymbolUnknownError(symbol)
+
+        target = self.target_uinput
+        if target is not None and not GlobalUInputs.can_default_uinput_emit(
+            target, EV_KEY, code
+        ):
+            raise SymbolNotAvailableInTargetError(symbol, target)
+
+    def _assert_only_one_analog_input(self) -> None:
+        """Check that the input_combination specifies a maximum of one
+        analog to analog mapping
+        """
+        combination = self.input_combination
+        analog_events = [event for event in combination if event.defines_analog_input]
+        if len(analog_events) > 1:
+            raise OnlyOneAnalogInputError(analog_events)
+
+    def _assert_trigger_point_in_range(self) -> None:
+        """Check if the trigger point for mapping analog axis to buttons is valid."""
+        combination = self.input_combination
+        for input_config in combination:
+            if (
+                input_config.type == EV_ABS
+                and input_config.analog_threshold
+                and abs(input_config.analog_threshold) >= 100
+            ):
+                raise TriggerPointInRangeError(input_config)
+
+    def _assert_output_symbol_variant(self) -> None:
+        """Validate that either type and code or symbol are set for key output."""
+        o_symbol = self.output_symbol
+        o_type = self.output_type
+        o_code = self.output_code
+        if o_symbol is None and (o_type is None or o_code is None):
+            raise OutputSymbolVariantError()
+
+    def _assert_output_integrity(self) -> None:
+        """Validate the output key configuration."""
+        symbol = self.output_symbol
+        type_ = self.output_type
+        code = self.output_code
+        if symbol is None:
+            # If symbol is "", then validate_symbol changes it to None
+            # type and code can be anything
+            return
+
+        if type_ is None and code is None:
+            # we have a symbol: no type and code is fine
+            return
+
+        # disallow output type and code for macros
+        if Parser.is_this_a_macro(symbol) and (type_ is not None or code is not None):
+            raise MacroButTypeOrCodeSetError()
+
+        if code is not None and code != keyboard_layout.get(symbol) or type_ != EV_KEY:
+            raise SymbolAndCodeMismatchError(symbol, code)
+
+    def _assert_output_matches_input(self) -> None:
+        """Validate that an output type is an axis if we have an input axis.
+        And vice versa."""
+        assert isinstance(self.input_combination, InputCombination)
+        combination: InputCombination = self.input_combination
+
+        analog_input_config = combination.find_analog_input_config()
+        defines_analog_input = analog_input_config is not None
+        output_type = self.output_type
+        output_code = self.output_code
+        mapping_type = self.mapping_type
+        output_symbol = self.output_symbol
+        output_key_set = output_symbol or (output_type == EV_KEY and output_code)
+
+        if mapping_type is None:
+            # Empty mapping most likely
+            return
+
+        if not defines_analog_input and mapping_type != MappingType.KEY_MACRO.value:
+            raise WrongMappingTypeForKeyError()
+
+        if not defines_analog_input and not output_key_set:
+            raise MissingMacroOrKeyError()
+
+        if (
+            defines_analog_input
+            and output_type not in (EV_ABS, EV_REL)
+            and output_symbol != DISABLE_NAME
+        ):
+            raise MissingOutputAxisError(analog_input_config, output_type)
+
+    def _format_error_message(self, error: ValueError) -> str:
+        """Check all the different error messages which are not useful for the user."""
+        if (
+            error is MacroButTypeOrCodeSetError or error is SymbolAndCodeMismatchError
+        ) and self.input_combination.defines_analog_input:
+            return _(
+                "Remove the macro or key from the macro input field "
+                "when specifying an analog output"
+            )
+
+        if (
+            error is MacroButTypeOrCodeSetError or error is SymbolAndCodeMismatchError
+        ) and not self.input_combination.defines_analog_input:
+            return _(
+                "Remove the Analog Output Axis when specifying a macro or key output"
+            )
+
+        if error is MissingOutputAxisError:
+            error_message = _(
+                "The input specifies an analog axis, but no output axis is selected."
+            )
+            if self.output_symbol is not None:
+                event = next(
+                    event
+                    for event in self.input_combination
+                    if event.defines_analog_input
+                )
+                error_message += (
+                    _(
+                        "\nIf you mean to create a key or macro mapping "
+                        "go to the advanced input configuration"
+                        ' and set a "Trigger Threshold" for "%s"'
+                    )
+                    % event.description()
+                )
+            return error_message
+
+        if error is WrongMappingTypeForKeyError:
+            error_message = (
+                _('The input specifies a key, but the output type is not "%s".')
+                % OutputTypeNames.key_or_macro
+            )
+
+            if self.output_type in (EV_ABS, EV_REL):
+                error_message += _(
+                    "\nIf you mean to create an analog axis mapping go to the "
+                    'advanced input configuration and set an input to "Use as Analog".'
+                )
+
+            return error_message
+
+        if error is MissingMacroOrKeyError:
+            return _("Missing macro or key")
+
+        return str(error)
 
     @root_validator
     def validate_mapping_type(cls, values):
@@ -346,43 +473,8 @@ class UIMapping(BaseModel):
 
         return values
 
-    Config = Cfg
-
-
-class Mapping(UIMapping):
-    """Holds all the data for mapping an input action to an output action.
-
-    This implements the missing validations from UIMapping.
-    """
-
-    # Override Required attributes to enforce they are set
-    input_combination: InputCombination
-    target_uinput: KnownUinput
-
-    @classmethod
-    def from_combination(
-        cls,
-        input_combination=None,
-        target_uinput="keyboard",
-        output_symbol="a",
-    ):
-        """Convenient function to get a valid mapping."""
-        if not input_combination:
-            input_combination = [{"type": 99, "code": 99, "analog_threshold": 99}]
-
-        return cls(
-            input_combination=input_combination,
-            target_uinput=target_uinput,
-            output_symbol=output_symbol,
-        )
-
-    def is_valid(self) -> bool:
-        """If the mapping is valid."""
-        return True
-
     @root_validator(pre=True)
     def validate_symbol(cls, values):
-        """Parse a macro to check for syntax errors."""
         symbol = values.get("output_symbol")
 
         if symbol == "":
@@ -398,127 +490,39 @@ class Mapping(UIMapping):
         if symbol == DISABLE_NAME:
             return values
 
-        if Parser.is_this_a_macro(symbol):
-            mapping_mock = namedtuple("Mapping", values.keys())(**values)
-            # raises MacroError
-            Parser.parse(symbol, mapping=mapping_mock, verbose=False)
-            return values
-
-        code = keyboard_layout.get(symbol)
-        if code is None:
-            raise OutputSymbolUnknownError(symbol)
-
-        target = values.get("target_uinput")
-        if target is not None and not GlobalUInputs.can_default_uinput_emit(
-            target, EV_KEY, code
-        ):
-            raise SymbolNotAvailableInTargetError(symbol, target)
-
         return values
 
-    @validator("input_combination")
-    def only_one_analog_input(cls, combination) -> InputCombination:
-        """Check that the input_combination specifies a maximum of one
-        analog to analog mapping
-        """
-        analog_events = [event for event in combination if event.defines_analog_input]
-        if len(analog_events) > 1:
-            raise OnlyOneAnalogInputError(analog_events)
+    def __setattr__(self, key: str, value: Any) -> None:
+        if key == "input_combination":
+            # Pydantic does not expose the old value to validators, so here is a hacky
+            # __setattr__ solution.
+            self._validate_input_combination(value)
+            return
 
-        return combination
+        super().__setattr__(key, value)
 
-    @validator("input_combination")
-    def trigger_point_in_range(cls, combination: InputCombination) -> InputCombination:
-        """Check if the trigger point for mapping analog axis to buttons is valid."""
-        for input_config in combination:
-            if (
-                input_config.type == EV_ABS
-                and input_config.analog_threshold
-                and abs(input_config.analog_threshold) >= 100
-            ):
-                raise TriggerPointInRangeError(input_config)
-        return combination
+    def _validate_input_combination(self, value) -> None:
+        """Call the combination changed callback, if we are about to update the input
+        combination."""
+        try:
+            # The new combination is not yet validated
+            new_combi = InputCombination.validate(value)
+        except (ValueError, TypeError) as exception:
+            raise ValidationError(
+                [f"failed to Validate {value} as InputCombination"],
+                Mapping,
+            ) from exception
 
-    @root_validator
-    def validate_output_symbol_variant(cls, values):
-        """Validate that either type and code or symbol are set for key output."""
-        o_symbol = values.get("output_symbol")
-        o_type = values.get("output_type")
-        o_code = values.get("output_code")
-        if o_symbol is None and (o_type is None or o_code is None):
-            raise OutputSymbolVariantError()
-        return values
+        if self._combination_changed is not None:
+            # raises a keyError if the combination or a permutation is already mapped
+            self._combination_changed(new_combi, self.input_combination)
 
-    @root_validator
-    def validate_output_integrity(cls, values):
-        """Validate the output key configuration."""
-        symbol = values.get("output_symbol")
-        type_ = values.get("output_type")
-        code = values.get("output_code")
-        if symbol is None:
-            # If symbol is "", then validate_symbol changes it to None
-            # type and code can be anything
-            return values
-
-        if type_ is None and code is None:
-            # we have a symbol: no type and code is fine
-            return values
-
-        # disallow output type and code for macros
-        if Parser.is_this_a_macro(symbol) and (type_ is not None or code is not None):
-            raise MacroButTypeOrCodeSetError()
-
-        if code is not None and code != keyboard_layout.get(symbol) or type_ != EV_KEY:
-            raise SymbolAndCodeMismatchError(symbol, code)
-        return values
-
-    @root_validator
-    def output_matches_input(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """Validate that an output type is an axis if we have an input axis.
-        And vice versa."""
-        assert isinstance(values.get("input_combination"), InputCombination)
-        combination: InputCombination = values["input_combination"]
-
-        analog_input_config = combination.find_analog_input_config()
-        defines_analog_input = analog_input_config is not None
-        output_type = values.get("output_type")
-        output_code = values.get("output_code")
-        mapping_type = values.get("mapping_type")
-        output_symbol = values.get("output_symbol")
-        output_key_set = output_symbol or (output_type == EV_KEY and output_code)
-
-        if mapping_type is None:
-            # Empty mapping most likely
-            return values
-
-        if not defines_analog_input and mapping_type != MappingType.KEY_MACRO.value:
-            raise WrongMappingTypeForKeyError()
-
-        if not defines_analog_input and not output_key_set:
-            raise MissingMacroOrKeyError()
-
-        if (
-            defines_analog_input
-            and output_type not in (EV_ABS, EV_REL)
-            and output_symbol != DISABLE_NAME
-        ):
-            raise MissingOutputAxisError(analog_input_config, output_type)
-
-        return values
-
-
-class MappingData(UIMapping):
-    """Like UIMapping, but can be sent over the message broker."""
-
-    Config = ImmutableCfg
-    message_type = MessageType.mapping  # allow this to be sent over the MessageBroker
+        super().__setattr__("input_combination", new_combi)
 
     def __str__(self):
-        return str(self.dict(exclude_defaults=True))
-
-    def dict(self, *args, **kwargs):
-        """Will not include the message_type."""
-        dict_ = super().dict(*args, **kwargs)
-        if "message_type" in dict_:
-            del dict_["message_type"]
-        return dict_
+        return "Mapping " + str(
+            self.dict(
+                exclude_defaults=True,
+                include={"input_combination", "target_uinput"},
+            )
+        )

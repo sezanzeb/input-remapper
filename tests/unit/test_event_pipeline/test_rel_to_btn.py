@@ -30,13 +30,12 @@ from evdev.ecodes import (
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.mapping import (
-    Mapping,
-)
 from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import fixtures
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
     EventPipelineTestBase,
 )
@@ -62,11 +61,11 @@ class TestRelToBtn(EventPipelineTestBase):
 
         # set a high release timeout to make sure the tests pass
         release_timeout = 0.2
-        mapping_1 = Mapping.from_combination(
-            InputCombination(InputCombination.from_tuples(hw_right)), "keyboard", "k(b)"
+        mapping_1 = mapping_from_combination(
+            InputCombination(tuples_to_combination(hw_right)), "keyboard", "k(b)"
         )
-        mapping_2 = Mapping.from_combination(
-            InputCombination(InputCombination.from_tuples(w_up)), "keyboard", "c"
+        mapping_2 = mapping_from_combination(
+            InputCombination(tuples_to_combination(w_up)), "keyboard", "c"
         )
         mapping_1.release_timeout = release_timeout
         mapping_2.release_timeout = release_timeout
@@ -109,14 +108,14 @@ class TestRelToBtn(EventPipelineTestBase):
         """Test that different activation points for rel_to_btn work correctly."""
 
         # at 5 map to a
-        mapping_1 = Mapping.from_combination(
+        mapping_1 = mapping_from_combination(
             InputCombination(
                 [InputConfig(type=EV_REL, code=REL_X, analog_threshold=5)]
             ),
             output_symbol="a",
         )
         # at 15 map to b
-        mapping_2 = Mapping.from_combination(
+        mapping_2 = mapping_from_combination(
             InputCombination(
                 [InputConfig(type=EV_REL, code=REL_X, analog_threshold=15)]
             ),

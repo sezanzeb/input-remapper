@@ -118,17 +118,6 @@ class InputConfig(BaseModel):
     def btn_left(cls):
         return cls(type=ecodes.EV_KEY, code=ecodes.BTN_LEFT)
 
-    @classmethod
-    def from_input_event(cls, event: InputEvent) -> InputConfig:
-        """create an input confing from the given InputEvent, uses the value as
-        analog threshold"""
-        return cls(
-            type=event.type,
-            code=event.code,
-            origin_hash=event.origin_hash,
-            analog_threshold=event.value,
-        )
-
     def description(self, exclude_threshold=False, exclude_direction=False) -> str:
         """Get a human-readable description of the event."""
         return (
@@ -342,11 +331,23 @@ class InputCombination(tuple[InputConfig, ...]):
             InputCombination([InputConfig, ...])
             InputCombination([{type: ..., code: ..., value: ...}, ...])
         """
+        # Unfortunately we need to support both dict and InputConfigs as input
+        # for pydantic:
+        # - calling .dict on a mapping makes pydantic constructs this again using
+        #   dict-input_configs as arguments iirc
+        # - reading the config from disc obviously has to insert it as dict first,
+        #   but maybe using a proper validator in the mapping class would help.
+        #   unfortunately in Mapping, it is already hacky for other reasons...
+        # - whereas somehow just importing mapping.py causes pydantic to insert
+        #   an "InputConfig unknown" into the constructor. I don't know. That's
+        #   just what the stack trace looked like.
+        # In an ideal world, there would be .from_dicts and a .from_input_configs
+        # methods.
         if not isinstance(configs, Iterable):
             raise TypeError("InputCombination requires a list of InputConfigs.")
 
         if isinstance(configs, InputConfig):
-            # wrap the argument in square brackets
+            # It has to be a list of configs
             raise TypeError("InputCombination requires a list of InputConfigs.")
 
         validated_configs = []
@@ -369,7 +370,7 @@ class InputCombination(tuple[InputConfig, ...]):
         return super().__new__(cls, validated_configs)  # type: ignore
 
     def __str__(self):
-        return f'Combination ({" + ".join(str(event) for event in self)})'
+        return f"Combination ({' + '.join(str(event) for event in self)})"
 
     def __repr__(self):
         combination = ", ".join(repr(event) for event in self)
@@ -397,32 +398,7 @@ class InputCombination(tuple[InputConfig, ...]):
 
         Useful for the UI to indicate that this combination is not set
         """
-        return cls([{"type": EMPTY_TYPE, "code": 99, "analog_threshold": 99}])
-
-    @classmethod
-    def from_tuples(cls, *tuples):
-        """Construct an InputCombination from (type, code, analog_threshold) tuples."""
-        dicts = []
-        for tuple_ in tuples:
-            if len(tuple_) == 3:
-                dicts.append(
-                    {
-                        "type": tuple_[0],
-                        "code": tuple_[1],
-                        "analog_threshold": tuple_[2],
-                    }
-                )
-            elif len(tuple_) == 2:
-                dicts.append(
-                    {
-                        "type": tuple_[0],
-                        "code": tuple_[1],
-                    }
-                )
-            else:
-                raise TypeError
-
-        return cls(dicts)
+        return cls([InputConfig(type=EMPTY_TYPE, code=99, analog_threshold=99)])
 
     def is_problematic(self) -> bool:
         """Is this combination going to work properly on all systems?"""

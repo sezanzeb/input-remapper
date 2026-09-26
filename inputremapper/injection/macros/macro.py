@@ -55,7 +55,7 @@ class Macro:
         code: str | None,
         context: Context | None = None,
         mapping: Mapping | None = None,
-    ):
+    ) -> None:
         """Create a macro instance that can be populated with tasks.
 
         Parameters
@@ -63,7 +63,7 @@ class Macro:
         code
             The original parsed code, for logging purposes.
         context : Context
-        mapping : UIMapping
+        mapping : Mapping
         """
         self.code = code
         self.context = context
@@ -77,7 +77,7 @@ class Macro:
 
         self.keystroke_sleep_ms = None
 
-    async def run(self, callback: InjectEventCallback):
+    async def run(self, callback: InjectEventCallback) -> None:
         """Run the macro.
 
         Parameters
@@ -105,17 +105,17 @@ class Macro:
             # done
             self.running = False
 
-    def press_trigger(self):
+    def press_trigger(self) -> None:
         """The user pressed the trigger key down."""
         for task in self.tasks:
             task.press_trigger()
 
-    def release_trigger(self):
+    def release_trigger(self) -> None:
         """The user released the trigger key."""
         for task in self.tasks:
             task.release_trigger()
 
-    async def _keycode_pause(self, _=None):
+    async def _keycode_pause(self, _=None) -> None:
         """To add a pause between keystrokes.
 
         This was needed at some point because it appeared that injecting keys too
@@ -123,8 +123,8 @@ class Macro:
         """
         await asyncio.sleep(self.keystroke_sleep_ms / 1000)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Macro "{self.code}" at {hex(id(self))}>'
 
-    def add_task(self, task):
+    def add_task(self, task) -> None:
         self.tasks.append(task)

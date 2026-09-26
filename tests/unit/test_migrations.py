@@ -34,7 +34,7 @@ from evdev.ecodes import (
 from packaging import version
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import UIMapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.migrations import Migrations
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
@@ -43,6 +43,7 @@ from inputremapper.logging.logger import VERSION
 from inputremapper.user import UserUtils
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp
+from tests.lib.tuples_to_combination import tuples_to_combination
 
 
 @test_setup
@@ -231,13 +232,13 @@ class TestMigrations(unittest.TestCase):
                 file,
             )
         self.migrations.migrate()
-        # use UIMapping to also load invalid mappings
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
+        # use Mapping to also load invalid mappings
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), Mapping)
         preset.load()
 
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=1)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=1)]),
                 target_uinput="keyboard",
                 output_symbol="a",
@@ -245,7 +246,7 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=2)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=2)]),
                 target_uinput="gamepad",
                 output_symbol="BTN_B",
@@ -253,7 +254,7 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=3)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=3)]),
                 target_uinput="keyboard",
                 output_symbol="BTN_1\n# Broken mapping:\n# No target can handle all specified keycodes",
@@ -261,7 +262,7 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=4)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=4)]),
                 target_uinput="keyboard",
                 output_symbol="d",
@@ -273,7 +274,7 @@ class TestMigrations(unittest.TestCase):
                     [InputConfig(type=EV_ABS, code=ABS_HAT0X, analog_threshold=-1)]
                 )
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_ABS, code=ABS_HAT0X, analog_threshold=-1)]
                 ),
@@ -284,14 +285,14 @@ class TestMigrations(unittest.TestCase):
         self.assertEqual(
             preset.get_mapping(
                 InputCombination(
-                    InputCombination.from_tuples(
+                    tuples_to_combination(
                         (EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)
                     )
                 ),
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
-                    InputCombination.from_tuples(
+                    tuples_to_combination(
                         (EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)
                     ),
                 ),
@@ -301,7 +302,7 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=5)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=5)]),
                 target_uinput="foo",
                 output_symbol="e",
@@ -309,14 +310,14 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=6)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=6)]),
                 target_uinput="keyboard",
                 output_symbol="key(a, b)",
             ),
         )
 
-        self.assertEqual(8, len(preset))
+        self.assertEqual(8, len(preset.get_mappings()))
 
     def test_migrate_otherwise(self):
         path = os.path.join(
@@ -339,12 +340,12 @@ class TestMigrations(unittest.TestCase):
 
         self.migrations.migrate()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), Mapping)
         preset.load()
 
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=1)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=1)]),
                 target_uinput="keyboard",
                 output_symbol="otherwise + otherwise",
@@ -352,7 +353,7 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=2)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=2)]),
                 target_uinput="keyboard",
                 output_symbol="bar($otherwise)",
@@ -360,7 +361,7 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=3)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=3)]),
                 target_uinput="keyboard",
                 output_symbol="foo(else=qux)",
@@ -368,7 +369,7 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=4)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=4)]),
                 target_uinput="foo",
                 output_symbol="qux(otherwise).bar(else=1)",
@@ -376,7 +377,7 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(InputCombination([InputConfig(type=EV_KEY, code=5)])),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination([InputConfig(type=EV_KEY, code=5)]),
                 target_uinput="keyboard",
                 output_symbol="foo(otherwise1=2qux)",
@@ -443,16 +444,16 @@ class TestMigrations(unittest.TestCase):
             )
         self.migrations.migrate()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), Mapping)
         preset.load()
         # 2 mappings for mouse
         # 2 mappings for wheel
-        self.assertEqual(len(preset), 4)
+        self.assertEqual(len(preset.get_mappings()), 4)
         self.assertEqual(
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_X)])
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_ABS, code=ABS_X)]
                 ),
@@ -466,7 +467,7 @@ class TestMigrations(unittest.TestCase):
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_Y)])
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_ABS, code=ABS_Y)]
                 ),
@@ -480,7 +481,7 @@ class TestMigrations(unittest.TestCase):
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_RX)])
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_ABS, code=ABS_RX)]
                 ),
@@ -494,7 +495,7 @@ class TestMigrations(unittest.TestCase):
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_RY)])
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_ABS, code=ABS_RY)]
                 ),
@@ -529,16 +530,16 @@ class TestMigrations(unittest.TestCase):
             )
         self.migrations.migrate()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), UIMapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), Mapping)
         preset.load()
         # 2 mappings for mouse
         # 2 mappings for wheel
-        self.assertEqual(len(preset), 4)
+        self.assertEqual(len(preset.get_mappings()), 4)
         self.assertEqual(
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_RX)])
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_ABS, code=ABS_RX)]
                 ),
@@ -552,7 +553,7 @@ class TestMigrations(unittest.TestCase):
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_RY)])
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_ABS, code=ABS_RY)]
                 ),
@@ -566,7 +567,7 @@ class TestMigrations(unittest.TestCase):
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_X)])
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_ABS, code=ABS_X)]
                 ),
@@ -580,7 +581,7 @@ class TestMigrations(unittest.TestCase):
             preset.get_mapping(
                 InputCombination([InputConfig(type=EV_ABS, code=ABS_Y)])
             ),
-            UIMapping(
+            Mapping(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_ABS, code=ABS_Y)]
                 ),
@@ -662,7 +663,7 @@ class TestMigrations(unittest.TestCase):
                 config_json, {"autoload": {device_name: "foo"}, "version": VERSION}
             )
         with open(PathUtils.get_preset_path(device_name, "foo.json"), "r") as f:
-            os.system(f'cat { PathUtils.get_preset_path(device_name, "foo.json") }')
+            os.system(f"cat {PathUtils.get_preset_path(device_name, 'foo.json')}")
             preset_foo_json = json.load(f)
             self.assertEqual(
                 preset_foo_json,
@@ -705,7 +706,7 @@ class TestMigrations(unittest.TestCase):
                 config_json, {"autoload": {device_name: "bar"}, "version": VERSION}
             )
         with open(PathUtils.get_preset_path(device_name, "bar.json"), "r") as f:
-            os.system(f'cat { PathUtils.get_preset_path(device_name, "bar.json") }')
+            os.system(f"cat {PathUtils.get_preset_path(device_name, 'bar.json')}")
             preset_foo_json = json.load(f)
             self.assertEqual(
                 preset_foo_json,

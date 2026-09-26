@@ -26,6 +26,8 @@ from inputremapper.logging.logger import logger
 MIN_ABS = -(2**15)  # -32768
 MAX_ABS = 2**15  # 32768
 DEV_NAME = "input-remapper"
+
+# These are the target_uinput values
 DEFAULT_UINPUTS = {
     # for event codes see linux/input-event-codes.h
     "keyboard": {
@@ -117,7 +119,7 @@ class GlobalUInputs:
             if code in DEFAULT_UINPUTS[uinput].get(type_, [])
         ]
 
-    def reset(self):
+    def reset(self) -> None:
         self.devices = {}
         self.prepare_all()
 

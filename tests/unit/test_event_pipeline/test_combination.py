@@ -50,10 +50,13 @@ from inputremapper.configs.mapping import (
 )
 from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
+from tests.lib.event_to_config import event_to_config
 from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
     EventPipelineTestBase,
 )
@@ -64,7 +67,6 @@ max_delta = 5 if os.environ.get("DOCKER") else 3
 
 @test_setup
 class TestCombination(EventPipelineTestBase):
-
     # -----------------
     # | Test Template |
     # -----------------
@@ -232,7 +234,7 @@ class TestCombination(EventPipelineTestBase):
         b = keyboard_layout.get("b")
         origin = fixtures.gamepad_abs_0_to_256
         origin_hash = origin.get_device_hash()
-        mapping_1 = Mapping.from_combination(
+        mapping_1 = mapping_from_combination(
             InputCombination(
                 [
                     InputConfig(
@@ -288,7 +290,7 @@ class TestCombination(EventPipelineTestBase):
         b = keyboard_layout.get("b")
         origin = fixtures.gamepad_abs_0_to_256
         origin_hash = origin.get_device_hash()
-        mapping_1 = Mapping.from_combination(
+        mapping_1 = mapping_from_combination(
             InputCombination(
                 [
                     InputConfig(
@@ -380,39 +382,39 @@ class TestCombination(EventPipelineTestBase):
 
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
-                InputCombination(InputCombination.from_tuples(b_down)), "keyboard", "b"
+            mapping_from_combination(
+                InputCombination(tuples_to_combination(b_down)), "keyboard", "b"
             )
         )
         preset.add(
-            Mapping.from_combination(
-                InputCombination(InputCombination.from_tuples(c_down)), "keyboard", "c"
+            mapping_from_combination(
+                InputCombination(tuples_to_combination(c_down)), "keyboard", "c"
             )
         )
         preset.add(
-            Mapping.from_combination(
-                InputCombination(InputCombination.from_tuples((*w_down[:2], -10))),
+            mapping_from_combination(
+                InputCombination(tuples_to_combination((*w_down[:2], -10))),
                 "keyboard",
                 "w",
             )
         )
         preset.add(
-            Mapping.from_combination(
-                InputCombination(InputCombination.from_tuples((*d_down[:2], 10))),
+            mapping_from_combination(
+                InputCombination(tuples_to_combination((*d_down[:2], 10))),
                 "keyboard",
                 "k(d)",
             )
         )
         preset.add(
-            Mapping.from_combination(
-                InputCombination(InputCombination.from_tuples((*s_down[:2], 10))),
+            mapping_from_combination(
+                InputCombination(tuples_to_combination((*s_down[:2], 10))),
                 "keyboard",
                 "s",
             )
         )
         preset.add(
-            Mapping.from_combination(
-                InputCombination(InputCombination.from_tuples((*a_down[:2], -10))),
+            mapping_from_combination(
+                InputCombination(tuples_to_combination((*a_down[:2], -10))),
                 "keyboard",
                 "a",
             )
@@ -461,19 +463,19 @@ class TestCombination(EventPipelineTestBase):
         preset = Preset()
         input_cfg = InputCombination([InputConfig(type=EV_KEY, code=1)]).to_config()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=input_cfg, output_symbol="hold(a)"
             )
         )
 
         input_cfg = InputCombination([InputConfig(type=EV_KEY, code=2)]).to_config()
         preset.add(
-            Mapping.from_combination(input_combination=input_cfg, output_symbol="b")
+            mapping_from_combination(input_combination=input_cfg, output_symbol="b")
         )
 
         input_cfg = InputCombination([InputConfig(type=EV_KEY, code=3)]).to_config()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=input_cfg, output_symbol="modify(c,hold(d))"
             ),
         )
@@ -522,7 +524,7 @@ class TestCombination(EventPipelineTestBase):
         # BTN_A -> 77
         keyboard_layout._set("b", 77)
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=BTN_A)]),
                 "keyboard",
                 "b",
@@ -560,7 +562,7 @@ class TestCombination(EventPipelineTestBase):
         # BTN_A -> 77
         keyboard_layout._set("b", 77)
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=BTN_LEFT)]),
                 "keyboard",
                 "b",
@@ -602,7 +604,7 @@ class TestCombination(EventPipelineTestBase):
         origin = fixtures.gamepad
         origin_hash = origin.get_device_hash()
 
-        mapping_1 = Mapping.from_combination(
+        mapping_1 = mapping_from_combination(
             InputCombination(
                 [
                     InputConfig(
@@ -616,7 +618,7 @@ class TestCombination(EventPipelineTestBase):
             output_symbol="a",
         )
 
-        mapping_2 = Mapping.from_combination(
+        mapping_2 = mapping_from_combination(
             InputCombination(
                 [
                     InputConfig(
@@ -631,7 +633,7 @@ class TestCombination(EventPipelineTestBase):
             output_symbol="b",
         )
 
-        mapping_3 = Mapping.from_combination(
+        mapping_3 = mapping_from_combination(
             InputCombination(
                 [
                     InputConfig(
@@ -953,7 +955,7 @@ class TestCombination(EventPipelineTestBase):
 
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_KEY, code=KEY_A)]
                 ),
@@ -992,42 +994,42 @@ class TestCombination(EventPipelineTestBase):
 
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=InputCombination(
                     [
-                        InputConfig.from_input_event(ev_1),
+                        event_to_config(ev_1),
                     ]
                 ),
                 output_symbol="a",
             )
         )
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=InputCombination(
                     [
-                        InputConfig.from_input_event(ev_3),
+                        event_to_config(ev_3),
                     ]
                 ),
                 output_symbol="disable",
             )
         )
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=InputCombination(
                     (
-                        InputConfig.from_input_event(combi_1[0]),
-                        InputConfig.from_input_event(combi_1[1]),
+                        event_to_config(combi_1[0]),
+                        event_to_config(combi_1[1]),
                     )
                 ),
                 output_symbol="b",
             )
         )
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=InputCombination(
                     (
-                        InputConfig.from_input_event(combi_2[0]),
-                        InputConfig.from_input_event(combi_2[1]),
+                        event_to_config(combi_2[0]),
+                        event_to_config(combi_2[1]),
                     )
                 ),
                 output_symbol="c",
@@ -1113,14 +1115,14 @@ class TestCombination(EventPipelineTestBase):
 
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
-                InputCombination(InputCombination.from_tuples(down_1)),
+            mapping_from_combination(
+                InputCombination(tuples_to_combination(down_1)),
                 output_symbol="h(k(a))",
             )
         )
         preset.add(
-            Mapping.from_combination(
-                InputCombination(InputCombination.from_tuples(down_1, down_2)),
+            mapping_from_combination(
+                InputCombination(tuples_to_combination(down_1, down_2)),
                 output_symbol="b",
             )
         )
@@ -1187,15 +1189,13 @@ class TestCombination(EventPipelineTestBase):
         scroll_release = InputEvent.from_tuple((2, 8, 0))
         btn_down = InputEvent.key(276, 1)
         btn_up = InputEvent.key(276, 0)
-        combination = InputCombination(
-            InputCombination.from_tuples((1, 276, 1), (2, 8, -1))
-        )
+        combination = InputCombination(tuples_to_combination((1, 276, 1), (2, 8, -1)))
 
         keyboard_layout.clear()
         keyboard_layout._set("a", 30)
         a = 30
 
-        m = Mapping.from_combination(combination, output_symbol="a")
+        m = mapping_from_combination(combination, output_symbol="a")
         m.release_timeout = 0.1  # a higher release timeout to give time for assertions
 
         preset = Preset()
@@ -1244,13 +1244,13 @@ class TestCombination(EventPipelineTestBase):
         ev_6 = InputEvent.key(KEY_C, 0)
 
         mapping_1 = Mapping(
-            input_combination=InputCombination([InputConfig.from_input_event(ev_2)]),
+            input_combination=InputCombination([event_to_config(ev_2)]),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=BTN_TL,
         )
         mapping_2 = Mapping(
-            input_combination=InputCombination([InputConfig.from_input_event(ev_3)]),
+            input_combination=InputCombination([event_to_config(ev_3)]),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=KEY_A,

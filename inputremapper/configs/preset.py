@@ -22,66 +22,34 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Iterator
-from typing import (
-    Generic,
-    TypeVar,
-    overload,
-)
 
 from evdev import ecodes
 
-try:
-    from pydantic.v1 import ValidationError
-except ImportError:
-    from pydantic import ValidationError
-
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping, UIMapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.logging.logger import logger
 
-MappingModel = TypeVar("MappingModel", bound=UIMapping)
 
-
-class Preset(Generic[MappingModel]):
+class Preset:
     """Contains and manages mappings of a single preset."""
 
-    # workaround for typing: https://github.com/python/mypy/issues/4236
-    @overload
-    def __init__(self: Preset[Mapping], path: os.PathLike | None = None): ...
-
-    @overload
     def __init__(
         self,
         path: os.PathLike | None = None,
-        mapping_factory: type[MappingModel] = ...,
-    ): ...
-
-    def __init__(
-        self,
-        path: os.PathLike | None = None,
-        mapping_factory=Mapping,
+        strict: bool = True,
     ) -> None:
-        self._mappings: dict[InputCombination, MappingModel] = {}
+        self._strict = strict
+        self._mappings: dict[InputCombination, Mapping] = {}
         # a copy of mappings for keeping track of changes
-        self._saved_mappings: dict[InputCombination, MappingModel] = {}
+        self._saved_mappings: dict[InputCombination, Mapping] = {}
         self._path: os.PathLike | None = path
 
-        # the mapping class which is used by load()
-        self._mapping_factory: type[MappingModel] = mapping_factory
+    def get_mappings(self):
+        return list(self._mappings.copy().values())
 
-    def __iter__(self) -> Iterator[MappingModel]:
-        """Iterate over Mapping objects."""
-        return iter(self._mappings.copy().values())
-
-    def __len__(self) -> int:
+    def get_number_of_mappings(self):
         return len(self._mappings)
-
-    def __bool__(self):
-        # otherwise __len__ will be used which results in False for a preset
-        # without mappings
-        return True
 
     def has_unsaved_changes(self) -> bool:
         """Check if there are unsaved changed."""
@@ -108,8 +76,11 @@ class Preset(Generic[MappingModel]):
                 combination,
             )
 
-    def add(self, mapping: MappingModel) -> None:
+    def add(self, mapping: Mapping) -> None:
         """Add a mapping to the preset."""
+        if self._strict:
+            mapping.assert_strict()
+
         for permutation in mapping.input_combination.get_permutations():
             if permutation in self._mappings:
                 raise KeyError(
@@ -150,13 +121,15 @@ class Preset(Generic[MappingModel]):
 
     def _is_mapped_multiple_times(self, input_combination: InputCombination) -> bool:
         """Check if the event combination maps to multiple mappings."""
-        all_input_combinations = {mapping.input_combination for mapping in self}
+        all_input_combinations = {
+            mapping.input_combination for mapping in self._mappings.values()
+        }
         permutations = set(input_combination.get_permutations())
         union = permutations & all_input_combinations
         # if there are more than one matches, then there is a duplicate
         return len(union) > 1
 
-    def _has_valid_input_combination(self, mapping: UIMapping) -> bool:
+    def _has_valid_input_combination(self, mapping: Mapping) -> bool:
         """Check if the mapping has a valid input event combination."""
         is_a_combination = isinstance(mapping.input_combination, InputCombination)
         is_empty = mapping.input_combination == InputCombination.empty_combination()
@@ -178,7 +151,7 @@ class Preset(Generic[MappingModel]):
 
         preset_list = []
         saved_mappings = {}
-        for mapping in self:
+        for mapping in self._mappings.values():
             if not mapping.is_valid():
                 if not self._has_valid_input_combination(mapping):
                     # we save invalid mappings except for those with an invalid
@@ -210,33 +183,35 @@ class Preset(Generic[MappingModel]):
         self._saved_mappings = saved_mappings
 
     def is_valid(self) -> bool:
-        return False not in [mapping.is_valid() for mapping in self]
+        return False not in [mapping.is_valid() for mapping in self._mappings.values()]
 
-    def get_mapping(self, combination: InputCombination | None) -> MappingModel | None:
+    def get_mapping(self, combination: InputCombination | None) -> Mapping | None:
         """Return the Mapping that is mapped to this InputCombination."""
         if not combination:
             return None
 
         if not isinstance(combination, InputCombination):
             raise TypeError(
-                f"combination must by of type InputCombination, got {type(combination)}"
+                f"combination must be of type InputCombination, got {type(combination)}"
             )
 
         for permutation in combination.get_permutations():
             existing = self._mappings.get(permutation)
             if existing is not None:
                 return existing
+
         return None
 
     def dangerously_mapped_btn_left(self) -> bool:
         """Return True if this mapping disables BTN_Left."""
         if (ecodes.EV_KEY, ecodes.BTN_LEFT) not in [
-            m.input_combination[0].type_and_code for m in self
+            mapping.input_combination[0].type_and_code
+            for mapping in self._mappings.values()
         ]:
             return False
 
         values: list[str | tuple[int, int] | None] = []
-        for mapping in self:
+        for mapping in self._mappings.values():
             if mapping.output_symbol is None:
                 continue
             values.append(mapping.output_symbol.lower())
@@ -248,7 +223,9 @@ class Preset(Generic[MappingModel]):
         )
 
     def _combination_changed_callback(
-        self, new: InputCombination, old: InputCombination
+        self,
+        new: InputCombination,
+        old: InputCombination,
     ) -> None:
         for permutation in new.get_permutations():
             if permutation in self._mappings and permutation != old:
@@ -264,8 +241,8 @@ class Preset(Generic[MappingModel]):
             return
         self._saved_mappings = self._get_mappings_from_disc()
 
-    def _get_mappings_from_disc(self) -> dict[InputCombination, MappingModel]:
-        mappings: dict[InputCombination, MappingModel] = {}
+    def _get_mappings_from_disc(self) -> dict[InputCombination, Mapping]:
+        mappings: dict[InputCombination, Mapping] = {}
         if not self.path:
             logger.debug("unable to read preset without a path set Preset.path first")
             return mappings
@@ -291,8 +268,10 @@ class Preset(Generic[MappingModel]):
                 continue
 
             try:
-                mapping = self._mapping_factory(**mapping_dict)
-            except ValidationError as error:
+                mapping = Mapping(**mapping_dict)
+                if self._strict:
+                    mapping.assert_strict()
+            except Exception as error:
                 logger.error(
                     "failed to Validate mapping for %s: %s",
                     mapping_dict.get("input_combination"),

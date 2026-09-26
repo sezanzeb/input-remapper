@@ -38,8 +38,7 @@ except ImportError:
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
-from inputremapper.configs.mapping import Mapping, MappingType, UIMapping
-from inputremapper.gui.messages.message_broker import MessageType
+from inputremapper.configs.mapping import Mapping, MappingType
 from tests.lib.test_setup import test_setup
 
 
@@ -438,14 +437,14 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
 
 @test_setup
-class TestUIMapping(unittest.IsolatedAsyncioTestCase):
+class TestMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """Should be able to initialize without throwing errors."""
-        UIMapping()
+        Mapping(strict=False)
 
     def test_is_valid(self):
         """Should be invalid at first and become valid once all data is provided."""
-        mapping = UIMapping()
+        mapping = Mapping(strict=False)
         self.assertFalse(mapping.is_valid())
 
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
@@ -455,47 +454,47 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(mapping.is_valid())
 
     def test_updates_validation_error(self):
-        mapping = UIMapping()
-        self.assertGreaterEqual(len(mapping.get_error().errors()), 2)
+        mapping = Mapping(strict=False)
+        self.assertGreaterEqual(len(mapping.get_readable_strict_errors()), 1)
         mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
         mapping.output_symbol = "a"
         self.assertIn(
-            "1 validation error for Mapping\ntarget_uinput",
-            str(mapping.get_error()),
+            "target_uinput not set",
+            str(mapping.get_readable_strict_errors()),
         )
         mapping.target_uinput = "keyboard"
         self.assertTrue(mapping.is_valid())
-        self.assertIsNone(mapping.get_error())
+        self.assertEqual(len(mapping.get_readable_strict_errors()), 0)
 
     def test_copy_returns_ui_mapping(self):
-        """Copy should also be a UIMapping with all the invalid data."""
-        mapping = UIMapping()
+        """Copy should also be a Mapping with all the invalid data."""
+        mapping = Mapping(strict=False)
         mapping_2 = mapping.copy()
-        self.assertIsInstance(mapping_2, UIMapping)
+        self.assertIsInstance(mapping_2, Mapping)
         self.assertEqual(
-            mapping_2.input_combination, InputCombination.empty_combination()
+            mapping_2.input_combination,
+            InputCombination.empty_combination(),
         )
         self.assertIsNone(mapping_2.output_symbol)
 
-    def test_get_bus_massage(self):
-        mapping = UIMapping()
-        mapping_2 = mapping.get_bus_message()
-        self.assertEqual(mapping_2.message_type, MessageType.mapping)
-
-        with self.assertRaises(TypeError):
-            # the massage should be immutable
-            mapping_2.output_symbol = "a"
-        self.assertIsNone(mapping_2.output_symbol)
-
-        # the original should be not immutable
-        mapping.output_symbol = "a"
-        self.assertEqual(mapping.output_symbol, "a")
-
     def test_has_input_defined(self):
-        mapping = UIMapping()
+        mapping = Mapping(strict=False)
         self.assertFalse(mapping.has_input_defined())
         mapping.input_combination = InputCombination([InputConfig(type=EV_KEY, code=1)])
         self.assertTrue(mapping.has_input_defined())
+
+    def test_multiple_errors(self):
+        mapping = Mapping(strict=False)
+        mapping.input_combination = [{"type": EV_KEY, "code": KEY_1}]
+
+        # errors:
+        mapping.output_symbol = "unknown1234"
+        mapping.target_uinput = None
+
+        errors = mapping.get_readable_strict_errors()
+        self.assertEqual(len(errors), 2)
+        self.assertIsInstance(errors[0], str)
+        self.assertIsInstance(errors[1], str)
 
 
 if __name__ == "__main__":

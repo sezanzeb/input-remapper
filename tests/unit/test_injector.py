@@ -23,7 +23,7 @@ from inputremapper.injection.mapping_handlers.mapping_parser import MappingParse
 try:
     from pydantic.v1 import ValidationError
 except ImportError:
-    from pydantic import ValidationError
+    pass
 
 import time
 import unittest
@@ -48,8 +48,8 @@ from inputremapper.configs.keyboard_layout import (
     DISABLE_NAME,
     keyboard_layout,
 )
-from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
+from inputremapper.configs.validation_errors import OutputSymbolUnknownError
 from inputremapper.groups import DeviceType, classify, groups
 from inputremapper.injection.context import Context
 from inputremapper.injection.injector import (
@@ -64,6 +64,7 @@ from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.input_event import InputEvent
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import fixtures, keyboard_keys
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.patches import uinputs
 from tests.lib.pipes import (
     push_events,
@@ -71,6 +72,7 @@ from tests.lib.pipes import (
     uinput_write_history_pipe,
 )
 from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 
 
 def wait_for_uinput_write():
@@ -124,7 +126,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         path = "/dev/input/event10"
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "a",
@@ -150,7 +152,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.make_it_fail = 999
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "a",
@@ -182,7 +184,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination(
                     [
                         InputConfig(
@@ -215,7 +217,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # forward abs joystick events
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=InputCombination(
                     [InputConfig(type=EV_KEY, code=BTN_A, origin_hash=device_hash)]
                 ),
@@ -238,7 +240,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # skips a device because its capabilities are not used in the preset
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "a",
@@ -255,7 +257,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_skip_unknown_device(self):
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=1234)]),
                 "keyboard",
                 "a",
@@ -279,7 +281,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
         suffix = "mapped"
         prefix = "input-remapper"
-        expected = f'{prefix} {"a" * (80 - len(suffix) - len(prefix) - 2)} {suffix}'
+        expected = f"{prefix} {'a' * (80 - len(suffix) - len(prefix) - 2)} {suffix}"
         self.assertEqual(len(expected), 80)
         self.assertEqual(get_udev_name("a" * 100, suffix), expected)
 
@@ -304,7 +306,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     @mock.patch("evdev.InputDevice.ungrab")
     def test_capabilities_and_uinput_presence(self, ungrab_patch):
         preset = Preset()
-        m1 = Mapping.from_combination(
+        m1 = mapping_from_combination(
             InputCombination(
                 [
                     InputConfig(
@@ -317,7 +319,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             "keyboard",
             "c",
         )
-        m2 = Mapping.from_combination(
+        m2 = mapping_from_combination(
             InputCombination(
                 [
                     InputConfig(
@@ -405,7 +407,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination(
                     [
                         InputConfig(
@@ -425,7 +427,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
         )
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination(
                     [
                         InputConfig(
@@ -442,9 +444,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
         # one mapping that is unknown in the keyboard_layout on purpose
         input_b = 10
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(OutputSymbolUnknownError):
             preset.add(
-                Mapping.from_combination(
+                mapping_from_combination(
                     InputCombination(
                         [
                             InputConfig(
@@ -569,18 +571,18 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
 
     def test_is_in_capabilities(self):
-        key = InputCombination(InputCombination.from_tuples((1, 2, 1)))
+        key = InputCombination(tuples_to_combination((1, 2, 1)))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = InputCombination(InputCombination.from_tuples((1, 2, 1), (1, 3, 1)))
+        key = InputCombination(tuples_to_combination((1, 2, 1), (1, 3, 1)))
         capabilities = {1: [9, 2, 5]}
         # only one of the codes of the combination is required.
         # The goal is to make combinations= across those sub-devices possible,
         # that make up one hardware device
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = InputCombination(InputCombination.from_tuples((1, 2, 1), (1, 5, 1)))
+        key = InputCombination(tuples_to_combination((1, 2, 1), (1, 5, 1)))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 
@@ -630,14 +632,14 @@ class TestModifyCapabilities(unittest.TestCase):
 
         preset = Preset()
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=80)]),
                 "keyboard",
                 "a",
             )
         )
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=81)]),
                 "keyboard",
                 DISABLE_NAME,
@@ -648,7 +650,7 @@ class TestModifyCapabilities(unittest.TestCase):
         macro = Parser.parse(macro_code, preset)
 
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=60)]),
                 "keyboard",
                 macro_code,
@@ -658,7 +660,7 @@ class TestModifyCapabilities(unittest.TestCase):
         # going to be ignored, because EV_REL cannot be mapped, that's
         # mouse movements.
         preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination(
                     [InputConfig(type=EV_REL, code=1234, analog_threshold=3)]
                 ),

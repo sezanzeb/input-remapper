@@ -26,7 +26,7 @@ from unittest.mock import MagicMock, call
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.exceptions import DataManagementError
@@ -39,12 +39,14 @@ from inputremapper.gui.messages.message_broker import (
 from inputremapper.gui.messages.message_data import (
     CombinationUpdate,
     GroupData,
+    MappingData,
 )
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from tests.lib.fixtures import prepare_presets
 from tests.lib.patches import FakeDaemonProxy
 from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 
 
 class Listener:
@@ -134,7 +136,7 @@ class TestDataManager(unittest.TestCase):
 
         expected_preset = Preset(PathUtils.get_preset_path("Foo Device", "preset1"))
         expected_preset.load()
-        expected_mappings = list(expected_preset)
+        expected_mappings = expected_preset.get_mappings()
 
         self.assertEqual(preset_name, "preset1")
         for mapping in expected_mappings:
@@ -163,7 +165,7 @@ class TestDataManager(unittest.TestCase):
             combination=InputCombination([InputConfig(type=1, code=1)])
         )
 
-        mapping: MappingData = listener.calls[0]
+        mapping: Mapping = listener.calls[0].mapping
         control_preset = Preset(PathUtils.get_preset_path("Foo Device", "preset1"))
         control_preset.load()
         self.assertEqual(
@@ -390,7 +392,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_mapping(
             combination=InputCombination([InputConfig(type=1, code=1)])
         )
-        mapping = listener.calls[0]
+        mapping = listener.calls[0].mapping
 
         self.assertEqual(mapping, expected_mapping)
 
@@ -481,7 +483,7 @@ class TestDataManager(unittest.TestCase):
                     InputCombination([InputConfig(type=1, code=5)]),
                 )
             ),
-            call(self.data_manager.active_mapping.get_bus_message()),
+            call(MappingData(self.data_manager.active_mapping)),
             call(InputConfig(type=1, code=5)),
         ]
         mock.assert_has_calls(expected, any_order=False)
@@ -520,7 +522,7 @@ class TestDataManager(unittest.TestCase):
             release_timeout=0.3,
         )
 
-        response = listener.calls[0]
+        response = listener.calls[0].mapping
         self.assertEqual(response.name, "foo")
         self.assertEqual(response.output_symbol, "f")
         self.assertEqual(response.release_timeout, 0.3)
@@ -541,7 +543,9 @@ class TestDataManager(unittest.TestCase):
         )
         self.data_manager.save()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"), UIMapping)
+        preset = Preset(
+            PathUtils.get_preset_path("Foo Device", "preset2"), strict=False
+        )
         preset.load()
         mapping = preset.get_mapping(InputCombination([InputConfig(type=1, code=4)]))
         self.assertEqual(mapping.format_name(), "foo")
@@ -562,10 +566,12 @@ class TestDataManager(unittest.TestCase):
         )
         self.data_manager.save()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"), UIMapping)
+        preset = Preset(
+            PathUtils.get_preset_path("Foo Device", "preset2"), strict=False
+        )
         preset.load()
         mapping = preset.get_mapping(InputCombination([InputConfig(type=1, code=4)]))
-        self.assertIsNotNone(mapping.get_error())
+        self.assertGreater(len(mapping.get_readable_strict_errors()), 0)
         self.assertEqual(mapping.output_symbol, "bar")
 
     def test_update_mapping_combination_sends_massage(self):
@@ -582,9 +588,7 @@ class TestDataManager(unittest.TestCase):
 
         # we expect a message for combination update first, and then for mapping
         self.data_manager.update_mapping(
-            input_combination=InputCombination(
-                InputCombination.from_tuples((1, 5), (1, 6))
-            )
+            input_combination=InputCombination(tuples_to_combination((1, 5), (1, 6)))
         )
         self.assertEqual(listener.calls[0].message_type, MessageType.combination_update)
         self.assertEqual(
@@ -593,12 +597,12 @@ class TestDataManager(unittest.TestCase):
         )
         self.assertEqual(
             listener.calls[0].new_combination,
-            InputCombination(InputCombination.from_tuples((1, 5), (1, 6))),
+            InputCombination(tuples_to_combination((1, 5), (1, 6))),
         )
         self.assertEqual(listener.calls[1].message_type, MessageType.mapping)
         self.assertEqual(
-            listener.calls[1].input_combination,
-            InputCombination(InputCombination.from_tuples((1, 5), (1, 6))),
+            listener.calls[1].mapping.input_combination,
+            InputCombination(tuples_to_combination((1, 5), (1, 6))),
         )
 
     def test_cannot_update_mapping_combination(self):
@@ -653,7 +657,7 @@ class TestDataManager(unittest.TestCase):
 
         self.assertEqual(listener.calls[0].name, "preset2")
         self.assertEqual(len(listener.calls[0].mappings), 3)
-        self.assertEqual(listener.calls[1], UIMapping())
+        self.assertEqual(listener.calls[1].mapping, Mapping())
 
     def test_cannot_create_mapping_without_preset(self):
         """adding a mapping if not preset is loaded
@@ -691,7 +695,7 @@ class TestDataManager(unittest.TestCase):
         preset_name = listener.calls[0].name
         expected_preset = Preset(PathUtils.get_preset_path("Foo Device", "preset2"))
         expected_preset.load()
-        expected_mappings = list(expected_preset)
+        expected_mappings = expected_preset.get_mappings()
 
         self.assertEqual(preset_name, "preset2")
         for mapping in expected_mappings:

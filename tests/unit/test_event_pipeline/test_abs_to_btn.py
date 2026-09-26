@@ -23,11 +23,11 @@ from evdev.ecodes import ABS_X, ABS_Z, EV_ABS, EV_KEY
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.test_setup import test_setup
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
     EventPipelineTestBase,
@@ -38,7 +38,7 @@ from tests.unit.test_event_pipeline.event_pipeline_test_base import (
 class TestAbsToBtn(EventPipelineTestBase):
     async def test_abs_trigger_threshold_simple(self):
         # at 30% map to a
-        mapping_1 = Mapping.from_combination(
+        mapping_1 = mapping_from_combination(
             InputCombination(
                 [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=30)]
             ),
@@ -70,7 +70,7 @@ class TestAbsToBtn(EventPipelineTestBase):
         fixture = fixtures.gamepad_abs_0_to_256
 
         # at 30% map to a
-        mapping_1 = Mapping.from_combination(
+        mapping_1 = mapping_from_combination(
             InputCombination(
                 [InputConfig(type=EV_ABS, code=ABS_Z, analog_threshold=30)]
             ),
@@ -78,7 +78,7 @@ class TestAbsToBtn(EventPipelineTestBase):
         )
 
         # This mapping is impossible. There is no negative direction.
-        mapping_2 = Mapping.from_combination(
+        mapping_2 = mapping_from_combination(
             InputCombination(
                 [InputConfig(type=EV_ABS, code=ABS_Z, analog_threshold=-30)]
             ),
@@ -129,14 +129,14 @@ class TestAbsToBtn(EventPipelineTestBase):
         forwarded_history = self.forward_uinput.write_history
 
         # at 30% map to a
-        mapping_1 = Mapping.from_combination(
+        mapping_1 = mapping_from_combination(
             InputCombination(
                 [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=30)]
             ),
             output_symbol="a",
         )
         # at 70% map to b
-        mapping_2 = Mapping.from_combination(
+        mapping_2 = mapping_from_combination(
             InputCombination(
                 [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=70)]
             ),

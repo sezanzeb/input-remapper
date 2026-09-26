@@ -579,7 +579,7 @@ class Daemon:
         except FileNotFoundError:
             logger.error('Could not find "%s"', xmodmap_path)
 
-        preset = Preset(preset_path)
+        preset = Preset(preset_path, strict=True)
 
         try:
             preset.load()
@@ -587,7 +587,7 @@ class Daemon:
             logger.error(str(error))
             return False
 
-        for mapping in preset:
+        for mapping in preset.get_mappings():
             # only create those uinputs that are required to avoid
             # confusing the system. Seems to be especially important with
             # gamepads, because some apps treat the first gamepad they found
