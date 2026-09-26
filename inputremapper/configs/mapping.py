@@ -181,41 +181,6 @@ class Mapping(BaseModel):
     # callback which gets called if the input_combination is updated
     _combination_changed: CombinationChangedCallback | None = None
 
-    def __setattr__(self, key: str, value: Any) -> None:
-        if key == "input_combination":
-            # Pydantic does not expose the old value to validators, so here is a hacky
-            # __setattr__ solution.
-            self._validate_input_combination(value)
-            return
-
-        super().__setattr__(key, value)
-
-    def _validate_input_combination(self, value) -> None:
-        """Call the combination changed callback, if we are about to update the input
-        combination."""
-        try:
-            # The new combination is not yet validated
-            new_combi = InputCombination.validate(value)
-        except (ValueError, TypeError) as exception:
-            raise ValidationError(
-                [f"failed to Validate {value} as InputCombination"],
-                Mapping,
-            ) from exception
-
-        if self._combination_changed is not None:
-            # raises a keyError if the combination or a permutation is already mapped
-            self._combination_changed(new_combi, self.input_combination)
-
-        super().__setattr__("input_combination", new_combi)
-
-    def __str__(self):
-        return "Mapping " + str(
-            self.dict(
-                exclude_defaults=True,
-                include={"input_combination", "target_uinput"},
-            )
-        )
-
     def format_name(self) -> str:
         """Get the custom-name or a readable representation of the combination."""
         if self.name:
@@ -280,49 +245,6 @@ class Mapping(BaseModel):
     def is_valid(self) -> bool:
         """If the mapping is valid."""
         return len(self.get_readable_strict_errors()) == 0
-
-    @root_validator
-    def validate_mapping_type(cls, values):
-        """Overrides the mapping type if the output mapping type is obvious."""
-        output_type = values.get("output_type")
-        output_code = values.get("output_code")
-        output_symbol = values.get("output_symbol")
-
-        if output_type is not None and output_symbol is not None:
-            # This is currently only possible when someone edits the preset file by
-            # hand. A key-output mapping without an output_symbol, but type and code
-            # instead, is valid as well.
-            logger.debug("Both output_type and output_symbol are set")
-
-        if output_type != EV_KEY and output_code is not None and not output_symbol:
-            values["mapping_type"] = MappingType.ANALOG.value
-
-        if output_type is None and output_code is None and output_symbol:
-            values["mapping_type"] = MappingType.KEY_MACRO.value
-
-        if output_type == EV_KEY:
-            values["mapping_type"] = MappingType.KEY_MACRO.value
-
-        return values
-
-    @root_validator(pre=True)
-    def validate_symbol(cls, values):
-        symbol = values.get("output_symbol")
-
-        if symbol == "":
-            values["output_symbol"] = None
-            return values
-
-        if symbol is None:
-            return values
-
-        symbol = symbol.strip()
-        values["output_symbol"] = symbol
-
-        if symbol == DISABLE_NAME:
-            return values
-
-        return values
 
     def get_readable_strict_errors(self) -> list[str]:
         """Human readable strict validation errors."""
@@ -536,3 +458,81 @@ class Mapping(BaseModel):
             return _("Missing macro or key")
 
         return str(error)
+
+    @root_validator
+    def validate_mapping_type(cls, values):
+        """Overrides the mapping type if the output mapping type is obvious."""
+        output_type = values.get("output_type")
+        output_code = values.get("output_code")
+        output_symbol = values.get("output_symbol")
+
+        if output_type is not None and output_symbol is not None:
+            # This is currently only possible when someone edits the preset file by
+            # hand. A key-output mapping without an output_symbol, but type and code
+            # instead, is valid as well.
+            logger.debug("Both output_type and output_symbol are set")
+
+        if output_type != EV_KEY and output_code is not None and not output_symbol:
+            values["mapping_type"] = MappingType.ANALOG.value
+
+        if output_type is None and output_code is None and output_symbol:
+            values["mapping_type"] = MappingType.KEY_MACRO.value
+
+        if output_type == EV_KEY:
+            values["mapping_type"] = MappingType.KEY_MACRO.value
+
+        return values
+
+    @root_validator(pre=True)
+    def validate_symbol(cls, values):
+        symbol = values.get("output_symbol")
+
+        if symbol == "":
+            values["output_symbol"] = None
+            return values
+
+        if symbol is None:
+            return values
+
+        symbol = symbol.strip()
+        values["output_symbol"] = symbol
+
+        if symbol == DISABLE_NAME:
+            return values
+
+        return values
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        if key == "input_combination":
+            # Pydantic does not expose the old value to validators, so here is a hacky
+            # __setattr__ solution.
+            self._validate_input_combination(value)
+            return
+
+        super().__setattr__(key, value)
+
+    def _validate_input_combination(self, value) -> None:
+        """Call the combination changed callback, if we are about to update the input
+        combination."""
+        try:
+            # The new combination is not yet validated
+            new_combi = InputCombination.validate(value)
+        except (ValueError, TypeError) as exception:
+            raise ValidationError(
+                [f"failed to Validate {value} as InputCombination"],
+                Mapping,
+            ) from exception
+
+        if self._combination_changed is not None:
+            # raises a keyError if the combination or a permutation is already mapped
+            self._combination_changed(new_combi, self.input_combination)
+
+        super().__setattr__("input_combination", new_combi)
+
+    def __str__(self):
+        return "Mapping " + str(
+            self.dict(
+                exclude_defaults=True,
+                include={"input_combination", "target_uinput"},
+            )
+        )
