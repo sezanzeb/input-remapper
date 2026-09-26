@@ -34,11 +34,11 @@ from inputremapper.gui.messages.message_types import (
 @dataclass(frozen=True)
 class MappingData:
     message_type = MessageType.mapping
-    # Do not edit the mapping object in the message please.
-    # Use controller.update_mapping instead.
-    # Used to be immutable, but for architecture simplifications it isn't anymore.
+    # Do not edit the mapping object in the message please. Use
+    # controller.update_mapping instead. Used to be immutable, but for architecture
+    # simplifications it isn't anymore. I think the mutable mapping was usually
+    # accessible as well anyway.
     mapping: Mapping
-    # TODO maybe mapping can be copied with allow_mutation set to False in __init__
 
 
 @dataclass(frozen=True)

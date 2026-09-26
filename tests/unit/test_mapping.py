@@ -479,21 +479,6 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIsNone(mapping_2.output_symbol)
 
-    def test_get_bus_massage(self):
-        mapping = Mapping(strict=False)
-        mapping_2 = MappingData(mapping)
-        self.assertEqual(mapping_2.message_type, MessageType.mapping)
-
-        with self.assertRaises(TypeError):
-            # the message should be immutable
-            mapping_2.mapping.output_symbol = "a"
-
-        self.assertIsNone(mapping_2.output_symbol)
-
-        # the original should be not immutable
-        mapping.output_symbol = "a"
-        self.assertEqual(mapping.output_symbol, "a")
-
     def test_has_input_defined(self):
         mapping = Mapping(strict=False)
         self.assertFalse(mapping.has_input_defined())

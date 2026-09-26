@@ -71,7 +71,7 @@ from inputremapper.configs.validation_errors import (
 )
 from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.gettext import _
-from inputremapper.injection.global_uinputs import DEFAULT_UINPUTS, GlobalUInputs
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
@@ -283,9 +283,6 @@ class Mapping(BaseModel):
     def _assert_target_uinput(self) -> None:
         if self.target_uinput is None:
             raise ValueError("target_uinput not set")
-
-        if self.target_uinput not in DEFAULT_UINPUTS:
-            raise ValueError('unknown target_uinput "{target_uinput}"')
 
     def _assert_output(self) -> None:
         symbol = self.output_symbol
