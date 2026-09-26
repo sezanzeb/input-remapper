@@ -32,11 +32,8 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
 )
 
-from inputremapper.logging.logger import logger
-
 try:
     from pydantic.v1 import (
-        VERSION,
         BaseConfig,
         BaseModel,
         PositiveFloat,
@@ -45,7 +42,6 @@ try:
         confloat,
         conint,
         root_validator,
-        validator,
     )
 except ImportError:
     from pydantic import (
@@ -58,7 +54,6 @@ except ImportError:
         conint,
         root_validator,
     )
-
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
@@ -76,8 +71,9 @@ from inputremapper.configs.validation_errors import (
 )
 from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.gettext import _
-from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.injection.global_uinputs import DEFAULT_UINPUTS, GlobalUInputs
 from inputremapper.injection.macros.parse import Parser
+from inputremapper.logging.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
 EMPTY_MAPPING_NAME: str = _("Empty Mapping")
@@ -250,19 +246,8 @@ class Mapping(BaseModel):
         """Human readable strict validation errors."""
         # Do not leak anything pydantic into the rest of the code,
         # makes the c++ port harder. Just strings please.
-        methods = [
-            # Same calls as in self.assert_strict
-            self._assert_output,
-            self._assert_only_one_analog_input,
-            self._assert_trigger_point_in_range,
-            self._assert_output_symbol_variant,
-            self._assert_output_integrity,
-            self._assert_output_matches_input,
-            self._assert_idk,
-        ]
-
         errors = []
-        for method in methods:
+        for method in self._get_strict_assertions():
             try:
                 method()
             except ValueError as error:
@@ -276,27 +261,31 @@ class Mapping(BaseModel):
         # c++ port I'll have to move away from pydantic anyway.
         # The GUI allows incomplete mappings that still need some modification to
         # be valid.
+        for method in self._get_strict_assertions():
+            method()
 
-        # same calls as in self.get_readable_strict_errors
-        self._assert_output()
-        self._assert_only_one_analog_input()
-        self._assert_trigger_point_in_range()
-        self._assert_output_symbol_variant()
-        self._assert_output_integrity()
-        self._assert_output_matches_input()
-        self._assert_idk()
+    def _get_strict_assertions(self):
+        return [
+            self._assert_output,
+            self._assert_only_one_analog_input,
+            self._assert_trigger_point_in_range,
+            self._assert_output_symbol_variant,
+            self._assert_output_integrity,
+            self._assert_output_matches_input,
+            self._assert_target_uinput,
+            self._assert_input_combination_set,
+        ]
 
-    def _assert_idk(self) -> None:
-        # TODO check that input_combination is not empty? Would this mimic
-        #  the (non-UI)Mapping properly?
-        # input_combination: InputCombination
+    def _assert_input_combination_set(self) -> None:
+        if self.input_combination == InputCombination.empty_combination():
+            raise ValueError("no input combination is set")
 
-        # TODO check if the target_uinput exists?
-
+    def _assert_target_uinput(self) -> None:
         if self.target_uinput is None:
             raise ValueError("target_uinput not set")
 
-        target_uinput: KnownUinput
+        if self.target_uinput not in DEFAULT_UINPUTS:
+            raise ValueError('unknown target_uinput "{target_uinput}"')
 
     def _assert_output(self) -> None:
         symbol = self.output_symbol

@@ -26,6 +26,8 @@ from inputremapper.logging.logger import logger
 MIN_ABS = -(2**15)  # -32768
 MAX_ABS = 2**15  # 32768
 DEV_NAME = "input-remapper"
+
+# These are the target_uinput values
 DEFAULT_UINPUTS = {
     # for event codes see linux/input-event-codes.h
     "keyboard": {
