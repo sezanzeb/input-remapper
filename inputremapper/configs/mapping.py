@@ -290,6 +290,10 @@ class Mapping(BaseModel):
         if symbol == DISABLE_NAME:
             return
 
+        if symbol is None:
+            # possibly analog output
+            return
+
         if Parser.is_this_a_macro(symbol):
             # Just attempt to parse to check if it is valid, this is not where the
             # actual parsing for the macro execution happens.

@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+from inputremapper.configs.input_config import InputCombination
+
 
 def tuples_to_combination(*tuples) -> InputCombination:
     """Construct an InputCombination from (type, code, analog_threshold) tuples."""
