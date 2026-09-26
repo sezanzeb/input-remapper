@@ -29,7 +29,6 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
 )
 
-from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.context import Context
@@ -37,8 +36,9 @@ from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
-from tests.lib.test_setup import test_setup
 from tests.lib.mapping_from_combination import mapping_from_combination
+from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 
 
 @test_setup
@@ -49,31 +49,29 @@ class TestContext(unittest.TestCase):
 
         preset = Preset()
         cfg = {
-            "input_combination": InputCombination.from_tuples((EV_ABS, ABS_X)),
+            "input_combination": tuples_to_combination((EV_ABS, ABS_X)),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_HWHEEL_HI_RES,
         }
         preset.add(Mapping(**cfg))  # abs x -> wheel
-        cfg["input_combination"] = InputCombination.from_tuples((EV_ABS, ABS_Y))
+        cfg["input_combination"] = tuples_to_combination((EV_ABS, ABS_Y))
         cfg["output_code"] = REL_WHEEL_HI_RES
         preset.add(Mapping(**cfg))  # abs y -> wheel
 
         preset.add(
             mapping_from_combination(
-                InputCombination.from_tuples((1, 31)), "keyboard", "key(a)"
+                tuples_to_combination((1, 31)), "keyboard", "key(a)"
             )
         )
         preset.add(
-            mapping_from_combination(
-                InputCombination.from_tuples((1, 32)), "keyboard", "b"
-            )
+            mapping_from_combination(tuples_to_combination((1, 32)), "keyboard", "b")
         )
 
         # overlapping combination for (1, 32, 1)
         preset.add(
             mapping_from_combination(
-                InputCombination.from_tuples((1, 32), (1, 33), (1, 34)),
+                tuples_to_combination((1, 32), (1, 33), (1, 34)),
                 "keyboard",
                 "c",
             )
@@ -82,7 +80,7 @@ class TestContext(unittest.TestCase):
         # map abs x to key "b"
         preset.add(
             mapping_from_combination(
-                InputCombination.from_tuples((EV_ABS, ABS_X, 20)),
+                tuples_to_combination((EV_ABS, ABS_X, 20)),
                 "keyboard",
                 "d",
             ),
@@ -123,7 +121,7 @@ class TestContext(unittest.TestCase):
         preset = Preset()
         preset.add(
             mapping_from_combination(
-                InputCombination.from_tuples((1, 31)),
+                tuples_to_combination((1, 31)),
                 "keyboard",
                 "key(a)",
             )

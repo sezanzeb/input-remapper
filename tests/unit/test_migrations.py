@@ -43,6 +43,7 @@ from inputremapper.logging.logger import VERSION
 from inputremapper.user import UserUtils
 from tests.lib.test_setup import test_setup
 from tests.lib.tmp import tmp
+from tests.lib.tuples_to_combination import tuples_to_combination
 
 
 @test_setup
@@ -284,14 +285,14 @@ class TestMigrations(unittest.TestCase):
         self.assertEqual(
             preset.get_mapping(
                 InputCombination(
-                    InputCombination.from_tuples(
+                    tuples_to_combination(
                         (EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)
                     )
                 ),
             ),
             Mapping(
                 input_combination=InputCombination(
-                    InputCombination.from_tuples(
+                    tuples_to_combination(
                         (EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)
                     ),
                 ),
@@ -662,7 +663,7 @@ class TestMigrations(unittest.TestCase):
                 config_json, {"autoload": {device_name: "foo"}, "version": VERSION}
             )
         with open(PathUtils.get_preset_path(device_name, "foo.json"), "r") as f:
-            os.system(f'cat { PathUtils.get_preset_path(device_name, "foo.json") }')
+            os.system(f"cat {PathUtils.get_preset_path(device_name, 'foo.json')}")
             preset_foo_json = json.load(f)
             self.assertEqual(
                 preset_foo_json,
@@ -705,7 +706,7 @@ class TestMigrations(unittest.TestCase):
                 config_json, {"autoload": {device_name: "bar"}, "version": VERSION}
             )
         with open(PathUtils.get_preset_path(device_name, "bar.json"), "r") as f:
-            os.system(f'cat { PathUtils.get_preset_path(device_name, "bar.json") }')
+            os.system(f"cat {PathUtils.get_preset_path(device_name, 'bar.json')}")
             preset_foo_json = json.load(f)
             self.assertEqual(
                 preset_foo_json,

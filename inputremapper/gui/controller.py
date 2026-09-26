@@ -30,7 +30,7 @@ from typing import (
 from evdev.ecodes import EV_ABS, EV_KEY, EV_REL
 from gi.repository import Gtk
 
-from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import EMPTY_TYPE, InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     Mapping,
     MappingType,

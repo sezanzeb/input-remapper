@@ -50,16 +50,16 @@ from inputremapper.configs.mapping import (
 )
 from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
+from tests.lib.event_to_config import event_to_config
 from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
     EventPipelineTestBase,
 )
-
-from tests.lib.mapping_from_combination import mapping_from_combination
-from tests.lib.event_to_config import event_to_config
 
 # timing based tests are always wonky depending on where they are run.
 max_delta = 5 if os.environ.get("DOCKER") else 3
@@ -383,38 +383,38 @@ class TestCombination(EventPipelineTestBase):
         preset = Preset()
         preset.add(
             mapping_from_combination(
-                InputCombination(InputCombination.from_tuples(b_down)), "keyboard", "b"
+                InputCombination(tuples_to_combination(b_down)), "keyboard", "b"
             )
         )
         preset.add(
             mapping_from_combination(
-                InputCombination(InputCombination.from_tuples(c_down)), "keyboard", "c"
+                InputCombination(tuples_to_combination(c_down)), "keyboard", "c"
             )
         )
         preset.add(
             mapping_from_combination(
-                InputCombination(InputCombination.from_tuples((*w_down[:2], -10))),
+                InputCombination(tuples_to_combination((*w_down[:2], -10))),
                 "keyboard",
                 "w",
             )
         )
         preset.add(
             mapping_from_combination(
-                InputCombination(InputCombination.from_tuples((*d_down[:2], 10))),
+                InputCombination(tuples_to_combination((*d_down[:2], 10))),
                 "keyboard",
                 "k(d)",
             )
         )
         preset.add(
             mapping_from_combination(
-                InputCombination(InputCombination.from_tuples((*s_down[:2], 10))),
+                InputCombination(tuples_to_combination((*s_down[:2], 10))),
                 "keyboard",
                 "s",
             )
         )
         preset.add(
             mapping_from_combination(
-                InputCombination(InputCombination.from_tuples((*a_down[:2], -10))),
+                InputCombination(tuples_to_combination((*a_down[:2], -10))),
                 "keyboard",
                 "a",
             )
@@ -1116,13 +1116,13 @@ class TestCombination(EventPipelineTestBase):
         preset = Preset()
         preset.add(
             mapping_from_combination(
-                InputCombination(InputCombination.from_tuples(down_1)),
+                InputCombination(tuples_to_combination(down_1)),
                 output_symbol="h(k(a))",
             )
         )
         preset.add(
             mapping_from_combination(
-                InputCombination(InputCombination.from_tuples(down_1, down_2)),
+                InputCombination(tuples_to_combination(down_1, down_2)),
                 output_symbol="b",
             )
         )
@@ -1189,9 +1189,7 @@ class TestCombination(EventPipelineTestBase):
         scroll_release = InputEvent.from_tuple((2, 8, 0))
         btn_down = InputEvent.key(276, 1)
         btn_up = InputEvent.key(276, 0)
-        combination = InputCombination(
-            InputCombination.from_tuples((1, 276, 1), (2, 8, -1))
-        )
+        combination = InputCombination(tuples_to_combination((1, 276, 1), (2, 8, -1)))
 
         keyboard_layout.clear()
         keyboard_layout._set("a", 30)

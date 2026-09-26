@@ -74,10 +74,10 @@ from inputremapper.gui.messages.message_data import (
     DoStackSwitch,
     GroupData,
     GroupsData,
+    MappingData,
     PresetData,
     StatusData,
     UInputsData,
-    MappingData,
 )
 from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration
 from tests.lib.logger import logger

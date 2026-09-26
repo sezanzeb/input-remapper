@@ -39,8 +39,6 @@ except ImportError:
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import DISABLE_NAME, keyboard_layout
 from inputremapper.configs.mapping import Mapping, MappingType
-from inputremapper.gui.messages.message_broker import MessageType
-from inputremapper.gui.messages.message_data import MappingData
 from tests.lib.test_setup import test_setup
 
 

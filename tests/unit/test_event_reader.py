@@ -49,8 +49,8 @@ from inputremapper.injection.mapping_handlers.mapping_parser import MappingParse
 from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 from tests.lib.fixtures import fixtures
-from tests.lib.test_setup import test_setup
 from tests.lib.mapping_from_combination import mapping_from_combination
+from tests.lib.test_setup import test_setup
 
 
 @test_setup

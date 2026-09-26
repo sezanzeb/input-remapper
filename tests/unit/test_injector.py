@@ -23,7 +23,7 @@ from inputremapper.injection.mapping_handlers.mapping_parser import MappingParse
 try:
     from pydantic.v1 import ValidationError
 except ImportError:
-    from pydantic import ValidationError
+    pass
 
 import time
 import unittest
@@ -48,8 +48,8 @@ from inputremapper.configs.keyboard_layout import (
     DISABLE_NAME,
     keyboard_layout,
 )
-from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
+from inputremapper.configs.validation_errors import OutputSymbolUnknownError
 from inputremapper.groups import DeviceType, classify, groups
 from inputremapper.injection.context import Context
 from inputremapper.injection.injector import (
@@ -62,10 +62,9 @@ from inputremapper.injection.injector import (
 )
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.input_event import InputEvent
-from inputremapper.configs.validation_errors import OutputSymbolUnknownError
-
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import fixtures, keyboard_keys
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.patches import uinputs
 from tests.lib.pipes import (
     push_events,
@@ -73,7 +72,7 @@ from tests.lib.pipes import (
     uinput_write_history_pipe,
 )
 from tests.lib.test_setup import test_setup
-from tests.lib.mapping_from_combination import mapping_from_combination
+from tests.lib.tuples_to_combination import tuples_to_combination
 
 
 def wait_for_uinput_write():
@@ -572,18 +571,18 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
 
     def test_is_in_capabilities(self):
-        key = InputCombination(InputCombination.from_tuples((1, 2, 1)))
+        key = InputCombination(tuples_to_combination((1, 2, 1)))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = InputCombination(InputCombination.from_tuples((1, 2, 1), (1, 3, 1)))
+        key = InputCombination(tuples_to_combination((1, 2, 1), (1, 3, 1)))
         capabilities = {1: [9, 2, 5]}
         # only one of the codes of the combination is required.
         # The goal is to make combinations= across those sub-devices possible,
         # that make up one hardware device
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = InputCombination(InputCombination.from_tuples((1, 2, 1), (1, 5, 1)))
+        key = InputCombination(tuples_to_combination((1, 2, 1), (1, 5, 1)))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 

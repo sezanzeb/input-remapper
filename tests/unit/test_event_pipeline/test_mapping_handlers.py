@@ -40,6 +40,7 @@ from evdev.ecodes import (
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import DEFAULT_REL_RATE, KnownUinput, Mapping
+from inputremapper.gui.forward_to_ui_handler import ForwardToUIHandler
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
@@ -59,13 +60,12 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
-from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.gui.forward_to_ui_handler import ForwardToUIHandler
+from inputremapper.input_event import EventActions, InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.fixtures import fixtures
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.patches import InputDevice
 from tests.lib.test_setup import test_setup
-from tests.lib.mapping_from_combination import mapping_from_combination
 
 
 class BaseTests:

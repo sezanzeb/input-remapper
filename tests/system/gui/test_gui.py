@@ -35,11 +35,11 @@ from evdev.ecodes import (
 )
 
 from inputremapper.input_event import InputEvent
+from tests.lib.event_to_config import event_to_config
 from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
 from tests.lib.spy import spy
-from tests.lib.event_to_config import event_to_config
 from tests.system.gui.test_components import FlowBoxTestUtils
 
 gi.require_version("Gdk", "3.0")

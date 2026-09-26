@@ -27,8 +27,9 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from tests.lib.test_setup import test_setup
 from tests.lib.mapping_from_combination import mapping_from_combination
+from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 
 
 @test_setup
@@ -39,7 +40,7 @@ class TestPreset(unittest.TestCase):
 
     def test_is_mapped_multiple_times(self):
         combination = InputCombination(
-            InputCombination.from_tuples((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4))
+            tuples_to_combination((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4))
         )
         permutations = combination.get_permutations()
         self.assertEqual(len(permutations), 6)

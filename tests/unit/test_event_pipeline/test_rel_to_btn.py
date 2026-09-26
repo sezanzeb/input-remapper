@@ -30,17 +30,15 @@ from evdev.ecodes import (
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.mapping import (
-    Mapping,
-)
 from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import fixtures
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
     EventPipelineTestBase,
 )
-from tests.lib.mapping_from_combination import mapping_from_combination
 
 
 @test_setup
@@ -64,10 +62,10 @@ class TestRelToBtn(EventPipelineTestBase):
         # set a high release timeout to make sure the tests pass
         release_timeout = 0.2
         mapping_1 = mapping_from_combination(
-            InputCombination(InputCombination.from_tuples(hw_right)), "keyboard", "k(b)"
+            InputCombination(tuples_to_combination(hw_right)), "keyboard", "k(b)"
         )
         mapping_2 = mapping_from_combination(
-            InputCombination(InputCombination.from_tuples(w_up)), "keyboard", "c"
+            InputCombination(tuples_to_combination(w_up)), "keyboard", "c"
         )
         mapping_1.release_timeout = release_timeout
         mapping_2.release_timeout = release_timeout

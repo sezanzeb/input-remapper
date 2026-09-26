@@ -7,7 +7,6 @@ import evdev
 from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C, KEY_LEFTSHIFT
 
 from inputremapper.configs.input_config import InputConfig
-from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
@@ -16,11 +15,11 @@ from inputremapper.injection.macros.parse import Parser
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import fixtures
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.patches import InputDevice
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
 from tests.unit.test_macros.macro_test_base import DummyMapping, MacroTestBase
-from tests.lib.mapping_from_combination import mapping_from_combination
 
 
 @test_setup

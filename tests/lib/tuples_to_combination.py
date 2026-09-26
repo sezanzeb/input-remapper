@@ -16,24 +16,28 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Migration functions.
 
-Only write changes to disk, if there actually are changes. Otherwise, file-modification
-dates are destroyed.
-"""
+def tuples_to_combination(*tuples) -> InputCombination:
+    """Construct an InputCombination from (type, code, analog_threshold) tuples."""
+    # shorthand for tests.
+    dicts = []
+    for tuple_ in tuples:
+        if len(tuple_) == 3:
+            dicts.append(
+                {
+                    "type": tuple_[0],
+                    "code": tuple_[1],
+                    "analog_threshold": tuple_[2],
+                }
+            )
+        elif len(tuple_) == 2:
+            dicts.append(
+                {
+                    "type": tuple_[0],
+                    "code": tuple_[1],
+                }
+            )
+        else:
+            raise TypeError
 
-from inputremapper.configs.input_config import (
-    DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
-    InputConfig,
-)
-
-
-def event_to_config(event: InputEvent) -> InputConfig:
-    """create an input confing from the given InputEvent."""
-    sign = 1 if event.value > 0 else -1
-    return InputConfig(
-        type=event.type,
-        code=event.code,
-        origin_hash=event.origin_hash,
-        analog_threshold=DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE * sign,
-    )
+    return InputCombination(dicts)

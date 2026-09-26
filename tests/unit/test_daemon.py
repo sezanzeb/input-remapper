@@ -30,7 +30,6 @@ from evdev.ecodes import ABS_X, BTN_A, BTN_B, EV_KEY, KEY_A, KEY_B
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
-from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.daemon import DAEMON, Daemon
@@ -42,10 +41,10 @@ from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 from tests.lib.fixtures import Fixture, fixtures
 from tests.lib.logger import logger
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.pipes import push_events, uinput_write_history_pipe
 from tests.lib.test_setup import is_service_running, test_setup
 from tests.lib.tmp import tmp
-from tests.lib.mapping_from_combination import mapping_from_combination
 
 
 @test_setup
