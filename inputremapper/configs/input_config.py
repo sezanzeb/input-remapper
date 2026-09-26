@@ -118,17 +118,6 @@ class InputConfig(BaseModel):
     def btn_left(cls):
         return cls(type=ecodes.EV_KEY, code=ecodes.BTN_LEFT)
 
-    @classmethod
-    def from_input_event(cls, event: InputEvent) -> InputConfig:
-        """create an input confing from the given InputEvent, uses the value as
-        analog threshold"""
-        return cls(
-            type=event.type,
-            code=event.code,
-            origin_hash=event.origin_hash,
-            analog_threshold=event.value,
-        )
-
     def description(self, exclude_threshold=False, exclude_direction=False) -> str:
         """Get a human-readable description of the event."""
         return (
@@ -332,6 +321,8 @@ InputCombinationInit = Iterable[dict[str, str | int]] | Iterable[InputConfig]
 class InputCombination(tuple[InputConfig, ...]):
     """One or more InputConfigs used to trigger a mapping."""
 
+    # TODO turn into classmethods, no smart automatic flexibility,
+    #  strict behavior and clear datatypes instead
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
     def __new__(cls, configs: InputCombinationInit) -> Self:
@@ -369,7 +360,7 @@ class InputCombination(tuple[InputConfig, ...]):
         return super().__new__(cls, validated_configs)  # type: ignore
 
     def __str__(self):
-        return f'Combination ({" + ".join(str(event) for event in self)})'
+        return f"Combination ({' + '.join(str(event) for event in self)})"
 
     def __repr__(self):
         combination = ", ".join(repr(event) for event in self)

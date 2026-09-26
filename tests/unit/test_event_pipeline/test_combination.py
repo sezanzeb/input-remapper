@@ -57,7 +57,9 @@ from tests.lib.test_setup import test_setup
 from tests.unit.test_event_pipeline.event_pipeline_test_base import (
     EventPipelineTestBase,
 )
+
 from tests.lib.mapping_from_combination import mapping_from_combination
+from tests.lib.event_to_config import event_to_config
 
 # timing based tests are always wonky depending on where they are run.
 max_delta = 5 if os.environ.get("DOCKER") else 3
@@ -995,7 +997,7 @@ class TestCombination(EventPipelineTestBase):
             mapping_from_combination(
                 input_combination=InputCombination(
                     [
-                        InputConfig.from_input_event(ev_1),
+                        event_to_config(ev_1),
                     ]
                 ),
                 output_symbol="a",
@@ -1005,7 +1007,7 @@ class TestCombination(EventPipelineTestBase):
             mapping_from_combination(
                 input_combination=InputCombination(
                     [
-                        InputConfig.from_input_event(ev_3),
+                        event_to_config(ev_3),
                     ]
                 ),
                 output_symbol="disable",
@@ -1015,8 +1017,8 @@ class TestCombination(EventPipelineTestBase):
             mapping_from_combination(
                 input_combination=InputCombination(
                     (
-                        InputConfig.from_input_event(combi_1[0]),
-                        InputConfig.from_input_event(combi_1[1]),
+                        event_to_config(combi_1[0]),
+                        event_to_config(combi_1[1]),
                     )
                 ),
                 output_symbol="b",
@@ -1026,8 +1028,8 @@ class TestCombination(EventPipelineTestBase):
             mapping_from_combination(
                 input_combination=InputCombination(
                     (
-                        InputConfig.from_input_event(combi_2[0]),
-                        InputConfig.from_input_event(combi_2[1]),
+                        event_to_config(combi_2[0]),
+                        event_to_config(combi_2[1]),
                     )
                 ),
                 output_symbol="c",
@@ -1244,13 +1246,13 @@ class TestCombination(EventPipelineTestBase):
         ev_6 = InputEvent.key(KEY_C, 0)
 
         mapping_1 = Mapping(
-            input_combination=InputCombination([InputConfig.from_input_event(ev_2)]),
+            input_combination=InputCombination([event_to_config(ev_2)]),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=BTN_TL,
         )
         mapping_2 = Mapping(
-            input_combination=InputCombination([InputConfig.from_input_event(ev_3)]),
+            input_combination=InputCombination([event_to_config(ev_3)]),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=KEY_A,

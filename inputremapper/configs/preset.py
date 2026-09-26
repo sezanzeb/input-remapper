@@ -192,7 +192,7 @@ class Preset:
 
         if not isinstance(combination, InputCombination):
             raise TypeError(
-                f"combination must by of type InputCombination, got {type(combination)}"
+                f"combination must be of type InputCombination, got {type(combination)}"
             )
 
         for permutation in combination.get_permutations():

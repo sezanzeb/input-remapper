@@ -39,6 +39,7 @@ from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
 from tests.lib.spy import spy
+from tests.lib.event_to_config import event_to_config
 from tests.system.gui.test_components import FlowBoxTestUtils
 
 gi.require_version("Gdk", "3.0")
@@ -516,7 +517,7 @@ class TestGui(GuiTestBase):
             gtk_iteration()
             return InputCombination(
                 [
-                    InputConfig.from_input_event(event).modify(
+                    event_to_config(event).modify(
                         origin_hash=fixtures.foo_device_2_gamepad.get_device_hash()
                     )
                 ]
@@ -599,7 +600,7 @@ class TestGui(GuiTestBase):
             """
             configs = []
             for event in combi:
-                config = InputConfig.from_input_event(event)
+                config = event_to_config(event)
                 configs.append(config)
             return InputCombination(configs)
 
