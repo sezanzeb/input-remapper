@@ -280,62 +280,6 @@ class Mapping(BaseModel):
         """If the mapping is valid."""
         return len(self.get_readable_strict_errors()) == 0
 
-    def _format_error_message(self, error: ValueError) -> str:
-        """Check all the different error messages which are not useful for the user."""
-        if (
-            error is MacroButTypeOrCodeSetError or error is SymbolAndCodeMismatchError
-        ) and self.input_combination.defines_analog_input:
-            return _(
-                "Remove the macro or key from the macro input field "
-                "when specifying an analog output"
-            )
-
-        if (
-            error is MacroButTypeOrCodeSetError or error is SymbolAndCodeMismatchError
-        ) and not self.input_combination.defines_analog_input:
-            return _(
-                "Remove the Analog Output Axis when specifying a macro or key output"
-            )
-
-        if error is MissingOutputAxisError:
-            error_message = _(
-                "The input specifies an analog axis, but no output axis is selected."
-            )
-            if self.output_symbol is not None:
-                event = next(
-                    event
-                    for event in self.input_combination
-                    if event.defines_analog_input
-                )
-                error_message += (
-                    _(
-                        "\nIf you mean to create a key or macro mapping "
-                        "go to the advanced input configuration"
-                        ' and set a "Trigger Threshold" for "%s"'
-                    )
-                    % event.description()
-                )
-            return error_message
-
-        if error is WrongMappingTypeForKeyError:
-            error_message = (
-                _('The input specifies a key, but the output type is not "%s".')
-                % OutputTypeNames.key_or_macro
-            )
-
-            if self.output_type in (EV_ABS, EV_REL):
-                error_message += _(
-                    "\nIf you mean to create an analog axis mapping go to the "
-                    'advanced input configuration and set an input to "Use as Analog".'
-                )
-
-            return error_message
-
-        if error is MissingMacroOrKeyError:
-            return _("Missing macro or key")
-
-        return str(error)
-
     @root_validator
     def validate_mapping_type(cls, values):
         """Overrides the mapping type if the output mapping type is obvious."""
@@ -423,6 +367,8 @@ class Mapping(BaseModel):
         # TODO check that input_combination is not empty? Would this mimic
         #  the (non-UI)Mapping properly?
         # input_combination: InputCombination
+
+        # TODO check if the target_uinput exists?
 
         if self.target_uinput is None:
             raise ValueError("target_uinput not set")
@@ -533,3 +479,59 @@ class Mapping(BaseModel):
             and output_symbol != DISABLE_NAME
         ):
             raise MissingOutputAxisError(analog_input_config, output_type)
+
+    def _format_error_message(self, error: ValueError) -> str:
+        """Check all the different error messages which are not useful for the user."""
+        if (
+            error is MacroButTypeOrCodeSetError or error is SymbolAndCodeMismatchError
+        ) and self.input_combination.defines_analog_input:
+            return _(
+                "Remove the macro or key from the macro input field "
+                "when specifying an analog output"
+            )
+
+        if (
+            error is MacroButTypeOrCodeSetError or error is SymbolAndCodeMismatchError
+        ) and not self.input_combination.defines_analog_input:
+            return _(
+                "Remove the Analog Output Axis when specifying a macro or key output"
+            )
+
+        if error is MissingOutputAxisError:
+            error_message = _(
+                "The input specifies an analog axis, but no output axis is selected."
+            )
+            if self.output_symbol is not None:
+                event = next(
+                    event
+                    for event in self.input_combination
+                    if event.defines_analog_input
+                )
+                error_message += (
+                    _(
+                        "\nIf you mean to create a key or macro mapping "
+                        "go to the advanced input configuration"
+                        ' and set a "Trigger Threshold" for "%s"'
+                    )
+                    % event.description()
+                )
+            return error_message
+
+        if error is WrongMappingTypeForKeyError:
+            error_message = (
+                _('The input specifies a key, but the output type is not "%s".')
+                % OutputTypeNames.key_or_macro
+            )
+
+            if self.output_type in (EV_ABS, EV_REL):
+                error_message += _(
+                    "\nIf you mean to create an analog axis mapping go to the "
+                    'advanced input configuration and set an input to "Use as Analog".'
+                )
+
+            return error_message
+
+        if error is MissingMacroOrKeyError:
+            return _("Missing macro or key")
+
+        return str(error)

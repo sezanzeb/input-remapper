@@ -223,7 +223,9 @@ class Preset:
         )
 
     def _combination_changed_callback(
-        self, new: InputCombination, old: InputCombination
+        self,
+        new: InputCombination,
+        old: InputCombination,
     ) -> None:
         for permutation in new.get_permutations():
             if permutation in self._mappings and permutation != old:
