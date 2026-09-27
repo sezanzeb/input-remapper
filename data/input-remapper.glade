@@ -34,7 +34,7 @@
               <object class="GtkLabel" id="systray-label">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Close to system tray</property>
+                <property name="label" translatable="yes">Enable system tray</property>
                 <property name="halign">start</property>
               </object>
               <packing>

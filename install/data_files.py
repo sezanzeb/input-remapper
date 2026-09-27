@@ -41,7 +41,13 @@ def get_data_files() -> list[tuple[str, list[str]]]:
         # with an empty inputremapper.Control.conf file, causing dbus to fail to start,
         # which rendered the whole operating system unusable.
         ("usr/share/dbus-1/system.d/", ["data/inputremapper.Control.conf"]),
-        ("etc/xdg/autostart/", ["data/input-remapper-autoload.desktop"]),
+        (
+            "etc/xdg/autostart/",
+            [
+                "data/input-remapper-autoload.desktop",
+                "data/input-remapper-tray.desktop",
+            ],
+        ),
         ("usr/lib/udev/rules.d", ["data/69-input-remapper-forwarded.rules"]),
         ("usr/lib/udev/rules.d", ["data/99-input-remapper.rules"]),
         ("usr/bin/", ["bin/input-remapper-gtk"]),

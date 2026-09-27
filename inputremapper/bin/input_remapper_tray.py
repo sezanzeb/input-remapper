@@ -100,6 +100,13 @@ class InputRemapperTrayBin:
             )
             sys.exit(0)
 
+        # GlobalConfig() starts from defaults; make sure we act on the stored
+        # values so a disabled tray exits quickly.
+        self.global_config.load_config()
+        if not self.global_config.get_systray():
+            logger.info("System tray is disabled in config. Exiting.")
+            sys.exit(0)
+
         if not self.is_supported:
             try:
                 dialog = Gtk.MessageDialog(
@@ -287,8 +294,8 @@ class InputRemapperTrayBin:
         except Exception as e:
             logger.error("Failed to check config file mtime: %s", e)
 
-        if self.gui_spawned and not self.global_config.get_systray():
-            logger.info("Systray disabled in config. Exiting tray helper.")
+        if not self.global_config.get_systray():
+            logger.info("System tray disabled in config. Exiting tray helper.")
             Gtk.main_quit()
             return False
 
