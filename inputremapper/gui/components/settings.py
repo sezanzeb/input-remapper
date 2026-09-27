@@ -58,36 +58,15 @@ class SettingsMenu:
         self._row = systray_row
         self._label = systray_label
 
-        # Detect if system tray was started standalone (independently of this GUI)
-        is_standalone_running = False
-        if HAS_APPINDICATOR:
-            is_standalone_running = ProcessUtils.count_python_processes(
-                "input-remapper-tray"
-            ) > ProcessUtils.count_python_processes(
-                "input-remapper-tray", ["--gui-spawned"]
-            )
+        enabled = self.controller.data_manager.global_config.get_systray()
+        self._switch.set_active(enabled)
 
-        enabled = (
-            HAS_APPINDICATOR
-            and self.controller.data_manager.global_config.get_systray()
-        )
-
-        self._is_standalone_running = is_standalone_running
-
-        if is_standalone_running:
-            self._switch.set_active(True)
+        if not HAS_APPINDICATOR:
             self._row.set_sensitive(False)
-            self._label.set_text(_("Close to system tray (Standalone)"))
-        elif not HAS_APPINDICATOR:
-            self._row.set_sensitive(False)
-            self._label.set_text(_("Close to system tray (Requires AppIndicator)"))
-        else:
-            self._row.set_sensitive(True)
-            self._label.set_text(_("Close to system tray"))
-            self._switch.set_active(enabled)
+            self._label.set_text(_("Enable system tray (Requires AppIndicator)"))
 
         # Start the tray helper process if it is enabled and not already running
-        if enabled:
+        if enabled and HAS_APPINDICATOR:
             self._spawn_tray_if_needed()
 
         self._switch.connect("notify::active", self._on_switch_active_changed)
@@ -95,8 +74,10 @@ class SettingsMenu:
     def _on_switch_active_changed(self, widget: Gtk.Switch, _gparam) -> None:
         active = widget.get_active()
         self.controller.data_manager.global_config.set_systray(active)
-        if active:
+        if active and HAS_APPINDICATOR:
             self._spawn_tray_if_needed()
+        elif not active:
+            self._terminate_tray()
 
     def _spawn_tray_if_needed(self) -> None:
         """Start the tray helper process if not already running."""
@@ -106,3 +87,13 @@ class SettingsMenu:
                 subprocess.Popen(["input-remapper-tray", "--gui-spawned"])
         except OSError as e:
             logger.error("Failed to spawn input-remapper-tray: %s", e)
+
+    def _terminate_tray(self) -> None:
+        """Terminate any running GUI-spawned tray helper process."""
+        terminated = ProcessUtils.terminate_python_processes(
+            "input-remapper-tray", ["--gui-spawned"]
+        )
+        if terminated:
+            logger.info(
+                "Terminated %d running GUI-spawned tray process(es)", terminated
+            )
