@@ -61,12 +61,26 @@ class SettingsMenu:
         enabled = self.controller.data_manager.global_config.is_systray()
         self._switch.set_active(enabled)
 
-        if not HAS_APPINDICATOR:
+        # A tray that wasn't spawned by this GUI and isn't acting on the config
+        # (started manually) isn't governed by this switch, so gray it out. An
+        # autostarted tray uses --check-autostart and still honors the config.
+        standalone_running = ProcessUtils.count_python_processes(
+            "input-remapper-tray"
+        ) > ProcessUtils.count_python_processes(
+            "input-remapper-tray", ["--gui-spawned"]
+        ) + ProcessUtils.count_python_processes(
+            "input-remapper-tray", ["--check-autostart"]
+        )
+
+        if standalone_running and HAS_APPINDICATOR:
+            self._row.set_sensitive(False)
+            self._label.set_text(_("Enable system tray (Started manually)"))
+        elif not HAS_APPINDICATOR:
             self._row.set_sensitive(False)
             self._label.set_text(_("Enable system tray (Requires AppIndicator)"))
 
         # Start the tray helper process if it is enabled and not already running
-        if enabled and HAS_APPINDICATOR:
+        if enabled and HAS_APPINDICATOR and not standalone_running:
             self._spawn_tray_if_needed()
 
         self._switch.connect("notify::active", self._on_switch_active_changed)
