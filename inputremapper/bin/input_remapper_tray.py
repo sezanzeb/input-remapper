@@ -448,8 +448,16 @@ class InputRemapperTrayBin:
             is_suspended = self.daemon.is_suspended()
             self.daemon.set_suspended(not is_suspended)
             self.rebuild_menu()
-        except Exception as e:
+        except DBusError as e:
             logger.error("Failed to toggle global suspend state: %s", e)
+            self._notify(_("Failed to toggle global suspend state"))
+
+    def _notify(self, message: str) -> None:
+        """Show a desktop notification, if possible."""
+        try:
+            subprocess.Popen(["notify-send", "input-remapper", message])
+        except OSError as e:
+            logger.error("Failed to show notification: %s", e)
 
     def _on_device_preset_toggle(
         self, widget: Gtk.CheckMenuItem, group_key: str, preset_name: str
@@ -463,14 +471,19 @@ class InputRemapperTrayBin:
             )
             try:
                 self.daemon.set_config_dir(self.global_config.get_dir())
-                self.daemon.start_injecting(group_key, preset_name)
+                started = self.daemon.start_injecting(group_key, preset_name)
                 self.rebuild_menu()
-            except Exception as e:
+                if not started:
+                    logger.error("Failed to start injection for device %s", group_key)
+                    self._notify(_("Failed to start injection"))
+            except DBusError as e:
                 logger.error("Failed to start injection: %s", e)
+                self._notify(_("Failed to start injection"))
         else:
             logger.info("Stopping injection for device %s", group_key)
             try:
                 self.daemon.stop_injecting(group_key)
                 self.rebuild_menu()
-            except Exception as e:
+            except DBusError as e:
                 logger.error("Failed to stop injection: %s", e)
+                self._notify(_("Failed to stop injection"))
