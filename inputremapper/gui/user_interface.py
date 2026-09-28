@@ -25,7 +25,6 @@ from gi.repository import Gdk, GObject, Gtk, GtkSource
 
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.input_config import InputCombination
-from inputremapper.configs.mapping import MappingData
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components.common import Breadcrumbs
 from inputremapper.gui.components.device_groups import DeviceGroupSelection
@@ -58,7 +57,7 @@ from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_data import UserConfirmRequest
+from inputremapper.gui.messages.message_data import MappingData, UserConfirmRequest
 from inputremapper.gui.utils import (
     gtk_iteration,
 )
@@ -241,8 +240,7 @@ class UserInterface:
         # dialog is not centered when it is opened for the first time
         self.about.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
         self.get("version-label").set_text(
-            f"input-remapper {VERSION} {COMMIT_HASH[:7]}"
-            f"\npython-evdev {EVDEV_VERSION}"
+            f"input-remapper {VERSION} {COMMIT_HASH[:7]}\npython-evdev {EVDEV_VERSION}"
             if EVDEV_VERSION
             else ""
         )
@@ -380,8 +378,9 @@ class UserInterface:
         logger.debug("Closing window")
         self.window.hide()
 
-    def update_combination_label(self, mapping: MappingData):
+    def update_combination_label(self, mapping_data: MappingData):
         """Listens for mapping and updates the combination label."""
+        mapping = mapping_data.mapping
         label: Gtk.Label = self.get("combination-label")
         if mapping.input_combination.beautify() == label.get_label():
             return

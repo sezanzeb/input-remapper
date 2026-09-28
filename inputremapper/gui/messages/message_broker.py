@@ -52,6 +52,7 @@ class MessageBroker:
     def publish(self, data: Message):
         """Schedule a massage to be sent.
         The message will be sent after all currently pending messages are sent."""
+        assert data.message_type
         self._messages.append((data, *self.get_caller()))
         self._publish_all()
 

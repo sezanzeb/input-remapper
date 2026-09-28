@@ -20,7 +20,6 @@
 import asyncio
 import multiprocessing
 import os
-import select
 import time
 import unittest
 

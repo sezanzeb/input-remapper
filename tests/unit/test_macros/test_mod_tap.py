@@ -7,7 +7,6 @@ import evdev
 from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C, KEY_LEFTSHIFT
 
 from inputremapper.configs.input_config import InputConfig
-from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
@@ -16,6 +15,7 @@ from inputremapper.injection.macros.parse import Parser
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import fixtures
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.patches import InputDevice
 from tests.lib.pipes import uinput_write_history
 from tests.lib.test_setup import test_setup
@@ -38,7 +38,7 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
         self.target_uinput = self.global_uinputs.get_uinput("keyboard")
         self.mapping_parser = MappingParser(self.global_uinputs)
 
-        self.mapping = Mapping.from_combination(
+        self.mapping = mapping_from_combination(
             input_combination=[
                 InputConfig(
                     type=EV_KEY,
@@ -319,7 +319,7 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
         # asyncio to do that stuff later, and continues reading.
 
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 input_combination=[
                     InputConfig(
                         type=EV_KEY,

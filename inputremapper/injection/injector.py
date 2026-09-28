@@ -272,7 +272,7 @@ class Injector(multiprocessing.Process):
         input_configs = set()
 
         # find all unique input_config's
-        for mapping in self.preset:
+        for mapping in self.preset.get_mappings():
             for input_config in mapping.input_combination:
                 input_configs.add(input_config)
 
@@ -291,11 +291,11 @@ class Injector(multiprocessing.Process):
 
         return grabbed_devices
 
-    def _update_preset(self):
+    def _update_preset(self) -> None:
         """Update all InputConfigs in the preset to include correct origin_hash
         information."""
         mappings_by_input = defaultdict(list)
-        for mapping in self.preset:
+        for mapping in self.preset.get_mappings():
             for input_config in mapping.input_combination:
                 mappings_by_input[input_config].append(mapping)
 
@@ -374,7 +374,7 @@ class Injector(multiprocessing.Process):
                 await self._close()
                 return
 
-    async def _close(self):
+    async def _close(self) -> None:
         logger.debug("Received close signal")
         self._stop_event.set()
         # give the event pipeline some time to reset devices

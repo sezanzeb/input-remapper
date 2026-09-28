@@ -21,7 +21,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from inputremapper.configs.input_config import InputCombination
-from inputremapper.configs.mapping import MappingData
+from inputremapper.configs.mapping import Mapping
 from inputremapper.gui.messages.message_types import (
     Capabilities,
     DeviceTypes,
@@ -29,6 +29,16 @@ from inputremapper.gui.messages.message_types import (
     MessageType,
     Name,
 )
+
+
+@dataclass(frozen=True)
+class MappingData:
+    message_type = MessageType.mapping
+    # Do not edit the mapping object in the message please. Use
+    # controller.update_mapping instead. Used to be immutable, but for architecture
+    # simplifications it isn't anymore. I think the mutable mapping was usually
+    # accessible as well anyway.
+    mapping: Mapping
 
 
 @dataclass(frozen=True)
@@ -77,7 +87,7 @@ class PresetData:
 
     message_type = MessageType.preset
     name: Name | None
-    mappings: tuple[MappingData, ...] | None
+    mappings: tuple[Mapping, ...] | None
     autoload: bool = False
 
 

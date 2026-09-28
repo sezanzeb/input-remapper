@@ -150,7 +150,7 @@ class AbsToRelHandler(MappingHandler):
     def reset(self) -> None:
         self._stop = True
 
-    def _write(self, type_, keycode, value):
+    def _write(self, type_: int, keycode: int, value: int) -> None:
         """Inject."""
         # if the mouse won't move even though correct stuff is written here,
         # the capabilities are probably wrong
@@ -179,7 +179,7 @@ class AbsToRelHandler(MappingHandler):
             return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}
 
-    def _calculate_output(self, value, weight, remainder):
+    def _calculate_output(self, value, weight, remainder) -> None:
         # self._value is between 0 and 1, scale up with weight
         scaled = value * weight + remainder
         # float_value % 1 will result in wrong calculations for negative values
