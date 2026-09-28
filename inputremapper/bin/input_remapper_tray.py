@@ -74,8 +74,10 @@ class InputRemapperTrayBin:
         self,
         global_config: GlobalConfig,
         gui_spawned: bool,
+        check_autostart: bool,
     ) -> None:
         self.global_config = global_config
+        self.check_autostart = check_autostart
         self.daemon: DaemonProxy | None = None
         self.indicator: AppIndicator.Indicator | None = None
         self.is_supported = HAS_APPINDICATOR
@@ -109,10 +111,21 @@ class InputRemapperTrayBin:
             help="The tray was spawned from the GUI",
             default=False,
         )
+        parser.add_argument(
+            "--check-autostart",
+            action="store_true",
+            dest="check_autostart",
+            help="Exit if the system tray is disabled in the config",
+            default=False,
+        )
         options = parser.parse_args(sys.argv[1:])
         logger.update_verbosity(options.debug)
         global_config = GlobalConfig()
-        tray = InputRemapperTrayBin(global_config, options.gui_spawned)
+        tray = InputRemapperTrayBin(
+            global_config,
+            options.gui_spawned,
+            options.check_autostart,
+        )
         tray.run()
 
     def run(self) -> None:
@@ -123,9 +136,9 @@ class InputRemapperTrayBin:
             sys.exit(0)
 
         # GlobalConfig() starts from defaults; make sure we act on the stored
-        # values so a disabled tray exits quickly.
+        # values so a disabled (autostarted) tray exits quickly.
         self.global_config.load_config()
-        if not self.global_config.is_systray():
+        if self.check_autostart and not self.global_config.is_systray():
             logger.info("System tray is disabled in config. Exiting.")
             sys.exit(0)
 
@@ -315,7 +328,7 @@ class InputRemapperTrayBin:
         except Exception as e:
             logger.error("Failed to check config file mtime: %s", e)
 
-        if not self.global_config.is_systray():
+        if self.check_autostart and not self.global_config.is_systray():
             logger.info("System tray disabled in config. Exiting tray helper.")
             Gtk.main_quit()
             return False

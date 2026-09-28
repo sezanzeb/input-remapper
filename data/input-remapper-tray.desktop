@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec=input-remapper-tray
+Exec=input-remapper-tray --check-autostart
 Name=input-remapper-tray
 Icon=input-remapper
 Terminal=false
