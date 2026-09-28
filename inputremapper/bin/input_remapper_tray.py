@@ -25,6 +25,7 @@ import os
 import subprocess
 import sys
 import threading
+from argparse import ArgumentParser
 
 import gi
 
@@ -69,7 +70,11 @@ from inputremapper.logging.logger import logger
 
 
 class InputRemapperTrayBin:
-    def __init__(self, global_config: GlobalConfig) -> None:
+    def __init__(
+        self,
+        global_config: GlobalConfig,
+        gui_spawned: bool,
+    ) -> None:
         self.global_config = global_config
         self.daemon: DaemonProxy | None = None
         self.indicator: AppIndicator.Indicator | None = None
@@ -84,13 +89,30 @@ class InputRemapperTrayBin:
         self.last_presets_mtimes: dict[str, float] = {}
         self.refresh_thread: threading.Thread | None = None
         self.refresh_lock = threading.Lock()
-        self.gui_spawned = "--gui-spawned" in sys.argv
+        self.gui_spawned = gui_spawned
 
     @staticmethod
     def main() -> None:
-        logger.update_verbosity(True)
+        parser = ArgumentParser()
+        parser.add_argument(
+            "-d",
+            "--debug",
+            action="store_true",
+            dest="debug",
+            help="Displays additional debug information",
+            default=False,
+        )
+        parser.add_argument(
+            "--gui-spawned",
+            action="store_true",
+            dest="gui_spawned",
+            help="The tray was spawned from the GUI",
+            default=False,
+        )
+        options = parser.parse_args(sys.argv[1:])
+        logger.update_verbosity(options.debug)
         global_config = GlobalConfig()
-        tray = InputRemapperTrayBin(global_config)
+        tray = InputRemapperTrayBin(global_config, options.gui_spawned)
         tray.run()
 
     def run(self) -> None:
@@ -395,7 +417,10 @@ class InputRemapperTrayBin:
             return
 
         logger.info("Spawning input-remapper-gtk")
-        subprocess.Popen(["input-remapper-gtk"])
+        args = ["input-remapper-gtk"]
+        if logger.is_debug():
+            args.append("-d")
+        subprocess.Popen(args)
 
     def _on_exit_activate(self, _widget) -> None:
         terminated = ProcessUtils.terminate_python_processes("input-remapper-gtk")

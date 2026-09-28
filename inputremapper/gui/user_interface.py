@@ -419,7 +419,10 @@ class UserInterface:
             try:
                 if ProcessUtils.count_python_processes("input-remapper-tray") == 0:
                     logger.info("Spawning detached system tray process")
-                    subprocess.Popen(["input-remapper-tray", "--gui-spawned"])
+                    args = ["input-remapper-tray", "--gui-spawned"]
+                    if logger.is_debug():
+                        args.append("-d")
+                    subprocess.Popen(args)
             except OSError as e:
                 logger.error("Failed to spawn input-remapper-tray: %s", e)
 
