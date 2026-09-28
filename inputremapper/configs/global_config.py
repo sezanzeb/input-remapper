@@ -86,7 +86,7 @@ class GlobalConfig:
 
         return self._config.get("autoload", {}).get(group_key) == preset
 
-    def get_systray(self) -> bool:
+    def is_systray(self) -> bool:
         """Check if the system tray is enabled."""
         return self._config.get("enable_system_tray", True)
 

@@ -58,7 +58,7 @@ class SettingsMenu:
         self._row = systray_row
         self._label = systray_label
 
-        enabled = self.controller.data_manager.global_config.get_systray()
+        enabled = self.controller.data_manager.global_config.is_systray()
         self._switch.set_active(enabled)
 
         if not HAS_APPINDICATOR:

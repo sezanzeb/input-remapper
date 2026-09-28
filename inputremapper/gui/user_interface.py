@@ -412,10 +412,7 @@ class UserInterface:
                 pass
 
     def on_gtk_close(self, *_):
-        if (
-            HAS_APPINDICATOR
-            and self.controller.data_manager.global_config.get_systray()
-        ):
+        if HAS_APPINDICATOR and self.controller.data_manager.global_config.is_systray():
             try:
                 if ProcessUtils.count_python_processes("input-remapper-tray") == 0:
                     logger.info("Spawning detached system tray process")
