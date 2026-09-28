@@ -125,7 +125,7 @@ class InputRemapperTrayBin:
         # GlobalConfig() starts from defaults; make sure we act on the stored
         # values so a disabled tray exits quickly.
         self.global_config.load_config()
-        if not self.global_config.get_systray():
+        if not self.global_config.is_systray():
             logger.info("System tray is disabled in config. Exiting.")
             sys.exit(0)
 
@@ -315,7 +315,7 @@ class InputRemapperTrayBin:
         except Exception as e:
             logger.error("Failed to check config file mtime: %s", e)
 
-        if not self.global_config.get_systray():
+        if not self.global_config.is_systray():
             logger.info("System tray disabled in config. Exiting tray helper.")
             Gtk.main_quit()
             return False
