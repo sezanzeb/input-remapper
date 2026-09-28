@@ -370,7 +370,10 @@ class InputCombination(tuple[InputConfig, ...]):
         return super().__new__(cls, validated_configs)  # type: ignore
 
     def __str__(self):
-        return f"Combination ({' + '.join(str(event) for event in self)})"
+        if len(self) == 1 and self[0].type == EMPTY_TYPE:
+            return "Empty InputCombination"
+
+        return f"InputCombination ({' + '.join(str(event) for event in self)})"
 
     def __repr__(self):
         combination = ", ".join(repr(event) for event in self)

@@ -233,7 +233,7 @@ class TestMigrations(unittest.TestCase):
             )
         self.migrations.migrate()
         # use Mapping to also load invalid mappings
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), Mapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), strict=False)
         preset.load()
 
         self.assertEqual(
@@ -340,7 +340,7 @@ class TestMigrations(unittest.TestCase):
 
         self.migrations.migrate()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), Mapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), strict=False)
         preset.load()
 
         self.assertEqual(
@@ -444,7 +444,7 @@ class TestMigrations(unittest.TestCase):
             )
         self.migrations.migrate()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), Mapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), strict=False)
         preset.load()
         # 2 mappings for mouse
         # 2 mappings for wheel
@@ -530,7 +530,7 @@ class TestMigrations(unittest.TestCase):
             )
         self.migrations.migrate()
 
-        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), Mapping)
+        preset = Preset(PathUtils.get_preset_path("Foo Device", "test"), strict=False)
         preset.load()
         # 2 mappings for mouse
         # 2 mappings for wheel

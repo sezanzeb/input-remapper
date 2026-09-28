@@ -129,12 +129,6 @@ class Preset:
         # if there are more than one matches, then there is a duplicate
         return len(union) > 1
 
-    def _has_valid_input_combination(self, mapping: Mapping) -> bool:
-        """Check if the mapping has a valid input event combination."""
-        is_a_combination = isinstance(mapping.input_combination, InputCombination)
-        is_empty = mapping.input_combination == InputCombination.empty_combination()
-        return is_a_combination and not is_empty
-
     def save(self) -> None:
         """Dump as JSON to self.path."""
 
@@ -153,15 +147,10 @@ class Preset:
         saved_mappings = {}
         for mapping in self._mappings.values():
             if not mapping.is_valid():
-                if not self._has_valid_input_combination(mapping):
-                    # we save invalid mappings except for those with an invalid
-                    # input_combination
-                    logger.debug("Skipping invalid mapping %s", mapping)
-                    continue
-
                 if self._is_mapped_multiple_times(mapping.input_combination):
                     # todo: is this ever executed? it should not be possible to
                     #  reach this
+                    # Maybe some manual editing of a preset file may cause trouble.
                     logger.debug(
                         "skipping mapping with duplicate event combination %s",
                         mapping,
@@ -239,6 +228,7 @@ class Preset:
         if not os.path.exists(self.path):
             self._saved_mappings = {}
             return
+
         self._saved_mappings = self._get_mappings_from_disc()
 
     def _get_mappings_from_disc(self) -> dict[InputCombination, Mapping]:
