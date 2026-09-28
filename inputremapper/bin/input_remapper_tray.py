@@ -131,10 +131,9 @@ class InputRemapperTrayBin:
             logger.error("AppIndicator is not found. Exiting.")
             sys.exit(1)
 
-        try:
-            self.daemon = Daemon.connect(fallback=False)
-        except Exception as e:
-            logger.error("Failed to connect to daemon: %s", e)
+        self.daemon = Daemon.connect(fallback=False)
+        if self.daemon is None:
+            logger.error("Failed to connect to daemon")
             sys.exit(2)
 
         self.show()
