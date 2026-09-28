@@ -233,14 +233,20 @@ class TestPreset(unittest.TestCase):
         self.assertEqual(len(self.preset.get_mappings()), 2)
 
     def test_avoids_redundant_saves(self):
+        combination = tuples_to_combination((EV_KEY, KEY_A))
+        mapping = Mapping(input_combination=combination)
+        mapping.output_symbol = "b"
+        mapping.target_uinput = "keyboard"
+
         with patch.object(self.preset, "has_unsaved_changes", lambda: False):
             self.preset.path = PathUtils.get_preset_path("foo", "bar2")
-            self.preset.add(mapping_from_combination())
+            self.preset.add(mapping)
             self.preset.save()
 
         with open(PathUtils.get_preset_path("foo", "bar2"), "r") as f:
             content = f.read()
 
+        # has_unsaved_changes is patched to False, so the file is empty
         self.assertFalse(content)
 
     def test_combinations(self):
