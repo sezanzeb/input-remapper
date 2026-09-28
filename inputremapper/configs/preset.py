@@ -146,16 +146,17 @@ class Preset:
         preset_list = []
         saved_mappings = {}
         for mapping in self._mappings.values():
-            if not mapping.is_valid():
-                if self._is_mapped_multiple_times(mapping.input_combination):
-                    # todo: is this ever executed? it should not be possible to
-                    #  reach this
-                    # Maybe some manual editing of a preset file may cause trouble.
-                    logger.debug(
-                        "skipping mapping with duplicate event combination %s",
-                        mapping,
-                    )
-                    continue
+            if not mapping.is_valid() and self._is_mapped_multiple_times(
+                mapping.input_combination
+            ):
+                # todo: is this ever executed? it should not be possible to
+                #  reach this
+                # Maybe some manual editing of a preset file may cause trouble.
+                logger.debug(
+                    "skipping mapping with duplicate event combination %s",
+                    mapping,
+                )
+                continue
 
             mapping_dict = mapping.dict(exclude_defaults=True)
             mapping_dict["input_combination"] = mapping.input_combination.to_config()
