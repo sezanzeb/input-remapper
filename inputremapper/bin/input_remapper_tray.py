@@ -80,7 +80,6 @@ class InputRemapperTrayBin:
         self.check_autostart = check_autostart
         self.daemon: DaemonProxy | None = None
         self.indicator: AppIndicator.Indicator | None = None
-        self.is_supported = HAS_APPINDICATOR
         self.toggle_item: Gtk.MenuItem | None = None
 
         # Last known states to prevent redundant menu rebuilds during polling
@@ -142,28 +141,8 @@ class InputRemapperTrayBin:
             logger.info("System tray is disabled in config. Exiting.")
             sys.exit(0)
 
-        if not self.is_supported:
-            try:
-                dialog = Gtk.MessageDialog(
-                    transient_for=None,
-                    flags=0,
-                    message_type=Gtk.MessageType.ERROR,
-                    buttons=Gtk.ButtonsType.OK,
-                    text=_("AppIndicator is not found"),
-                )
-                dialog.format_secondary_text(
-                    _(
-                        "The AppIndicator package (libayatana-appindicator) is "
-                        "required for the system tray icon helper to run.\n"
-                        "Please install it using your package manager."
-                    )
-                )
-                dialog.run()
-                dialog.destroy()
-            except Exception as e:
-                logger.error("Failed to show AppIndicator error dialog: %s", e)
-
-            logger.error("AppIndicator is not found. Exiting.")
+        if AppIndicator is None:
+            logger.error("AppIndicator is not available. Exiting.")
             sys.exit(1)
 
         self.daemon = Daemon.connect(fallback=False)

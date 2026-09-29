@@ -86,7 +86,7 @@ sudo sv up input-remapper
 
 Figure out the packages providing those dependencies in your distro, and install them:
 `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`,
-`python3-dasbus`, `python3-psutil`
+`python3-dasbus`, `python3-psutil`, `libayatana-appindicator`
 
 You can also use pip to install some of them. Python packages need to be installed
 globally for the service to be able to import them. Don't use `--user`. Conda and such
