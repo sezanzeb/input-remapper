@@ -42,7 +42,6 @@ from inputremapper.gui.messages.message_data import (
 )
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_service import (
-    CMD_REFRESH_GROUPS,
     CMD_STOP_READING,
     CMD_TERMINATE,
     MSG_EVENT,
@@ -283,9 +282,9 @@ class ReaderClient:
         while self._results_pipe.poll():
             self._results_pipe.recv()
 
-    def refresh_groups(self):
-        """Ask the ReaderService for new device groups."""
-        self._send_command(CMD_REFRESH_GROUPS)
+    def update_groups(self, dump: str):
+        """Load device groups from a serialized dump and announce them."""
+        self._update_groups(dump)
 
     def publish_groups(self):
         """Announce all known groups."""

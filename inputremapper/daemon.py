@@ -35,6 +35,8 @@ from dasbus.connection import SystemMessageBus
 from dasbus.error import DBusError
 from dasbus.identifier import DBusServiceIdentifier
 from dasbus.loop import EventLoop
+from dasbus.server.interface import dbus_signal
+from dasbus.signal import Signal
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
@@ -125,7 +127,11 @@ class DaemonProxy(Protocol):  # pragma: no cover
 
     def is_suspended(self) -> bool: ...
 
+    suspended_changed: Signal
+
     def set_config_dir(self, config_dir: str) -> None: ...
+
+    def get_groups(self) -> str: ...
 
     def autoload(self) -> None: ...
 
@@ -171,12 +177,18 @@ class Daemon:
                 <method name='is_suspended'>
                     <arg type='b' name='response' direction='out'/>
                 </method>
+                <signal name='suspended_changed'>
+                    <arg type='b' name='suspended'/>
+                </signal>
                 <method name='get_running_preset'>
                     <arg type='s' name='group_key' direction='in'/>
                     <arg type='s' name='response' direction='out'/>
                 </method>
                 <method name='set_config_dir'>
                     <arg type='s' name='config_dir' direction='in'/>
+                </method>
+                <method name='get_groups'>
+                    <arg type='s' name='response' direction='out'/>
                 </method>
                 <method name='autoload'>
                 </method>
@@ -192,6 +204,8 @@ class Daemon:
             </interface>
         </node>
     """
+
+    suspended_changed = dbus_signal()
 
     def __init__(
         self,
@@ -324,6 +338,19 @@ class Daemon:
             groups.refresh()
             self.refreshed_devices_at = now
 
+    def get_groups(self) -> str:
+        """Return a serialized list of the currently known device groups.
+
+        Ensures the device list is up to date before returning it.
+        """
+        now = time.time()
+        if now - 10 > self.refreshed_devices_at:
+            logger.debug("Refreshing because last info is too old")
+            time.sleep(0.1)
+            groups.refresh()
+            self.refreshed_devices_at = now
+        return groups.dumps()
+
     def stop_injecting(self, group_key: str) -> None:
         """Stop injecting the preset mappings for a single device."""
         if group_key in self.suspended_presets:
@@ -396,6 +423,8 @@ class Daemon:
             self.suspended_presets.clear()
             for group_key, preset_name in to_resume:
                 self._start_injecting_internal(group_key, preset_name)
+
+        self.suspended_changed.emit(suspended)
 
     def set_config_dir(self, config_dir: str) -> None:
         """All future operations will use this config dir.

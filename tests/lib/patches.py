@@ -29,6 +29,7 @@ from pickle import UnpicklingError
 from unittest.mock import patch
 
 import evdev
+from dasbus.signal import Signal
 
 from inputremapper.utils import get_evdev_constant_name
 from tests.lib.constants import EVENT_READ_TIMEOUT
@@ -361,6 +362,7 @@ class FakeDaemonProxy:
             "hello": [],
             "quit": 0,
         }
+        self.suspended_changed = Signal()
 
     def stop_injecting(self, group_key: str) -> None:
         self.calls["stop_injecting"].append(group_key)

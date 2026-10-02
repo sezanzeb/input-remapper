@@ -19,10 +19,12 @@
 
 """User Interface."""
 
+import subprocess
 from collections.abc import Callable
 
 from gi.repository import Gdk, GObject, Gtk, GtkSource
 
+from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import MappingData
@@ -51,6 +53,7 @@ from inputremapper.gui.components.editor import (
 )
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.presets import PresetSelection
+from inputremapper.gui.components.settings import SettingsMenu
 from inputremapper.gui.components.suspend_button import SuspendButton
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
@@ -60,6 +63,7 @@ from inputremapper.gui.messages.message_broker import (
 )
 from inputremapper.gui.messages.message_data import UserConfirmRequest
 from inputremapper.gui.utils import (
+    CTX_ERROR,
     gtk_iteration,
 )
 from inputremapper.injection.injector import InjectorStateMessage
@@ -234,6 +238,13 @@ class UserInterface:
         autocompletion.set_relative_to(self.get("code_editor_container"))
         self.autocompletion = autocompletion  # only for testing
 
+        SettingsMenu(
+            controller,
+            self.get("systray-switch"),
+            self.get("systray-row"),
+            self.get("systray-label"),
+        )
+
     def _create_dialogs(self):
         """Setup different dialogs, such as the about page."""
         self.about.connect("delete-event", on_close_about)
@@ -402,6 +413,33 @@ class UserInterface:
                 pass
 
     def on_gtk_close(self, *_):
+        if self.controller.data_manager.global_config.is_systray():
+            try:
+                if ProcessUtils.count_python_processes("input-remapper-tray") == 0:
+                    logger.info("Spawning detached system tray process")
+                    args = ["input-remapper-tray", "--gui-spawned"]
+                    if logger.is_debug():
+                        args.append("-d")
+                    subprocess.Popen(args)
+            except OSError as e:
+                logger.error("Failed to spawn input-remapper-tray: %s", e)
+                self.controller.show_status(
+                    CTX_ERROR,
+                    _('Failed to start "input-remapper-tray --gui-spawned"'),
+                )
+
+            self.controller.close()
+            return False
+
+        # If close to tray is disabled, terminate any running GUI-spawned tray helper process
+        terminated = ProcessUtils.terminate_python_processes(
+            "input-remapper-tray", ["--gui-spawned"]
+        )
+        if terminated:
+            logger.info(
+                "Terminated %d running GUI-spawned tray process(es)", terminated
+            )
+
         self.controller.close()
 
     def on_gtk_about_clicked(self, _):

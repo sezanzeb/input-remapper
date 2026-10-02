@@ -42,6 +42,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     UInputsData,
 )
+from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.injector import (
@@ -86,6 +87,19 @@ class DataManager:
         self._active_preset: Preset[UIMapping] | None = None
         self._active_mapping: UIMapping | None = None
         self._active_input_config: InputConfig | None = None
+
+        # Keep components in sync when the suspend state changes elsewhere
+        # (e.g. from the system tray), not just from this GUI.
+        self._daemon.suspended_changed.connect(self._on_suspended_changed)
+
+    def _on_suspended_changed(self, suspended: bool) -> None:
+        """Refresh the suspend state after it changed in the daemon."""
+        self.message_broker.signal(MessageType.suspend_changed)
+
+    @property
+    def global_config(self) -> GlobalConfig:
+        """Get the global configuration object."""
+        return self._config
 
     def publish_group(self):
         """Send active group to the MessageBroker.
@@ -520,12 +534,12 @@ class DataManager:
             self._active_preset.save()
 
     def refresh_groups(self):
-        """Refresh the groups (plugged devices).
+        """Refresh the groups (plugged devices) via the daemon.
 
-        Should send "groups" message to MessageBroker this will not happen immediately
-        because the system might take a bit until the groups are available
+        The device scan happens in the daemon, which then serializes the
+        groups back over dbus to the GUI.
         """
-        self._reader_client.refresh_groups()
+        self._reader_client.update_groups(self._daemon.get_groups())
 
     def start_combination_recording(self):
         """Record user input.
