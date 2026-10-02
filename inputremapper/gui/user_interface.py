@@ -53,7 +53,7 @@ from inputremapper.gui.components.editor import (
 )
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.presets import PresetSelection
-from inputremapper.gui.components.settings import HAS_APPINDICATOR, SettingsMenu
+from inputremapper.gui.components.settings import SettingsMenu
 from inputremapper.gui.components.suspend_button import SuspendButton
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
@@ -63,6 +63,7 @@ from inputremapper.gui.messages.message_broker import (
 )
 from inputremapper.gui.messages.message_data import UserConfirmRequest
 from inputremapper.gui.utils import (
+    CTX_ERROR,
     gtk_iteration,
 )
 from inputremapper.injection.injector import InjectorStateMessage
@@ -412,7 +413,7 @@ class UserInterface:
                 pass
 
     def on_gtk_close(self, *_):
-        if HAS_APPINDICATOR and self.controller.data_manager.global_config.is_systray():
+        if self.controller.data_manager.global_config.is_systray():
             try:
                 if ProcessUtils.count_python_processes("input-remapper-tray") == 0:
                     logger.info("Spawning detached system tray process")
@@ -422,6 +423,10 @@ class UserInterface:
                     subprocess.Popen(args)
             except OSError as e:
                 logger.error("Failed to spawn input-remapper-tray: %s", e)
+                self.controller.show_status(
+                    CTX_ERROR,
+                    _('Failed to start "input-remapper-tray --gui-spawned"'),
+                )
 
             self.controller.close()
             return False

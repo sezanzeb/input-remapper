@@ -31,32 +31,10 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
+gi.require_version("AyatanaAppIndicator3", "0.1")
 from dasbus.error import DBusError
+from gi.repository import AyatanaAppIndicator3 as AppIndicator
 from gi.repository import GLib, Gtk
-
-# Try importing AppIndicator
-HAS_APPINDICATOR = False
-AppIndicator = None
-
-# Attempt AyatanaAppIndicator3 first (modern standard)
-try:
-    gi.require_version("AyatanaAppIndicator3", "0.1")
-    from gi.repository import (
-        AyatanaAppIndicator3 as AppIndicator,  # type: ignore[assignment, no-redef]
-    )
-
-    HAS_APPINDICATOR = True
-except (ImportError, ValueError):
-    # Fallback to older AppIndicator3
-    try:
-        gi.require_version("AppIndicator3", "0.1")
-        from gi.repository import (
-            AppIndicator3 as AppIndicator,  # type: ignore[assignment, no-redef]
-        )
-
-        HAS_APPINDICATOR = True
-    except (ImportError, ValueError):
-        pass
 
 from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.configs.data import get_data_path
@@ -140,10 +118,6 @@ class InputRemapperTrayBin:
         if self.check_autostart and not self.global_config.is_systray():
             logger.info("System tray is disabled in config. Exiting.")
             sys.exit(0)
-
-        if AppIndicator is None:
-            logger.error("AppIndicator is not available. Exiting.")
-            sys.exit(1)
 
         self.daemon = Daemon.connect(fallback=False)
         if self.daemon is None:

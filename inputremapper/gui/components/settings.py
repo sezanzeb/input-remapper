@@ -22,25 +22,13 @@ from __future__ import annotations
 
 import subprocess
 
-import gi
 from gi.repository import Gtk
 
 from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
+from inputremapper.gui.utils import CTX_ERROR
 from inputremapper.logging.logger import logger
-
-# Try importing AppIndicator to check if system tray is supported
-HAS_APPINDICATOR = False
-try:
-    gi.require_version("AyatanaAppIndicator3", "0.1")
-    HAS_APPINDICATOR = True
-except (ImportError, ValueError):
-    try:
-        gi.require_version("AppIndicator3", "0.1")
-        HAS_APPINDICATOR = True
-    except (ImportError, ValueError):
-        pass
 
 
 class SettingsMenu:
@@ -72,15 +60,12 @@ class SettingsMenu:
             "input-remapper-tray", ["--check-autostart"]
         )
 
-        if standalone_running and HAS_APPINDICATOR:
+        if standalone_running:
             self._row.set_sensitive(False)
             self._label.set_text(_("Enable system tray (Started manually)"))
-        elif not HAS_APPINDICATOR:
-            self._row.set_sensitive(False)
-            self._label.set_text(_("Enable system tray (Requires AppIndicator)"))
 
         # Start the tray helper process if it is enabled and not already running
-        if enabled and HAS_APPINDICATOR and not standalone_running:
+        if enabled and not standalone_running:
             self._spawn_tray_if_needed()
 
         self._switch.connect("notify::active", self._on_switch_active_changed)
@@ -88,7 +73,7 @@ class SettingsMenu:
     def _on_switch_active_changed(self, widget: Gtk.Switch, _gparam) -> None:
         active = widget.get_active()
         self.controller.data_manager.global_config.set_systray(active)
-        if active and HAS_APPINDICATOR:
+        if active:
             self._spawn_tray_if_needed()
         elif not active:
             self._terminate_tray()
@@ -104,6 +89,10 @@ class SettingsMenu:
                 subprocess.Popen(args)
         except OSError as e:
             logger.error("Failed to spawn input-remapper-tray: %s", e)
+            self.controller.show_status(
+                CTX_ERROR,
+                _('Failed to start "input-remapper-tray --gui-spawned"'),
+            )
 
     def _terminate_tray(self) -> None:
         """Terminate any running GUI-spawned tray helper process."""
