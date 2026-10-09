@@ -656,6 +656,37 @@ class TestDaemon(unittest.TestCase):
         expected_keys = [group.key for group in groups.get_groups()]
         self.assertEqual(serialized_keys, expected_keys)
 
+    def test_state_changed_signal(self):
+        preset_name = "test-preset-state"
+        group = groups.find(key="Foo Device 2")
+
+        preset = Preset(group.get_preset_path(preset_name))
+        preset.add(
+            mapping_from_combination(
+                InputCombination([InputConfig(type=1, code=KEY_B)]),
+                "keyboard",
+                "a",
+            )
+        )
+        preset.save()
+
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
+
+        calls = []
+        self.daemon.state_changed.connect(calls.append)
+
+        # starting an injection emits state_changed for the group
+        self.assertTrue(self.daemon.start_injecting(group.key, preset_name))
+        self.assertEqual(calls, [group.key])
+
+        # stopping it emits state_changed again
+        self.daemon.stop_injecting(group.key)
+        self.assertEqual(calls, [group.key, group.key])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -24,7 +24,6 @@ import glob
 import os
 import subprocess
 import sys
-import threading
 from argparse import ArgumentParser
 
 import gi
@@ -34,7 +33,7 @@ gi.require_version("GLib", "2.0")
 gi.require_version("AyatanaAppIndicator3", "0.1")
 from dasbus.error import DBusError
 from gi.repository import AyatanaAppIndicator3 as AppIndicator
-from gi.repository import GLib, Gtk
+from gi.repository import Gio, Gtk
 
 from inputremapper.bin.process_utils import ProcessUtils
 from inputremapper.configs.data import get_data_path
@@ -60,14 +59,11 @@ class InputRemapperTrayBin:
         self.indicator: AppIndicator.Indicator | None = None
         self.toggle_item: Gtk.MenuItem | None = None
 
-        # Last known states to prevent redundant menu rebuilds during polling
+        # Last known states to prevent redundant menu rebuilds
         self.last_suspended: bool | None = None
-        self.last_states: dict[str, tuple[InjectorState, str]] = {}
-        self.poll_count = 0
-        self.last_config_mtime: float | None = None
-        self.last_presets_mtimes: dict[str, float] = {}
-        self.refresh_thread: threading.Thread | None = None
-        self.refresh_lock = threading.Lock()
+        self.config_monitor: Gio.FileMonitor | None = None
+        self.presets_monitor: Gio.FileMonitor | None = None
+        self.preset_subdir_monitors: dict[str, Gio.FileMonitor] = {}
         self.gui_spawned = gui_spawned
 
     @staticmethod
@@ -124,12 +120,89 @@ class InputRemapperTrayBin:
             logger.error("Failed to connect to daemon")
             sys.exit(2)
 
-        self.show()
+        # Load the device groups once up front; afterwards the daemon's
+        # groups_changed signal keeps them up to date.
+        self._load_groups()
 
-        # Check status and auto-exit settings every 2 seconds
-        GLib.timeout_add_seconds(2, self._poll_state)
+        self.show()
+        self._subscribe_daemon_signals()
+        self._setup_monitors()
 
         Gtk.main()
+
+    def _subscribe_daemon_signals(self) -> None:
+        """Subscribe to daemon signals to keep the menu in sync without polling."""
+        if self.daemon is None:
+            return
+        self.daemon.suspended_changed.connect(self._on_suspended_changed)
+        self.daemon.groups_changed.connect(self._on_groups_changed)
+        self.daemon.state_changed.connect(self._on_state_changed)
+
+    def _setup_monitors(self) -> None:
+        """Watch config.json and the presets folder for changes."""
+        config_file = Gio.File.new_for_path(self.global_config.path)
+        self.config_monitor = config_file.monitor_file(Gio.FileMonitorFlags.NONE, None)
+        self.config_monitor.connect("changed", self._on_config_changed)
+
+        # inotify is not recursive, so watch the presets root (to detect device
+        # subdirectories appearing/disappearing) and each device subdirectory
+        # (to detect preset file changes inside them).
+        self._sync_presets_monitors()
+
+    def _sync_presets_monitors(self) -> None:
+        """Attach monitors to the presets root and each device subdirectory."""
+        presets_path = PathUtils.get_preset_path("")
+
+        if self.presets_monitor is None:
+            presets_dir = Gio.File.new_for_path(presets_path)
+            self.presets_monitor = presets_dir.monitor_directory(
+                Gio.FileMonitorFlags.WATCH_MOVES, None
+            )
+            self.presets_monitor.connect("changed", self._on_presets_dir_changed)
+
+        # Match the per-device subdirectory monitors to what's on disk.
+        if os.path.isdir(presets_path):
+            subdirs = {
+                name
+                for name in os.listdir(presets_path)
+                if os.path.isdir(os.path.join(presets_path, name))
+            }
+        else:
+            subdirs = set()
+
+        for name in list(self.preset_subdir_monitors):
+            if name not in subdirs:
+                self.preset_subdir_monitors.pop(name, None)
+
+        for name in subdirs:
+            if name not in self.preset_subdir_monitors:
+                subdir = Gio.File.new_for_path(os.path.join(presets_path, name))
+                monitor = subdir.monitor_directory(
+                    Gio.FileMonitorFlags.WATCH_MOVES, None
+                )
+                monitor.connect("changed", self._on_presets_subdir_changed)
+                self.preset_subdir_monitors[name] = monitor
+
+    def _on_presets_dir_changed(
+        self,
+        _monitor: Gio.FileMonitor,
+        _file: Gio.File,
+        _other_file: Gio.File | None,
+        _event: Gio.FileMonitorEvent,
+    ) -> None:
+        """A device subdirectory was added/removed/renamed; re-sync and rebuild."""
+        self._sync_presets_monitors()
+        self.rebuild_menu()
+
+    def _on_presets_subdir_changed(
+        self,
+        _monitor: Gio.FileMonitor,
+        _file: Gio.File,
+        _other_file: Gio.File | None,
+        _event: Gio.FileMonitorEvent,
+    ) -> None:
+        """A preset file inside a device subdirectory changed; rebuild the menu."""
+        self.rebuild_menu()
 
     def show(self) -> None:
         icon_name = "input-remapper"
@@ -161,9 +234,7 @@ class InputRemapperTrayBin:
         menu.append(devices_item)
 
         # Populate connected devices
-        self._load_groups()
         group_keys = [group.key for group in groups.get_groups()]
-        current_states = {}
 
         has_any_device_with_presets = False
 
@@ -181,8 +252,6 @@ class InputRemapperTrayBin:
                     logger.error("Failed to query daemon for device state: %s", e)
                     state = InjectorState.UNKNOWN
                     running_preset = ""
-
-                current_states[group_key] = (state, running_preset)
 
                 # Available presets for this device group
                 presets = self._get_preset_names_for_group(group.name)
@@ -236,7 +305,6 @@ class InputRemapperTrayBin:
             is_suspended = True
 
         self.last_suspended = is_suspended
-        self.last_states = current_states
 
         if is_suspended:
             self.toggle_item.set_label(_("Resume injection"))
@@ -253,7 +321,6 @@ class InputRemapperTrayBin:
 
         menu.show_all()
         self.indicator.set_menu(menu)
-        self.last_presets_mtimes = self._get_presets_mtimes()
 
     def _get_preset_names_for_group(self, group_name: str) -> list[str]:
         device_folder = PathUtils.get_preset_path(group_name)
@@ -268,47 +335,37 @@ class InputRemapperTrayBin:
         presets.reverse()
         return presets
 
-    def _poll_state(self) -> bool:
-        if self.daemon is None:
-            return True
-        # Only reload config if file has actually been modified
-        try:
-            if os.path.exists(self.global_config.path):
-                current_mtime = os.path.getmtime(self.global_config.path)
-                if current_mtime != self.last_config_mtime:
-                    self.last_config_mtime = current_mtime
-                    self.global_config.load_config()
-        except Exception as e:
-            logger.error("Failed to check config file mtime: %s", e)
+    def _on_suspended_changed(self, suspended: bool) -> None:
+        """Update the menu when the daemon reports a suspend state change."""
+        if suspended != self.last_suspended:
+            self.last_suspended = suspended
+            self.rebuild_menu()
 
+    def _on_groups_changed(self, groups_dump: str) -> None:
+        """Update the device list when the daemon reports new groups."""
+        try:
+            groups.loads(groups_dump)
+        except ValueError:
+            logger.error("Failed to process groups_changed signal")
+            return
+        self.rebuild_menu()
+
+    def _on_state_changed(self, _group_key: str) -> None:
+        """Rebuild the menu when injection starts or stops elsewhere."""
+        self.rebuild_menu()
+
+    def _on_config_changed(
+        self,
+        _monitor: Gio.FileMonitor,
+        _file: Gio.File,
+        _other_file: Gio.File | None,
+        _event: Gio.FileMonitorEvent,
+    ) -> None:
+        """Reload config, exiting the tray if autostarted and now disabled."""
+        self.global_config.load_config()
         if self.check_autostart and not self.global_config.is_systray():
-            logger.info("System tray disabled in config. Exiting tray helper.")
+            logger.info("System tray disabled in config. Exiting.")
             Gtk.main_quit()
-            return False
-
-        try:
-            is_suspended = self.daemon.is_suspended()
-        except Exception:
-            return True
-
-        if is_suspended != self.last_suspended:
-            self.rebuild_menu()
-            return True
-
-        # Check if any preset files/folders changed on disk
-        presets_mtimes = self._get_presets_mtimes()
-        if presets_mtimes != self.last_presets_mtimes:
-            self.rebuild_menu()
-            return True
-
-        self.poll_count += 1
-        if self.poll_count >= 5:
-            self.poll_count = 0
-            self._refresh_groups_async()
-        else:
-            self._check_device_states_only()
-
-        return True
 
     def _load_groups(self) -> None:
         """Fetch the device groups from the daemon and load them locally."""
@@ -318,64 +375,6 @@ class InputRemapperTrayBin:
             groups.loads(self.daemon.get_groups())
         except DBusError as e:
             logger.error("Failed to fetch device groups: %s", e)
-
-    def _refresh_groups_async(self) -> None:
-        """Runs the group refresh in a background thread to prevent UI micro-stutters."""
-        if self.refresh_thread and self.refresh_thread.is_alive():
-            return
-
-        def run():
-            with self.refresh_lock:
-                self._load_groups()
-            GLib.idle_add(self._on_groups_refreshed)
-
-        self.refresh_thread = threading.Thread(target=run, daemon=True)
-        self.refresh_thread.start()
-
-    def _on_groups_refreshed(self) -> bool:
-        """Runs in the main GTK thread after groups.refresh() completes in background."""
-        group_keys = [group.key for group in groups.get_groups()]
-
-        if set(group_keys) != set(self.last_states.keys()):
-            self.rebuild_menu()
-            return False
-
-        self._check_device_states_only()
-        return False
-
-    def _check_device_states_only(self) -> None:
-        """Query state for all currently tracked groups and rebuild if any state changed."""
-        if self.daemon is None:
-            return
-        group_keys = list(self.last_states.keys())
-        for group_key in group_keys:
-            try:
-                state = self.daemon.get_state(group_key)
-                running_preset = self.daemon.get_running_preset(group_key)
-            except Exception:  # noqa: S112
-                continue
-
-            last = self.last_states.get(group_key)
-            if not last or last != (state, running_preset):
-                self.rebuild_menu()
-                break
-
-    def _get_presets_mtimes(self) -> dict[str, float]:
-        """Compute modification times for presets folder and subfolders to detect adds/removes."""
-        mtimes: dict[str, float] = {}
-        base_dir = PathUtils.get_preset_path("")
-        if not os.path.exists(base_dir):
-            return mtimes
-
-        try:
-            mtimes[""] = os.path.getmtime(base_dir)
-            for item in os.listdir(base_dir):
-                sub_path = os.path.join(base_dir, item)
-                if os.path.isdir(sub_path):
-                    mtimes[item] = os.path.getmtime(sub_path)
-        except Exception:  # noqa: S110
-            pass
-        return mtimes
 
     def _on_show_activate(self, _widget) -> None:
         if ProcessUtils.count_python_processes("input-remapper-gtk") > 0:

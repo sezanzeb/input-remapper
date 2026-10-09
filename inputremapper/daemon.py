@@ -129,6 +129,10 @@ class DaemonProxy(Protocol):  # pragma: no cover
 
     suspended_changed: Signal
 
+    groups_changed: Signal
+
+    state_changed: Signal
+
     def set_config_dir(self, config_dir: str) -> None: ...
 
     def get_groups(self) -> str: ...
@@ -180,6 +184,12 @@ class Daemon:
                 <signal name='suspended_changed'>
                     <arg type='b' name='suspended'/>
                 </signal>
+                <signal name='groups_changed'>
+                    <arg type='s' name='groups'/>
+                </signal>
+                <signal name='state_changed'>
+                    <arg type='s' name='group_key'/>
+                </signal>
                 <method name='get_running_preset'>
                     <arg type='s' name='group_key' direction='in'/>
                     <arg type='s' name='response' direction='out'/>
@@ -206,6 +216,10 @@ class Daemon:
     """
 
     suspended_changed = dbus_signal()
+
+    groups_changed = dbus_signal()
+
+    state_changed = dbus_signal()
 
     def __init__(
         self,
@@ -238,6 +252,7 @@ class Daemon:
 
         self.autoload_history = AutoloadHistory()
         self.refreshed_devices_at = 0
+        self.last_groups_dump: str = ""
 
         atexit.register(self.stop_all)
 
@@ -330,6 +345,7 @@ class Daemon:
             time.sleep(0.1)
             groups.refresh()
             self.refreshed_devices_at = now
+            self._emit_groups_if_changed()
             return
 
         if not groups.find(key=group_key):
@@ -337,6 +353,14 @@ class Daemon:
             time.sleep(0.1)
             groups.refresh()
             self.refreshed_devices_at = now
+            self._emit_groups_if_changed()
+
+    def _emit_groups_if_changed(self) -> None:
+        """Emit the groups_changed signal if the device list actually changed."""
+        dump = groups.dumps()
+        if dump != self.last_groups_dump:
+            self.last_groups_dump = dump
+            self.groups_changed.emit(dump)
 
     def get_groups(self) -> str:
         """Return a serialized list of the currently known device groups.
@@ -345,10 +369,7 @@ class Daemon:
         """
         now = time.time()
         if now - 10 > self.refreshed_devices_at:
-            logger.debug("Refreshing because last info is too old")
-            time.sleep(0.1)
-            groups.refresh()
-            self.refreshed_devices_at = now
+            self.refresh()
         return groups.dumps()
 
     def stop_injecting(self, group_key: str) -> None:
@@ -365,6 +386,7 @@ class Daemon:
 
         self.injectors[group_key].stop_injecting()
         self.autoload_history.forget(group_key)
+        self.state_changed.emit(group_key)
 
     def get_state(self, group_key: str) -> InjectorState:
         """Get the injectors state."""
@@ -642,6 +664,7 @@ class Daemon:
             # some earlier version
             return False
 
+        self.state_changed.emit(group_key)
         return True
 
     def stop_all(self) -> None:
