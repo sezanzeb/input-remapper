@@ -40,7 +40,7 @@ from gi.repository import Gdk, Gtk, GtkSource
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import XKB_KEYCODE_OFFSET, keyboard_layout
-from inputremapper.configs.mapping import MappingData, MappingType
+from inputremapper.configs.mapping import Mapping, MappingType
 from inputremapper.groups import DeviceType
 from inputremapper.gui.components.output_type_names import OutputTypeNames
 from inputremapper.gui.controller import Controller
@@ -51,6 +51,7 @@ from inputremapper.gui.messages.message_broker import (
 )
 from inputremapper.gui.messages.message_data import (
     CombinationUpdate,
+    MappingData,
     PresetData,
     UInputsData,
 )
@@ -89,7 +90,7 @@ class TargetSelection:
     For example "keyboard" or "gamepad".
     """
 
-    _mapping: MappingData | None = None
+    _mapping: Mapping | None = None
 
     def __init__(
         self,
@@ -124,8 +125,8 @@ class TargetSelection:
 
         self._select_current_target()
 
-    def _on_mapping_loaded(self, mapping: MappingData):
-        self._mapping = mapping
+    def _on_mapping_loaded(self, mapping_data: MappingData):
+        self._mapping = mapping_data.mapping
         self._select_current_target()
 
     def _on_gtk_target_selected(self, *_):
@@ -180,9 +181,9 @@ class MappingListBox:
             self._gui.insert(selection_label, -1)
         self._gui.invalidate_sort()
 
-    def _on_mapping_changed(self, mapping: MappingData):
+    def _on_mapping_changed(self, mapping_data: MappingData):
         with HandlerDisabled(self._gui, self._on_gtk_mapping_selected):
-            combination = mapping.input_combination
+            combination = mapping_data.mapping.input_combination
 
             for row in self._gui.get_children():
                 if row.combination == combination:
@@ -295,7 +296,8 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
             elif event.keyval == Gdk.KEY_Delete:
                 self._controller.delete_mapping()
 
-    def _on_mapping_changed(self, mapping: MappingData):
+    def _on_mapping_changed(self, mapping_data: MappingData):
+        mapping = mapping_data.mapping
         if mapping.input_combination != self.combination:
             self._set_not_selected()
             return
@@ -518,7 +520,9 @@ class CodeEditor:
 
         self._controller.update_mapping(output_symbol=self.code)
 
-    def _on_mapping_loaded(self, mapping: MappingData):
+    def _on_mapping_loaded(self, mapping_data: MappingData):
+        mapping = mapping_data.mapping
+
         code = SET_KEY_FIRST
         if not self._controller.is_empty_mapping():
             code = mapping.output_symbol or ""
@@ -545,22 +549,25 @@ class RequireActiveMapping:
         self._default_tooltip = self._widget.get_tooltip_text()
         self._require_recorded_input = require_recorded_input
 
-        self._active_preset: PresetData | None = None
-        self._active_mapping: MappingData | None = None
+        self._active_preset_data: PresetData | None = None
+        self._active_mapping: Mapping | None = None
 
         message_broker.subscribe(MessageType.preset, self._on_preset)
         message_broker.subscribe(MessageType.mapping, self._on_mapping)
 
     def _on_preset(self, preset_data: PresetData):
-        self._active_preset = preset_data
+        self._active_preset_data = preset_data
         self._check()
 
     def _on_mapping(self, mapping_data: MappingData):
-        self._active_mapping = mapping_data
+        self._active_mapping = mapping_data.mapping
         self._check()
 
     def _check(self, *__):
-        if not self._active_preset or len(self._active_preset.mappings) == 0:
+        if (
+            self._active_preset_data is None
+            or len(self._active_preset_data.mappings) == 0
+        ):
             self._disable()
             self._widget.set_tooltip_text(_("Add a mapping first"))
             return
@@ -687,9 +694,9 @@ class ReleaseCombinationSwitch:
         self._gui.connect("state-set", self._on_gtk_toggle)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
 
-    def _on_mapping_changed(self, data: MappingData):
+    def _on_mapping_changed(self, mapping_data: MappingData):
         with HandlerDisabled(self._gui, self._on_gtk_toggle):
-            self._gui.set_active(data.release_combination_keys)
+            self._gui.set_active(mapping_data.mapping.release_combination_keys)
 
     def _on_gtk_toggle(self, *_):
         self._controller.update_mapping(release_combination_keys=self._gui.get_active())
@@ -782,8 +789,8 @@ class CombinationListbox:
             if row.input_event == event:
                 self._gui.select_row(row)
 
-    def _on_mapping_changed(self, mapping: MappingData):
-        if self._combination == mapping.input_combination:
+    def _on_mapping_changed(self, mapping_data: MappingData):
+        if self._combination == mapping_data.mapping.input_combination:
             return
 
         event_entries = self._gui.get_children()
@@ -793,7 +800,7 @@ class CombinationListbox:
         if self._controller.is_empty_mapping():
             self._combination = None
         else:
-            self._combination = mapping.input_combination
+            self._combination = mapping_data.mapping.input_combination
             for event in self._combination:
                 self._gui.insert(InputConfigEntry(event, self._controller), -1)
 
@@ -901,7 +908,9 @@ class ReleaseTimeoutInput:
         self._gui.connect("value-changed", self._on_gtk_changed)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
 
-    def _on_mapping_message(self, mapping: MappingData):
+    def _on_mapping_message(self, mapping_data: MappingData):
+        mapping = mapping_data.mapping
+
         if EV_REL in [event.type for event in mapping.input_combination]:
             self._gui.set_sensitive(True)
             self._gui.set_opacity(1)
@@ -934,7 +943,9 @@ class RelativeInputCutoffInput:
         self._gui.connect("value-changed", self._on_gtk_changed)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
 
-    def _on_mapping_message(self, mapping: MappingData):
+    def _on_mapping_message(self, mapping_data: MappingData):
+        mapping = mapping_data.mapping
+
         if (
             EV_REL in [event.type for event in mapping.input_combination]
             and mapping.output_type == EV_ABS
@@ -1006,7 +1017,8 @@ class OutputAxisSelector:
 
         self._current_target = target
 
-    def _on_mapping_message(self, mapping: MappingData):
+    def _on_mapping_message(self, mapping_data: MappingData):
+        mapping = mapping_data.mapping
         with HandlerDisabled(self._gui, self._on_gtk_select_axis):
             self._set_model(mapping.target_uinput)
             self._gui.set_active_id(f"{mapping.output_type}, {mapping.output_code}")
@@ -1061,8 +1073,10 @@ class KeyAxisStackSwitcher:
         with HandlerDisabled(inactive, self._on_gtk_toggle):
             inactive.set_active(False)
 
-    def _on_mapping_message(self, mapping: MappingData):
-        # fist check the actual mapping
+    def _on_mapping_message(self, mapping_data: MappingData):
+        mapping = mapping_data.mapping
+
+        # first check the actual mapping
         if mapping.mapping_type == MappingType.ANALOG.value:
             self._set_active(MappingType.ANALOG.value)
 
@@ -1103,9 +1117,14 @@ class TransformationDrawArea:
         self._gui.connect("draw", self._on_gtk_draw)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
 
-    def _on_mapping_message(self, mapping: MappingData):
+    def _on_mapping_message(self, mapping_data: MappingData):
+        mapping = mapping_data.mapping
         self._transformation = Transformation(
-            100, -100, mapping.deadzone, mapping.gain, mapping.expo
+            100,
+            -100,
+            mapping.deadzone,
+            mapping.gain,
+            mapping.expo,
         )
         self._gui.queue_draw()
 
@@ -1190,7 +1209,9 @@ class Sliders:
         self._deadzone.connect("value-changed", self._on_gtk_deadzone_changed)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
 
-    def _on_mapping_message(self, mapping: MappingData):
+    def _on_mapping_message(self, mapping_data: MappingData):
+        mapping = mapping_data.mapping
+
         with HandlerDisabled(self._gain, self._on_gtk_gain_changed):
             self._gain.set_value(mapping.gain)
 

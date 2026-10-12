@@ -39,7 +39,7 @@ from inputremapper.utils import DeviceHash, get_device_hash
 class Context(Protocol):
     listeners: set[EventListener]
 
-    def reset(self): ...
+    def reset(self) -> None: ...
 
     def get_notify_callbacks(self, input_event: InputEvent) -> list[NotifyCallback]: ...
 
@@ -75,7 +75,7 @@ class EventReader:
         self.context = context
         self.stop_event = stop_event
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the reader."""
         self.stop_event.set()
 
@@ -176,7 +176,7 @@ class EventReader:
             # no handler took care of it, forward it
             self.forward(event)
 
-    async def run(self):
+    async def run(self) -> None:
         """Start doing things.
 
         Can be stopped by stopping the asyncio loop or by setting the stop_event.

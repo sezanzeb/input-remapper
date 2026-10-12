@@ -81,7 +81,7 @@ class OutputSymbolUnknownError(ValueError):
 class MacroButTypeOrCodeSetError(ValueError):
     def __init__(self):
         super().__init__(
-            "output_symbol is a macro: output_type " "and output_code must be None"
+            "output_symbol is a macro: output_type and output_code must be None"
         )
 
 
@@ -119,16 +119,3 @@ class MacroError(ValueError):
     def __init__(self, symbol: str | None = None, msg="Error while parsing a macro"):
         self.symbol = symbol
         super().__init__(msg)
-
-
-def pydantify(error: type):
-    """Generate a string as it would appear IN pydantic error types.
-
-    This does not include the base class name, which is transformed to snake case in
-    pydantic. Example pydantic error type: "value_error.foobar" for FooBarError.
-    """
-    # See https://github.com/pydantic/pydantic/discussions/5112
-    lower_classname = error.__name__.lower()
-    if lower_classname.endswith("error"):
-        return lower_classname[: -len("error")]
-    return lower_classname

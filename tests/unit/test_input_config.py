@@ -51,6 +51,7 @@ from evdev.ecodes import (
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 
 
 @test_setup
@@ -378,51 +379,41 @@ class TestInputCombination(unittest.TestCase):
         self.assertEqual(dict_.get(key), "foo")
 
     def test_get_permutations(self):
-        key_1 = InputCombination(InputCombination.from_tuples((1, 3, 1)))
+        key_1 = InputCombination(tuples_to_combination((1, 3, 1)))
         self.assertEqual(len(key_1.get_permutations()), 1)
         self.assertEqual(key_1.get_permutations()[0], key_1)
 
-        key_2 = InputCombination(InputCombination.from_tuples((1, 3, 1), (1, 5, 1)))
+        key_2 = InputCombination(tuples_to_combination((1, 3, 1), (1, 5, 1)))
         self.assertEqual(len(key_2.get_permutations()), 1)
         self.assertEqual(key_2.get_permutations()[0], key_2)
 
-        key_3 = InputCombination(
-            InputCombination.from_tuples((1, 3, 1), (1, 5, 1), (1, 7, 1))
-        )
+        key_3 = InputCombination(tuples_to_combination((1, 3, 1), (1, 5, 1), (1, 7, 1)))
         self.assertEqual(len(key_3.get_permutations()), 2)
         self.assertEqual(
             key_3.get_permutations()[0],
-            InputCombination(
-                InputCombination.from_tuples((1, 3, 1), (1, 5, 1), (1, 7, 1))
-            ),
+            InputCombination(tuples_to_combination((1, 3, 1), (1, 5, 1), (1, 7, 1))),
         )
         self.assertEqual(
             key_3.get_permutations()[1],
-            InputCombination(
-                InputCombination.from_tuples((1, 5, 1), (1, 3, 1), (1, 7, 1))
-            ),
+            InputCombination(tuples_to_combination((1, 5, 1), (1, 3, 1), (1, 7, 1))),
         )
 
     def test_is_problematic(self):
         key_1 = InputCombination(
-            InputCombination.from_tuples((1, KEY_LEFTSHIFT, 1), (1, 5, 1))
+            tuples_to_combination((1, KEY_LEFTSHIFT, 1), (1, 5, 1))
         )
         self.assertTrue(key_1.is_problematic())
 
-        key_2 = InputCombination(
-            InputCombination.from_tuples((1, KEY_RIGHTALT, 1), (1, 5, 1))
-        )
+        key_2 = InputCombination(tuples_to_combination((1, KEY_RIGHTALT, 1), (1, 5, 1)))
         self.assertTrue(key_2.is_problematic())
 
-        key_3 = InputCombination(
-            InputCombination.from_tuples((1, 3, 1), (1, KEY_LEFTCTRL, 1))
-        )
+        key_3 = InputCombination(tuples_to_combination((1, 3, 1), (1, KEY_LEFTCTRL, 1)))
         self.assertTrue(key_3.is_problematic())
 
-        key_4 = InputCombination(InputCombination.from_tuples((1, 3, 1)))
+        key_4 = InputCombination(tuples_to_combination((1, 3, 1)))
         self.assertFalse(key_4.is_problematic())
 
-        key_5 = InputCombination(InputCombination.from_tuples((1, 3, 1), (1, 5, 1)))
+        key_5 = InputCombination(tuples_to_combination((1, 3, 1), (1, 5, 1)))
         self.assertFalse(key_5.is_problematic())
 
     def test_init(self):
@@ -503,7 +494,7 @@ class TestInputCombination(unittest.TestCase):
         # combinations
         self.assertEqual(
             InputCombination(
-                InputCombination.from_tuples(
+                tuples_to_combination(
                     (EV_KEY, BTN_A, 1),
                     (EV_KEY, BTN_B, 1),
                     (EV_KEY, BTN_C, 1),
@@ -546,7 +537,7 @@ class TestInputCombination(unittest.TestCase):
         """
         self.assertEqual(
             InputCombination(
-                InputCombination.from_tuples((type_, code, direction))
+                tuples_to_combination((type_, code, direction))
             ).beautify(),
             expected_beautified_name,
         )

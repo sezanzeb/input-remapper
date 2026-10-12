@@ -89,7 +89,7 @@ class MappingParser:
     ) -> EventPipelines:
         """Create a dict with a list of MappingHandler for each InputEvent."""
         handlers = []
-        for mapping in preset:
+        for mapping in preset.get_mappings():
             # start with the last handler in the chain, each mapping only has one output,
             # but may have multiple inputs, therefore the last handler is a good starting
             # point to assemble the pipeline

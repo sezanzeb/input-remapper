@@ -112,7 +112,7 @@ class TestAutocompletion(GuiTestBase):
 
         keyboard_layout.clear()
         keyboard_layout._set(complete_key_name, 1)
-        keyboard_layout._set("KEY_A", 30)  # we need this for the UIMapping to work
+        keyboard_layout._set("KEY_A", 30)  # we need this for the Mapping to work
 
         # it can autocomplete a combination inbetween other things
         incomplete = "qux_1\n +  + qux_2"

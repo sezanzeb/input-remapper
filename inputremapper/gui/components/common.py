@@ -23,13 +23,12 @@ from __future__ import annotations
 
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import MappingData
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_data import GroupData, PresetData
+from inputremapper.gui.messages.message_data import GroupData, MappingData, PresetData
 from inputremapper.gui.utils import HandlerDisabled
 
 
@@ -150,7 +149,7 @@ class Breadcrumbs:
         self._render()
 
     def _on_mapping_changed(self, mapping_data: MappingData):
-        self._mapping_name = mapping_data.format_name()
+        self._mapping_name = mapping_data.mapping.format_name()
         self._render()
 
     def _render(self):

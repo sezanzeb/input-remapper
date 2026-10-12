@@ -21,13 +21,15 @@ import os
 import unittest
 from unittest.mock import patch
 
-from evdev.ecodes import EV_ABS, EV_KEY
+from evdev.ecodes import EV_ABS, EV_KEY, KEY_A
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping, UIMapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
+from tests.lib.mapping_from_combination import mapping_from_combination
 from tests.lib.test_setup import test_setup
+from tests.lib.tuples_to_combination import tuples_to_combination
 
 
 @test_setup
@@ -38,7 +40,7 @@ class TestPreset(unittest.TestCase):
 
     def test_is_mapped_multiple_times(self):
         combination = InputCombination(
-            InputCombination.from_tuples((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4))
+            tuples_to_combination((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4))
         )
         permutations = combination.get_permutations()
         self.assertEqual(len(permutations), 6)
@@ -57,23 +59,38 @@ class TestPreset(unittest.TestCase):
         )
         self.assertTrue(self.preset._is_mapped_multiple_times(permutations[2]))
 
+    def test_save_empty_combination(self):
+        preset = Preset(PathUtils.get_preset_path("foo", "bar2"), strict=False)
+        preset.path = PathUtils.get_preset_path("foo", "bar2")
+        preset.add(mapping_from_combination())
+        self.assertTrue(preset.has_unsaved_changes())
+        preset.save()
+        self.assertFalse(preset.has_unsaved_changes())
+
     def test_has_unsaved_changes(self):
+        self.assertTrue(self.preset._strict)
+        # For strict presets, mappings have to be valid
+        combination = tuples_to_combination((EV_KEY, KEY_A))
+        mapping = Mapping(input_combination=combination)
+        mapping.output_symbol = "b"
+        mapping.target_uinput = "keyboard"
+
         self.preset.path = PathUtils.get_preset_path("foo", "bar2")
-        self.preset.add(Mapping.from_combination())
+        self.preset.add(mapping)
         self.assertTrue(self.preset.has_unsaved_changes())
         self.preset.save()
         self.assertFalse(self.preset.has_unsaved_changes())
 
         self.preset.empty()
-        self.assertEqual(len(self.preset), 0)
+        self.assertEqual(len(self.preset.get_mappings()), 0)
         # empty preset but non-empty file
         self.assertTrue(self.preset.has_unsaved_changes())
 
         # load again from the disc
         self.preset.load()
         self.assertEqual(
-            self.preset.get_mapping(InputCombination.empty_combination()),
-            Mapping.from_combination(),
+            self.preset.get_mapping(combination),
+            mapping,
         )
         self.assertFalse(self.preset.has_unsaved_changes())
 
@@ -88,13 +105,13 @@ class TestPreset(unittest.TestCase):
         self.assertFalse(self.preset.has_unsaved_changes())
 
         # modify the mapping
-        mapping = self.preset.get_mapping(InputCombination.empty_combination())
+        mapping = self.preset.get_mapping(combination)
         mapping.gain = 0.5
         self.assertTrue(self.preset.has_unsaved_changes())
         self.preset.load()
 
         self.preset.path = PathUtils.get_preset_path("bar", "foo")
-        self.preset.remove(Mapping.from_combination().input_combination)
+        self.preset.remove(mapping.input_combination)
         # empty preset and empty file
         self.assertFalse(self.preset.has_unsaved_changes())
 
@@ -102,7 +119,7 @@ class TestPreset(unittest.TestCase):
         # empty preset, but non-empty file
         self.assertTrue(self.preset.has_unsaved_changes())
         self.preset.load()
-        self.assertEqual(len(self.preset), 1)
+        self.assertEqual(len(self.preset.get_mappings()), 1)
         self.assertFalse(self.preset.has_unsaved_changes())
 
         # delete the preset from the system:
@@ -110,7 +127,7 @@ class TestPreset(unittest.TestCase):
         self.preset.save()
         self.preset.load()
         self.assertFalse(self.preset.has_unsaved_changes())
-        self.assertEqual(len(self.preset), 0)
+        self.assertEqual(len(self.preset.get_mappings()), 0)
 
     def test_save_load(self):
         one = InputConfig(type=EV_KEY, code=10)
@@ -118,13 +135,13 @@ class TestPreset(unittest.TestCase):
         three = InputConfig(type=EV_KEY, code=12)
 
         self.preset.add(
-            Mapping.from_combination(InputCombination([one]), "keyboard", "1")
+            mapping_from_combination(InputCombination([one]), "keyboard", "1")
         )
         self.preset.add(
-            Mapping.from_combination(InputCombination([two]), "keyboard", "2")
+            mapping_from_combination(InputCombination([two]), "keyboard", "2")
         )
         self.preset.add(
-            Mapping.from_combination(InputCombination((two, three)), "keyboard", "3"),
+            mapping_from_combination(InputCombination((two, three)), "keyboard", "3"),
         )
         self.preset.path = PathUtils.get_preset_path("Foo Device", "test")
         self.preset.save()
@@ -135,22 +152,22 @@ class TestPreset(unittest.TestCase):
         self.assertTrue(os.path.exists(path))
 
         loaded = Preset(PathUtils.get_preset_path("Foo Device", "test"))
-        self.assertEqual(len(loaded), 0)
+        self.assertEqual(len(loaded.get_mappings()), 0)
         loaded.load()
 
-        self.assertEqual(len(loaded), 3)
+        self.assertEqual(len(loaded.get_mappings()), 3)
         self.assertRaises(TypeError, loaded.get_mapping, one)
         self.assertEqual(
             loaded.get_mapping(InputCombination([one])),
-            Mapping.from_combination(InputCombination([one]), "keyboard", "1"),
+            mapping_from_combination(InputCombination([one]), "keyboard", "1"),
         )
         self.assertEqual(
             loaded.get_mapping(InputCombination([two])),
-            Mapping.from_combination(InputCombination([two]), "keyboard", "2"),
+            mapping_from_combination(InputCombination([two]), "keyboard", "2"),
         )
         self.assertEqual(
             loaded.get_mapping(InputCombination([two, three])),
-            Mapping.from_combination(InputCombination([two, three]), "keyboard", "3"),
+            mapping_from_combination(InputCombination([two, three]), "keyboard", "3"),
         )
 
         # load missing file
@@ -164,9 +181,9 @@ class TestPreset(unittest.TestCase):
         ev_4 = InputCombination([InputConfig(type=EV_ABS, code=1, analog_threshold=99)])
 
         # add the first mapping
-        self.preset.add(Mapping.from_combination(ev_1, "keyboard", "a"))
+        self.preset.add(mapping_from_combination(ev_1, "keyboard", "a"))
         self.assertTrue(self.preset.has_unsaved_changes())
-        self.assertEqual(len(self.preset), 1)
+        self.assertEqual(len(self.preset.get_mappings()), 1)
 
         # change ev_1 to ev_3 and change a to b
         mapping = self.preset.get_mapping(ev_1)
@@ -175,30 +192,30 @@ class TestPreset(unittest.TestCase):
         self.assertIsNone(self.preset.get_mapping(ev_1))
         self.assertEqual(
             self.preset.get_mapping(ev_3),
-            Mapping.from_combination(ev_3, "keyboard", "b"),
+            mapping_from_combination(ev_3, "keyboard", "b"),
         )
-        self.assertEqual(len(self.preset), 1)
+        self.assertEqual(len(self.preset.get_mappings()), 1)
 
         # add 4
-        self.preset.add(Mapping.from_combination(ev_4, "keyboard", "c"))
+        self.preset.add(mapping_from_combination(ev_4, "keyboard", "c"))
         self.assertEqual(
             self.preset.get_mapping(ev_3),
-            Mapping.from_combination(ev_3, "keyboard", "b"),
+            mapping_from_combination(ev_3, "keyboard", "b"),
         )
         self.assertEqual(
             self.preset.get_mapping(ev_4),
-            Mapping.from_combination(ev_4, "keyboard", "c"),
+            mapping_from_combination(ev_4, "keyboard", "c"),
         )
-        self.assertEqual(len(self.preset), 2)
+        self.assertEqual(len(self.preset.get_mappings()), 2)
 
         # change the preset of 4 to d
         mapping = self.preset.get_mapping(ev_4)
         mapping.output_symbol = "d"
         self.assertEqual(
             self.preset.get_mapping(ev_4),
-            Mapping.from_combination(ev_4, "keyboard", "d"),
+            mapping_from_combination(ev_4, "keyboard", "d"),
         )
-        self.assertEqual(len(self.preset), 2)
+        self.assertEqual(len(self.preset.get_mappings()), 2)
 
         # try to change combination of 4 to 3
         mapping = self.preset.get_mapping(ev_4)
@@ -207,23 +224,29 @@ class TestPreset(unittest.TestCase):
 
         self.assertEqual(
             self.preset.get_mapping(ev_3),
-            Mapping.from_combination(ev_3, "keyboard", "b"),
+            mapping_from_combination(ev_3, "keyboard", "b"),
         )
         self.assertEqual(
             self.preset.get_mapping(ev_4),
-            Mapping.from_combination(ev_4, "keyboard", "d"),
+            mapping_from_combination(ev_4, "keyboard", "d"),
         )
-        self.assertEqual(len(self.preset), 2)
+        self.assertEqual(len(self.preset.get_mappings()), 2)
 
     def test_avoids_redundant_saves(self):
+        combination = tuples_to_combination((EV_KEY, KEY_A))
+        mapping = Mapping(input_combination=combination)
+        mapping.output_symbol = "b"
+        mapping.target_uinput = "keyboard"
+
         with patch.object(self.preset, "has_unsaved_changes", lambda: False):
             self.preset.path = PathUtils.get_preset_path("foo", "bar2")
-            self.preset.add(Mapping.from_combination())
+            self.preset.add(mapping)
             self.preset.save()
 
         with open(PathUtils.get_preset_path("foo", "bar2"), "r") as f:
             content = f.read()
 
+        # has_unsaved_changes is patched to False, so the file is empty
         self.assertFalse(content)
 
     def test_combinations(self):
@@ -235,42 +258,42 @@ class TestPreset(unittest.TestCase):
         combi_2 = InputCombination((ev_2, ev_1, ev_3))
         combi_3 = InputCombination((ev_1, ev_2, ev_4))
 
-        self.preset.add(Mapping.from_combination(combi_1, "keyboard", "a"))
+        self.preset.add(mapping_from_combination(combi_1, "keyboard", "a"))
         self.assertEqual(
             self.preset.get_mapping(combi_1),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            mapping_from_combination(combi_1, "keyboard", "a"),
         )
         self.assertEqual(
             self.preset.get_mapping(combi_2),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            mapping_from_combination(combi_1, "keyboard", "a"),
         )
         # since combi_1 and combi_2 are equivalent, this raises a KeyError
         self.assertRaises(
             KeyError,
             self.preset.add,
-            Mapping.from_combination(combi_2, "keyboard", "b"),
+            mapping_from_combination(combi_2, "keyboard", "b"),
         )
         self.assertEqual(
             self.preset.get_mapping(combi_1),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            mapping_from_combination(combi_1, "keyboard", "a"),
         )
         self.assertEqual(
             self.preset.get_mapping(combi_2),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            mapping_from_combination(combi_1, "keyboard", "a"),
         )
 
-        self.preset.add(Mapping.from_combination(combi_3, "keyboard", "c"))
+        self.preset.add(mapping_from_combination(combi_3, "keyboard", "c"))
         self.assertEqual(
             self.preset.get_mapping(combi_1),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            mapping_from_combination(combi_1, "keyboard", "a"),
         )
         self.assertEqual(
             self.preset.get_mapping(combi_2),
-            Mapping.from_combination(combi_1, "keyboard", "a"),
+            mapping_from_combination(combi_1, "keyboard", "a"),
         )
         self.assertEqual(
             self.preset.get_mapping(combi_3),
-            Mapping.from_combination(combi_3, "keyboard", "c"),
+            mapping_from_combination(combi_3, "keyboard", "c"),
         )
 
         mapping = self.preset.get_mapping(combi_1)
@@ -280,15 +303,15 @@ class TestPreset(unittest.TestCase):
 
         self.assertEqual(
             self.preset.get_mapping(combi_1),
-            Mapping.from_combination(combi_1, "keyboard", "c"),
+            mapping_from_combination(combi_1, "keyboard", "c"),
         )
         self.assertEqual(
             self.preset.get_mapping(combi_2),
-            Mapping.from_combination(combi_1, "keyboard", "c"),
+            mapping_from_combination(combi_1, "keyboard", "c"),
         )
         self.assertEqual(
             self.preset.get_mapping(combi_3),
-            Mapping.from_combination(combi_3, "keyboard", "c"),
+            mapping_from_combination(combi_3, "keyboard", "c"),
         )
 
     def test_remove(self):
@@ -301,53 +324,53 @@ class TestPreset(unittest.TestCase):
         self.assertRaises(TypeError, self.preset.remove, (EV_KEY, 10, 1))
         self.preset.remove(ev_1)
         self.assertFalse(self.preset.has_unsaved_changes())
-        self.assertEqual(len(self.preset), 0)
+        self.assertEqual(len(self.preset.get_mappings()), 0)
 
-        self.preset.add(Mapping.from_combination(input_combination=ev_1))
-        self.assertEqual(len(self.preset), 1)
+        self.preset.add(mapping_from_combination(input_combination=ev_1))
+        self.assertEqual(len(self.preset.get_mappings()), 1)
         self.preset.remove(ev_1)
-        self.assertEqual(len(self.preset), 0)
+        self.assertEqual(len(self.preset.get_mappings()), 0)
 
-        self.preset.add(Mapping.from_combination(ev_4, "keyboard", "KEY_KP1"))
+        self.preset.add(mapping_from_combination(ev_4, "keyboard", "KEY_KP1"))
         self.assertTrue(self.preset.has_unsaved_changes())
-        self.preset.add(Mapping.from_combination(ev_3, "keyboard", "KEY_KP2"))
-        self.preset.add(Mapping.from_combination(ev_2, "keyboard", "KEY_KP3"))
-        self.assertEqual(len(self.preset), 3)
+        self.preset.add(mapping_from_combination(ev_3, "keyboard", "KEY_KP2"))
+        self.preset.add(mapping_from_combination(ev_2, "keyboard", "KEY_KP3"))
+        self.assertEqual(len(self.preset.get_mappings()), 3)
         self.preset.remove(ev_3)
-        self.assertEqual(len(self.preset), 2)
+        self.assertEqual(len(self.preset.get_mappings()), 2)
         self.assertEqual(
             self.preset.get_mapping(ev_4),
-            Mapping.from_combination(ev_4, "keyboard", "KEY_KP1"),
+            mapping_from_combination(ev_4, "keyboard", "KEY_KP1"),
         )
         self.assertIsNone(self.preset.get_mapping(ev_3))
         self.assertEqual(
             self.preset.get_mapping(ev_2),
-            Mapping.from_combination(ev_2, "keyboard", "KEY_KP3"),
+            mapping_from_combination(ev_2, "keyboard", "KEY_KP3"),
         )
 
     def test_empty(self):
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "1",
             ),
         )
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=11)]),
                 "keyboard",
                 "2",
             ),
         )
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=12)]),
                 "keyboard",
                 "3",
             ),
         )
-        self.assertEqual(len(self.preset), 3)
+        self.assertEqual(len(self.preset.get_mappings()), 3)
         self.preset.path = PathUtils.get_config_path("test.json")
         self.preset.save()
         self.assertFalse(self.preset.has_unsaved_changes())
@@ -355,31 +378,31 @@ class TestPreset(unittest.TestCase):
         self.preset.empty()
         self.assertEqual(self.preset.path, PathUtils.get_config_path("test.json"))
         self.assertTrue(self.preset.has_unsaved_changes())
-        self.assertEqual(len(self.preset), 0)
+        self.assertEqual(len(self.preset.get_mappings()), 0)
 
     def test_clear(self):
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=10)]),
                 "keyboard",
                 "1",
             ),
         )
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=11)]),
                 "keyboard",
                 "2",
             ),
         )
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=12)]),
                 "keyboard",
                 "3",
             ),
         )
-        self.assertEqual(len(self.preset), 3)
+        self.assertEqual(len(self.preset.get_mappings()), 3)
         self.preset.path = PathUtils.get_config_path("test.json")
         self.preset.save()
         self.assertFalse(self.preset.has_unsaved_changes())
@@ -387,12 +410,12 @@ class TestPreset(unittest.TestCase):
         self.preset.clear()
         self.assertFalse(self.preset.has_unsaved_changes())
         self.assertIsNone(self.preset.path)
-        self.assertEqual(len(self.preset), 0)
+        self.assertEqual(len(self.preset.get_mappings()), 0)
 
     def test_dangerously_mapped_btn_left(self):
         # btn left is mapped
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig.btn_left()]),
                 "keyboard",
                 "1",
@@ -400,7 +423,7 @@ class TestPreset(unittest.TestCase):
         )
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=41)]),
                 "keyboard",
                 "2",
@@ -410,7 +433,7 @@ class TestPreset(unittest.TestCase):
 
         # another mapping maps to btn_left
         self.preset.add(
-            Mapping.from_combination(
+            mapping_from_combination(
                 InputCombination([InputConfig(type=EV_KEY, code=42)]),
                 "mouse",
                 "btn_left",
@@ -434,29 +457,32 @@ class TestPreset(unittest.TestCase):
 
     def test_save_load_with_invalid_mappings(self):
         ui_preset = Preset(
-            PathUtils.get_config_path("test.json"), mapping_factory=UIMapping
+            PathUtils.get_config_path("test.json"),
+            strict=False,
         )
 
-        ui_preset.add(UIMapping())
+        m = Mapping()
+        ui_preset.add(m)
         self.assertFalse(ui_preset.is_valid())
 
+        combination = InputCombination(tuples_to_combination((EV_KEY, 10)))
+        m.input_combination = combination
+
         # make the mapping valid
-        m = ui_preset.get_mapping(InputCombination.empty_combination())
         m.output_symbol = "a"
         m.target_uinput = "keyboard"
+        m.assert_strict()
         self.assertTrue(ui_preset.is_valid())
 
-        m2 = UIMapping(
-            input_combination=InputCombination([InputConfig(type=1, code=2)])
-        )
+        m2 = Mapping(input_combination=InputCombination([InputConfig(type=1, code=2)]))
         ui_preset.add(m2)
         self.assertFalse(ui_preset.is_valid())
         ui_preset.save()
 
-        # only the valid preset is loaded
+        # only the valid mappings are loaded
         preset = Preset(PathUtils.get_config_path("test.json"))
         preset.load()
-        self.assertEqual(len(preset), 1)
+        self.assertEqual(len(preset.get_mappings()), 1)
 
         a = preset.get_mapping(m.input_combination).dict()
         b = m.dict()
@@ -469,7 +495,7 @@ class TestPreset(unittest.TestCase):
         ui_preset.clear()
         ui_preset.path = PathUtils.get_config_path("test.json")
         ui_preset.load()
-        self.assertEqual(len(ui_preset), 2)
+        self.assertEqual(len(ui_preset.get_mappings()), 2)
 
         a = ui_preset.get_mapping(m.input_combination).dict()
         b = m.dict()

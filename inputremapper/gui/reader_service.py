@@ -429,7 +429,7 @@ class ContextDummy:
     def get_notify_callbacks(self, input_event: InputEvent) -> list[NotifyCallback]:
         return self._notify_callbacks[input_event.input_match_hash]
 
-    def reset(self):
+    def reset(self) -> None:
         pass
 
     def get_forward_uinput(self, origin_hash) -> evdev.UInput:
