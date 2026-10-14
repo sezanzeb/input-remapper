@@ -402,7 +402,7 @@ class Autocompletion(Gtk.Popover):
             label.show_all()
 
     def _update_capabilities(self):
-        if self._target_uinput and self._uinputs:
+        if self._target_uinput and self._uinputs and self._target_uinput in self._uinputs:
             self._target_key_capabilities = self._uinputs[self._target_uinput][EV_KEY]
 
     def _on_mapping_changed(self, mapping_data: MappingData):

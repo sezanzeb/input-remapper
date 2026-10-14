@@ -40,6 +40,27 @@ DEFAULT_UINPUTS = {
             *((i, evdev.AbsInfo(0, -1, 1, 0, 0, 0)) for i in range(0x10, 0x12)),
         ],  # 6-axis and 1 hat switch
     },
+    "gamepad2": {
+        evdev.ecodes.EV_KEY: [*range(0x130, 0x13F)],  # BTN_SOUTH - BTN_THUMBR
+        evdev.ecodes.EV_ABS: [
+            *((i, evdev.AbsInfo(0, MIN_ABS, MAX_ABS, 0, 0, 0)) for i in range(0x06)),
+            *((i, evdev.AbsInfo(0, -1, 1, 0, 0, 0)) for i in range(0x10, 0x12)),
+        ],
+    },
+    "gamepad3": {
+        evdev.ecodes.EV_KEY: [*range(0x130, 0x13F)],
+        evdev.ecodes.EV_ABS: [
+            *((i, evdev.AbsInfo(0, MIN_ABS, MAX_ABS, 0, 0, 0)) for i in range(0x06)),
+            *((i, evdev.AbsInfo(0, -1, 1, 0, 0, 0)) for i in range(0x10, 0x12)),
+        ],
+    },
+    "gamepad4": {
+        evdev.ecodes.EV_KEY: [*range(0x130, 0x13F)],
+        evdev.ecodes.EV_ABS: [
+            *((i, evdev.AbsInfo(0, MIN_ABS, MAX_ABS, 0, 0, 0)) for i in range(0x06)),
+            *((i, evdev.AbsInfo(0, -1, 1, 0, 0, 0)) for i in range(0x10, 0x12)),
+        ],
+    },
     "mouse": {
         evdev.ecodes.EV_KEY: [*range(0x110, 0x118)],  # BTN_LEFT - BTN_TASK
         evdev.ecodes.EV_REL: [*range(0x0D)],  # all REL axis
@@ -119,6 +140,27 @@ class GlobalUInputs:
             if code in DEFAULT_UINPUTS[uinput].get(type_, [])
         ]
 
+    @staticmethod
+    def _uinput_identity(name: str) -> dict:
+        """Return vendor/product/version kwargs for evdev.UInput().
+
+        Without this every virtual gamepad gets the same SDL GUID and Steam
+        merges them into a single controller. We assign distinct, stable
+        identities to gamepad<N> entries; everything else uses evdev defaults.
+        """
+        if not name.startswith("gamepad") or name == "gamepad":
+            return {}
+        suffix = name[len("gamepad"):]
+        if not suffix.isdigit():
+            return {}
+        n = int(suffix)
+        if not (2 <= n <= 0xFFFE):
+            return {}
+        # 0x1234 is a documented "non-existent" vendor in the Linux kernel's
+        # input.h. 0x0000 in product would clash with a real device; pick n
+        # so each gamepad<N> is uniquely identifiable by SDL2/Steam.
+        return {"vendor": 0x1234, "product": 0x1000 + n, "version": n}
+
     def reset(self) -> None:
         self.devices = {}
         self.prepare_all()
@@ -133,6 +175,7 @@ class GlobalUInputs:
                 name=f"{DEV_NAME} {name}",
                 phys=DEV_NAME,
                 events=events,
+                **self._uinput_identity(name),
             )
 
     def prepare_single(self, name: str):
@@ -151,6 +194,7 @@ class GlobalUInputs:
             name=f"{DEV_NAME} {name}",
             phys=DEV_NAME,
             events=DEFAULT_UINPUTS[name],
+            **self._uinput_identity(name),
         )
 
     def write(self, event: tuple[int, int, int], target_uinput):
