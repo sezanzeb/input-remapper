@@ -37,6 +37,15 @@ from inputremapper.injection.macros.tasks.if_led import IfCapslockTask, IfNumloc
 from inputremapper.injection.macros.tasks.if_single import IfSingleTask
 from inputremapper.injection.macros.tasks.if_tap import IfTapTask
 from inputremapper.injection.macros.tasks.ifeq import DeprecatedIfEqTask
+from inputremapper.injection.macros.tasks.joystick import (
+    DPad2Task,
+    DPad3Task,
+    DPadTask,
+    LeftJoystickTask,
+    LeftTriggerTask,
+    RightJoystickTask,
+    RightTriggerTask,
+)
 from inputremapper.injection.macros.tasks.key import KeyTask
 from inputremapper.injection.macros.tasks.key_down import KeyDownTask
 from inputremapper.injection.macros.tasks.key_up import KeyUpTask
@@ -72,6 +81,13 @@ class Parser:
         "mouse": MouseTask,
         "mouse_xy": MouseXYTask,
         "wheel": WheelTask,
+        "left_joystick": LeftJoystickTask,
+        "right_joystick": RightJoystickTask,
+        "left_trigger": LeftTriggerTask,
+        "right_trigger": RightTriggerTask,
+        "dpad_1": DPadTask,
+        "dpad_2": DPad2Task,
+        "dpad_3": DPad3Task,
         "if_eq": IfEqTask,
         "if_numlock": IfNumlockTask,
         "if_capslock": IfCapslockTask,
@@ -348,7 +364,7 @@ class Parser:
                 raise MacroError(
                     code,
                     f'Expected a "." to follow after '
-                    f"{code[:closing_bracket_position + 1]}",
+                    f"{code[: closing_bracket_position + 1]}",
                 )
 
         return RawValue(value=macro_instance)
@@ -382,7 +398,7 @@ class Parser:
             return macro
 
         if "(" in macro or ")" in macro:
-            raise MacroError(macro, f'Mixing "+" and macros is unsupported: "{ macro}"')
+            raise MacroError(macro, f'Mixing "+" and macros is unsupported: "{macro}"')
 
         chunks = [chunk.strip() for chunk in macro.split("+")]
 

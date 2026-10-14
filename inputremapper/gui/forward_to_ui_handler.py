@@ -120,5 +120,5 @@ class ForwardToUIHandler(MappingHandler):
         )
         return True
 
-    def reset(self):
+    def reset(self) -> None:
         pass
