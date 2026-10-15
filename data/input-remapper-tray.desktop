@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Exec=input-remapper-tray --check-autostart
+Name=input-remapper-tray
+Icon=input-remapper
+Terminal=false
+Comment=Shows the input-remapper system tray icon
+X-GNOME-Autostart-enabled=true

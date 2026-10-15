@@ -1,0 +1,105 @@
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
+#
+# This file is part of input-remapper.
+#
+# input-remapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# input-remapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
+"""Settings popover menu component."""
+
+from __future__ import annotations
+
+import subprocess
+
+from gi.repository import Gtk
+
+from inputremapper.bin.process_utils import ProcessUtils
+from inputremapper.gui.controller import Controller
+from inputremapper.gui.gettext import _
+from inputremapper.gui.utils import CTX_ERROR
+from inputremapper.logging.logger import logger
+
+
+class SettingsMenu:
+    """Manages the settings menu popover in the window header bar."""
+
+    def __init__(
+        self,
+        controller: Controller,
+        systray_switch: Gtk.Switch,
+        systray_row: Gtk.Box,
+        systray_label: Gtk.Label,
+    ):
+        self.controller = controller
+        self._switch = systray_switch
+        self._row = systray_row
+        self._label = systray_label
+
+        enabled = self.controller.data_manager.global_config.is_systray()
+        self._switch.set_active(enabled)
+
+        # A tray that wasn't spawned by this GUI and isn't acting on the config
+        # (started manually) isn't governed by this switch, so gray it out. An
+        # autostarted tray uses --check-autostart and still honors the config.
+        standalone_running = ProcessUtils.count_python_processes(
+            "input-remapper-tray"
+        ) > ProcessUtils.count_python_processes(
+            "input-remapper-tray", ["--gui-spawned"]
+        ) + ProcessUtils.count_python_processes(
+            "input-remapper-tray", ["--check-autostart"]
+        )
+
+        if standalone_running:
+            self._row.set_sensitive(False)
+            self._label.set_text(_("Enable system tray (Started manually)"))
+
+        # Start the tray helper process if it is enabled and not already running
+        if enabled and not standalone_running:
+            self._spawn_tray_if_needed()
+
+        self._switch.connect("notify::active", self._on_switch_active_changed)
+
+    def _on_switch_active_changed(self, widget: Gtk.Switch, _gparam) -> None:
+        active = widget.get_active()
+        self.controller.data_manager.global_config.set_systray(active)
+        if active:
+            self._spawn_tray_if_needed()
+        elif not active:
+            self._terminate_tray()
+
+    def _spawn_tray_if_needed(self) -> None:
+        """Start the tray helper process if not already running."""
+        try:
+            if ProcessUtils.count_python_processes("input-remapper-tray") == 0:
+                logger.info("Spawning detached system tray process")
+                args = ["input-remapper-tray", "--gui-spawned"]
+                if logger.is_debug():
+                    args.append("-d")
+                subprocess.Popen(args)
+        except OSError as e:
+            logger.error("Failed to spawn input-remapper-tray: %s", e)
+            self.controller.show_status(
+                CTX_ERROR,
+                _('Failed to start "input-remapper-tray --gui-spawned"'),
+            )
+
+    def _terminate_tray(self) -> None:
+        """Terminate any running GUI-spawned tray helper process."""
+        terminated = ProcessUtils.terminate_python_processes(
+            "input-remapper-tray", ["--gui-spawned"]
+        )
+        if terminated:
+            logger.info(
+                "Terminated %d running GUI-spawned tray process(es)", terminated
+            )
