@@ -92,9 +92,7 @@ class TestWhileEq(MacroTestBase):
 
     async def test_raises_error(self):
         # missing the macro argument
-        self.assertRaises(
-            MacroError, Parser.parse, "while_eq($a, 1)", self.context
-        )
+        self.assertRaises(MacroError, Parser.parse, "while_eq($a, 1)", self.context)
         Parser.parse("while_eq($a, 1, key(a))", self.context)  # no error
 
 
