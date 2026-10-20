@@ -28,7 +28,7 @@ from inputremapper.injection.macros.task import Task
 
 
 class WhileEqTask(Task):
-    """Repeat a macro while a shared variable equals a value.
+    """Repeat a macro while two values are equal.
 
     Named to mirror `if_eq(value_1, value_2, then, else)`. Unlike `toggle`,
     which starts/stops on repeated presses of the same trigger, `while_eq`
@@ -42,15 +42,14 @@ class WhileEqTask(Task):
 
     argument_configs = [
         ArgumentConfig(
-            name="variable",
+            name="value_1",
             position=0,
-            types=[str, float, int, None],
-            is_variable_name=True,
+            types=[str, int, float],
         ),
         ArgumentConfig(
-            name="value",
+            name="value_2",
             position=1,
-            types=[str, float, int, None],
+            types=[str, int, float],
         ),
         ArgumentConfig(
             name="macro",
@@ -60,10 +59,11 @@ class WhileEqTask(Task):
     ]
 
     async def run(self, callback) -> None:
-        variable = self.get_argument("variable")
-        value = self.get_argument("value").get_value()
+        value_1 = self.get_argument("value_1")
+        value_2 = self.get_argument("value_2")
         macro = self.get_argument("macro").get_value()
 
-        while variable.get_value() == value:
+        # Both are re-read every iteration, so that $variables are up to date.
+        while value_1.get_value() == value_2.get_value():
             await macro.run(callback)
             await asyncio.sleep(1 / 1000)

@@ -91,8 +91,8 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 ### while_eq
 
-> Repeats the execution of the third parameter while a variable equals a
-> value. Unlike `toggle`, which starts/stops by pressing the same input
+> Repeats the execution of the third parameter while the first two
+> parameters are equal, like `if_eq`. Unlike `toggle`, which starts/stops by pressing the same input
 > again, `while_eq` is controlled by a `set()`/`add()` variable that a
 > *different* mapping can change, so one key can stop a loop that another
 > key started. Unlike `repeat`, the variable is re-checked every iteration
@@ -101,14 +101,14 @@ Bear in mind that anti-cheat software might detect macros in games.
 > than running out a fixed budget before it can be triggered again.
 >
 > ```ts
-> while_eq(variable: str, value: str | int, macro: Macro)
+> while_eq(value_1: str | int, value_2: str | int, macro: Macro)
 > ```
 >
 > Examples:
 >
 > ```ts
 > # left mouse button autoclicker, toggled by one key and stopped by another
-> set(clicking, 1).while_eq(clicking, 1, key(BTN_LEFT).wait(50))
+> set(clicking, 1).while_eq($clicking, 1, key(BTN_LEFT).wait(50))
 > # elsewhere: set(clicking, 0) stops it
 > ```
 

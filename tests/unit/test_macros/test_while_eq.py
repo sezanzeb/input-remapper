@@ -33,7 +33,7 @@ class TestWhileEq(MacroTestBase):
     async def test_does_not_run_when_condition_is_already_false(self):
         macro_variables.set("while_eq_a", 0)
         macro = Parser.parse(
-            "while_eq(while_eq_a, 1, key(a))", self.context, DummyMapping
+            "while_eq($while_eq_a, 1, key(a))", self.context, DummyMapping
         )
         await macro.run(self.handler)
         self.assertListEqual(self.result, [])
@@ -42,7 +42,7 @@ class TestWhileEq(MacroTestBase):
     async def test_stops_when_variable_changes(self):
         macro_variables.set("while_eq_b", 1)
         macro = Parser.parse(
-            "while_eq(while_eq_b, 1, key(a).wait(10))", self.context, DummyMapping
+            "while_eq($while_eq_b, 1, key(a).wait(10))", self.context, DummyMapping
         )
 
         async def stop_soon():
@@ -67,7 +67,7 @@ class TestWhileEq(MacroTestBase):
         # the macro can be started again right away
         macro_variables.set("while_eq_c", 1)
         macro = Parser.parse(
-            "while_eq(while_eq_c, 1, key(a).wait(10))", self.context, DummyMapping
+            "while_eq($while_eq_c, 1, key(a).wait(10))", self.context, DummyMapping
         )
 
         async def stop_soon():
@@ -93,9 +93,9 @@ class TestWhileEq(MacroTestBase):
     async def test_raises_error(self):
         # missing the macro argument
         self.assertRaises(
-            MacroError, Parser.parse, "while_eq(a, 1)", self.context
+            MacroError, Parser.parse, "while_eq($a, 1)", self.context
         )
-        Parser.parse("while_eq(a, 1, key(a))", self.context)  # no error
+        Parser.parse("while_eq($a, 1, key(a))", self.context)  # no error
 
 
 if __name__ == "__main__":
