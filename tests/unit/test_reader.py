@@ -203,11 +203,12 @@ class TestReaderMultiprocessing(unittest.TestCase):
         def start_reader_service():
             # this is a new process, so create a new event loop, and all dependencies
             # from scratch, or something
-            with asyncio.Runner() as runner:
-                global_uinputs = GlobalUInputs(FrontendUInput)
-                global_uinputs.reset()
-                reader_service = ReaderService(groups, global_uinputs)
-                runner.run(reader_service.run())
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            global_uinputs = GlobalUInputs(FrontendUInput)
+            global_uinputs.reset()
+            reader_service = ReaderService(groups, global_uinputs)
+            loop.run_until_complete(reader_service.run())
 
         self.reader_service_process = multiprocessing.Process(
             target=start_reader_service

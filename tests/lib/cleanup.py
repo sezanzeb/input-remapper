@@ -163,11 +163,6 @@ def quick_cleanup(log=True):
 
     assert macro_variables.ping(1)
 
-    # Reader Service pipes, even those with a patched username
-    for path in glob.glob("/tmp/input-remapper*"):
-        logger.info("Removing %s", path)
-        shutil.rmtree(path)
-
     if log:
         logger.info("Quick cleanup done")
 
