@@ -176,11 +176,8 @@ class TestStrictMapping(unittest.IsolatedAsyncioTestCase):
         """Test that the init fails with invalid data."""
 
         def test(**config):
-            def a():
-                m = Mapping(**config)
-                m.assert_strict()
-
-            self.assertRaises((ValueError, ValidationError), a)
+            m = Mapping(**config)
+            self.assertRaises(ValueError, m.assert_strict)
 
         cfg = {
             "input_combination": [{"type": 1, "code": 2}],
@@ -291,37 +288,6 @@ class TestStrictMapping(unittest.IsolatedAsyncioTestCase):
 
         cfg["input_combination"] = [{"type": 1, "code": 2}]
         Mapping(**cfg)
-
-        # deadzone out of range
-        test(**cfg, deadzone=1.01)
-        test(**cfg, deadzone=-0.01)
-        Mapping(**cfg, deadzone=1)
-        Mapping(**cfg, deadzone=0)
-
-        # expo out of range
-        test(**cfg, expo=1.01)
-        test(**cfg, expo=-1.01)
-        Mapping(**cfg, expo=1)
-        Mapping(**cfg, expo=-1)
-
-        # negative rate
-        test(**cfg, rel_rate=-1)
-        test(**cfg, rel_rate=0)
-
-        Mapping(**cfg, rel_rate=1)
-        Mapping(**cfg, rel_rate=200)
-
-        # negative rel_to_abs_input_cutoff
-        test(**cfg, rel_to_abs_input_cutoff=-1)
-        test(**cfg, rel_to_abs_input_cutoff=0)
-        Mapping(**cfg, rel_to_abs_input_cutoff=1)
-        Mapping(**cfg, rel_to_abs_input_cutoff=3)
-
-        # negative release timeout
-        test(**cfg, release_timeout=-0.1)
-        test(**cfg, release_timeout=0)
-        Mapping(**cfg, release_timeout=0.05)
-        Mapping(**cfg, release_timeout=0.3)
 
         # analog output but no analog input
         cfg = {
@@ -503,6 +469,46 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(errors), 2)
         self.assertIsInstance(errors[0], str)
         self.assertIsInstance(errors[1], str)
+
+    def test_numbers(self):
+        test = partial(self.assertRaises, ValidationError, Mapping)
+
+        cfg = {
+            "input_combination": [{"type": 1, "code": 2}],
+            "target_uinput": "keyboard",
+            "output_symbol": "a",
+        }
+
+        # deadzone out of range
+        test(**cfg, deadzone=1.01)
+        test(**cfg, deadzone=-0.01)
+        Mapping(**cfg, deadzone=1)
+        Mapping(**cfg, deadzone=0)
+
+        # expo out of range
+        test(**cfg, expo=1.01)
+        test(**cfg, expo=-1.01)
+        Mapping(**cfg, expo=1)
+        Mapping(**cfg, expo=-1)
+
+        # negative rate
+        test(**cfg, rel_rate=-1)
+        test(**cfg, rel_rate=0)
+
+        Mapping(**cfg, rel_rate=1)
+        Mapping(**cfg, rel_rate=200)
+
+        # negative rel_to_abs_input_cutoff
+        test(**cfg, rel_to_abs_input_cutoff=-1)
+        test(**cfg, rel_to_abs_input_cutoff=0)
+        Mapping(**cfg, rel_to_abs_input_cutoff=1)
+        Mapping(**cfg, rel_to_abs_input_cutoff=3)
+
+        # negative release timeout
+        test(**cfg, release_timeout=-0.1)
+        test(**cfg, release_timeout=0)
+        Mapping(**cfg, release_timeout=0.05)
+        Mapping(**cfg, release_timeout=0.3)
 
 
 if __name__ == "__main__":
