@@ -100,33 +100,33 @@ class TestCodeEditor(ComponentBaseTest):
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
     def test_shows_output_symbol(self):
-        self.message_broker.publish(MappingData(Mapping(output_symbol="foo")))
-        self.assertEqual(self.get_text(), "foo")
+        self.message_broker.publish(MappingData(Mapping(output_symbol="foo1")))
+        self.assertEqual(self.get_text(), "foo1")
 
     def test_shows_record_input_first_message_when_mapping_is_empty(self):
         self.controller_mock.is_empty_mapping.return_value = True
-        self.message_broker.publish(MappingData(Mapping(output_symbol="foo")))
+        self.message_broker.publish(MappingData(Mapping(output_symbol="foo2")))
         self.assertEqual(self.get_text(), "Record the input first")
 
     def test_active_when_mapping_is_not_empty(self):
-        self.message_broker.publish(MappingData(Mapping(output_symbol="foo")))
+        self.message_broker.publish(MappingData(Mapping(output_symbol="foo3")))
         self.assertTrue(self.gui.get_sensitive())
         self.assertEqual(self.gui.get_opacity(), 1)
 
     def test_expands_to_multiline(self):
-        self.message_broker.publish(MappingData(Mapping(output_symbol="foo\nbar")))
+        self.message_broker.publish(MappingData(Mapping(output_symbol="foo4\nbar")))
         self.assertIn("multiline", self.gui.get_style_context().list_classes())
 
     def test_shows_line_numbers_when_multiline(self):
-        self.message_broker.publish(MappingData(Mapping(output_symbol="foo\nbar")))
+        self.message_broker.publish(MappingData(Mapping(output_symbol="foo5\nbar")))
         self.assertTrue(self.gui.get_show_line_numbers())
 
     def test_no_multiline_when_macro_not_multiline(self):
-        self.message_broker.publish(MappingData(Mapping(output_symbol="foo")))
+        self.message_broker.publish(MappingData(Mapping(output_symbol="foo6")))
         self.assertNotIn("multiline", self.gui.get_style_context().list_classes())
 
     def test_no_line_numbers_macro_not_multiline(self):
-        self.message_broker.publish(MappingData(Mapping(output_symbol="foo")))
+        self.message_broker.publish(MappingData(Mapping(output_symbol="foo7")))
         self.assertFalse(self.gui.get_show_line_numbers())
 
     def test_shows_placeholder_when_mapping_has_no_output_symbol(self):
@@ -140,14 +140,14 @@ class TestCodeEditor(ComponentBaseTest):
         self.message_broker.publish(MappingData(Mapping()))
         buffer = self.gui.get_buffer()
         self.controller_mock.update_mapping.assert_not_called()
-        buffer.set_text("foo")
+        buffer.set_text("foo8")
         call_args_list = self.controller_mock.update_mapping.call_args_list
         # this test emits 2 events for whatever reason, the first one with an empty
         # symbol. this doesn't actually seem to happen when using it.
-        self.assertEqual(call_args_list[-1], call(output_symbol="foo"))
+        self.assertEqual(call_args_list[-1], call(output_symbol="foo8"))
 
     def test_avoids_infinite_recursion_when_loading_mapping(self):
-        self.message_broker.publish(MappingData(Mapping(output_symbol="foo")))
+        self.message_broker.publish(MappingData(Mapping(output_symbol="foo10")))
         self.controller_mock.update_mapping.assert_not_called()
 
     def test_gets_focus_when_input_recording_finises(self):
@@ -161,31 +161,35 @@ class TestCodeEditor(ComponentBaseTest):
         window.add(self.gui)
         window.show_all()
 
-        def focus():
-            self.gui.grab_focus()
-            # Do as many iterations as needed to make it work.
-            gtk_iteration(15)
+        try:
 
-        def unfocus():
-            window.set_focus(None)
-            gtk_iteration(15)
+            def focus():
+                self.gui.grab_focus()
+                # Do as many iterations as needed to make it work.
+                gtk_iteration(15)
 
-        # clears the input when we enter the editor widget
-        focus()
-        self.assertEqual(self.get_text(), "")
-        self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
+            def unfocus():
+                window.set_focus(None)
+                gtk_iteration(15)
 
-        # adds the placeholder back when we leave it
-        unfocus()
-        self.assertEqual(self.get_text(), self.editor.placeholder)
-        self.assertIn("opaque-text", self.gui.get_style_context().list_classes())
+            # clears the input when we enter the editor widget
+            focus()
+            self.assertEqual(self.get_text(), "")
+            self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
 
-        # if we enter text and then leave, it won't show the placeholder
-        focus()
-        self.assertEqual(self.get_text(), "")
-        buffer = self.gui.get_buffer()
-        buffer.set_text("foo")
-        self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
-        unfocus()
-        self.assertEqual(self.get_text(), "foo")
-        self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
+            # adds the placeholder back when we leave it
+            unfocus()
+            self.assertEqual(self.get_text(), self.editor.placeholder)
+            self.assertIn("opaque-text", self.gui.get_style_context().list_classes())
+
+            # if we enter text and then leave, it won't show the placeholder
+            focus()
+            self.assertEqual(self.get_text(), "")
+            buffer = self.gui.get_buffer()
+            buffer.set_text("foo11")
+            self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
+            unfocus()
+            self.assertEqual(self.get_text(), "foo11")
+            self.assertNotIn("opaque-text", self.gui.get_style_context().list_classes())
+        finally:
+            window.destroy()
