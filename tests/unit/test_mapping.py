@@ -43,7 +43,7 @@ from tests.lib.test_setup import test_setup
 
 
 @test_setup
-class TestMapping(unittest.IsolatedAsyncioTestCase):
+class TestStrictMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """Test init and that defaults are set."""
         cfg = {
@@ -52,6 +52,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             "output_symbol": "a",
         }
         m = Mapping(**cfg)
+        m.assert_strict()
         self.assertEqual(
             m.input_combination, InputCombination([InputConfig(type=1, code=2)])
         )
@@ -173,7 +174,14 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_init_fails(self):
         """Test that the init fails with invalid data."""
-        test = partial(self.assertRaises, ValidationError, Mapping)
+
+        def test(**config):
+            def a():
+                m = Mapping(**config)
+                m.assert_strict()
+
+            self.assertRaises((ValueError, ValidationError), a)
+
         cfg = {
             "input_combination": [{"type": 1, "code": 2}],
             "target_uinput": "keyboard",
@@ -367,10 +375,12 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         test("input_combination", "1,2,3,4")
 
         # unknown target
-        test("target_uinput", "foo")
+        m.target_uinput = "foo"
+        self.assertRaises(ValueError, m.assert_strict)
 
         # invalid macro
-        test("output_symbol", "key()")
+        m.output_symbol = "key()"
+        self.assertRaises(ValueError, m.assert_strict)
 
         # we could do a lot more tests here but since pydantic uses the same validation
         # code as for the initialization we only need to make sure that the
@@ -404,16 +414,15 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             output_symbol="a",
         )
         mapping.set_combination_changed_callback(lambda *args: None)
+        mapping.output_symbol = "BTN_A"
         self.assertRaisesRegex(
-            ValidationError,
+            ValueError,
             # the error should mention
             # - the symbol
             # - the current incorrect target
             # - the target that works for this symbol
             ".*BTN_A.*keyboard.*gamepad",
-            mapping.__setattr__,
-            "output_symbol",
-            "BTN_A",
+            mapping.assert_strict,
         )
 
     def test_wrong_target_for_macro(self):
@@ -423,21 +432,20 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             output_symbol="key(a)",
         )
         mapping.set_combination_changed_callback(lambda *args: None)
+        mapping.output_symbol = "key(BTN_A)"
         self.assertRaisesRegex(
-            ValidationError,
+            ValueError,
             # the error should mention
             # - the symbol
             # - the current incorrect target
             # - the target that works for this symbol
             ".*BTN_A.*keyboard.*gamepad",
-            mapping.__setattr__,
-            "output_symbol",
-            "key(BTN_A)",
+            mapping.assert_strict,
         )
 
 
 @test_setup
-class TestMapping2(unittest.IsolatedAsyncioTestCase):
+class TestMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """Should be able to initialize without throwing errors."""
         Mapping(strict=False)
