@@ -29,6 +29,7 @@ from pickle import UnpicklingError
 from unittest.mock import patch
 
 import evdev
+from dasbus.signal import Signal
 
 from inputremapper.utils import get_evdev_constant_name
 from tests.lib.constants import EVENT_READ_TIMEOUT
@@ -361,9 +362,26 @@ class FakeDaemonProxy:
             "hello": [],
             "quit": 0,
         }
+        self.suspended_changed = Signal()
+        self.groups_changed = Signal()
+        self.state_changed = Signal()
+        self._get_groups_result: str = "[]"
+        self._is_suspended = False
 
     def stop_injecting(self, group_key: str) -> None:
         self.calls["stop_injecting"].append(group_key)
+
+    def get_groups(self) -> str:
+        self.calls["get_groups"] = self.calls.get("get_groups", 0) + 1
+        return self._get_groups_result
+
+    def is_suspended(self) -> bool:
+        self.calls["is_suspended"] = self.calls.get("is_suspended", 0) + 1
+        return self._is_suspended
+
+    def set_suspended(self, suspended: bool) -> None:
+        self.calls["set_suspended"] = self.calls.get("set_suspended", 0) + 1
+        self._is_suspended = suspended
 
     def get_state(self, group_key: str):
         from inputremapper.injection.injector import InjectorState
