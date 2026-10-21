@@ -102,7 +102,7 @@ class TestContext(unittest.TestCase):
         }
 
         self.assertEqual(
-            set([event.input_match_hash for event in expected_num_callbacks]),
+            {event.input_match_hash for event in expected_num_callbacks},
             set(context._notify_callbacks.keys()),
         )
         for input_event, num_callbacks in expected_num_callbacks.items():

@@ -41,7 +41,7 @@ class TestIfTap(MacroTestBase):
         self.assertEqual(self.count_child_macros(macro), 2)
 
         x = keyboard_layout.get("x")
-        y = keyboard_layout.get("y")
+        keyboard_layout.get("y")
 
         # this is the regular routine of how a macro is started. the tigger is pressed
         # already when the macro runs, and released during if_tap within the timeout.
@@ -121,7 +121,7 @@ class TestIfTap(MacroTestBase):
         # first param none
         macro = Parser.parse("if_tap(, key(y), 100)", self.context, DummyMapping)
         self.assertEqual(self.count_child_macros(macro), 1)
-        y = keyboard_layout.get("y")
+        keyboard_layout.get("y")
         macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.05)
@@ -132,7 +132,7 @@ class TestIfTap(MacroTestBase):
         # second param none
         macro = Parser.parse("if_tap(key(y), , 50)", self.context, DummyMapping)
         self.assertEqual(self.count_child_macros(macro), 1)
-        y = keyboard_layout.get("y")
+        keyboard_layout.get("y")
         macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.1)
@@ -163,7 +163,7 @@ class TestIfTap(MacroTestBase):
         )
         self.assertEqual(self.count_child_macros(macro), 2)
 
-        x = keyboard_layout.get("x")
+        keyboard_layout.get("x")
         y = keyboard_layout.get("y")
 
         macro.press_trigger()

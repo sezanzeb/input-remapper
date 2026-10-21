@@ -437,7 +437,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
 
 @test_setup
-class TestMapping(unittest.IsolatedAsyncioTestCase):
+class TestMapping2(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """Should be able to initialize without throwing errors."""
         Mapping(strict=False)

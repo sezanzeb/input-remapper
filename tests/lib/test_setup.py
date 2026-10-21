@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import os
 import tracemalloc
-import traceback
 
 from tests.lib.cleanup import cleanup, quick_cleanup
 from tests.lib.fixture_pipes import create_fixture_pipes, remove_fixture_pipes

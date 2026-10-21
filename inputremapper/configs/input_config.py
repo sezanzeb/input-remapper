@@ -31,7 +31,7 @@ try:
 except ImportError:
     from pydantic import BaseModel, root_validator, validator
 
-from typing_extensions import Self
+from typing import Self
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.gui.messages.message_types import MessageType

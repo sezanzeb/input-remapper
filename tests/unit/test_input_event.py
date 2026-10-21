@@ -50,8 +50,6 @@ class TestInputEvent(unittest.TestCase):
     def test_from_event_tuple(self):
         t1 = (1, 2, 3)
         t2 = (1, "2", 3)
-        t3 = (1, 2, 3, 4, 5)
-        t4 = (1, "b", 3)
 
         e1 = InputEvent.from_tuple(t1)
         e2 = InputEvent.from_tuple(t2)

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -225,7 +224,6 @@ class UInputMock:
         self.phys = phys
         self.write_history = []
 
-        global uinputs
         uinputs[name] = self
 
     def capabilities(self, verbose=False, absinfo=True):

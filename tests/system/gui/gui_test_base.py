@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -294,9 +293,9 @@ class GuiTestBase(unittest.TestCase):
             try:
                 method()
                 break
-            except Exception as e:
+            except Exception:
                 if attempts == 2:
-                    raise e
+                    raise
 
             # try again
             print("Test failed, trying again...")

@@ -59,3 +59,7 @@ class TestUser(unittest.TestCase):
         property_mock.configure_mock(pw_dir="/custom/home/foo")
         with mock.patch("pwd.getpwnam", return_value=property_mock):
             self.assertEqual(UserUtils.get_home("foo"), "/custom/home/foo")
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -22,11 +22,11 @@ Only write changes to disk, if there actually are changes. Otherwise, file-modif
 dates are destroyed.
 """
 
-from inputremapper.input_event import InputEvent
 from inputremapper.configs.input_config import (
     DEFAULT_ABS_ANALOG_THRESHOLD_MAGNITUDE,
     InputConfig,
 )
+from inputremapper.input_event import InputEvent
 
 
 def event_to_config(event: InputEvent) -> InputConfig:

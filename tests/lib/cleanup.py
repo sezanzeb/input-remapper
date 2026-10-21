@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -25,10 +24,9 @@ import os
 import shutil
 import time
 from pickle import UnpicklingError
-import glob
+
 import psutil
 
-from inputremapper.gui.reader_service import ReaderService
 from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger

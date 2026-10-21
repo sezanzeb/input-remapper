@@ -64,7 +64,7 @@ class IfTapTask(Task):
             await asyncio.wait_for(self._wait(), timeout)
             if then:
                 await then.run(callback)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             if else_:
                 await else_.run(callback)
 

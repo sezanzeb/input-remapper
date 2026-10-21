@@ -141,7 +141,7 @@ class TestIfEqDeprecated(MacroTestBase):
             DummyMapping,
         )
         code_a = keyboard_layout.get("a")
-        code_b = keyboard_layout.get("b")
+        keyboard_layout.get("b")
 
         await macro.run(self.handler)
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
@@ -189,7 +189,7 @@ class TestIfEqDeprecated(MacroTestBase):
 
     async def test_ifeq_unknown_key(self):
         macro = Parser.parse("ifeq(qux, 2, key(a), key(b))", self.context, DummyMapping)
-        code_a = keyboard_layout.get("a")
+        keyboard_layout.get("a")
         code_b = keyboard_layout.get("b")
 
         await macro.run(self.handler)

@@ -1,3 +1,22 @@
+#!/usr/bin/env python3
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
+#
+# This file is part of input-remapper.
+#
+# input-remapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# input-remapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import unittest
 from unittest.mock import MagicMock
 
@@ -114,3 +133,7 @@ class TestUserInterface(unittest.TestCase):
 
         # 0.5 != 0.501960..., for whatever reason this number is all screwed up
         self.assertAlmostEqual(label.get_opacity(), 0.5, delta=0.1)
+
+
+if __name__ == "__main__":
+    unittest.main()
