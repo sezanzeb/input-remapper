@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -45,7 +44,12 @@ class Fixture:
     path: str
     capabilities: dict = dataclasses.field(default_factory=dict)
     name: str = "unset"
-    info: evdev.device.DeviceInfo = evdev.device.DeviceInfo(None, None, None, None)
+    info: evdev.device.DeviceInfo = evdev.device.DeviceInfo(  # noqa: RUF009
+        None,
+        None,
+        None,
+        None,
+    )
     phys: str = "unset"
     group_key: str | None = None
 
@@ -278,7 +282,7 @@ class _Fixtures:
         if isinstance(value, Fixture):
             value = value.__dict__
 
-        key = value["path"]
+        value["path"]
         if isinstance(value, Fixture):
             self._iter.append(value)
         elif isinstance(value, dict):

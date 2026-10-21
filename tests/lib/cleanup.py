@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -87,8 +86,10 @@ def quick_cleanup(log=True):
     if log:
         logger.info("Quick cleanup...")
 
+    logger.info("Stopping all debounced callbacks")
     debounce_manager.stop_all()
 
+    logger.info("Clearing and closing pending event pipes")
     for device in list(pending_events.keys()):
         try:
             while pending_events[device][1].poll():
@@ -102,6 +103,7 @@ def quick_cleanup(log=True):
         del pending_events[device]
         setup_pipe(device)
 
+    logger.info("Cancelling all asyncio tasks")
     try:
         if asyncio.get_event_loop().is_running():
             for task in asyncio.all_tasks():
@@ -117,19 +119,25 @@ def quick_cleanup(log=True):
         raise AssertionError("the SharedDict manager is not running anymore")
 
     if macro_variables.process is not None:
+        logger.info("Stopping macro variables process")
         macro_variables._stop()
 
+    logger.info("Waiting for child processes")
     join_children()
 
     macro_variables.start()
 
     if os.path.exists(tmp):
+        logger.info("Removing %s", tmp)
         shutil.rmtree(tmp)
 
+    logger.info("Resetting keyboard layout")
     keyboard_layout.populate()
 
+    logger.info("Clearing write history")
     clear_write_history()
 
+    logger.info("Removing uinputs")
     for name in list(uinputs.keys()):
         del uinputs[name]
 
@@ -137,12 +145,17 @@ def quick_cleanup(log=True):
     #    del active_macros[device]
     # for device in list(unreleased.keys()):
     #    del unreleased[device]
+
+    logger.info("Resetting fixtures")
     fixtures.reset()
+
+    logger.info("Restoring environment")
     os.environ.update(environ_copy)
     for device in list(os.environ.keys()):
         if device not in environ_copy:
             del os.environ[device]
 
+    logger.info("Clearing pending events")
     for _, pipe in pending_events.values():
         assert not pipe.poll()
 

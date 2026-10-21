@@ -76,7 +76,7 @@ CODE_3 = 102
 
 # 0.03 seemed to be rather reliable locally already. In the github workflow vm, 0.15
 # was still not enough.
-GITHUB_WORKFLOW_TIMEOUT_SLACK = 0.2 if os.getenv("GITHUB_ACTIONS") == "true" else 0.05
+GITHUB_WORKFLOW_TIMEOUT_SLACK = 0.3 if os.getenv("GITHUB_ACTIONS") == "true" else 0.06
 
 
 class Listener:
@@ -1027,21 +1027,23 @@ class TestReaderMultiprocessing(unittest.TestCase):
 
     def test_reader_service_wont_wait_forever(self):
         # if the client is reading forever, stop it after another timeout
-        with patch.object(ReaderService, "_maximum_lifetime", 1):
-            with patch.object(ReaderService, "_timeout_tolerance", 1):
-                self.create_reader_service()
-                self.assertTrue(self.reader_service_process.is_alive())
+        with (
+            patch.object(ReaderService, "_maximum_lifetime", 1),
+            patch.object(ReaderService, "_timeout_tolerance", 1),
+        ):
+            self.create_reader_service()
+            self.assertTrue(self.reader_service_process.is_alive())
 
-                self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
-                self.reader_client.start_recorder()
+            self.reader_client.set_group(self.groups.find(key="Foo Device 2"))
+            self.reader_client.start_recorder()
 
-                time.sleep(1.5)
-                # still alive, without start_recorder it should have already exited
-                self.assertTrue(self.reader_service_process.is_alive())
+            time.sleep(1.5)
+            # still alive, without start_recorder it should have already exited
+            self.assertTrue(self.reader_service_process.is_alive())
 
-                time.sleep(1)
-                # now it stopped, even though the reader is still reading
-                self.assertFalse(self.reader_service_process.is_alive())
+            time.sleep(1)
+            # now it stopped, even though the reader is still reading
+            self.assertFalse(self.reader_service_process.is_alive())
 
     def test_reader_service_stops_with_broken_pipes(self):
         with patch.object(ReaderService, "pipes_exist", side_effect=lambda: False):

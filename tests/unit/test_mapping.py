@@ -43,7 +43,7 @@ from tests.lib.test_setup import test_setup
 
 
 @test_setup
-class TestMapping(unittest.IsolatedAsyncioTestCase):
+class TestStrictMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """Test init and that defaults are set."""
         cfg = {
@@ -52,6 +52,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             "output_symbol": "a",
         }
         m = Mapping(**cfg)
+        m.assert_strict()
         self.assertEqual(
             m.input_combination, InputCombination([InputConfig(type=1, code=2)])
         )
@@ -173,7 +174,11 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_init_fails(self):
         """Test that the init fails with invalid data."""
-        test = partial(self.assertRaises, ValidationError, Mapping)
+
+        def test(**config):
+            m = Mapping(**config)
+            self.assertRaises(ValueError, m.assert_strict)
+
         cfg = {
             "input_combination": [{"type": 1, "code": 2}],
             "target_uinput": "keyboard",
@@ -284,37 +289,6 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         cfg["input_combination"] = [{"type": 1, "code": 2}]
         Mapping(**cfg)
 
-        # deadzone out of range
-        test(**cfg, deadzone=1.01)
-        test(**cfg, deadzone=-0.01)
-        Mapping(**cfg, deadzone=1)
-        Mapping(**cfg, deadzone=0)
-
-        # expo out of range
-        test(**cfg, expo=1.01)
-        test(**cfg, expo=-1.01)
-        Mapping(**cfg, expo=1)
-        Mapping(**cfg, expo=-1)
-
-        # negative rate
-        test(**cfg, rel_rate=-1)
-        test(**cfg, rel_rate=0)
-
-        Mapping(**cfg, rel_rate=1)
-        Mapping(**cfg, rel_rate=200)
-
-        # negative rel_to_abs_input_cutoff
-        test(**cfg, rel_to_abs_input_cutoff=-1)
-        test(**cfg, rel_to_abs_input_cutoff=0)
-        Mapping(**cfg, rel_to_abs_input_cutoff=1)
-        Mapping(**cfg, rel_to_abs_input_cutoff=3)
-
-        # negative release timeout
-        test(**cfg, release_timeout=-0.1)
-        test(**cfg, release_timeout=0)
-        Mapping(**cfg, release_timeout=0.05)
-        Mapping(**cfg, release_timeout=0.3)
-
         # analog output but no analog input
         cfg = {
             "input_combination": [{"type": 3, "code": 1, "analog_threshold": -1}],
@@ -367,10 +341,12 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         test("input_combination", "1,2,3,4")
 
         # unknown target
-        test("target_uinput", "foo")
+        m.target_uinput = "foo"
+        self.assertRaises(ValueError, m.assert_strict)
 
         # invalid macro
-        test("output_symbol", "key()")
+        m.output_symbol = "key()"
+        self.assertRaises(ValueError, m.assert_strict)
 
         # we could do a lot more tests here but since pydantic uses the same validation
         # code as for the initialization we only need to make sure that the
@@ -404,16 +380,15 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             output_symbol="a",
         )
         mapping.set_combination_changed_callback(lambda *args: None)
+        mapping.output_symbol = "BTN_A"
         self.assertRaisesRegex(
-            ValidationError,
+            ValueError,
             # the error should mention
             # - the symbol
             # - the current incorrect target
             # - the target that works for this symbol
             ".*BTN_A.*keyboard.*gamepad",
-            mapping.__setattr__,
-            "output_symbol",
-            "BTN_A",
+            mapping.assert_strict,
         )
 
     def test_wrong_target_for_macro(self):
@@ -423,16 +398,15 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             output_symbol="key(a)",
         )
         mapping.set_combination_changed_callback(lambda *args: None)
+        mapping.output_symbol = "key(BTN_A)"
         self.assertRaisesRegex(
-            ValidationError,
+            ValueError,
             # the error should mention
             # - the symbol
             # - the current incorrect target
             # - the target that works for this symbol
             ".*BTN_A.*keyboard.*gamepad",
-            mapping.__setattr__,
-            "output_symbol",
-            "key(BTN_A)",
+            mapping.assert_strict,
         )
 
 
@@ -495,6 +469,46 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(errors), 2)
         self.assertIsInstance(errors[0], str)
         self.assertIsInstance(errors[1], str)
+
+    def test_numbers(self):
+        test = partial(self.assertRaises, ValidationError, Mapping)
+
+        cfg = {
+            "input_combination": [{"type": 1, "code": 2}],
+            "target_uinput": "keyboard",
+            "output_symbol": "a",
+        }
+
+        # deadzone out of range
+        test(**cfg, deadzone=1.01)
+        test(**cfg, deadzone=-0.01)
+        Mapping(**cfg, deadzone=1)
+        Mapping(**cfg, deadzone=0)
+
+        # expo out of range
+        test(**cfg, expo=1.01)
+        test(**cfg, expo=-1.01)
+        Mapping(**cfg, expo=1)
+        Mapping(**cfg, expo=-1)
+
+        # negative rate
+        test(**cfg, rel_rate=-1)
+        test(**cfg, rel_rate=0)
+
+        Mapping(**cfg, rel_rate=1)
+        Mapping(**cfg, rel_rate=200)
+
+        # negative rel_to_abs_input_cutoff
+        test(**cfg, rel_to_abs_input_cutoff=-1)
+        test(**cfg, rel_to_abs_input_cutoff=0)
+        Mapping(**cfg, rel_to_abs_input_cutoff=1)
+        Mapping(**cfg, rel_to_abs_input_cutoff=3)
+
+        # negative release timeout
+        test(**cfg, release_timeout=-0.1)
+        test(**cfg, release_timeout=0)
+        Mapping(**cfg, release_timeout=0.05)
+        Mapping(**cfg, release_timeout=0.3)
 
 
 if __name__ == "__main__":

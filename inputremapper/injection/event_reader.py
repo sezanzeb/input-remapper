@@ -85,29 +85,31 @@ class EventReader:
         events_ready = asyncio.Event()
         loop.add_reader(self._source.fileno(), events_ready.set)
 
-        while True:
-            _, pending = await asyncio.wait(
-                {stop_task, asyncio.Task(events_ready.wait())},
-                return_when=asyncio.FIRST_COMPLETED,
-            )
+        try:
+            while True:
+                _, pending = await asyncio.wait(
+                    {stop_task, asyncio.Task(events_ready.wait())},
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
 
-            fd_broken = os.stat(self._source.fileno()).st_nlink == 0
-            if fd_broken:
-                # happens when the device is unplugged while reading, causing 100% cpu
-                # usage because events_ready.set is called repeatedly forever,
-                # while read_loop will hang at self._source.read_one().
-                logger.error("fd broke, was the device unplugged?")
+                fd_broken = os.stat(self._source.fileno()).st_nlink == 0
+                if fd_broken:
+                    # happens when the device is unplugged while reading, causing 100% cpu
+                    # usage because events_ready.set is called repeatedly forever,
+                    # while read_loop will hang at self._source.read_one().
+                    logger.error("fd broke, was the device unplugged?")
 
-            if stop_task.done() or fd_broken:
-                for task in pending:
-                    task.cancel()
-                loop.remove_reader(self._source.fileno())
-                logger.debug("read loop stopped")
-                return
+                if stop_task.done() or fd_broken:
+                    for task in pending:
+                        task.cancel()
+                    logger.debug("read loop stopped")
+                    return
 
-            events_ready.clear()
-            while event := self._source.read_one():
-                yield event
+                events_ready.clear()
+                while event := self._source.read_one():
+                    yield event
+        finally:
+            loop.remove_reader(self._source.fileno())
 
     def send_to_handlers(self, event: InputEvent) -> bool:
         """Send the event to the NotifyCallbacks.

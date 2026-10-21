@@ -345,9 +345,11 @@ class _FindGroups(threading.Thread):
     def run(self) -> None:
         """Do what get_groups describes."""
         # evdev needs asyncio to work
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # peroperly clean up asyncio to avoid resource allocation warnings
+        with asyncio.Runner():
+            self._discover_and_send()
 
+    def _discover_and_send(self):
         logger.debug("Discovering device paths")
 
         # group them together by usb device because there could be stuff like
@@ -464,7 +466,6 @@ class _FindGroups(threading.Thread):
             result.append(group.dumps())
 
         self.pipe.send(json.dumps(result))
-        loop.close()  # avoid resource allocation warnings
         # now that everything is sent via the pipe, the InputDevice
         # destructors can go on and take ages to complete in the thread
         # without blocking anything

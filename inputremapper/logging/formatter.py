@@ -21,7 +21,7 @@
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class ColorfulFormatter(logging.Formatter):
@@ -121,9 +121,9 @@ class ColorfulFormatter(logging.Formatter):
 
         process_color = self._word_to_color(f"{os.getpid()}{sys.argv[0]}")
 
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         return (
-            f'{now.strftime("%H:%M:%S.%f")} '
+            f"{now.strftime('%H:%M:%S.%f')} "
             f"\033[38;5;{process_color}m"  # color
             f"{os.getpid()} "
             f"{self._get_process_name()} "

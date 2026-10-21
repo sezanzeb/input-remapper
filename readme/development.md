@@ -1,14 +1,18 @@
 Development
 ===========
 
-Contributions are very welcome, I will gladly review and discuss any merge requests.
-If you have questions about the code and architecture, feel free to
-[open an issue](https://github.com/sezanzeb/input-remapper/issues).
-This file should give an overview of some internals of input-remapper.
+Please ping me before working on bigger changes and new features to discuss them
+first. Bugfixes are always welcome of course. I try not to be nitpicky during
+reviews, unless it's about the gui, UX and software architecture.
 
 All pull requests will at some point require unittests (see below for more info).
-The code coverage may only be improved, not decreased. It also has to be mostly
-compliant with pylint.
+It also has to be mostly compliant with pylint, use typehints for new code, and
+pass black and ruff.
+
+When a pull request is created, an automated pipeline will run and check for
+errors and style. This pipeline has to pass before anything will be merged.
+
+This file should give an overview of some internals of input-remapper.
 
 Running
 -------
@@ -41,13 +45,15 @@ But you can also run them from your console:
 ```bash
 pip install psutil  # https://github.com/giampaolo/psutil
 sudo pkill -f input-remapper
+
+# Examples:
 python3 -m unittest discover -s ./tests/
 python3 -m unittest tests/unit/test_daemon.py
 python3 -m unittest tests.unit.test_ipc.TestPipe -k "test_pipe" -f
 # See `python -m unittest -h` for more.
 ```
 
-Don't use your computer during integration tests to avoid interacting with the gui,
+Don't use your computer during system-tests to avoid interacting with the gui,
 which might make tests fail.
 
 You can also use docker to run inputremappers unittests (without testing the gui).
@@ -75,18 +81,6 @@ and modify it if you write a new macro.
 If you have difficulty running your tests locally, github will run them for you when
 you create a new pull request.
 
-Scripts
--------
-
-To automate some of the development tasks, you can use the
-[setup.sh](/scripts/setup.sh) script. The script avoids using `pip` for installation.
-Instead, it uses either your local `python3` in your virtual env, or using
-`/usr/bin/python3` explicitly. For more information run
-
-```
-scripts/setup.sh help
-```
-
 Advice
 ------
 
@@ -99,7 +93,7 @@ Do not do `from evdev import list_devices; list_devices()`, and instead do
 `import evdev; evdev.list_devices()`. The first variant cannot be easily patched in
 tests (there are ways, but as far as I can tell it has to be configured individually
 for each source-file/module). The second option allows for patches to be defiend in
-one central places. Importing `KEY_*`, `BTN_*`, etc. constants via `from evdev` is
+one central place. Importing `KEY_*`, `BTN_*`, etc. constants via `from evdev` is
 fine.
 
 Releasing
@@ -118,12 +112,13 @@ Badges
 
 ```bash
 # https://github.com/nedbat/coveragepy https://github.com/giampaolo/psutil
-pip install coverage anybadge pylint psutil
+pip install git+https://github.com/jongracecox/anybadge --break-system-packages
+sudo apt install python3-coverage python3-psutil pylint
 sudo pkill -f input-remapper
 # Make sure input-remapper is uninstalled, then install it editable (without sudo
 # should be fine), so that the path for the coverage collection is correct.
 # Use `find /usr/ -iname "*inputremapper*"` to check if it is uninstalled.
-pip install -e .
+pip install -e . --break-system-packages
 ./scripts/badges.sh
 ```
 

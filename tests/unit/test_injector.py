@@ -16,14 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
-from inputremapper.injection.macros.parse import Parser
-from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
-
-try:
-    from pydantic.v1 import ValidationError
-except ImportError:
-    pass
 
 import time
 import unittest
@@ -52,6 +44,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.validation_errors import OutputSymbolUnknownError
 from inputremapper.groups import DeviceType, classify, groups
 from inputremapper.injection.context import Context
+from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.injector import (
     Injector,
     InjectorState,
@@ -60,6 +53,8 @@ from inputremapper.injection.injector import (
     get_udev_name,
     is_in_capabilities,
 )
+from inputremapper.injection.macros.parse import Parser
+from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.input_event import InputEvent
 from tests.lib.constants import EVENT_READ_TIMEOUT

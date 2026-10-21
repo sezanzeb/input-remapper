@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
+#
+# This file is part of input-remapper.
 #
 # input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

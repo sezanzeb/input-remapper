@@ -52,6 +52,8 @@ class Pipe:
     non-privileged users would be allowed to read.
     """
 
+    _handles = ()
+
     def __init__(self, path):
         """Create a pipe, or open it if it already exists."""
         self._path = path

@@ -66,7 +66,7 @@ class TestIfSingle(MacroTestBase):
         b = keyboard_layout.get("b")
 
         x = keyboard_layout.get("x")
-        y = keyboard_layout.get("y")
+        keyboard_layout.get("y")
 
         # pressing the macro key
         await self.trigger_sequence(macro, InputEvent.key(a, 1))
@@ -103,7 +103,7 @@ class TestIfSingle(MacroTestBase):
         a = keyboard_layout.get("a")
         b = keyboard_layout.get("b")
 
-        x = keyboard_layout.get("x")
+        keyboard_layout.get("x")
         y = keyboard_layout.get("y")
 
         # press the trigger key
@@ -124,7 +124,7 @@ class TestIfSingle(MacroTestBase):
         a = keyboard_layout.get("a")
         b = keyboard_layout.get("b")
 
-        x = keyboard_layout.get("x")
+        keyboard_layout.get("x")
 
         # press trigger key
         await self.trigger_sequence(macro, InputEvent.key(a, 1))
@@ -167,7 +167,7 @@ class TestIfSingle(MacroTestBase):
         macro = Parser.parse(
             "if_single(k(a), k(KEY_LEFTSHIFT))", self.context, DummyMapping
         )
-        code_shift = keyboard_layout.get("KEY_LEFTSHIFT")
+        keyboard_layout.get("KEY_LEFTSHIFT")
         code_a = keyboard_layout.get("a")
         trigger = 1
 

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# pip install git+https://github.com/jongracecox/anybadge
-
 coverage_badge() {
   python3 -m coverage erase
   python3 -m coverage run -m unittest discover -s ./tests/

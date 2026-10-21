@@ -364,15 +364,19 @@ class Injector(multiprocessing.Process):
         """Wait for messages from the main process to do special stuff."""
         loop = asyncio.get_event_loop()
         while True:
-            frame_available = asyncio.Event()
-            loop.add_reader(self._msg_pipe[0].fileno(), frame_available.set)
-            await frame_available.wait()
-            frame_available.clear()
-            msg = self._msg_pipe[0].recv()
+            try:
+                frame_available = asyncio.Event()
+                fileno = self._msg_pipe[0].fileno()
+                loop.add_reader(fileno, frame_available.set)
+                await frame_available.wait()
+                frame_available.clear()
+                msg = self._msg_pipe[0].recv()
 
-            if msg == InjectorCommand.CLOSE:
-                await self._close()
-                return
+                if msg == InjectorCommand.CLOSE:
+                    await self._close()
+                    return
+            finally:
+                loop.remove_reader(fileno)
 
     async def _close(self) -> None:
         logger.debug("Received close signal")

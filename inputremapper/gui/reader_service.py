@@ -298,8 +298,10 @@ class ReaderService:
     async def _stop_reading(self) -> None:
         """Stop the running event_reader."""
         self._stop_event.set()
+
         if self._tasks:
             await asyncio.gather(*self._tasks)
+
         self._tasks = set()
         self._stop_event.clear()
 

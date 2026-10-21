@@ -89,7 +89,7 @@ class TestAbsToBtn(EventPipelineTestBase):
         preset.add(mapping_1)
         preset.add(mapping_2)
         a_code = keyboard_layout.get("a")
-        b_code = keyboard_layout.get("b")
+        keyboard_layout.get("b")
         event_reader = self.create_event_reader(preset, fixture)
         max_abs = fixture.max_abs
 

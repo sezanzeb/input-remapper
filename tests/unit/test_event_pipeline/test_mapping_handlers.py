@@ -140,7 +140,7 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.set_sub_handler(ui_handler)
 
         # at 30% map to a
-        mapping_1 = mapping_from_combination(
+        mapping_from_combination(
             InputCombination(
                 [InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=30)]
             ),

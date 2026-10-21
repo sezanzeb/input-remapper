@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -113,19 +112,23 @@ class InputDevice:
     async def async_read_loop(self):
         logger.info("starting read loop for %s", self.path)
         new_frame = asyncio.Event()
-        asyncio.get_running_loop().add_reader(self.fd, new_frame.set)
-        while True:
-            await new_frame.wait()
-            new_frame.clear()
-            if not pending_events[self._fixture][1].poll():
-                # todo: why? why do we need this?
-                # sometimes this happens, as if a other process calls recv on
-                # the pipe
-                continue
+        loop = asyncio.get_running_loop()
+        loop.add_reader(self.fd, new_frame.set)
+        try:
+            while True:
+                await new_frame.wait()
+                new_frame.clear()
+                if not pending_events[self._fixture][1].poll():
+                    # todo: why? why do we need this?
+                    # sometimes this happens, as if a other process calls recv on
+                    # the pipe
+                    continue
 
-            event = pending_events[self._fixture][1].recv()
-            logger.info("got %s at %s", event, self.path)
-            yield event
+                event = pending_events[self._fixture][1].recv()
+                logger.info("got %s at %s", event, self.path)
+                yield event
+        finally:
+            loop.remove_reader(self.fd)
 
     def read(self):
         # the patched fake InputDevice objects read anything pending from
@@ -221,7 +224,6 @@ class UInputMock:
         self.phys = phys
         self.write_history = []
 
-        global uinputs
         uinputs[name] = self
 
     def capabilities(self, verbose=False, absinfo=True):
@@ -283,7 +285,7 @@ def patch_events():
     return patch.object(
         evdev.InputEvent,
         "__str__",
-        lambda self: (f"InputEvent{(self.type, self.code, self.value)}"),
+        lambda self: f"InputEvent{(self.type, self.code, self.value)}",
     )
 
 

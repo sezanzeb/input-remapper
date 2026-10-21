@@ -1,0 +1,191 @@
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
+#
+# This file is part of input-remapper.
+#
+# input-remapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# input-remapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
+
+import gi
+from evdev.ecodes import KEY_A, KEY_B, KEY_C
+
+gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "3.0")
+gi.require_version("GLib", "2.0")
+gi.require_version("GtkSource", "4")
+from gi.repository import Gtk
+
+from inputremapper.configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.mapping import Mapping
+from inputremapper.gui.components.editor import (
+    MappingListBox,
+    MappingSelectionLabel,
+)
+from inputremapper.gui.messages.message_data import (
+    MappingData,
+    PresetData,
+)
+from tests.lib.test_setup import test_setup
+from tests.system.gui.test_components.base import ComponentBaseTest
+
+
+@test_setup
+class TestMappingListbox(ComponentBaseTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.gui = Gtk.ListBox()
+        self.listbox = MappingListBox(
+            self.message_broker, self.controller_mock, self.gui
+        )
+
+        self.message_broker.publish(
+            PresetData(
+                "preset1",
+                (
+                    Mapping(
+                        name="mapping1",
+                        input_combination=InputCombination(
+                            [InputConfig(type=1, code=KEY_C)]
+                        ),
+                    ),
+                    Mapping(
+                        name="",
+                        input_combination=InputCombination(
+                            [
+                                InputConfig(type=1, code=KEY_A),
+                                InputConfig(type=1, code=KEY_B),
+                            ]
+                        ),
+                    ),
+                    Mapping(
+                        name="mapping2",
+                        input_combination=InputCombination(
+                            [InputConfig(type=1, code=KEY_B)]
+                        ),
+                    ),
+                ),
+            )
+        )
+
+    def get_selected_row(self) -> MappingSelectionLabel:
+        for label in self.gui.get_children():
+            if label.is_selected():
+                return label
+
+        raise AssertionError("Expected one MappingSelectionLabel to be selected")
+
+    def select_row(self, combination: InputCombination):
+        def select(label_: MappingSelectionLabel):
+            if label_.combination == combination:
+                self.gui.select_row(label_)
+
+        for label in self.gui.get_children():
+            select(label)
+
+    def test_populates_listbox(self):
+        labels = {row.name for row in self.gui.get_children()}
+        self.assertEqual(labels, {"mapping1", "mapping2", "a + b"})
+
+    def test_alphanumerically_sorted(self):
+        labels = [row.name for row in self.gui.get_children()]
+        self.assertEqual(labels, ["a + b", "mapping1", "mapping2"])
+
+    def test_activates_correct_row(self):
+        self.message_broker.publish(
+            MappingData(
+                mapping=Mapping(
+                    name="mapping1",
+                    input_combination=InputCombination(
+                        [InputConfig(type=1, code=KEY_C)]
+                    ),
+                )
+            )
+        )
+        selected = self.get_selected_row()
+        self.assertEqual(selected.name, "mapping1")
+        self.assertEqual(
+            selected.combination,
+            InputCombination([InputConfig(type=1, code=KEY_C)]),
+        )
+
+    def test_loads_mapping(self):
+        self.select_row(InputCombination([InputConfig(type=1, code=KEY_B)]))
+        self.controller_mock.load_mapping.assert_called_once_with(
+            InputCombination([InputConfig(type=1, code=KEY_B)])
+        )
+
+    def test_avoids_infinite_recursion(self):
+        self.message_broker.publish(
+            MappingData(
+                mapping=Mapping(
+                    name="mapping1",
+                    input_combination=InputCombination(
+                        [InputConfig(type=1, code=KEY_C)]
+                    ),
+                )
+            )
+        )
+        self.controller_mock.load_mapping.assert_not_called()
+
+    def test_sorts_empty_mapping_to_bottom(self):
+        self.message_broker.publish(
+            PresetData(
+                "preset1",
+                (
+                    Mapping(
+                        name="qux",
+                        input_combination=InputCombination(
+                            [InputConfig(type=1, code=KEY_C)]
+                        ),
+                    ),
+                    Mapping(
+                        name="foo",
+                        input_combination=InputCombination.empty_combination(),
+                    ),
+                    Mapping(
+                        name="bar",
+                        input_combination=InputCombination(
+                            [InputConfig(type=1, code=KEY_B)]
+                        ),
+                    ),
+                ),
+            )
+        )
+        bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
+        self.assertEqual(bottom_row.combination, InputCombination.empty_combination())
+        self.message_broker.publish(
+            PresetData(
+                "preset1",
+                (
+                    Mapping(
+                        name="foo",
+                        input_combination=InputCombination.empty_combination(),
+                    ),
+                    Mapping(
+                        name="qux",
+                        input_combination=InputCombination(
+                            [InputConfig(type=1, code=KEY_C)]
+                        ),
+                    ),
+                    Mapping(
+                        name="bar",
+                        input_combination=InputCombination(
+                            [InputConfig(type=1, code=KEY_B)]
+                        ),
+                    ),
+                ),
+            )
+        )
+        bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
+        self.assertEqual(bottom_row.combination, InputCombination.empty_combination())

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2026 sezanzeb <4t1pzast9@mozmail.com>
 #
@@ -42,14 +41,6 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
         self.result = []
         self.global_uinputs = GlobalUInputs(UInput)
         self.mapping_parser = MappingParser(self.global_uinputs)
-
-        try:
-            self.loop = asyncio.get_event_loop()
-        except RuntimeError:
-            # suddenly "There is no current event loop in thread 'MainThread'"
-            # errors started to appear
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
 
         self.source_device = InputDevice(fixtures.bar_device.path)
 

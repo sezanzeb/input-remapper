@@ -40,3 +40,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(get_evdev_constant_name(EV_KEY, KEY_A), "KEY_A")
 
         self.assertEqual(get_evdev_constant_name(EV_ABS, ABS_X), "ABS_X")
+
+
+if __name__ == "__main__":
+    unittest.main()
