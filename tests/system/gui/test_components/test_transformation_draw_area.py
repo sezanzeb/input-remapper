@@ -83,6 +83,7 @@ from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration
 from tests.lib.logger import logger
 from tests.lib.spy import spy
 from tests.lib.test_setup import test_setup
+from tests.system.gui.test_components.base import ComponentBaseTest
 
 
 @test_setup

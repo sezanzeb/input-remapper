@@ -40,7 +40,6 @@ from tests.lib.fixtures import fixtures
 from tests.lib.logger import logger
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
 from tests.lib.spy import spy
-from tests.system.gui.test_components import FlowBoxTestUtils
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
@@ -65,6 +64,7 @@ from inputremapper.gui.utils import gtk_iteration
 from inputremapper.injection.injector import InjectorState
 from tests.lib.test_setup import test_setup
 from tests.system.gui.gui_test_base import GuiTestBase, patch_confirm_delete
+from tests.system.gui.test_components.flowbox_test_utils import FlowBoxTestUtils
 
 
 @test_setup
