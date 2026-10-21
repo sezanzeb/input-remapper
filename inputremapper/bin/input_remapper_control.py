@@ -45,6 +45,7 @@ class Commands(Enum):
     AUTOLOAD = "autoload"
     START = "start"
     STOP = "stop"
+    GET_STATE = "get-state"
     STOP_ALL = "stop-all"
     SUSPEND = "suspend"
     RESUME = "resume"
@@ -179,6 +180,9 @@ class InputRemapperControlBin:
         if command == Commands.STOP.value:
             self._stop(device)
 
+        if command == Commands.GET_STATE.value:
+            self._get_state(device)
+
         if command == Commands.STOP_ALL.value:
             self.daemon.stop_all()
 
@@ -231,6 +235,13 @@ class InputRemapperControlBin:
     def _stop(self, device: str) -> None:
         group = self._load_group(device)
         self.daemon.stop_injecting(group.key)
+
+    def _get_state(self, device: str) -> None:
+        group = self._load_group(device)
+        state = self.daemon.get_state(group.key)
+        # The state is an InjectorState for a directly used Daemon, but a plain
+        # string when it comes from the dbus proxy.
+        print(getattr(state, "value", state))
 
     def _quit(self) -> None:
         try:

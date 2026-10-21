@@ -310,6 +310,7 @@ Examples:
 | If you are running as root user, provide information about the whereabouts of the input-remapper config | `input-remapper-control --command autoload --config-dir "~/.config/input-remapper/"`      |
 | List available device names for the `--device` parameter                                                | `sudo input-remapper-control --list-devices`                                              |
 | Stop injecting                                                                                          | `input-remapper-control --command stop --device "Razer Razer Naga Trinity"`               |
+| Print the injection state of a device, for example `RUNNING` or `STOPPED`                               | `input-remapper-control --command get-state --device "Razer Razer Naga Trinity"`          |
 | Load `~/.config/input-remapper/presets/Razer Razer Naga Trinity/a.json`                                 | `input-remapper-control --command start --device "Razer Razer Naga Trinity" --preset "a"` |
 | Loads the configured preset for whatever device is using this /dev path                                 | `/bin/input-remapper-control --command autoload --device /dev/input/event5`               |
 | Make the input-remapper-service process exit                                                            | `/bin/input-remapper-control --command quit`                                              |

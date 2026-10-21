@@ -33,6 +33,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
 from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
+from inputremapper.injection.injector import InjectorState
 from inputremapper.injection.mapping_handlers.mapping_parser import MappingParser
 from tests.lib.logger import logger
 from tests.lib.test_setup import test_setup
@@ -313,6 +314,29 @@ class TestControl(unittest.TestCase):
         )
         self.assertEqual(len(stop_all_history), 1)
         self.assertEqual(stop_all_history[0], ())
+
+    def test_get_state(self):
+        group = groups.find(key="Foo Device 2")
+        assert group is not None
+
+        daemon = Daemon(self.global_config, self.global_uinputs, self.mapping_parser)
+        self.input_remapper_control.set_daemon(daemon)
+
+        # Directly used Daemons return an InjectorState, the dbus proxy a string.
+        for state in (InjectorState.RUNNING, InjectorState.RUNNING.value):
+            with self.subTest(state=state):
+                daemon.get_state = MagicMock(return_value=state)
+
+                with patch("builtins.print") as print_mock:
+                    self.input_remapper_control.communicate(
+                        command="get-state",
+                        config_dir=None,
+                        preset=None,
+                        device=group.paths[0],
+                    )
+
+                daemon.get_state.assert_called_once_with(group.key)
+                print_mock.assert_called_once_with(InjectorState.RUNNING.value)
 
     @patch.object(Daemon, "quit")
     def test_quit(self, quit_mock: MagicMock) -> None:
