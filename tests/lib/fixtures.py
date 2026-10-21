@@ -44,7 +44,12 @@ class Fixture:
     path: str
     capabilities: dict = dataclasses.field(default_factory=dict)
     name: str = "unset"
-    info: evdev.device.DeviceInfo = evdev.device.DeviceInfo(None, None, None, None)  # noqa: RUF009
+    info: evdev.device.DeviceInfo = evdev.device.DeviceInfo(  # noqa: RUF009
+        None,
+        None,
+        None,
+        None,
+    )
     phys: str = "unset"
     group_key: str | None = None
 
