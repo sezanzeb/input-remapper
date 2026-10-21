@@ -122,7 +122,7 @@ def quick_cleanup(log=True):
         logger.info("Stopping macro variables process")
         macro_variables._stop()
 
-    logger.info("Waiting for hcild processes")
+    logger.info("Waiting for child processes")
     join_children()
 
     macro_variables.start()
