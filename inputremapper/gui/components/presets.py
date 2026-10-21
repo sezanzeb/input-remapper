@@ -48,13 +48,13 @@ class PresetEntry(FlowBoxEntry):
         message_broker: MessageBroker,
         controller: Controller,
         preset_name: str,
-    ):
+    ) -> None:
         super().__init__(
             message_broker=message_broker, controller=controller, name=preset_name
         )
         self.preset_name = preset_name
 
-    def _on_gtk_toggle(self, *_, **__):
+    def _on_gtk_toggle(self, *_, **__) -> None:
         logger.debug('Selecting preset "%s"', self.preset_name)
         self._controller.load_preset(self.preset_name)
         self.message_broker.publish(DoStackSwitch(Stack.editor_page))
@@ -71,7 +71,7 @@ class PresetSelection(FlowBoxWrapper):
         message_broker: MessageBroker,
         controller: Controller,
         flowbox: Gtk.FlowBox,
-    ):
+    ) -> None:
         super().__init__(flowbox)
 
         self._message_broker = message_broker
@@ -79,11 +79,11 @@ class PresetSelection(FlowBoxWrapper):
         self._gui = flowbox
         self._connect_message_listener()
 
-    def _connect_message_listener(self):
+    def _connect_message_listener(self) -> None:
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
         self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
 
-    def _on_group_changed(self, data: GroupData):
+    def _on_group_changed(self, data: GroupData) -> None:
         self._gui.foreach(self._gui.remove)
         for preset_name in data.presets:
             preset_entry = PresetEntry(
@@ -93,10 +93,10 @@ class PresetSelection(FlowBoxWrapper):
             )
             self._gui.insert(preset_entry, -1)
 
-    def _on_preset_changed(self, data: PresetData):
+    def _on_preset_changed(self, data: PresetData) -> None:
         self.show_active_entry(data.name)
 
-    def set_active_preset(self, preset_name: str):
+    def set_active_preset(self, preset_name: str) -> None:
         """Change the currently selected preset."""
         # TODO might only be needed in tests
         for child in self._gui.get_children():

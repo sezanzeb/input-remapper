@@ -96,7 +96,7 @@ class Parser:
     }
 
     @staticmethod
-    def is_this_a_macro(output: Any):
+    def is_this_a_macro(output: Any) -> bool:
         """Figure out if this is a macro."""
         if not isinstance(output, str):
             return False
@@ -108,7 +108,7 @@ class Parser:
         return "(" in output and ")" in output and len(output) >= 4
 
     @staticmethod
-    def _extract_args(inner: str):
+    def _extract_args(inner: str) -> list[str]:
         """Extract parameters from the inner contents of a call.
 
         This does not parse them.
@@ -148,7 +148,7 @@ class Parser:
         return params
 
     @staticmethod
-    def _count_brackets(macro):
+    def _count_brackets(macro: str) -> int:
         """Find where the first opening bracket closes."""
         openings = macro.count("(")
         closings = macro.count(")")
@@ -174,7 +174,7 @@ class Parser:
         return position
 
     @staticmethod
-    def _split_keyword_arg(param):
+    def _split_keyword_arg(param: str) -> tuple[str | None, str]:
         """Split "foo=bar" into "foo" and "bar".
 
         If not a keyward param, return None and the param.
@@ -233,7 +233,7 @@ class Parser:
         assert isinstance(code, str)
         assert isinstance(depth, int)
 
-        def debug(*args, **kwargs):
+        def debug(*args, **kwargs) -> None:
             if verbose:
                 logger.debug(*args, **kwargs)
 
@@ -376,7 +376,7 @@ class Parser:
             raise MacroError(code, msg)
 
     @staticmethod
-    def handle_plus_syntax(macro):
+    def handle_plus_syntax(macro: str) -> str:
         """Transform a + b + c to hold_keys(a,b,c)."""
         if "+" not in macro:
             return macro
@@ -395,7 +395,7 @@ class Parser:
         return output
 
     @staticmethod
-    def remove_whitespaces(macro, delimiter='"'):
+    def remove_whitespaces(macro: str, delimiter: str = '"') -> str:
         """Remove whitespaces, tabs, newlines and such outside of string quotes."""
         result = ""
         for i, chunk in enumerate(macro.split(delimiter)):
@@ -410,7 +410,7 @@ class Parser:
         return result[: -len(delimiter)]
 
     @staticmethod
-    def remove_comments(macro):
+    def remove_comments(macro: str) -> str:
         """Remove comments from the macro and return the resulting code."""
         # keep hashtags inside quotes intact
         result = ""
@@ -435,7 +435,7 @@ class Parser:
         return result
 
     @staticmethod
-    def clean(code):
+    def clean(code: str) -> str:
         """Remove everything irrelevant for the macro."""
         return Parser.remove_whitespaces(
             Parser.remove_comments(code),
@@ -443,7 +443,12 @@ class Parser:
         )
 
     @staticmethod
-    def parse(macro: str, context=None, mapping=None, verbose: bool = True) -> Macro:
+    def parse(
+        macro: str,
+        context=None,
+        mapping: Mapping | None = None,
+        verbose: bool = True,
+    ) -> Macro:
         """Parse and generate a Macro that can be run as often as you want.
 
         Parameters

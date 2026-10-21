@@ -22,6 +22,7 @@ import asyncio
 import random
 
 from inputremapper.injection.macros.argument import ArgumentConfig
+from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
 
 
@@ -42,7 +43,7 @@ class WaitTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         time = self.get_argument("time").get_value()
         max_time = self.get_argument("max_time").get_value()
 

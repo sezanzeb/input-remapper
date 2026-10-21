@@ -17,6 +17,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from collections.abc import Iterator
+
 import evdev
 
 import inputremapper.exceptions
@@ -59,12 +61,12 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
 class UInput(evdev.UInput):
     _capabilities_cache: dict | None = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         name = kwargs["name"]
         logger.debug('creating UInput device: "%s"', name)
         super().__init__(*args, **kwargs)
 
-    def can_emit(self, event: tuple[int, int, int]):
+    def can_emit(self, event: tuple[int, int, int]) -> bool:
         """Check if an event can be emitted by the UIinput.
 
         Wrong events might be injected if the group mappings are wrong,
@@ -80,14 +82,20 @@ class UInput(evdev.UInput):
 class FrontendUInput:
     """Uinput which can not actually send events, for use in the frontend."""
 
-    def __init__(self, *_, events=None, name="py-evdev-uinput", **__):
+    def __init__(
+        self,
+        *_,
+        events: dict[int, list[int]] | None = None,
+        name: str = "py-evdev-uinput",
+        **__,
+    ) -> None:
         # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
         self.events = events
         self.name = name
 
         logger.debug('creating fake UInput device: "%s"', self.name)
 
-    def capabilities(self):
+    def capabilities(self) -> dict[int, list[int]] | None:
         return self.events
 
 
@@ -97,11 +105,11 @@ class GlobalUInputs:
     def __init__(
         self,
         uinput_factory: type[UInput] | type[FrontendUInput],
-    ):
+    ) -> None:
         self.devices: dict[str, UInput | FrontendUInput] = {}
         self._uinput_factory = uinput_factory
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[UInput | FrontendUInput]:
         return iter(uinput for _, uinput in self.devices.items())
 
     @staticmethod
@@ -123,7 +131,7 @@ class GlobalUInputs:
         self.devices = {}
         self.prepare_all()
 
-    def prepare_all(self):
+    def prepare_all(self) -> None:
         """Generate UInputs."""
         for name, events in DEFAULT_UINPUTS.items():
             if name in self.devices:
@@ -135,7 +143,7 @@ class GlobalUInputs:
                 events=events,
             )
 
-    def prepare_single(self, name: str):
+    def prepare_single(self, name: str) -> None:
         """Generate a single uinput.
 
         This has to be done in the main process before injections that use it start.
@@ -153,7 +161,7 @@ class GlobalUInputs:
             events=DEFAULT_UINPUTS[name],
         )
 
-    def write(self, event: tuple[int, int, int], target_uinput):
+    def write(self, event: tuple[int, int, int], target_uinput) -> None:
         """Write event to target uinput."""
         uinput = self.get_uinput(target_uinput)
         if not uinput:

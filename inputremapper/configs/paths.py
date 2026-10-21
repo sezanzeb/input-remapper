@@ -40,7 +40,7 @@ class PathUtils:
         return os.path.join(xdg_config_home, "input-remapper-2")
 
     @staticmethod
-    def chown(path):
+    def chown(path: str | os.PathLike) -> None:
         """Set the owner of a path to the user."""
         try:
             logger.debug('Chown "%s", "%s"', path, UserUtils.user)
@@ -50,7 +50,7 @@ class PathUtils:
             shutil.chown(path, user=UserUtils.user)
 
     @staticmethod
-    def touch(path: str | os.PathLike, log=True):
+    def touch(path: str | os.PathLike, log: bool = True) -> None:
         """Create an empty file and all its parent dirs, give it to the user."""
         if str(path).endswith("/"):
             raise ValueError(f"Expected path to not end with a slash: {path}")
@@ -67,7 +67,7 @@ class PathUtils:
         PathUtils.chown(path)
 
     @staticmethod
-    def mkdir(path, log=True):
+    def mkdir(path: str | os.PathLike | None, log: bool = True) -> None:
         """Create a folder, give it to the user."""
         if path == "" or path is None:
             return
@@ -105,7 +105,7 @@ class PathUtils:
         return parts
 
     @staticmethod
-    def remove(path):
+    def remove(path: str | os.PathLike) -> None:
         """Remove whatever is at the path."""
         if not os.path.exists(path):
             return
@@ -127,7 +127,9 @@ class PathUtils:
         return group_name
 
     @staticmethod
-    def get_preset_path(group_name: str | None = None, preset: str | None = None):
+    def get_preset_path(
+        group_name: str | None = None, preset: str | None = None
+    ) -> str:
         """Get a path to the stored preset, or to store a preset to."""
         presets_base = os.path.join(PathUtils.config_path(), "presets")
 
@@ -148,6 +150,6 @@ class PathUtils:
         return os.path.join(presets_base, group_name, preset)
 
     @staticmethod
-    def get_config_path(*paths) -> str:
+    def get_config_path(*paths: str) -> str:
         """Get a path in ~/.config/input-remapper/."""
         return os.path.join(PathUtils.config_path(), *paths)

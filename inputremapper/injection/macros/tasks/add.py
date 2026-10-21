@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from inputremapper.configs.validation_errors import MacroError
 from inputremapper.injection.macros.argument import ArgumentConfig
+from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
 from inputremapper.logging.logger import logger
 
@@ -41,7 +42,7 @@ class AddTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         argument = self.get_argument("variable")
         try:
             current = argument.get_value()

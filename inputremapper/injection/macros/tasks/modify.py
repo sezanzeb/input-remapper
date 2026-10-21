@@ -22,7 +22,7 @@ from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.macros.argument import ArgumentConfig
-from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.macro import InjectEventCallback, Macro
 from inputremapper.injection.macros.task import Task
 
 
@@ -43,7 +43,7 @@ class ModifyTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         modifier = self.get_argument("modifier").get_value()
         code = keyboard_layout.get(modifier)
         macro = self.get_argument("macro").get_value()

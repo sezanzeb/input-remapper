@@ -65,7 +65,7 @@ class ArgumentConfig:
     def is_required(self) -> bool:
         return self.default == ArgumentFlags.required
 
-    def is_spread(self):
+    def is_spread(self) -> bool:
         """Does this Argument store all remaining Variables of a Task as a list?"""
         return self.position == ArgumentFlags.spread
 

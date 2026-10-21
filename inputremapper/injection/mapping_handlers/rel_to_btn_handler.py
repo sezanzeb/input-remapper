@@ -60,10 +60,10 @@ class RelToBtnHandler(MappingHandler):
         assert self._input_config.analog_threshold != 0
         assert len(combination) == 1
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'RelToBtnHandler for "{self._input_config}"'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:
@@ -73,7 +73,7 @@ class RelToBtnHandler(MappingHandler):
         self,
         source: evdev.InputDevice,
         suppress: bool,
-    ):
+    ) -> None:
         # Debounce the release of the button every time notify is called. I think the
         # efficiency of polling outweighs doing this event-based, which would require
         # creating new task objects with every single cursor movement event.

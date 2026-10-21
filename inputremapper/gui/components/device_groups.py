@@ -50,7 +50,7 @@ class DeviceGroupEntry(FlowBoxEntry):
         controller: Controller,
         icon_name: str | None,
         group_key: str,
-    ):
+    ) -> None:
         super().__init__(
             message_broker=message_broker,
             controller=controller,
@@ -59,7 +59,7 @@ class DeviceGroupEntry(FlowBoxEntry):
         )
         self.group_key = group_key
 
-    def _on_gtk_toggle(self, *_, **__):
+    def _on_gtk_toggle(self, *_, **__) -> None:
         logger.debug('Selecting device "%s"', self.group_key)
         self._controller.load_group(self.group_key)
         self.message_broker.publish(DoStackSwitch(Stack.presets_page))
@@ -76,7 +76,7 @@ class DeviceGroupSelection(FlowBoxWrapper):
         message_broker: MessageBroker,
         controller: Controller,
         flowbox: Gtk.FlowBox,
-    ):
+    ) -> None:
         super().__init__(flowbox)
 
         self._message_broker = message_broker
@@ -86,7 +86,7 @@ class DeviceGroupSelection(FlowBoxWrapper):
         self._message_broker.subscribe(MessageType.groups, self._on_groups_changed)
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
 
-    def _on_groups_changed(self, data: GroupsData):
+    def _on_groups_changed(self, data: GroupsData) -> None:
         self._gui.foreach(self._gui.remove)
 
         for group_key, types in data.groups.items():
@@ -108,5 +108,5 @@ class DeviceGroupSelection(FlowBoxWrapper):
         if self._controller.data_manager.active_group:
             self.show_active_entry(self._controller.data_manager.active_group.key)
 
-    def _on_group_changed(self, data: GroupData):
+    def _on_group_changed(self, data: GroupData) -> None:
         self.show_active_entry(data.group_key)

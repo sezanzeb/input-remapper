@@ -94,7 +94,7 @@ class AbsToRelHandler(MappingHandler):
         else:
             self._run = partial(self._run_normal_output)
 
-    def __str__(self):
+    def __str__(self) -> str:
         name = get_evdev_constant_name(*self._map_axis.type_and_code)
         return (
             f'AbsToRelHandler for "{name}" {self._map_axis}: '
@@ -103,7 +103,7 @@ class AbsToRelHandler(MappingHandler):
             f"{self.mapping.target_uinput}"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:
@@ -179,7 +179,9 @@ class AbsToRelHandler(MappingHandler):
             return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}
 
-    def _calculate_output(self, value, weight, remainder) -> None:
+    def _calculate_output(
+        self, value: float, weight: float, remainder: float
+    ) -> tuple[int, float]:
         # self._value is between 0 and 1, scale up with weight
         scaled = value * weight + remainder
         # float_value % 1 will result in wrong calculations for negative values

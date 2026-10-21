@@ -39,6 +39,7 @@ import json
 import os
 import time
 from collections.abc import AsyncIterator
+from typing import Any, TextIO
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.logging.logger import logger
@@ -52,12 +53,12 @@ class Pipe:
     non-privileged users would be allowed to read.
     """
 
-    _handles = ()
+    _handles: tuple[TextIO, ...] = ()
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         """Create a pipe, or open it if it already exists."""
         self._path = path
-        self._unread = []
+        self._unread: list[Any] = []
         self._created_at = time.time()
 
         self._transport: asyncio.ReadTransport | None = None
@@ -105,14 +106,14 @@ class Pipe:
             leftover = self.recv()
             logger.debug('Cleared leftover message "%s"', leftover)
 
-    def __del__(self):
+    def __del__(self) -> None:
         if self._transport:
             logger.debug("closing transport")
             self._transport.close()
         for file in self._handles:
             file.close()
 
-    def recv(self):
+    def recv(self) -> Any:
         """Read an object from the pipe or None if nothing available.
 
         Doesn't transmit pickles, to avoid injection attacks on the
@@ -128,7 +129,7 @@ class Pipe:
 
         return self._get_msg(line)
 
-    def _get_msg(self, line: str):
+    def _get_msg(self, line: str | bytes) -> Any:
         parsed = json.loads(line)
         if parsed[0] < self._created_at and os.environ.get("UNITTEST"):
             # important to avoid race conditions between multiple unittests,
@@ -139,7 +140,7 @@ class Pipe:
 
         return parsed[1]
 
-    def send(self, message: str | float | dict | list | tuple):
+    def send(self, message: str | float | dict | list | tuple) -> None:
         """Write a serializable object to the pipe."""
         dump = json.dumps((time.time(), message))
         # there aren't any newlines supposed to be,
@@ -148,7 +149,7 @@ class Pipe:
         self._handles[1].write("\n")
         self._handles[1].flush()
 
-    def poll(self):
+    def poll(self) -> bool:
         """Check if there is anything that can be read."""
         if len(self._unread) > 0:
             return True
@@ -162,14 +163,14 @@ class Pipe:
 
         return len(self._unread) > 0
 
-    def fileno(self):
+    def fileno(self) -> int:
         """Compatibility to select.select."""
         return self._handles[0].fileno()
 
-    def __aiter__(self):
+    def __aiter__(self) -> "Pipe":
         return self
 
-    async def __anext__(self):
+    async def __anext__(self) -> Any:
         if not self._async_iterator:
             loop = asyncio.get_running_loop()
             reader = asyncio.StreamReader()
@@ -181,7 +182,7 @@ class Pipe:
 
         return self._get_msg(await self._async_iterator.__anext__())
 
-    async def recv_async(self):
+    async def recv_async(self) -> Any:
         """Read the next line with async. Do not use this when using
         the async for loop."""
         return await self.__aiter__().__anext__()

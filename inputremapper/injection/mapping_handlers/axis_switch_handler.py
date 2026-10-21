@@ -62,7 +62,7 @@ class AxisSwitchHandler(MappingHandler):
         context: ContextProtocol,
         global_uinputs: GlobalUInputs,
         **_,
-    ):
+    ) -> None:
         super().__init__(combination, mapping, global_uinputs)
         trigger_keys = tuple(
             event.input_match_hash
@@ -81,16 +81,16 @@ class AxisSwitchHandler(MappingHandler):
 
         self.context = context
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"AxisSwitchHandler for {self._map_axis.type_and_code}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:
         return [self._sub_handler]
 
-    def _handle_key_input(self, event: InputEvent):
+    def _handle_key_input(self, event: InputEvent) -> bool:
         """If a key is pressed, allow mapping analog events in subhandlers.
 
         Analog events (e.g. ABS_X, REL_Y) that have gone through Handlers that
@@ -136,7 +136,7 @@ class AxisSwitchHandler(MappingHandler):
 
         return True
 
-    def _should_map(self, event: InputEvent):
+    def _should_map(self, event: InputEvent) -> bool:
         return (
             event.input_match_hash in self._trigger_keys
             or event.input_match_hash == self._map_axis.input_match_hash

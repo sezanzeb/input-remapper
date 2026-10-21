@@ -22,6 +22,7 @@ from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.macros.argument import ArgumentConfig
+from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
 
 
@@ -37,7 +38,7 @@ class KeyDownTask(Task):
         )
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         symbol = self.get_argument("symbol").get_value()
         code = keyboard_layout.get(symbol)
         callback(EV_KEY, code, 1)

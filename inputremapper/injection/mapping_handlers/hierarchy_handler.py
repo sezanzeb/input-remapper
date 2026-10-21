@@ -51,10 +51,10 @@ class HierarchyHandler(MappingHandler):
         mapping = handlers[0].mapping
         super().__init__(combination, mapping, global_uinputs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"HierarchyHandler for {self._input_config}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:

@@ -46,7 +46,7 @@ class UInputsData:
     message_type = MessageType.uinputs
     uinputs: dict[Name, Capabilities]
 
-    def __str__(self):
+    def __str__(self) -> str:
         string = f"{self.__class__.__name__}(uinputs={self.uinputs})"
 
         # find all sequences of comma+space separated numbers, and shorten them

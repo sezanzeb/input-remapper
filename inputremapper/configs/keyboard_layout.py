@@ -21,6 +21,7 @@ import json
 import re
 import subprocess
 from collections.abc import Iterable
+from typing import Any
 
 import evdev
 
@@ -47,7 +48,7 @@ class KeyboardLayout:
     _xmodmap: list[tuple[str, str]] | None = LAZY_LOAD
     _case_insensitive_mapping: dict | None = LAZY_LOAD
 
-    def __getattribute__(self, wanted: str):
+    def __getattribute__(self, wanted: str) -> Any:
         """To lazy load keyboard_layout info only when needed.
 
         For example, this helps to keep logs of input-remapper-control clear when it
@@ -78,14 +79,14 @@ class KeyboardLayout:
 
         return [name for name, code in self._mapping.items() if code in codes]
 
-    def correct_case(self, symbol: str):
+    def correct_case(self, symbol: str) -> str:
         """Return the correct casing for a symbol."""
         if symbol in self._mapping:
             return symbol
         # only if not e.g. both "a" and "A" are in the mapping
         return self._case_insensitive_mapping.get(symbol.lower(), symbol)
 
-    def _use_xmodmap_symbols(self):
+    def _use_xmodmap_symbols(self) -> None:
         """Look up xmodmap -pke, write xmodmap.json, and get the symbols."""
         try:
             xmodmap = subprocess.check_output(
@@ -116,13 +117,13 @@ class KeyboardLayout:
         for name, code in xmodmap_dict.items():
             self._set(name, code)
 
-    def _use_linux_evdev_symbols(self):
+    def _use_linux_evdev_symbols(self) -> None:
         """Look up the evdev constant names and use them."""
         for name, ecode in evdev.ecodes.ecodes.items():
             if name.startswith(("KEY", "BTN")):
                 self._set(name, ecode)
 
-    def populate(self):
+    def populate(self) -> None:
         """Get a mapping of all available names to their keycodes."""
         logger.debug("Gathering available keycodes")
         self.clear()
@@ -136,7 +137,7 @@ class KeyboardLayout:
 
         self._set(DISABLE_NAME, DISABLE_CODE)
 
-    def update(self, mapping: dict):
+    def update(self, mapping: dict) -> None:
         """Update this with new keys.
 
         Parameters
@@ -152,7 +153,7 @@ class KeyboardLayout:
             "Updated keycodes with %d new ones", len(self._mapping) - len_before
         )
 
-    def _set(self, name: str, code: int):
+    def _set(self, name: str, code: int) -> None:
         """Map name to code."""
         self._mapping[str(name)] = code
         self._case_insensitive_mapping[str(name).lower()] = name
@@ -167,13 +168,13 @@ class KeyboardLayout:
 
         return self._mapping.get(name)
 
-    def clear(self):
+    def clear(self) -> None:
         """Remove all mapped keys. Only needed for tests."""
         keys = list(self._mapping.keys())
         for key in keys:
             del self._mapping[key]
 
-    def get_name(self, code: int):
+    def get_name(self, code: int) -> str | None:
         """Get the first matching name for the code."""
         for entry in self._xmodmap:
             if int(entry[0]) - XKB_KEYCODE_OFFSET == code:

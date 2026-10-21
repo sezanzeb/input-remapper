@@ -19,6 +19,14 @@
 
 """Exceptions specific to inputremapper."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from inputremapper.configs.mapping import Mapping
+    from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
+
 
 class Error(Exception):
     """Base class for exceptions in inputremapper.
@@ -30,21 +38,27 @@ class Error(Exception):
 class UinputNotAvailable(Error):
     """If an expected UInput is not found (anymore)."""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(f"{name} is not defined or unplugged")
 
 
 class EventNotHandled(Error):
     """For example mapping to BTN_LEFT on a keyboard target."""
 
-    def __init__(self, event):
+    def __init__(self, event: tuple[int, int, int]) -> None:
         super().__init__(f"Event {event} can not be handled by the configured target")
 
 
 class MappingParsingError(Error):
     """Anything that goes wrong during the creation of handlers from the mapping."""
 
-    def __init__(self, msg: str, *, mapping=None, mapping_handler=None):
+    def __init__(
+        self,
+        msg: str,
+        *,
+        mapping: Mapping | None = None,
+        mapping_handler: MappingHandler | None = None,
+    ) -> None:
         self.mapping_handler = mapping_handler
         self.mapping = mapping
         super().__init__(msg)
@@ -53,12 +67,12 @@ class MappingParsingError(Error):
 class InputEventCreationError(Error):
     """An input-event failed to be created due to broken factory/constructor calls."""
 
-    def __init__(self, msg: str):
+    def __init__(self, msg: str) -> None:
         super().__init__(msg)
 
 
 class DataManagementError(Error):
     """Any error that happens in the DataManager."""
 
-    def __init__(self, msg: str):
+    def __init__(self, msg: str) -> None:
         super().__init__(msg)

@@ -33,7 +33,7 @@ class ColorfulFormatter(logging.Formatter):
     If debug mode is not active, it will not do any of this.
     """
 
-    def __init__(self, debug_mode: bool = False):
+    def __init__(self, debug_mode: bool = False) -> None:
         super().__init__()
 
         self.debug_mode = debug_mode
@@ -76,7 +76,7 @@ class ColorfulFormatter(logging.Formatter):
         index = digit_sum % len(self.allowed_colors)
         return self.allowed_colors[index]
 
-    def _allocate_debug_log_color(self, record: logging.LogRecord):
+    def _allocate_debug_log_color(self, record: logging.LogRecord) -> int:
         """Get the color that represents the source file of the log."""
         if self.file_color_mapping.get(record.filename) is not None:
             return self.file_color_mapping[record.filename]
@@ -89,7 +89,7 @@ class ColorfulFormatter(logging.Formatter):
 
         return color
 
-    def _get_process_name(self):
+    def _get_process_name(self) -> str:
         """Generate a beaitiful to read name for this process."""
         process_path = sys.argv[0]
         process_name = process_path.split("/")[-1]
@@ -102,7 +102,7 @@ class ColorfulFormatter(logging.Formatter):
 
         return process_name
 
-    def _get_format(self, record: logging.LogRecord):
+    def _get_format(self, record: logging.LogRecord) -> str:
         """Generate a message format string."""
         if record.levelno == logging.INFO and not self.debug_mode:
             # if not launched with --debug, then don't print "INFO:"
@@ -135,7 +135,7 @@ class ColorfulFormatter(logging.Formatter):
             "\033[0m"  # end style
         ).replace("  ", " ")
 
-    def format(self, record: logging.LogRecord):
+    def format(self, record: logging.LogRecord) -> str:
         """Overwritten format function."""
         # pylint: disable=protected-access
         self._style._fmt = self._get_format(record)

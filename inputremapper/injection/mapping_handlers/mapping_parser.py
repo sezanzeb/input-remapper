@@ -157,7 +157,7 @@ class MappingParser:
         self,
         handler: MappingHandler,
         context: ContextProtocol,
-        ignore_ranking=False,
+        ignore_ranking: bool = False,
     ) -> list[MappingHandler]:
         """Recursively wrap a handler with other handlers until the
         outer handler needs ranking or is finished wrapping.

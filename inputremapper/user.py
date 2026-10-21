@@ -26,7 +26,7 @@ import pwd
 
 class UserUtils:
     @staticmethod
-    def get_user():
+    def get_user() -> str:
         """Try to find the user who called sudo/pkexec."""
         try:
             return os.getlogin()
@@ -57,7 +57,7 @@ class UserUtils:
         return user
 
     @staticmethod
-    def get_home(user):
+    def get_home(user: str) -> str:
         """Try to find the user's home directory."""
         return pwd.getpwnam(user).pw_dir
 

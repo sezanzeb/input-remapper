@@ -44,7 +44,7 @@ class Stack:
         message_broker: MessageBroker,
         controller: Controller,
         stack: Gtk.Stack,
-    ):
+    ) -> None:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = stack
@@ -53,7 +53,7 @@ class Stack:
             MessageType.do_stack_switch, self._do_stack_switch
         )
 
-    def _do_stack_switch(self, msg: DoStackSwitch):
+    def _do_stack_switch(self, msg: DoStackSwitch) -> None:
         self._gui.set_visible_child(self._gui.get_children()[msg.page_index])
 
 
@@ -67,7 +67,7 @@ class StatusBar:
         status_bar: Gtk.Statusbar,
         error_icon: Gtk.Image,
         warning_icon: Gtk.Image,
-    ):
+    ) -> None:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = status_bar
@@ -85,7 +85,7 @@ class StatusBar:
         self._error = False
         self._warning = False
 
-    def _on_status_update(self, data: StatusData):
+    def _on_status_update(self, data: StatusData) -> None:
         """Show a status message and set its tooltip.
 
         If message is None, it will remove the newest message of the

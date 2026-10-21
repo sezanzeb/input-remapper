@@ -45,11 +45,11 @@ from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
 
 
-def is_wheel(event) -> bool:
+def is_wheel(event: InputEvent) -> bool:
     return event.type == EV_REL and event.code in (REL_WHEEL, REL_HWHEEL)
 
 
-def is_high_res_wheel(event) -> bool:
+def is_high_res_wheel(event: InputEvent) -> bool:
     return event.type == EV_REL and event.code in (REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES)
 
 
@@ -57,7 +57,7 @@ class Remainder:
     _scale: float
     _remainder: float
 
-    def __init__(self, scale: float):
+    def __init__(self, scale: float) -> None:
         self._scale = scale
         self._remainder = 0
 
@@ -115,19 +115,19 @@ class RelToRelHandler(MappingHandler):
             expo=self.mapping.expo,
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"RelToRelHandler for {self._input_config} "
             f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:
         return []
 
-    def _should_map(self, event: InputEvent):
+    def _should_map(self, event: InputEvent) -> bool:
         """Check if this input event is relevant for this handler."""
         return event.input_match_hash == self._input_config.input_match_hash
 
@@ -251,7 +251,7 @@ class RelToRelHandler(MappingHandler):
     def reset(self) -> None:
         pass
 
-    def _write(self, code: int, value: int):
+    def _write(self, code: int, value: int) -> None:
         if value == 0:
             # rel 0 does not make sense. We don't need to tell linux that the mouse
             # should not be moved this time.

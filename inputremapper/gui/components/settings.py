@@ -40,7 +40,7 @@ class SettingsMenu:
         systray_switch: Gtk.Switch,
         systray_row: Gtk.Box,
         systray_label: Gtk.Label,
-    ):
+    ) -> None:
         self.controller = controller
         self._switch = systray_switch
         self._row = systray_row

@@ -76,13 +76,13 @@ class CombinationHandler(MappingHandler):
 
         assert len(self._pressed_keys) > 0  # no combination handler without a key
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f'CombinationHandler for "{self.mapping.input_combination!s}" '
             f"{tuple(t for t in self._pressed_keys)}"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         description = (
             f'CombinationHandler for "{self.mapping.input_combination!r}" '
             f"{tuple(t for t in self._pressed_keys)}"

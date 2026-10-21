@@ -23,7 +23,7 @@ import asyncio
 from evdev.ecodes import EV_KEY
 
 from inputremapper.injection.macros.argument import ArgumentConfig
-from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.macro import InjectEventCallback, Macro
 from inputremapper.injection.macros.task import Task
 from inputremapper.input_event import InputEvent
 
@@ -50,7 +50,7 @@ class IfSingleTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         assert self.context is not None
         another_key_pressed_event = asyncio.Event()
         then = self.get_argument("then").get_value()

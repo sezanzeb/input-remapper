@@ -67,7 +67,7 @@ class AbsToAbsHandler(MappingHandler):
 
         self._transform = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         name = get_evdev_constant_name(*self._map_axis.type_and_code)
         return (
             f'AbsToAbsHandler for "{name}" {self._map_axis} '
@@ -76,7 +76,7 @@ class AbsToAbsHandler(MappingHandler):
             f"{self.mapping.target_uinput}"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:
@@ -128,7 +128,7 @@ class AbsToAbsHandler(MappingHandler):
         else:
             return int(max(self._target_absinfo.min, y))
 
-    def _write(self, value: int):
+    def _write(self, value: int) -> None:
         """Inject."""
         try:
             self.global_uinputs.write(

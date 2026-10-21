@@ -48,23 +48,23 @@ class MacroHandler(MappingHandler):
         global_uinputs: GlobalUInputs,
         *,
         context: ContextProtocol,
-    ):
+    ) -> None:
         super().__init__(combination, mapping, global_uinputs)
         self._pressed_keys: dict[tuple[int, int], int] = {}
         self._active = False
         assert self.mapping.output_symbol is not None
         self._macro = Parser.parse(self.mapping.output_symbol, context, mapping)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"MacroHandler maps to {self._macro} on {self.mapping.target_uinput}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:
         return []
 
-    async def run_macro(self, handler: Callable):
+    async def run_macro(self, handler: Callable) -> None:
         """Run the macro with the provided function."""
         try:
             await self._macro.run(handler)
@@ -79,7 +79,7 @@ class MacroHandler(MappingHandler):
             if self._macro.running:
                 return True
 
-            def handler(type_, code, value) -> None:
+            def handler(type_: int, code: int, value: int) -> None:
                 """Handler for macros."""
                 self._remember_pressed_keys((type_, code, value))
 

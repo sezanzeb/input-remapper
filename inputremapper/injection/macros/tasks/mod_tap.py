@@ -25,6 +25,7 @@ from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.macros.argument import ArgumentConfig
+from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
@@ -60,7 +61,7 @@ class ModTapTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         tapping_term = self.get_argument("tapping_term").get_value() / 1000
         jamming_asyncio_events: deque[asyncio.Event] = deque()
 

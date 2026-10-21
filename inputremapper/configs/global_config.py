@@ -22,6 +22,8 @@ from __future__ import annotations
 import copy
 import json
 import os
+from collections.abc import ItemsView
+from typing import Any
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.logging.logger import VERSION, logger
@@ -32,7 +34,7 @@ WHEEL = "wheel"
 BUTTONS = "buttons"
 NONE = "none"
 
-INITIAL_CONFIG = {
+INITIAL_CONFIG: dict[str, Any] = {
     "version": VERSION,
     "autoload": {},
     "enable_system_tray": True,
@@ -42,7 +44,7 @@ INITIAL_CONFIG = {
 class GlobalConfig:
     """Configures stuff like autoloading in ~/.config/input-remapper-2/config.json."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.path = os.path.join(PathUtils.config_path(), "config.json")
         self._config = copy.deepcopy(INITIAL_CONFIG)
 
@@ -55,7 +57,7 @@ class GlobalConfig:
         # the config file too. Therefore return a copy to prevent inconsistencies.
         return copy.deepcopy(self._config["autoload"].get(group_key))
 
-    def set_autoload_preset(self, group_key: str, preset: str | None):
+    def set_autoload_preset(self, group_key: str, preset: str | None) -> None:
         """Set a preset to be automatically applied on start.
 
         Parameters
@@ -75,11 +77,11 @@ class GlobalConfig:
 
         self._save_config()
 
-    def iterate_autoload_presets(self):
+    def iterate_autoload_presets(self) -> ItemsView[str, str]:
         """Get tuples of (device, preset)."""
         return self._config.get("autoload", {}).items()
 
-    def is_autoloaded(self, group_key: str | None, preset: str | None):
+    def is_autoloaded(self, group_key: str | None, preset: str | None) -> bool:
         """Should this preset be loaded automatically?"""
         if group_key is None or preset is None:
             raise ValueError("Expected group_key and preset to not be None")
@@ -90,12 +92,12 @@ class GlobalConfig:
         """Check if the system tray is enabled."""
         return self._config.get("enable_system_tray", True)
 
-    def set_systray(self, enabled: bool):
+    def set_systray(self, enabled: bool) -> None:
         """Set whether the system tray is enabled."""
         self._config["enable_system_tray"] = enabled
         self._save_config()
 
-    def load_config(self, path: str | None = None):
+    def load_config(self, path: str | None = None) -> None:
         """Load the config from the file system.
         Parameters
         ----------
@@ -132,7 +134,7 @@ class GlobalConfig:
                 # uses the default configuration when the config object
                 # is empty automatically
 
-    def _save_config(self):
+    def _save_config(self) -> None:
         """Save the config to the file system."""
         if UserUtils.user == "root":
             logger.debug("Skipping config file creation for the root user")
@@ -145,6 +147,6 @@ class GlobalConfig:
             logger.info("Saved config to %s", self.path)
             file.write("\n")
 
-    def _clear_config(self):
+    def _clear_config(self) -> None:
         """Remove all configurations in memory."""
         self._config = {}

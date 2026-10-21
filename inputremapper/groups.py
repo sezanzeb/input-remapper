@@ -77,13 +77,13 @@ class DeviceType(str, enum.Enum):
 if not hasattr(evdev.InputDevice, "path"):
     # for evdev < 1.0.0 patch the path property
     @property
-    def path(device):
+    def path(device: evdev.InputDevice) -> str:
         return device.fn
 
     evdev.InputDevice.path = path
 
 
-def _is_gamepad(capabilities):
+def _is_gamepad(capabilities: dict[int, list[int]]) -> bool:
     """Check if joystick movements are available for preset."""
     # A few buttons that indicate a gamepad
     buttons = {
@@ -105,7 +105,7 @@ def _is_gamepad(capabilities):
     return evdev.ecodes.ABS_Y in abs_capabilities
 
 
-def _is_mouse(capabilities):
+def _is_mouse(capabilities: dict[int, list[int]]) -> bool:
     """Check if the capabilities represent those of a mouse."""
     # Based on observation, those capabilities need to be present to get an
     # UInput recognized as mouse
@@ -124,28 +124,28 @@ def _is_mouse(capabilities):
     return BTN_LEFT in capabilities.get(EV_KEY, [])
 
 
-def _is_graphics_tablet(capabilities):
+def _is_graphics_tablet(capabilities: dict[int, list[int]]) -> bool:
     """Check if the capabilities represent those of a graphics tablet."""
     return BTN_STYLUS in capabilities.get(EV_KEY, [])
 
 
-def _is_touchpad(capabilities):
+def _is_touchpad(capabilities: dict[int, list[int]]) -> bool:
     """Check if the capabilities represent those of a touchpad."""
     return ABS_MT_POSITION_X in capabilities.get(EV_ABS, [])
 
 
-def _is_keyboard(capabilities):
+def _is_keyboard(capabilities: dict[int, list[int]]) -> bool:
     """Check if the capabilities represent those of a keyboard."""
     return KEY_A in capabilities.get(EV_KEY, [])
 
 
-def _is_camera(capabilities):
+def _is_camera(capabilities: dict[int, list[int]]):
     """Check if the capabilities represent those of a camera."""
     key_capa = capabilities.get(EV_KEY)
     return key_capa and len(key_capa) == 1 and key_capa[0] == KEY_CAMERA
 
 
-def classify(device) -> DeviceType:
+def classify(device: evdev.InputDevice) -> DeviceType:
     """Figure out what kind of device this is.
 
     Use this instead of functions like _is_keyboard to avoid getting false
@@ -188,7 +188,7 @@ def is_inputremapper_device(device: evdev.InputDevice) -> bool:
     return name.startswith("input-remapper") or phys.startswith("input-remapper")
 
 
-def is_denylisted(device: evdev.InputDevice):
+def is_denylisted(device: evdev.InputDevice) -> bool:
     """Check if a device should not be used in input-remapper.
 
     Parameters
@@ -202,7 +202,7 @@ def is_denylisted(device: evdev.InputDevice):
     return False
 
 
-def get_unique_key(device: evdev.InputDevice):
+def get_unique_key(device: evdev.InputDevice) -> str:
     """Find a string key that is unique for a single hardware device.
 
     All InputDevices in /dev/input that originate from the same physical
@@ -252,7 +252,7 @@ class _Group:
         names: list[str],
         types: list[DeviceType | str],
         key: str,
-    ):
+    ) -> None:
         """Specify a group
 
         Parameters
@@ -284,7 +284,7 @@ class _Group:
         self.names = names
         self.types = [DeviceType(type_) for type_ in types]
 
-    def get_preset_path(self, preset: str | None = None):
+    def get_preset_path(self, preset: str | None = None) -> str:
         """Get a path to the stored preset, or to store a preset to.
 
         This path is unique per device-model, not per group. Groups
@@ -302,7 +302,7 @@ class _Group:
                 continue
         return devices
 
-    def dumps(self):
+    def dumps(self) -> str:
         """Return a string representing this object."""
         return json.dumps(
             {
@@ -314,12 +314,12 @@ class _Group:
         )
 
     @classmethod
-    def loads(cls, serialized: str):
+    def loads(cls, serialized: str) -> _Group:
         """Load a serialized representation."""
         group = cls(**json.loads(serialized))
         return group
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Group ({self.key}) at {hex(id(self))}>"
 
 
@@ -349,7 +349,7 @@ class _FindGroups(threading.Thread):
         with asyncio.Runner():
             self._discover_and_send()
 
-    def _discover_and_send(self):
+    def _discover_and_send(self) -> None:
         logger.debug("Discovering device paths")
 
         # group them together by usb device because there could be stuff like
@@ -508,7 +508,7 @@ class _Groups:
 
         return list(self._groups)
 
-    def set_groups(self, new_groups: list[_Group]):
+    def set_groups(self, new_groups: list[_Group]) -> None:
         """Overwrite all groups."""
         logger.debug("Overwriting groups with %s", new_groups)
         self._groups = new_groups

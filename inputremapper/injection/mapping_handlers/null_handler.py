@@ -30,7 +30,7 @@ from inputremapper.input_event import InputEvent
 class NullHandler(MappingHandler):
     """Handler which consumes the event and does nothing."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"NullHandler for {self.mapping.input_combination}<{id(self)}>"
 
     def get_children(self) -> list[MappingHandler]:

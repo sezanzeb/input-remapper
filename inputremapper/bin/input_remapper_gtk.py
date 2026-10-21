@@ -131,7 +131,7 @@ class InputRemapperGtkBin:
         )
 
     @staticmethod
-    def start_reader_service():
+    def start_reader_service() -> None:
         if ProcessUtils.count_python_processes("input-remapper-reader-service") >= 1:
             logger.info("Found an input-remapper-reader-service to already be running")
             return
@@ -143,7 +143,7 @@ class InputRemapperGtkBin:
             sys.exit(11)
 
     @staticmethod
-    def stop(daemon, controller):
+    def stop(daemon: DaemonProxy | None, controller: Controller) -> None:
         if isinstance(daemon, Daemon):
             # have fun debugging completely unrelated tests if you remove this
             daemon.stop_all()

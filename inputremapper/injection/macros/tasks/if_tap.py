@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 
 from inputremapper.injection.macros.argument import ArgumentConfig
-from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.macro import InjectEventCallback, Macro
 from inputremapper.injection.macros.task import Task
 
 
@@ -55,7 +55,7 @@ class IfTapTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         then = self.get_argument("then").get_value()
         else_ = self.get_argument("else").get_value()
         timeout = self.get_argument("timeout").get_value() / 1000
@@ -68,7 +68,7 @@ class IfTapTask(Task):
             if else_:
                 await else_.run(callback)
 
-    async def _wait(self):
+    async def _wait(self) -> None:
         """Wait for a release, or if nothing pressed yet, a press and release."""
         if self.is_holding():
             await self._trigger_release_event.wait()

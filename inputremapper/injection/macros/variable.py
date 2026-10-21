@@ -81,7 +81,7 @@ class Variable:
     def __repr__(self) -> str:
         return f'<Variable "{self.value}" const={self.const} at {hex(id(self))}>'
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Variable):
             return False
 

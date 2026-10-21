@@ -29,6 +29,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.injection.macros.argument import ArgumentConfig
+from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
 from inputremapper.injection.macros.tasks.util import precise_iteration_frequency
 
@@ -49,7 +50,7 @@ class WheelTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         direction = self.get_argument("direction").get_value()
 
         # 120, see https://www.kernel.org/doc/html/latest/input/event-codes.html#ev-rel
