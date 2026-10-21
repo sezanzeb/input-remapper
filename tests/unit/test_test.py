@@ -95,8 +95,8 @@ class TestTest(unittest.TestCase):
                 # in a different process
                 global_uinputs = GlobalUInputs(UInput)
                 reader_service = ReaderService(_Groups(), global_uinputs)
-                loop = asyncio.new_event_loop()
-                loop.run_until_complete(reader_service.run())
+                with asyncio.Runner() as runner:
+                    runner.run(reader_service.run())
 
             self.reader_service = multiprocessing.Process(target=start_reader_service)
             self.reader_service.start()

@@ -61,6 +61,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
         )
 
     def tearDown(self):
+        self.loop.close()
         self.result = []
 
     def handler(self, type_: int, code: int, value: int):

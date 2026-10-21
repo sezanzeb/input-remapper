@@ -59,6 +59,8 @@ def test_setup(cls):
     def setUpClass():
         logger.info("setUpClass %s", cls)
 
+        cleanup()
+
         if is_service_running():
             # let tests control daemon existance
             raise AssertionError("Expected the service not to be running already.")
