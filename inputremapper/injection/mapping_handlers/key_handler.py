@@ -43,7 +43,7 @@ class KeyHandler(MappingHandler):
         mapping: Mapping,
         global_uinputs: GlobalUInputs,
         **_,
-    ):
+    ) -> None:
         super().__init__(combination, mapping, global_uinputs)
         maps_to = mapping.get_output_type_code()
         if not maps_to:
@@ -54,11 +54,11 @@ class KeyHandler(MappingHandler):
         self._maps_to = maps_to
         self._active = False
 
-    def __str__(self):
+    def __str__(self) -> str:
         name = get_evdev_constant_name(*self._maps_to)
         return f"KeyHandler to {name} {self._maps_to} on {self.mapping.target_uinput}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:

@@ -63,7 +63,7 @@ MSG_STATUS = "status"
 class ForwardToUIHandler(MappingHandler):
     """Implements the MappingHandler protocol. Sends all events into the pipe."""
 
-    def __init__(self, pipe: Pipe):
+    def __init__(self, pipe: Pipe) -> None:
         self.pipe = pipe
         self._last_event = InputEvent.from_tuple((99, 99, 99))
 
@@ -120,5 +120,5 @@ class ForwardToUIHandler(MappingHandler):
         )
         return True
 
-    def reset(self):
+    def reset(self) -> None:
         pass

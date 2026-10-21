@@ -104,7 +104,7 @@ class RelToAbsHandler(MappingHandler):
         self._previous_event = None
         self._observed_rate = DEFAULT_REL_RATE
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"RelToAbsHandler for {self._map_axis} "
             f"maps to: {self.mapping.get_output_name_constant()} "
@@ -112,13 +112,13 @@ class RelToAbsHandler(MappingHandler):
             f"{self.mapping.target_uinput}"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:
         return []
 
-    def _observe_rate(self, event: InputEvent):
+    def _observe_rate(self, event: InputEvent) -> None:
         """Watch incoming events and remember how many events appear per second."""
         if self._previous_event is not None:
             delta_time = event.timestamp() - self._previous_event.timestamp()
@@ -136,7 +136,7 @@ class RelToAbsHandler(MappingHandler):
 
         self._previous_event = event
 
-    def _get_default_cutoff(self):
+    def _get_default_cutoff(self) -> float:
         """Get the cutoff value assuming the default input rate."""
         if self._map_axis.code in [REL_WHEEL, REL_HWHEEL]:
             return self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING
@@ -146,7 +146,7 @@ class RelToAbsHandler(MappingHandler):
 
         return self.mapping.rel_to_abs_input_cutoff * REL_XY_SCALING
 
-    def _calculate_cutoff(self):
+    def _calculate_cutoff(self) -> None:
         """Correct the default cutoff with the observed input rate, and set it."""
         # Mice that have very high input rates report low values at the same time.
         # If the rate is high, use a lower cutoff-value. If the rate is low, use a

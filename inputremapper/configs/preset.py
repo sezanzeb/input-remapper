@@ -45,10 +45,10 @@ class Preset:
         self._saved_mappings: dict[InputCombination, Mapping] = {}
         self._path: os.PathLike | None = path
 
-    def get_mappings(self):
+    def get_mappings(self) -> list[Mapping]:
         return list(self._mappings.copy().values())
 
-    def get_number_of_mappings(self):
+    def get_number_of_mappings(self) -> int:
         return len(self._mappings)
 
     def has_unsaved_changes(self) -> bool:
@@ -278,7 +278,7 @@ class Preset:
         return self._path
 
     @path.setter
-    def path(self, path: os.PathLike | None):
+    def path(self, path: os.PathLike | None) -> None:
         if path != self.path:
             self._path = path
             self._update_saved_mappings()

@@ -71,7 +71,7 @@ class ReaderClient:
     # how long to wait for the reader-service at most
     _timeout: int = 5
 
-    def __init__(self, message_broker: MessageBroker, groups: _Groups):
+    def __init__(self, message_broker: MessageBroker, groups: _Groups) -> None:
         self.groups = groups
         self.message_broker = message_broker
 
@@ -84,7 +84,7 @@ class ReaderClient:
 
         self._read_timeout = GLib.timeout_add(30, self._read)
 
-    def ensure_reader_service_running(self):
+    def ensure_reader_service_running(self) -> None:
         if ReaderService.is_running():
             return
 
@@ -111,7 +111,7 @@ class ReaderClient:
             logger.error(msg)
             self.message_broker.publish(StatusData(CTX_ERROR, _(msg)))
 
-    def _send_command(self, command: str):
+    def _send_command(self, command: str) -> None:
         """Send a command to the ReaderService."""
         if command not in [CMD_TERMINATE, CMD_STOP_READING]:
             self.ensure_reader_service_running()
@@ -119,20 +119,20 @@ class ReaderClient:
         logger.debug('Sending "%s" to ReaderService', command)
         self._commands_pipe.send(command)
 
-    def connect(self):
+    def connect(self) -> tuple[Pipe, Pipe]:
         """Connect to the reader-service."""
         results_pipe = Pipe(ReaderService.get_pipe_paths()[0])
         commands_pipe = Pipe(ReaderService.get_pipe_paths()[1])
         return results_pipe, commands_pipe
 
-    def attach_to_events(self):
+    def attach_to_events(self) -> None:
         """Connect listeners to event_reader."""
         self.message_broker.subscribe(
             MessageType.terminate,
             lambda _: self.terminate(),
         )
 
-    def _read(self):
+    def _read(self) -> bool:
         """Read the messages from the reader-service and handle them."""
         while self._results_pipe.poll():
             message = self._results_pipe.recv()
@@ -265,12 +265,12 @@ class ReaderClient:
                     )
                 )
 
-    def set_group(self, group: _Group | None):
+    def set_group(self, group: _Group | None) -> None:
         """Set the group for which input events should be read later."""
         # TODO load the active_group from the controller instead?
         self.group = group
 
-    def terminate(self):
+    def terminate(self) -> None:
         """Stop reading keycodes for good."""
         self._send_command(CMD_TERMINATE)
 
@@ -283,18 +283,18 @@ class ReaderClient:
         while self._results_pipe.poll():
             self._results_pipe.recv()
 
-    def update_groups(self, dump: str):
+    def update_groups(self, dump: str) -> None:
         """Load device groups from a serialized dump and announce them."""
         self._update_groups(dump)
 
-    def publish_groups(self):
+    def publish_groups(self) -> None:
         """Announce all known groups."""
         groups: dict[str, list[str]] = {
             group.key: group.types or [] for group in self.groups.get_groups()
         }
         self.message_broker.publish(GroupsData(groups))
 
-    def _update_groups(self, dump: str):
+    def _update_groups(self, dump: str) -> None:
         if dump != self.groups.dumps():
             self.groups.loads(dump)
             logger.debug("Received %d devices", len(self.groups.get_groups()))

@@ -141,7 +141,7 @@ class SuggestionLabel(Gtk.Label):
 
     __gtype_name__ = "SuggestionLabel"
 
-    def __init__(self, display_name: str, suggestion: str):
+    def __init__(self, display_name: str, suggestion: str) -> None:
         super().__init__(label=display_name)
         self.suggestion = suggestion
 
@@ -160,7 +160,7 @@ class Autocompletion(Gtk.Popover):
         message_broker: MessageBroker,
         controller: Controller,
         code_editor: CodeEditor,
-    ):
+    ) -> None:
         """Create an autocompletion popover.
 
         It will remain hidden until there is something to autocomplete.
@@ -223,11 +223,11 @@ class Autocompletion(Gtk.Popover):
         self.show_all()
         self.popdown()  # hidden by default. this needs to happen after show_all!
 
-    def attach_to_events(self):
+    def attach_to_events(self) -> None:
         self.message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
         self.message_broker.subscribe(MessageType.uinputs, self._on_uinputs_changed)
 
-    def on_gtk_text_input_unfocus(self, *_):
+    def on_gtk_text_input_unfocus(self, *_) -> bool:
         """The code editor was unfocused."""
         GLib.timeout_add(100, self.popdown)
         # "(input-remapper-gtk:97611): Gtk-WARNING **: 16:33:56.464: GtkTextView -
@@ -296,7 +296,7 @@ class Autocompletion(Gtk.Popover):
         # don't change editor contents
         return Gdk.EVENT_STOP
 
-    def _scroll_to_row(self, row: Gtk.ListBoxRow):
+    def _scroll_to_row(self, row: Gtk.ListBoxRow) -> None:
         """Scroll up or down so that the row is visible."""
         # unfortunately, it seems that without focusing the row it won't happen
         # automatically (or whatever the reason for this is, just a wild guess)
@@ -342,21 +342,21 @@ class Autocompletion(Gtk.Popover):
                 # the selected element is not visiable, so we need to scroll up.
                 vadjustment.set_value(row_y_position)
 
-    def _get_text_iter_at_cursor(self):
+    def _get_text_iter_at_cursor(self) -> Gtk.TextIter:
         """Get Gtk.TextIter at the current text cursor location."""
         cursor = self.code_editor.gui.get_cursor_locations()[0]
         return self.code_editor.gui.get_iter_at_location(cursor.x, cursor.y)[1]
 
-    def popup(self):
+    def popup(self) -> None:
         self.visible = True
         super().popup()
 
-    def popdown(self):
+    def popdown(self) -> None:
         self.visible = False
         super().popdown()
 
     @debounce(100)
-    def update(self, *_):
+    def update(self, *_) -> None:
         """Find new autocompletion suggestions and display them. Hide if none."""
         if len(self._target_key_capabilities) == 0:
             logger.error("No target capabilities available")
@@ -401,19 +401,19 @@ class Autocompletion(Gtk.Popover):
             self.list_box.insert(label, -1)
             label.show_all()
 
-    def _update_capabilities(self):
+    def _update_capabilities(self) -> None:
         if self._target_uinput and self._uinputs:
             self._target_key_capabilities = self._uinputs[self._target_uinput][EV_KEY]
 
-    def _on_mapping_changed(self, mapping_data: MappingData):
+    def _on_mapping_changed(self, mapping_data: MappingData) -> None:
         self._target_uinput = mapping_data.mapping.target_uinput
         self._update_capabilities()
 
-    def _on_uinputs_changed(self, data: UInputsData):
+    def _on_uinputs_changed(self, data: UInputsData) -> None:
         self._uinputs = data.uinputs
         self._update_capabilities()
 
-    def _on_suggestion_clicked(self, _, selected_row):
+    def _on_suggestion_clicked(self, _, selected_row: Gtk.ListBoxRow) -> None:
         """An autocompletion suggestion was selected and should be inserted."""
         selected_label = selected_row.get_children()[0]
         suggestion = selected_label.suggestion

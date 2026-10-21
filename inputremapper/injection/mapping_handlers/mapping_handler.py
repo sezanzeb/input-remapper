@@ -71,6 +71,7 @@ from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.input_event import InputEvent
 from inputremapper.logging.logger import logger
+from inputremapper.utils import DeviceHash
 
 
 class EventListener(Protocol):
@@ -82,7 +83,7 @@ class ContextProtocol(Protocol):
 
     listeners: set[EventListener]
 
-    def get_forward_uinput(self, origin_hash) -> evdev.UInput:
+    def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
         pass
 
 

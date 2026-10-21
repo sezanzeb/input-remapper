@@ -212,13 +212,15 @@ class Mapping(BaseModel):
             REL_HWHEEL_HI_RES,
         )
 
-    def is_analog_output(self):
+    def is_analog_output(self) -> bool:
         return self.mapping_type == MappingType.ANALOG
 
-    def set_combination_changed_callback(self, callback: CombinationChangedCallback):
+    def set_combination_changed_callback(
+        self, callback: CombinationChangedCallback
+    ) -> None:
         self._combination_changed = callback
 
-    def remove_combination_changed_callback(self):
+    def remove_combination_changed_callback(self) -> None:
         self._combination_changed = None
 
     def get_output_type_code(self) -> tuple[int, int] | None:
@@ -264,7 +266,7 @@ class Mapping(BaseModel):
         for method in self._get_strict_assertions():
             method()
 
-    def _get_strict_assertions(self):
+    def _get_strict_assertions(self) -> list[Callable[[], None]]:
         return [
             self._assert_output,
             self._assert_only_one_analog_input,
@@ -450,7 +452,7 @@ class Mapping(BaseModel):
         return str(error)
 
     @root_validator
-    def validate_mapping_type(cls, values):
+    def validate_mapping_type(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Overrides the mapping type if the output mapping type is obvious."""
         output_type = values.get("output_type")
         output_code = values.get("output_code")
@@ -474,7 +476,7 @@ class Mapping(BaseModel):
         return values
 
     @root_validator(pre=True)
-    def validate_symbol(cls, values):
+    def validate_symbol(cls, values: dict[str, Any]) -> dict[str, Any]:
         symbol = values.get("output_symbol")
 
         if symbol == "":
@@ -501,7 +503,7 @@ class Mapping(BaseModel):
 
         super().__setattr__(key, value)
 
-    def _validate_input_combination(self, value) -> None:
+    def _validate_input_combination(self, value: Any) -> None:
         """Call the combination changed callback, if we are about to update the input
         combination."""
         try:
@@ -519,7 +521,7 @@ class Mapping(BaseModel):
 
         super().__setattr__("input_combination", new_combi)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Mapping " + str(
             self.dict(
                 exclude_defaults=True,

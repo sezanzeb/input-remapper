@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 
 from inputremapper.injection.macros.argument import ArgumentConfig
-from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.macro import InjectEventCallback, Macro
 from inputremapper.injection.macros.task import Task
 
 
@@ -36,7 +36,7 @@ class ToggleTask(Task):
         ),
     ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.trigger_count = 0
 
@@ -44,7 +44,7 @@ class ToggleTask(Task):
         Task.press_trigger(self)
         self.trigger_count += 1
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         macro = self.get_argument("macro").get_value()
 
         while self.trigger_count <= 1:

@@ -67,21 +67,21 @@ BUS_TIMEOUT = 10000
 class AutoloadHistory:
     """Contains the autoloading history and constraints."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Construct this with an empty history."""
         # preset of device -> (timestamp, preset)
-        self._autoload_history = {}
+        self._autoload_history: dict[str, tuple[float, str]] = {}
 
-    def remember(self, group_key: str, preset: str):
+    def remember(self, group_key: str, preset: str) -> None:
         """Remember when this preset was autoloaded for the device."""
         self._autoload_history[group_key] = (time.time(), preset)
 
-    def forget(self, group_key: str):
+    def forget(self, group_key: str) -> None:
         """The injection was stopped or started by hand."""
         if group_key in self._autoload_history:
             del self._autoload_history[group_key]
 
-    def may_autoload(self, group_key: str, preset: str):
+    def may_autoload(self, group_key: str, preset: str) -> bool:
         """Check if this autoload would be redundant.
 
         This is needed because udev triggers multiple times per hardware

@@ -26,14 +26,19 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.global_uinputs import GlobalUInputs
 
+if TYPE_CHECKING:
+    from inputremapper.configs.input_config import InputConfig
+
 
 class OutputSymbolVariantError(ValueError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "Missing Argument: Mapping must either contain "
             "`output_symbol` or `output_type` and `output_code`"
@@ -41,7 +46,7 @@ class OutputSymbolVariantError(ValueError):
 
 
 class TriggerPointInRangeError(ValueError):
-    def __init__(self, input_config):
+    def __init__(self, input_config: InputConfig) -> None:
         super().__init__(
             f"{input_config = } maps an absolute axis to a button, but the "
             "trigger point (event.analog_threshold) is not between -100[%] "
@@ -50,7 +55,7 @@ class TriggerPointInRangeError(ValueError):
 
 
 class OnlyOneAnalogInputError(ValueError):
-    def __init__(self, analog_events):
+    def __init__(self, analog_events) -> None:
         super().__init__(
             f"Cannot map a combination of multiple analog inputs: {analog_events}"
             "add trigger points (event.value != 0) to map as a button"
@@ -58,7 +63,7 @@ class OnlyOneAnalogInputError(ValueError):
 
 
 class SymbolNotAvailableInTargetError(ValueError):
-    def __init__(self, symbol, target):
+    def __init__(self, symbol: str, target: str) -> None:
         code = keyboard_layout.get(symbol)
 
         fitting_targets = GlobalUInputs.find_fitting_default_uinputs(EV_KEY, code)
@@ -71,7 +76,7 @@ class SymbolNotAvailableInTargetError(ValueError):
 
 
 class OutputSymbolUnknownError(ValueError):
-    def __init__(self, symbol: str):
+    def __init__(self, symbol: str) -> None:
         super().__init__(
             f'The output_symbol "{symbol}" is not a macro and not a valid '
             + "keycode-name"
@@ -79,14 +84,14 @@ class OutputSymbolUnknownError(ValueError):
 
 
 class MacroButTypeOrCodeSetError(ValueError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "output_symbol is a macro: output_type and output_code must be None"
         )
 
 
 class SymbolAndCodeMismatchError(ValueError):
-    def __init__(self, symbol, code):
+    def __init__(self, symbol: str, code: int | None) -> None:
         super().__init__(
             "output_symbol and output_code mismatch: "
             f"output macro is {symbol} -> {keyboard_layout.get(symbol)} "
@@ -95,17 +100,19 @@ class SymbolAndCodeMismatchError(ValueError):
 
 
 class WrongMappingTypeForKeyError(ValueError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("Wrong mapping_type for key input")
 
 
 class MissingMacroOrKeyError(ValueError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("Missing macro or key")
 
 
 class MissingOutputAxisError(ValueError):
-    def __init__(self, analog_input_config, output_type):
+    def __init__(
+        self, analog_input_config: InputConfig | None, output_type: int | None
+    ) -> None:
         super().__init__(
             "Missing output axis: "
             f'"{analog_input_config}" is used as analog input, '
@@ -116,6 +123,8 @@ class MissingOutputAxisError(ValueError):
 class MacroError(ValueError):
     """Macro syntax errors."""
 
-    def __init__(self, symbol: str | None = None, msg="Error while parsing a macro"):
+    def __init__(
+        self, symbol: str | None = None, msg: str = "Error while parsing a macro"
+    ) -> None:
         self.symbol = symbol
         super().__init__(msg)

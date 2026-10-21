@@ -81,7 +81,7 @@ class Controller:
         self.button_left_warn = False
         self._attach_to_events()
 
-    def set_gui(self, gui: UserInterface):
+    def set_gui(self, gui: UserInterface) -> None:
         """Let the Controller know about the user interface singleton.."""
         self.gui = gui
 
@@ -96,7 +96,7 @@ class Controller:
             MessageType.mapping, self._publish_mapping_errors_as_status_msg
         )
 
-    def _on_init(self, __):
+    def _on_init(self, __) -> None:
         """Initialize the gui and the data_manager."""
         # make sure we get a groups_changed event when everything is ready
         # this might not be necessary if the reader-service takes longer to provide the
@@ -104,7 +104,7 @@ class Controller:
         self.data_manager.publish_groups()
         self.data_manager.publish_uinputs()
 
-    def _on_groups_changed(self, _):
+    def _on_groups_changed(self, _) -> None:
         """Load the newest group as soon as everyone got notified
         about the updated groups."""
 
@@ -121,7 +121,7 @@ class Controller:
 
         self.load_group(group_key)
 
-    def _on_preset_changed(self, data: PresetData):
+    def _on_preset_changed(self, data: PresetData) -> None:
         """Load a mapping as soon as everyone got notified about the new preset."""
         if data.mappings:
             mappings = list(data.mappings)
@@ -137,7 +137,7 @@ class Controller:
             # send an empty mapping to make sure the ui is reset to default values
             self.message_broker.publish(MappingData(Mapping(**MAPPING_DEFAULTS)))
 
-    def _on_combination_recorded(self, data: CombinationRecorded):
+    def _on_combination_recorded(self, data: CombinationRecorded) -> None:
         combination = self._auto_use_as_analog(data.combination)
         self.update_combination(combination)
 
@@ -217,7 +217,7 @@ class Controller:
         keys = self.data_manager.get_group_keys()
         return keys[0] if keys else None
 
-    def copy_preset(self):
+    def copy_preset(self) -> None:
         """Create a copy of the active preset and name it `preset_name copy`."""
         name = self.data_manager.active_preset.name
         match = re.search(r" copy *\d*$", name)
@@ -255,7 +255,7 @@ class Controller:
 
         return combination
 
-    def update_combination(self, combination: InputCombination):
+    def update_combination(self, combination: InputCombination) -> None:
         """Update the input_combination of the active mapping."""
         combination = self._auto_use_as_analog(combination)
 
@@ -284,7 +284,7 @@ class Controller:
         self,
         input_config: InputConfig,
         direction: Literal["up", "down"],
-    ):
+    ) -> None:
         """Move the active_input_config up or down in the input_combination of the
         active_mapping."""
         if (
@@ -324,11 +324,11 @@ class Controller:
         self.update_combination(InputCombination(combination))
         self.load_input_config(input_config)
 
-    def load_input_config(self, input_config: InputConfig):
+    def load_input_config(self, input_config: InputConfig) -> None:
         """Load an InputConfig form the active mapping input combination."""
         self.data_manager.load_input_config(input_config)
 
-    def update_input_config(self, new_input_config: InputConfig):
+    def update_input_config(self, new_input_config: InputConfig) -> None:
         """Modify the active input configuration."""
         try:
             self.data_manager.update_input_config(new_input_config)
@@ -337,7 +337,7 @@ class Controller:
             self.data_manager.publish_mapping()
             self.data_manager.publish_event()
 
-    def remove_event(self):
+    def remove_event(self) -> None:
         """Remove the active InputEvent from the active mapping event combination."""
         if (
             not self.data_manager.active_mapping
@@ -358,7 +358,7 @@ class Controller:
             self.data_manager.publish_mapping()
             self.data_manager.publish_event()
 
-    def set_event_as_analog(self, analog: bool):
+    def set_event_as_analog(self, analog: bool) -> None:
         """Use the active event as an analog input."""
         assert self.data_manager.active_input_config is not None
         event = self.data_manager.active_input_config
@@ -390,21 +390,21 @@ class Controller:
         self.data_manager.publish_mapping()
         self.data_manager.publish_event()
 
-    def load_groups(self):
+    def load_groups(self) -> None:
         """Refresh the groups."""
         self.data_manager.refresh_groups()
 
-    def load_group(self, group_key: str):
+    def load_group(self, group_key: str) -> None:
         """Load the group and then a preset of that group."""
         self.data_manager.load_group(group_key)
         self.load_preset(self.get_a_preset())
 
-    def load_preset(self, name: str):
+    def load_preset(self, name: str) -> None:
         """Load the preset."""
         self.data_manager.load_preset(name)
         # self.load_mapping(...) # not needed because we have on_preset_changed()
 
-    def rename_preset(self, new_name: str):
+    def rename_preset(self, new_name: str) -> None:
         """Rename the active_preset."""
         if (
             self.data_manager.active_preset is None
@@ -417,7 +417,7 @@ class Controller:
         new_name = self.data_manager.get_available_preset_name(new_name)
         self.data_manager.rename_preset(new_name)
 
-    def add_preset(self, name: str = DEFAULT_PRESET_NAME):
+    def add_preset(self, name: str = DEFAULT_PRESET_NAME) -> None:
         """Create a new preset called `new preset n`, add it to the active_group."""
         name = self.data_manager.get_available_preset_name(name)
         try:
@@ -426,10 +426,10 @@ class Controller:
         except PermissionError as e:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
-    def delete_preset(self):
+    def delete_preset(self) -> None:
         """Delete the active_preset from the disc."""
 
-        def f(answer: bool):
+        def f(answer: bool) -> None:
             if answer:
                 self.data_manager.delete_preset()
                 self.data_manager.load_preset(self.get_a_preset())
@@ -443,12 +443,12 @@ class Controller:
         )
         self.message_broker.publish(UserConfirmRequest(msg, f))
 
-    def load_mapping(self, input_combination: InputCombination):
+    def load_mapping(self, input_combination: InputCombination) -> None:
         """Load the mapping with the given input_combination form the active_preset."""
         self.data_manager.load_mapping(input_combination)
         self.load_input_config(input_combination[0])
 
-    def update_mapping(self, **changes):
+    def update_mapping(self, **changes: Any) -> None:
         """Update the active_mapping with the given keywords and values."""
         if "mapping_type" in changes and not (
             changes := self._change_mapping_type(changes)
@@ -461,7 +461,7 @@ class Controller:
         self.data_manager.update_mapping(**changes)
         self.save()
 
-    def create_mapping(self):
+    def create_mapping(self) -> None:
         """Create a new empty mapping in the active_preset."""
         try:
             self.data_manager.create_mapping()
@@ -472,10 +472,10 @@ class Controller:
         self.data_manager.load_mapping(combination=InputCombination.empty_combination())
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
-    def delete_mapping(self):
+    def delete_mapping(self) -> None:
         """Remove the active_mapping form the active_preset."""
 
-        def get_answer(answer: bool):
+        def get_answer(answer: bool) -> None:
             if answer:
                 self.data_manager.delete_mapping()
                 self.save()
@@ -489,19 +489,19 @@ class Controller:
             )
         )
 
-    def set_autoload(self, autoload: bool):
+    def set_autoload(self, autoload: bool) -> None:
         """Set the autoload state for the active_preset and active_group."""
         self.data_manager.set_autoload(autoload)
         self.data_manager.refresh_service_config_path()
 
-    def save(self):
+    def save(self) -> None:
         """Save all data to the disc."""
         try:
             self.data_manager.save()
         except PermissionError as e:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
-    def start_key_recording(self):
+    def start_key_recording(self) -> None:
         """Record the input of the active_group
 
         Updates the active_mapping.input_combination with the recorded events.
@@ -515,7 +515,7 @@ class Controller:
 
         logger.debug("Recording Keys")
 
-        def on_recording_finished(_):
+        def on_recording_finished(_) -> None:
             self.message_broker.unsubscribe(on_recording_finished)
             self.message_broker.unsubscribe(self._on_combination_recorded)
             self.gui.connect_shortcuts()
@@ -530,12 +530,12 @@ class Controller:
         )
         self.data_manager.start_combination_recording()
 
-    def stop_key_recording(self):
+    def stop_key_recording(self) -> None:
         """Stop recording the input."""
         logger.debug("Stopping Recording Keys")
         self.data_manager.stop_combination_recording()
 
-    def start_injecting(self):
+    def start_injecting(self) -> None:
         """Inject the active_preset for the active_group."""
         if self.data_manager.active_preset.get_number_of_mappings() == 0:
             logger.error(_("Cannot apply empty preset file"))
@@ -624,10 +624,10 @@ class Controller:
         if state in state_calls:
             state_calls[state]()
 
-    def stop_injecting(self):
+    def stop_injecting(self) -> None:
         """Stop injecting any preset for the active_group."""
 
-        def show_result(msg: InjectorStateMessage):
+        def show_result(msg: InjectorStateMessage) -> None:
             self.message_broker.unsubscribe(show_result)
 
             if not msg.inactive():
@@ -653,7 +653,7 @@ class Controller:
         ctx_id: int,
         msg: str | None = None,
         tooltip: str | None = None,
-    ):
+    ) -> None:
         """Send a status message to the ui to show it in the status-bar."""
         self.message_broker.publish(StatusData(ctx_id, msg, tooltip))
 
@@ -664,14 +664,14 @@ class Controller:
             or self.data_manager.active_mapping is None
         )
 
-    def refresh_groups(self):
+    def refresh_groups(self) -> None:
         """Reload the connected devices and send them as a groups message.
 
         Runs asynchronously.
         """
         self.data_manager.refresh_groups()
 
-    def close(self):
+    def close(self) -> None:
         """Safely close the application."""
         logger.debug("Closing Application")
         self.save()
@@ -679,11 +679,11 @@ class Controller:
         logger.debug("Quitting")
         Gtk.main_quit()
 
-    def set_focus(self, component):
+    def set_focus(self, component: Gtk.Widget) -> None:
         """Focus the given component."""
         self.gui.window.set_focus(component)
 
-    def _change_mapping_type(self, changes: dict[str, Any]):
+    def _change_mapping_type(self, changes: dict[str, Any]) -> dict[str, Any] | None:
         """Query the user to update the mapping in order to change the mapping type."""
         mapping = self.data_manager.active_mapping
 
@@ -724,7 +724,7 @@ class Controller:
 
             answer = None
 
-            def get_answer(answer_: bool):
+            def get_answer(answer_: bool) -> None:
                 nonlocal answer
                 answer = answer_
 
@@ -747,7 +747,7 @@ class Controller:
 
             answer = None
 
-            def get_answer(answer_: bool):
+            def get_answer(answer_: bool) -> None:
                 nonlocal answer
                 answer = answer_
 

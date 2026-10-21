@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from inputremapper.injection.macros.argument import ArgumentConfig
+from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
 
 
@@ -40,6 +41,6 @@ class SetTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         value = self.get_argument("value").get_value()
         self.arguments["variable"].set_value(value)

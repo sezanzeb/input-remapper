@@ -105,7 +105,7 @@ class Task:
         self.context.listeners.remove(listener)
 
     @classmethod
-    def get_macro_argument_names(cls):
+    def get_macro_argument_names(cls) -> list[str]:
         return [argument_config.name for argument_config in cls.argument_configs]
 
     @classmethod
@@ -125,7 +125,7 @@ class Task:
 
         return min_num_args, max_num_args
 
-    def get_argument(self, argument_name) -> Argument:
+    def get_argument(self, argument_name: str) -> Argument:
         return self.arguments[argument_name]
 
     def press_trigger(self) -> None:
@@ -230,10 +230,10 @@ class Task:
         # already.
         raise MacroError(f"Could not initialize argument {argument.name}")
 
-    def _validate_argument_configs(self):
+    def _validate_argument_configs(self) -> None:
         # Might help during development
-        positions = set()
-        names = set()
+        positions: set[int | ArgumentFlags] = set()
+        names: set[str] = set()
         for argument_config in self.argument_configs:
             position = argument_config.position
             if position in positions:

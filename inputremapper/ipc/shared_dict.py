@@ -85,7 +85,7 @@ class SharedDict:
             except Exception as error:
                 logger.error("Loop crashed: %s", error)
 
-    def get(self, key: str):
+    def get(self, key: str) -> Any:
         """Get a value from the dictionary.
 
         If it doesn't exist, returns None.

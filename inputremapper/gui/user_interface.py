@@ -74,7 +74,7 @@ GObject.type_register(GtkSource.View)
 # https://stackoverflow.com/questions/60126579/gtk-builder-error-quark-invalid-object-type-webkitwebview
 
 
-def on_close_about(about, _):
+def on_close_about(about: Gtk.AboutDialog, _) -> bool:
     """Hide the about dialog without destroying it."""
     about.hide()
     return True
@@ -87,7 +87,7 @@ class UserInterface:
         self,
         message_broker: MessageBroker,
         controller: Controller,
-    ):
+    ) -> None:
         self.message_broker = message_broker
         self.controller = controller
 
@@ -125,7 +125,7 @@ class UserInterface:
         # now show the proper finished content of the window
         self.get("vertical-wrapper").set_opacity(1)
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         """Build the window from stylesheet and gladefile."""
         css_provider = Gtk.CssProvider()
 
@@ -142,7 +142,7 @@ class UserInterface:
         self.builder.add_from_file(gladefile)
         self.builder.connect_signals(self)
 
-    def _create_components(self):
+    def _create_components(self) -> None:
         """Setup all objects which manage individual components of the ui."""
         message_broker = self.message_broker
         controller = self.controller
@@ -244,7 +244,7 @@ class UserInterface:
             self.get("systray-label"),
         )
 
-    def _create_dialogs(self):
+    def _create_dialogs(self) -> None:
         """Setup different dialogs, such as the about page."""
         self.about.connect("delete-event", on_close_about)
         # set_position needs to be done once initially, otherwise the
@@ -256,7 +256,7 @@ class UserInterface:
             else ""
         )
 
-    def _connect_gtk_signals(self):
+    def _connect_gtk_signals(self) -> None:
         self.get("delete_preset").connect(
             "clicked", lambda *_: self.controller.delete_preset()
         )
@@ -299,7 +299,7 @@ class UserInterface:
         )
         self.connect_shortcuts()
 
-    def _connect_message_listener(self):
+    def _connect_message_listener(self) -> None:
         self.message_broker.subscribe(
             MessageType.mapping, self.update_combination_label
         )
@@ -330,7 +330,7 @@ class UserInterface:
 
         return message_dialog
 
-    def _on_user_confirm_request(self, msg: UserConfirmRequest):
+    def _on_user_confirm_request(self, msg: UserConfirmRequest) -> None:
         # if the message contains a line-break, use the first chunk for the primary
         # message, and the rest for the secondary message.
         chunks = msg.msg.split("\n")
@@ -344,7 +344,7 @@ class UserInterface:
 
         message_dialog.hide()
 
-    def on_injector_state_msg(self, msg: InjectorStateMessage):
+    def on_injector_state_msg(self, msg: InjectorStateMessage) -> None:
         """Update the ui to reflect the status of the injector."""
         stop_injection_preset_page: Gtk.Button = self.get("stop_injection_preset_page")
         stop_injection_editor_page: Gtk.Button = self.get("stop_injection_editor_page")
@@ -363,7 +363,7 @@ class UserInterface:
             stop_injection_editor_page.set_sensitive(True)
             recording_toggle.set_opacity(1)
 
-    def disconnect_shortcuts(self):
+    def disconnect_shortcuts(self) -> None:
         """Stop listening for shortcuts.
 
         e.g. when recording key combinations
@@ -373,7 +373,7 @@ class UserInterface:
         except KeyError:
             logger.debug("key listeners seem to be not connected")
 
-    def connect_shortcuts(self):
+    def connect_shortcuts(self) -> None:
         """Start listening for shortcuts."""
         if not self.gtk_listeners.get(self.on_gtk_shortcut):
             self.gtk_listeners[self.on_gtk_shortcut] = self.window.connect(
@@ -384,12 +384,12 @@ class UserInterface:
         """Get a widget from the window."""
         return self.builder.get_object(name)
 
-    def close(self):
+    def close(self) -> None:
         """Close the window."""
         logger.debug("Closing window")
         self.window.hide()
 
-    def update_combination_label(self, mapping_data: MappingData):
+    def update_combination_label(self, mapping_data: MappingData) -> None:
         """Listens for mapping and updates the combination label."""
         mapping = mapping_data.mapping
         label: Gtk.Label = self.get("combination-label")
@@ -403,7 +403,7 @@ class UserInterface:
         label.set_opacity(1)
         label.set_label(mapping.input_combination.beautify())
 
-    def on_gtk_shortcut(self, _, event: Gdk.EventKey):
+    def on_gtk_shortcut(self, _, event: Gdk.EventKey) -> None:
         """Execute shortcuts."""
         if event.state & Gdk.ModifierType.CONTROL_MASK:
             try:
@@ -441,21 +441,21 @@ class UserInterface:
 
         self.controller.close()
 
-    def on_gtk_about_clicked(self, _):
+    def on_gtk_about_clicked(self, _) -> None:
         """Show the about/help dialog."""
         self.about.show()
 
-    def on_gtk_about_key_press(self, _, event):
+    def on_gtk_about_key_press(self, _, event: Gdk.EventKey) -> None:
         """Hide the about/help dialog."""
         gdk_keycode = event.get_keyval()[1]
         if gdk_keycode == Gdk.KEY_Escape:
             self.about.hide()
 
-    def on_gtk_rename_clicked(self, *_):
+    def on_gtk_rename_clicked(self, *_) -> None:
         name = self.get("preset_name_input").get_text()
         self.controller.rename_preset(name)
         self.get("preset_name_input").set_text("")
 
-    def on_gtk_preset_name_input_return(self, _, event: Gdk.EventKey):
+    def on_gtk_preset_name_input_return(self, _, event: Gdk.EventKey) -> None:
         if event.keyval == Gdk.KEY_Return:
             self.on_gtk_rename_clicked()

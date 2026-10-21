@@ -46,6 +46,7 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
+from collections.abc import Hashable
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_KEY, EV_REL, REL_HWHEEL, REL_WHEEL
@@ -58,6 +59,7 @@ from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import (
+    EventListener,
     MappingHandler,
     NotifyCallback,
 )
@@ -66,7 +68,7 @@ from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
-from inputremapper.utils import get_device_hash
+from inputremapper.utils import DeviceHash, get_device_hash
 
 # received by the reader-service
 CMD_TERMINATE = "terminate"
@@ -413,19 +415,21 @@ class ForwardDummy(evdev.UInput):
     name: str = "forward-dummy"
 
     @staticmethod
-    def write(*_):
+    def write(*_) -> None:
         pass
 
 
 class ContextDummy:
     """Used for the reader so that no events are actually written to any uinput."""
 
-    def __init__(self):
-        self.listeners = set()
-        self._notify_callbacks = defaultdict(list)
+    def __init__(self) -> None:
+        self.listeners: set[EventListener] = set()
+        self._notify_callbacks: defaultdict[Hashable, list[NotifyCallback]] = (
+            defaultdict(list)
+        )
         self.forward_dummy = ForwardDummy()
 
-    def add_handler(self, input_config: InputConfig, handler: MappingHandler):
+    def add_handler(self, input_config: InputConfig, handler: MappingHandler) -> None:
         self._notify_callbacks[input_config.input_match_hash].append(handler.notify)
 
     def get_notify_callbacks(self, input_event: InputEvent) -> list[NotifyCallback]:
@@ -434,6 +438,6 @@ class ContextDummy:
     def reset(self) -> None:
         pass
 
-    def get_forward_uinput(self, origin_hash) -> evdev.UInput:
+    def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
         """Don't actually write anything."""
         return self.forward_dummy

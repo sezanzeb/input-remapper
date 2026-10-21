@@ -126,5 +126,5 @@ class Macro:
     def __repr__(self) -> str:
         return f'<Macro "{self.code}" at {hex(id(self))}>'
 
-    def add_task(self, task) -> None:
+    def add_task(self, task: Task) -> None:
         self.tasks.append(task)

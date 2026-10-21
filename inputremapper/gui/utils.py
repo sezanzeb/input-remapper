@@ -21,6 +21,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from gi.repository import Gdk, GLib, Gtk
 
@@ -41,10 +42,10 @@ class DebounceInfo:
     # constant after register:
     function: Callable | None
     other: object
-    key: int
+    key: str
 
     # can change when called again:
-    args: list
+    args: tuple | list
     kwargs: dict
     glib_timeout: int | None
 
@@ -52,9 +53,9 @@ class DebounceInfo:
 class DebounceManager:
     """Stops all debounced functions if needed."""
 
-    debounce_infos: dict[int, DebounceInfo] = {}
+    debounce_infos: dict[str, DebounceInfo] = {}
 
-    def _register(self, other, function):
+    def _register(self, other: object, function: Callable) -> DebounceInfo:
         debounce_info = DebounceInfo(
             function=function,
             glib_timeout=None,
@@ -72,10 +73,12 @@ class DebounceManager:
         key = self._get_key(other, function)
         return self.debounce_infos.get(key)
 
-    def _get_key(self, other, function):
+    def _get_key(self, other: object, function: Callable) -> str:
         return f"{id(other)},{function.__name__}"
 
-    def debounce(self, other, function, timeout_ms, *args, **kwargs):
+    def debounce(
+        self, other: object, function: Callable, timeout_ms: int, *args, **kwargs
+    ) -> None:
         """Call this function with the given args later."""
         debounce_info = self.get(other, function)
         if debounce_info is None:
@@ -88,7 +91,7 @@ class DebounceManager:
         if glib_timeout is not None:
             GLib.source_remove(glib_timeout)
 
-        def run():
+        def run() -> Any:
             self.stop(other, function)
             return function(other, *args, **kwargs)
 
@@ -97,7 +100,7 @@ class DebounceManager:
             lambda: run(),
         )
 
-    def stop(self, other: object, function: Callable):
+    def stop(self, other: object, function: Callable) -> None:
         """Stop the current debounce timeout of this function and don't call it.
 
         New calls to that function will be debounced again.
@@ -111,7 +114,7 @@ class DebounceManager:
             GLib.source_remove(debounce_info.glib_timeout)
             debounce_info.glib_timeout = None
 
-    def stop_all(self):
+    def stop_all(self) -> None:
         """No debounced function should be called anymore after this.
 
         New calls to that function will be debounced again.
@@ -119,7 +122,7 @@ class DebounceManager:
         for debounce_info in self.debounce_infos.values():
             self.stop(debounce_info.other, debounce_info.function)
 
-    def run_all_now(self):
+    def run_all_now(self) -> None:
         """Don't wait any longer."""
         for debounce_info in self.debounce_infos.values():
             if debounce_info.glib_timeout is None:
@@ -144,7 +147,7 @@ class DebounceManager:
                 logger.error(exception)
 
 
-def debounce(timeout):
+def debounce(timeout: int) -> Callable[[Callable], Callable]:
     """Debounce a method call to improve performance.
 
     Calling this with a millisecond value creates the decorator, so use something like
@@ -157,12 +160,12 @@ def debounce(timeout):
     """
     # the outside `debounce` function is needed to obtain the millisecond value
 
-    def decorator(function):
+    def decorator(function: Callable) -> Callable:
         # the regular decorator.
         # @decorator
         # def foo():
         #   ...
-        def wrapped(self, *args, **kwargs):
+        def wrapped(self, *args, **kwargs) -> None:
             # this is the function that will actually be called
             debounce_manager.debounce(self, function, timeout, *args, **kwargs)
 
@@ -182,11 +185,11 @@ class HandlerDisabled:
     Use in a `with` statement.
     """
 
-    def __init__(self, widget: Gtk.Widget, handler: Callable):
+    def __init__(self, widget: Gtk.Widget, handler: Callable) -> None:
         self.widget = widget
         self.handler = handler
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         try:
             self.widget.handler_block_by_func(self.handler)
         except TypeError as error:
@@ -194,14 +197,14 @@ class HandlerDisabled:
             # at all
             logger.warning('HandlerDisabled entry failed: "%s"', error)
 
-    def __exit__(self, *_):
+    def __exit__(self, *_) -> None:
         try:
             self.widget.handler_unblock_by_func(self.handler)
         except TypeError as error:
             logger.warning('HandlerDisabled exit failed: "%s"', error)
 
 
-def gtk_iteration(iterations=0):
+def gtk_iteration(iterations: int = 0) -> None:
     """Iterate while events are pending."""
     while Gtk.events_pending():
         Gtk.main_iteration()

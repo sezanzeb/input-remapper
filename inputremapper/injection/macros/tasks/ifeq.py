@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 from inputremapper.injection.macros.argument import ArgumentConfig
-from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.macro import InjectEventCallback, Macro
 from inputremapper.injection.macros.task import Task
 
 
@@ -55,7 +55,7 @@ class DeprecatedIfEqTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         actual_value = self.get_argument("variable").get_value()
         value = self.get_argument("value").get_value()
         then = self.get_argument("then").get_value()

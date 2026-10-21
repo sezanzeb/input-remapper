@@ -19,12 +19,15 @@
 
 """Control the dbus service from the command line."""
 
+from __future__ import annotations
+
 import argparse
 import logging
 import os
 import subprocess
 import sys
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from dasbus.error import DBusError
 
@@ -33,6 +36,9 @@ from inputremapper.configs.migrations import Migrations
 from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from inputremapper.logging.logger import logger
 from inputremapper.user import UserUtils
+
+if TYPE_CHECKING:
+    from inputremapper.groups import _Group
 
 
 class Commands(Enum):
@@ -69,7 +75,7 @@ class InputRemapperControlBin:
         self,
         global_config: GlobalConfig,
         migrations: Migrations,
-    ):
+    ) -> None:
         self.global_config = global_config
         self.migrations = migrations
 
@@ -134,14 +140,14 @@ class InputRemapperControlBin:
         if options.command:
             logger.info("Done")
 
-    def list_devices(self):
+    def list_devices(self) -> None:
         logger.setLevel(logging.ERROR)
         from inputremapper.groups import groups
 
         for group in groups.get_groups():
             print(group.key)
 
-    def list_key_names(self):
+    def list_key_names(self) -> None:
         from inputremapper.configs.keyboard_layout import keyboard_layout
 
         print("\n".join(keyboard_layout.list_names()))
@@ -192,7 +198,7 @@ class InputRemapperControlBin:
         if command == Commands.QUIT.value:
             self._quit()
 
-    def _hello(self):
+    def _hello(self) -> None:
         response = self.daemon.hello("hello")
         logger.info('Daemon answered with "%s"', response)
 
@@ -247,7 +253,7 @@ class InputRemapperControlBin:
 
         self.daemon.start_injecting(group.key, preset)
 
-    def _load_group(self, device: str):
+    def _load_group(self, device: str) -> _Group:
         """Load groups, check if a group exists for the given device and return it.
         Crash if it can't be found.
 
@@ -361,7 +367,7 @@ class InputRemapperControlBin:
 
         return False
 
-    def set_daemon(self, daemon):
+    def set_daemon(self, daemon) -> None:
         # TODO DI?
         self.daemon = daemon
 

@@ -94,7 +94,7 @@ class Logger(logging.Logger):
     def _build_mapping_handler_description_tree(
         self,
         mapping_handler: MappingHandler,
-        indent=0,
+        indent: int = 0,
     ) -> list[tuple[str, int]]:
         lines_and_indent = [
             (str(mapping_handler), indent),

@@ -20,6 +20,8 @@ import glob
 import os
 import re
 import time
+from collections.abc import Callable
+from typing import Any
 
 from gi.repository import GLib
 
@@ -74,7 +76,7 @@ class DataManager:
         daemon: DaemonProxy,
         uinputs: GlobalUInputs,
         keyboard_layout: KeyboardLayout,
-    ):
+    ) -> None:
         self.message_broker = message_broker
         self._reader_client = reader_client
         self._daemon = daemon
@@ -102,7 +104,7 @@ class DataManager:
         """Get the global configuration object."""
         return self._config
 
-    def publish_group(self):
+    def publish_group(self) -> None:
         """Send active group to the MessageBroker.
 
         This is internally called whenever the group changes.
@@ -116,7 +118,7 @@ class DataManager:
             )
         )
 
-    def publish_preset(self):
+    def publish_preset(self) -> None:
         """Send active preset to the MessageBroker.
 
         This is internally called whenever the preset changes.
@@ -131,7 +133,7 @@ class DataManager:
             )
         )
 
-    def publish_mapping(self):
+    def publish_mapping(self) -> None:
         """Send active mapping to the MessageBroker
 
         This is internally called whenever the mapping changes.
@@ -145,7 +147,7 @@ class DataManager:
                 ),
             )
 
-    def publish_event(self):
+    def publish_event(self) -> None:
         """Send active event to the MessageBroker.
 
         This is internally called whenever the event changes.
@@ -156,7 +158,7 @@ class DataManager:
             assert self.active_input_config in self.active_mapping.input_combination
             self.message_broker.publish(self.active_input_config)
 
-    def publish_uinputs(self):
+    def publish_uinputs(self) -> None:
         """Send the "uinputs" message on the MessageBroker."""
         self.message_broker.publish(
             UInputsData(
@@ -167,11 +169,11 @@ class DataManager:
             )
         )
 
-    def publish_groups(self):
+    def publish_groups(self) -> None:
         """Publish the "groups" message on the MessageBroker."""
         self._reader_client.publish_groups()
 
-    def publish_injector_state(self):
+    def publish_injector_state(self) -> None:
         """Publish the "injector_state" message for the active_group."""
         if not self.active_group:
             return
@@ -233,7 +235,7 @@ class DataManager:
             self.active_group.key, self.active_preset.name
         )
 
-    def set_autoload(self, status: bool):
+    def set_autoload(self, status: bool) -> None:
         """Set the autoload status of the active_preset.
 
         Will send "preset" message on the MessageBroker.
@@ -283,7 +285,7 @@ class DataManager:
         path, _ = max(paths, key=lambda x: x[1])
         return os.path.split(path)[-1].split(".")[0]
 
-    def get_available_preset_name(self, name=DEFAULT_PRESET_NAME) -> Name:
+    def get_available_preset_name(self, name: str = DEFAULT_PRESET_NAME) -> Name:
         """The first available preset in the active group."""
         if not self.active_group:
             raise DataManagementError("Unable find preset name. Group is not set")
@@ -310,7 +312,7 @@ class DataManager:
 
         return name
 
-    def load_group(self, group_key: str):
+    def load_group(self, group_key: str) -> None:
         """Load a group. will publish "groups" and "injector_state" messages.
 
         This will render the active_mapping and active_preset invalid.
@@ -328,7 +330,7 @@ class DataManager:
         self.publish_group()
         self.publish_injector_state()
 
-    def load_preset(self, name: str):
+    def load_preset(self, name: str) -> None:
         """Load a preset. Will send "preset" message on the MessageBroker.
 
         This will render the active_mapping invalid.
@@ -346,7 +348,7 @@ class DataManager:
         self._active_preset = preset
         self.publish_preset()
 
-    def load_mapping(self, combination: InputCombination):
+    def load_mapping(self, combination: InputCombination) -> None:
         """Load a mapping. Will send "mapping" message on the MessageBroker."""
         if self._active_preset is None:
             raise DataManagementError("Unable to load mapping. Preset is not set")
@@ -364,7 +366,7 @@ class DataManager:
         self._active_mapping = mapping
         self.publish_mapping()
 
-    def load_input_config(self, input_config: InputConfig):
+    def load_input_config(self, input_config: InputConfig) -> None:
         """Load a InputConfig from the combination in the active mapping.
 
         Will send "event" message on the MessageBroker,
@@ -379,7 +381,7 @@ class DataManager:
         self._active_input_config = input_config
         self.publish_event()
 
-    def rename_preset(self, new_name: str):
+    def rename_preset(self, new_name: str) -> None:
         """Rename the current preset and move the correct file.
 
         Will send "group" and then "preset" message on the MessageBroker
@@ -415,7 +417,7 @@ class DataManager:
         self.publish_group()
         self.publish_preset()
 
-    def copy_preset(self, name: str):
+    def copy_preset(self, name: str) -> None:
         """Copy the current preset to the given name.
 
         Will send "group" and "preset" message to the MessageBroker and load the copy
@@ -439,7 +441,7 @@ class DataManager:
         self.publish_group()
         self.publish_preset()
 
-    def create_preset(self, name: str):
+    def create_preset(self, name: str) -> None:
         """Create empty preset in the active_group.
 
         Will send "group" message to the MessageBroker
@@ -454,7 +456,7 @@ class DataManager:
         Preset(path).save()
         self.publish_group()
 
-    def delete_preset(self):
+    def delete_preset(self) -> None:
         """Delete the active preset.
 
         Will send "group" message to the MessageBroker
@@ -467,7 +469,7 @@ class DataManager:
         self._active_preset = None
         self.publish_group()
 
-    def update_mapping(self, **kwargs):
+    def update_mapping(self, **kwargs: Any) -> None:
         """Update the active mapping with the given keywords and values.
 
         Will send "mapping" message to the MessageBroker. In case of a new
@@ -499,7 +501,7 @@ class DataManager:
 
         self.publish_mapping()
 
-    def update_input_config(self, new_input_config: InputConfig):
+    def update_input_config(self, new_input_config: InputConfig) -> None:
         """Update the active input configuration.
 
         Will send "combination_update", "mapping" and "event" messages to the
@@ -514,7 +516,7 @@ class DataManager:
         self._active_input_config = new_input_config
         self.publish_event()
 
-    def create_mapping(self):
+    def create_mapping(self) -> None:
         """Create empty mapping in the active preset.
 
         Will send "preset" message to the MessageBroker
@@ -524,7 +526,7 @@ class DataManager:
         self._active_preset.add(Mapping())
         self.publish_preset()
 
-    def delete_mapping(self):
+    def delete_mapping(self) -> None:
         """Delete the active mapping.
 
         Will send "preset" message to the MessageBroker
@@ -538,12 +540,12 @@ class DataManager:
         self._active_mapping = None
         self.publish_preset()
 
-    def save(self):
+    def save(self) -> None:
         """Save the active preset."""
         if self._active_preset is not None:
             self._active_preset.save()
 
-    def refresh_groups(self):
+    def refresh_groups(self) -> None:
         """Refresh the groups (plugged devices) via the daemon.
 
         The device scan happens in the daemon, which then serializes the
@@ -551,7 +553,7 @@ class DataManager:
         """
         self._reader_client.update_groups(self._daemon.get_groups())
 
-    def start_combination_recording(self):
+    def start_combination_recording(self) -> None:
         """Record user input.
 
         Will send "combination_recorded" messages as new input arrives.
@@ -559,7 +561,7 @@ class DataManager:
         """
         self._reader_client.start_recorder()
 
-    def stop_combination_recording(self):
+    def stop_combination_recording(self) -> None:
         """Stop recording user input.
 
         Will send a recording_finished signal if a recording is running.
@@ -607,15 +609,17 @@ class DataManager:
             raise DataManagementError("Cannot read state: Group is not set")
         return self._daemon.get_state(self.active_group.key)
 
-    def refresh_service_config_path(self):
+    def refresh_service_config_path(self) -> None:
         """Tell the service to refresh its config path."""
         self._daemon.set_config_dir(self._config.get_dir())
 
-    def do_when_injector_state(self, states: set[InjectorState], callback):
+    def do_when_injector_state(
+        self, states: set[InjectorState], callback: Callable[[], None]
+    ) -> None:
         """Run callback once the injector state is one of states."""
         start = time.time()
 
-        def do():
+        def do() -> bool:
             if time.time() - start > 3:
                 # something went wrong, there should have been a state long ago.
                 # the timeout prevents tons of GLib.timeouts to run forever, especially

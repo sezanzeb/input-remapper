@@ -41,7 +41,7 @@ class SuspendButton:
         message_broker: MessageBroker,
         controller: Controller,
         toggle_button: Gtk.ToggleButton,
-    ):
+    ) -> None:
         self._message_broker = message_broker
         self._gui = toggle_button
         self.controller = controller
@@ -92,7 +92,7 @@ class SuspendButton:
         with HandlerDisabled(self._gui, self._on_global_switch_toggled):
             self._gui.set_active(is_suspended)
 
-    def _on_global_switch_toggled(self, widget) -> bool:
+    def _on_global_switch_toggled(self, widget: Gtk.Switch) -> bool:
         state = widget.get_active()
         try:
             self.controller.data_manager.set_suspended(state)

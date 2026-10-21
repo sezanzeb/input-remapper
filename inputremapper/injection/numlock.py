@@ -65,7 +65,7 @@ def set_numlock(state: bool | None) -> None:
         logger.debug("numlockx not found")
 
 
-def ensure_numlock(func: Callable) -> None:
+def ensure_numlock(func: Callable) -> Callable:
     """Decorator to reset the numlock to its initial state afterwards."""
 
     def wrapped(*args, **kwargs):

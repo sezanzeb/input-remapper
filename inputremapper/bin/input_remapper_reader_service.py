@@ -66,7 +66,7 @@ class InputRemapperReaderServiceBin:
                 time.sleep(0.5)
                 logger.debug("Waiting...")
 
-        def on_exit():
+        def on_exit() -> None:
             """Don't remain idle and alive when the GUI exits via ctrl+c."""
             # makes no sense to me, but after the keyboard interrupt it is still
             # waiting for an event to complete (`S` in `ps ax`), even when using

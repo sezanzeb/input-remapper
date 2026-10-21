@@ -44,33 +44,33 @@ MessageListener = Callable[[Any], None]
 class MessageBroker:
     shorten_path = re.compile(r"inputremapper/")
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._listeners: dict[MessageType, set[MessageListener]] = defaultdict(set)
         self._messages: deque[tuple[Message, str, int]] = deque()
         self._publishing = False
 
-    def publish(self, data: Message):
+    def publish(self, data: Message) -> None:
         """Schedule a massage to be sent.
         The message will be sent after all currently pending messages are sent."""
         assert data.message_type
         self._messages.append((data, *self.get_caller()))
         self._publish_all()
 
-    def signal(self, signal: MessageType):
+    def signal(self, signal: MessageType) -> None:
         """Send a signal without any data payload."""
         # This is different from calling self.publish because self.get_caller()
         # looks back at the current stack 3 frames
         self._messages.append((Signal(signal), *self.get_caller()))
         self._publish_all()
 
-    def _publish(self, data: Message, file: str, line: int):
+    def _publish(self, data: Message, file: str, line: int) -> None:
         logger.debug(
             "from %s:%d: Signal=%s: %s", file, line, data.message_type.name, data
         )
         for listener in self._listeners[data.message_type].copy():
             listener(data)
 
-    def _publish_all(self):
+    def _publish_all(self) -> None:
         """Send all scheduled messages in order."""
         if self._publishing:
             # don't run this twice, so we not mess up the order
@@ -83,7 +83,9 @@ class MessageBroker:
         finally:
             self._publishing = False
 
-    def subscribe(self, massage_type: MessageType, listener: MessageListener):
+    def subscribe(
+        self, massage_type: MessageType, listener: MessageListener
+    ) -> "MessageBroker":
         """Attach a listener to an event."""
         logger.debug("adding new Listener for %s: %s", massage_type, listener)
         self._listeners[massage_type].add(listener)
@@ -106,11 +108,11 @@ class MessageBroker:
 class Signal:
     """Send a Message without any associated data over the MassageBus."""
 
-    def __init__(self, message_type: MessageType):
+    def __init__(self, message_type: MessageType) -> None:
         self.message_type: MessageType = message_type
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Signal: {self.message_type}"
 
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:
         return type(self) is type(other) and self.message_type == other.message_type

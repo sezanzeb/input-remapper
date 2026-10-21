@@ -51,11 +51,11 @@ class AbsToBtnHandler(MappingHandler):
         assert self._input_config.analog_threshold
         assert len(combination) == 1
 
-    def __str__(self):
+    def __str__(self) -> str:
         name = get_evdev_constant_name(*self._input_config.type_and_code)
         return f'AbsToBtnHandler for "{name}" ' f"{self._input_config.type_and_code}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
     def get_children(self) -> list[MappingHandler]:

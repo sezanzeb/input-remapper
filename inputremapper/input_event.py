@@ -58,7 +58,9 @@ class InputEvent:
     actions: tuple[EventActions, ...] = ()
     origin_hash: DeviceHash | None = None
 
-    def __eq__(self, other: InputEvent | evdev.InputEvent | tuple[int, int, int]):
+    def __eq__(
+        self, other: InputEvent | evdev.InputEvent | tuple[int, int, int]
+    ) -> bool:
         # useful in tests
         if isinstance(other, (InputEvent, evdev.InputEvent)):
             return self.event_tuple == (other.type, other.code, other.value)
@@ -81,7 +83,7 @@ class InputEvent:
         return self.value != 0
 
     @staticmethod
-    def validate_event(event):
+    def validate_event(event: InputEvent) -> InputEvent:
         """Test if the event is valid."""
         if not isinstance(event.type, int):
             raise TypeError(f"Expected type to be an int, but got {event.type}")
@@ -149,7 +151,9 @@ class InputEvent:
         )
 
     @classmethod
-    def abs(cls, code: int, value: int, origin_hash: DeviceHash | None = None):
+    def abs(
+        cls, code: int, value: int, origin_hash: DeviceHash | None = None
+    ) -> InputEvent:
         """Create an abs event, like joystick movements."""
         return cls.validate_event(
             cls(
@@ -163,7 +167,7 @@ class InputEvent:
         )
 
     @classmethod
-    def rel(cls, code: int, value: int, origin_hash: str | None = None):
+    def rel(cls, code: int, value: int, origin_hash: str | None = None) -> InputEvent:
         """Create a rel event, like mouse movements."""
         return cls.validate_event(
             cls(
@@ -177,7 +181,9 @@ class InputEvent:
         )
 
     @classmethod
-    def key(cls, code: int, value: Literal[0, 1], origin_hash: str | None = None):
+    def key(
+        cls, code: int, value: Literal[0, 1], origin_hash: str | None = None
+    ) -> InputEvent:
         """Create a key event, like keyboard keys or gamepad buttons.
 
         A value of 1 means "press", a value of 0 means "release".
@@ -224,14 +230,14 @@ class InputEvent:
             ecodes.REL_HWHEEL_HI_RES,
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         name = get_evdev_constant_name(self.type, self.code)
         return f"InputEvent for {self.event_tuple} {name}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self!s} at {hex(id(self))}>"
 
-    def timestamp(self):
+    def timestamp(self) -> float:
         """Return the unix timestamp of when the event was seen."""
         return self.sec + self.usec / 1000000
 

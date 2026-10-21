@@ -22,6 +22,7 @@ from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.injection.macros.argument import ArgumentConfig, ArgumentFlags
+from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
 
 
@@ -37,7 +38,7 @@ class HoldKeysTask(Task):
         )
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         symbols = self.get_argument("*symbols").get_values()
 
         codes = [keyboard_layout.get(symbol) for symbol in symbols]

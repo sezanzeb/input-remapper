@@ -67,10 +67,10 @@ class Config(TypedDict):
 
 
 class Migrations:
-    def __init__(self, global_uinputs: GlobalUInputs):
+    def __init__(self, global_uinputs: GlobalUInputs) -> None:
         self.global_uinputs = global_uinputs
 
-    def migrate(self):
+    def migrate(self) -> None:
         """Migrate config files to the current release."""
 
         self._rename_to_input_remapper()
@@ -128,7 +128,7 @@ class Migrations:
                     logger.warning('Invalid json format in preset "%s"', preset)
                     continue
 
-    def config_version(self):
+    def config_version(self) -> version.Version:
         """Get the version string in config.json as packaging.Version object."""
         config_path = os.path.join(PathUtils.config_path(), "config.json")
 
@@ -143,7 +143,7 @@ class Migrations:
 
         return version.parse("0.0.0")
 
-    def _config_suffix(self):
+    def _config_suffix(self) -> None:
         """Append the .json suffix to the config file."""
         deprecated_path = os.path.join(PathUtils.config_path(), "config")
         config_path = os.path.join(PathUtils.config_path(), "config.json")
@@ -151,7 +151,7 @@ class Migrations:
             logger.info('Moving "%s" to "%s"', deprecated_path, config_path)
             os.rename(deprecated_path, config_path)
 
-    def _preset_path(self):
+    def _preset_path(self) -> None:
         """Migrate the folder structure from < 0.4.0.
 
         Move existing presets into the new subfolder 'presets'
@@ -174,7 +174,7 @@ class Migrations:
 
         logger.info("done")
 
-    def _mapping_keys(self):
+    def _mapping_keys(self) -> None:
         """Update all preset mappings.
 
         Update all keys in preset to include value e.g.: '1,5'->'1,5,1'
@@ -199,7 +199,7 @@ class Migrations:
                     json.dump(preset_structure, file, indent=4)
                     file.write("\n")
 
-    def _update_version(self):
+    def _update_version(self) -> None:
         """Write the current version to the config file."""
         config_file = os.path.join(PathUtils.config_path(), "config.json")
         if not os.path.exists(config_file):
@@ -213,7 +213,7 @@ class Migrations:
             logger.info('Updating version in config to "%s"', VERSION)
             json.dump(config, file, indent=4)
 
-    def _rename_to_input_remapper(self):
+    def _rename_to_input_remapper(self) -> None:
         """Rename .config/key-mapper to .config/input-remapper."""
         old_config_path = os.path.join(UserUtils.home, ".config/key-mapper")
         if not os.path.exists(PathUtils.config_path()) and os.path.exists(
@@ -222,9 +222,9 @@ class Migrations:
             logger.info("Moving %s to %s", old_config_path, PathUtils.config_path())
             shutil.move(old_config_path, PathUtils.config_path())
 
-    def _find_target(self, symbol):
+    def _find_target(self, symbol: str) -> str | None:
         """Try to find a uinput with the required capabilities for the symbol."""
-        capabilities = {EV_KEY: set(), EV_REL: set()}
+        capabilities: dict[int, set[int | None]] = {EV_KEY: set(), EV_REL: set()}
 
         if Parser.is_this_a_macro(symbol):
             # deprecated mechanic, cannot figure this out anymore
@@ -243,7 +243,7 @@ class Migrations:
         logger.info('could not find a suitable target UInput for "%s"', symbol)
         return None
 
-    def _add_target(self):
+    def _add_target(self) -> None:
         """Add the target field to each preset mapping."""
         for preset, preset_structure in self.all_presets():
             if isinstance(preset_structure, list):
@@ -284,7 +284,7 @@ class Migrations:
                 json.dump(preset_structure, file, indent=4)
                 file.write("\n")
 
-    def _otherwise_to_else(self):
+    def _otherwise_to_else(self) -> None:
         """Conditional macros should use an "else" parameter instead of "otherwise"."""
         for preset, preset_structure in self.all_presets():
             if isinstance(preset_structure, list):
@@ -474,7 +474,7 @@ class Migrations:
 
             migrated_preset.save()
 
-    def _copy_to_v2(self):
+    def _copy_to_v2(self) -> None:
         """Move the beta config to the v2 path, or copy the v1 config to the v2 path."""
         # TODO test
         if os.path.exists(PathUtils.config_path()):
@@ -502,7 +502,7 @@ class Migrations:
             logger.debug("moving %s to %s", beta_path, PathUtils.config_path())
             shutil.move(beta_path, PathUtils.config_path())
 
-    def _remove_logs(self):
+    def _remove_logs(self) -> None:
         """We will try to rely on journalctl for this in the future."""
         try:
             PathUtils.remove(f"{UserUtils.home}/.log/input-remapper")

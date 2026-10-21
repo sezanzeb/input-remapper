@@ -21,6 +21,7 @@ from __future__ import annotations
 from evdev.ecodes import ecodes
 
 from inputremapper.injection.macros.argument import ArgumentConfig
+from inputremapper.injection.macros.macro import InjectEventCallback
 from inputremapper.injection.macros.task import Task
 
 
@@ -48,7 +49,7 @@ class EventTask(Task):
         ),
     ]
 
-    async def run(self, callback) -> None:
+    async def run(self, callback: InjectEventCallback) -> None:
         type_ = self.get_argument("type").get_value()
         code = self.get_argument("code").get_value()
         value = self.get_argument("value").get_value()

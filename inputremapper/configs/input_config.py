@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Hashable, Iterable
+from collections.abc import Callable, Hashable, Iterable, Iterator
 
 from evdev import ecodes
 
@@ -31,7 +31,7 @@ try:
 except ImportError:
     from pydantic import BaseModel, root_validator, validator
 
-from typing import Self
+from typing import Any, Self
 
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.gui.messages.message_types import MessageType
@@ -78,10 +78,10 @@ class InputConfig(BaseModel):
     # Should be None if no analog input is configured.
     analog_threshold: int | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"InputConfig {get_evdev_constant_name(self.type, self.code)}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<InputConfig {self.type_and_code} "
             f"{get_evdev_constant_name(*self.type_and_code)}, "
@@ -115,10 +115,12 @@ class InputConfig(BaseModel):
         return self.type, self.code
 
     @classmethod
-    def btn_left(cls):
+    def btn_left(cls) -> Self:
         return cls(type=ecodes.EV_KEY, code=ecodes.BTN_LEFT)
 
-    def description(self, exclude_threshold=False, exclude_direction=False) -> str:
+    def description(
+        self, exclude_threshold: bool = False, exclude_direction: bool = False
+    ) -> str:
         """Get a human-readable description of the event."""
         return (
             f"{self._get_name()} "
@@ -274,11 +276,13 @@ class InputConfig(BaseModel):
             ),
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.type, self.code, self.origin_hash, self.analog_threshold))
 
     @validator("analog_threshold")
-    def _ensure_analog_threshold_is_none(cls, analog_threshold):
+    def _ensure_analog_threshold_is_none(
+        cls, analog_threshold: int | None
+    ) -> int | None:
         """ensure the analog threshold is None, not zero."""
         if analog_threshold == 0 or analog_threshold is None:
             # the sign of the threshold defines the direction the joystick has to move.
@@ -289,7 +293,9 @@ class InputConfig(BaseModel):
         return analog_threshold
 
     @root_validator
-    def _remove_analog_threshold_for_key_input(cls, values):
+    def _remove_analog_threshold_for_key_input(
+        cls, values: dict[str, Any]
+    ) -> dict[str, Any]:
         """remove the analog threshold if the type is a EV_KEY"""
         type_ = values.get("type")
         if type_ == ecodes.EV_KEY:
@@ -297,7 +303,7 @@ class InputConfig(BaseModel):
         return values
 
     @root_validator(pre=True)
-    def validate_origin_hash(cls, values):
+    def validate_origin_hash(cls, values: dict[str, Any]) -> dict[str, Any]:
         origin_hash = values.get("origin_hash")
         if origin_hash is None:
             # For new presets, origin_hash should be set. For old ones, it can
@@ -369,23 +375,23 @@ class InputCombination(tuple[InputConfig, ...]):
         # https://github.com/python/mypy/issues/8541
         return super().__new__(cls, validated_configs)  # type: ignore
 
-    def __str__(self):
+    def __str__(self) -> str:
         if len(self) == 1 and self[0].type == EMPTY_TYPE:
             return "Empty InputCombination"
 
         return f"InputCombination ({' + '.join(str(event) for event in self)})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         combination = ", ".join(repr(event) for event in self)
         return f"<InputCombination ({combination}) at {hex(id(self))}>"
 
     @classmethod
-    def __get_validators__(cls):
+    def __get_validators__(cls) -> Iterator[Callable[[Any], InputCombination]]:
         """Used by pydantic to create InputCombination objects."""
         yield cls.validate
 
     @classmethod
-    def validate(cls, init_arg) -> InputCombination:
+    def validate(cls, init_arg: Any) -> InputCombination:
         """The only valid option is from_config"""
         if isinstance(init_arg, InputCombination):
             return init_arg

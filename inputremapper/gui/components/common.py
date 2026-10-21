@@ -46,7 +46,7 @@ class FlowBoxEntry(Gtk.ToggleButton):
         controller: Controller,
         name: str,
         icon_name: str | None = None,
-    ):
+    ) -> None:
         super().__init__()
         self.icon_name = icon_name
         self.message_broker = message_broker
@@ -84,10 +84,10 @@ class FlowBoxEntry(Gtk.ToggleButton):
 
         self.connect("toggled", self._on_gtk_toggle)
 
-    def _on_gtk_toggle(self):
+    def _on_gtk_toggle(self) -> None:
         raise NotImplementedError
 
-    def show_active(self, active):
+    def show_active(self, active: bool) -> None:
         """Show the active state without triggering anything."""
         with HandlerDisabled(self, self._on_gtk_toggle):
             self.set_active(active)
@@ -96,10 +96,10 @@ class FlowBoxEntry(Gtk.ToggleButton):
 class FlowBoxWrapper:
     """A wrapper for a flowbox that contains FlowBoxEntry widgets."""
 
-    def __init__(self, flowbox: Gtk.FlowBox):
+    def __init__(self, flowbox: Gtk.FlowBox) -> None:
         self._gui = flowbox
 
-    def show_active_entry(self, name: str | None):
+    def show_active_entry(self, name: str | None) -> None:
         """Activate the togglebutton that matches the name."""
         for child in self._gui.get_children():
             flow_box_entry: FlowBoxEntry = child.get_children()[0]
@@ -116,7 +116,7 @@ class Breadcrumbs:
         show_device_group: bool = False,
         show_preset: bool = False,
         show_mapping: bool = False,
-    ):
+    ) -> None:
         self._message_broker = message_broker
         self._gui = label
         self._connect_message_listener()
@@ -135,24 +135,24 @@ class Breadcrumbs:
 
         self._render()
 
-    def _connect_message_listener(self):
+    def _connect_message_listener(self) -> None:
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
         self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
 
-    def _on_preset_changed(self, data: PresetData):
+    def _on_preset_changed(self, data: PresetData) -> None:
         self._preset_name = data.name or ""
         self._render()
 
-    def _on_group_changed(self, data: GroupData):
+    def _on_group_changed(self, data: GroupData) -> None:
         self._group_key = data.group_key
         self._render()
 
-    def _on_mapping_changed(self, mapping_data: MappingData):
+    def _on_mapping_changed(self, mapping_data: MappingData) -> None:
         self._mapping_name = mapping_data.mapping.format_name()
         self._render()
 
-    def _render(self):
+    def _render(self) -> None:
         label = []
 
         if self.show_device_group:
