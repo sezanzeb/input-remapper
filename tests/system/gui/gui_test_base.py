@@ -93,8 +93,8 @@ def start_reader_service():
     def process():
         global_uinputs = GlobalUInputs(FrontendUInput)
         reader_service = ReaderService(_Groups(), global_uinputs)
-        with asyncio.Runner() as runner:
-            runner.run(reader_service.run())
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(reader_service.run())
 
     multiprocessing.Process(target=process).start()
 

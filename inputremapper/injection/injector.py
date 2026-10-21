@@ -439,80 +439,80 @@ class Injector(multiprocessing.Process):
         # that sleeps on iterations (joystick_to_mouse) in one process causes
         # another injection process to screw up reading from the grabbed
         # device.
-        with asyncio.Runner() as runner:
-            self._devices = self.group.get_devices()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-            # InputConfigs may not contain the origin_hash information, this will try to
-            # make a good guess if the origin_hash information is missing or invalid.
-            self._update_preset()
+        self._devices = self.group.get_devices()
 
-            # grab devices as early as possible. If events appear that won't get
-            # released anymore before the grab they appear to be held down forever
-            sources = self._grab_devices()
-            forward_devices = {}
-            for device_hash, device in sources.items():
-                forward_devices[device_hash] = self._create_forwarding_device(device)
+        # InputConfigs may not contain the origin_hash information, this will try to
+        # make a good guess if the origin_hash information is missing or invalid.
+        self._update_preset()
 
-            # create this within the process after the event loop creation,
-            # so that the macros use the correct loop
-            self.context = Context(
-                self.preset,
-                sources,
-                forward_devices,
-                self.mapping_parser,
+        # grab devices as early as possible. If events appear that won't get
+        # released anymore before the grab they appear to be held down forever
+        sources = self._grab_devices()
+        forward_devices = {}
+        for device_hash, device in sources.items():
+            forward_devices[device_hash] = self._create_forwarding_device(device)
+
+        # create this within the process after the event loop creation,
+        # so that the macros use the correct loop
+        self.context = Context(
+            self.preset,
+            sources,
+            forward_devices,
+            self.mapping_parser,
+        )
+        self._stop_event = asyncio.Event()
+
+        if len(sources) == 0:
+            # maybe the preset was empty or something
+            logger.error("Did not grab any device")
+            self._msg_pipe[0].send(InjectorState.NO_GRAB)
+            return
+
+        numlock_state = is_numlock_on()
+        coroutines = []
+
+        for device_hash in sources:
+            # actually doing things
+            event_reader = EventReader(
+                self.context,
+                sources[device_hash],
+                self._stop_event,
             )
-            self._stop_event = asyncio.Event()
+            coroutines.append(event_reader.run())
+            self._event_readers.append(event_reader)
 
-            if len(sources) == 0:
-                # maybe the preset was empty or something
-                logger.error("Did not grab any device")
-                self._msg_pipe[0].send(InjectorState.NO_GRAB)
-                return
+        coroutines.append(self._msg_listener())
 
-            numlock_state = is_numlock_on()
-            coroutines = []
+        # set the numlock state to what it was before injecting, because
+        # grabbing devices screws this up
+        set_numlock(numlock_state)
 
-            for device_hash in sources:
-                # actually doing things
-                event_reader = EventReader(
-                    self.context,
-                    sources[device_hash],
-                    self._stop_event,
-                )
-                coroutines.append(event_reader.run())
-                self._event_readers.append(event_reader)
+        self._msg_pipe[0].send(InjectorState.RUNNING)
 
-            coroutines.append(self._msg_listener())
+        try:
+            loop.run_until_complete(asyncio.gather(*coroutines))
+        except RuntimeError as error:
+            # the loop might have been stopped via a `CLOSE` message,
+            # which causes the error message below. This is expected behavior
+            if str(error) != "Event loop stopped before Future completed.":
+                raise
+        except OSError as error:
+            logger.error("Failed to run injector coroutines: %s", str(error))
 
-            # set the numlock state to what it was before injecting, because
-            # grabbing devices screws this up
-            set_numlock(numlock_state)
+        if len(coroutines) > 0:
+            # expected when stop_injecting is called,
+            # during normal operation as well as tests this point is not
+            # reached otherwise.
+            logger.debug("Injector coroutines ended")
 
-            self._msg_pipe[0].send(InjectorState.RUNNING)
-
+        for source in sources.values():
+            # ungrab at the end to make the next injection process not fail
+            # its grabs
             try:
-                runner.run(asyncio.gather(*coroutines))
-            except RuntimeError as error:
-                # the loop might have been stopped via a `CLOSE` message,
-                # which causes the error message below. This is expected behavior
-                if str(error) != "Event loop stopped before Future completed.":
-                    raise
+                source.ungrab()
             except OSError as error:
-                logger.error("Failed to run injector coroutines: %s", str(error))
-
-            if len(coroutines) > 0:
-                # expected when stop_injecting is called,
-                # during normal operation as well as tests this point is not
-                # reached otherwise.
-                logger.debug("Injector coroutines ended")
-
-            for source in sources.values():
-                # ungrab at the end to make the next injection process not fail
-                # its grabs
-                try:
-                    source.ungrab()
-                except OSError as error:
-                    # it might have disappeared
-                    logger.debug(
-                        "OSError for ungrab on %s: %s", source.path, str(error)
-                    )
+                # it might have disappeared
+                logger.debug("OSError for ungrab on %s: %s", source.path, str(error))

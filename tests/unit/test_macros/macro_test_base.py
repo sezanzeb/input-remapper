@@ -43,14 +43,6 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
         self.global_uinputs = GlobalUInputs(UInput)
         self.mapping_parser = MappingParser(self.global_uinputs)
 
-        try:
-            self.loop = asyncio.get_event_loop()
-        except RuntimeError:
-            # suddenly "There is no current event loop in thread 'MainThread'"
-            # errors started to appear
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-
         self.source_device = InputDevice(fixtures.bar_device.path)
 
         self.context = Context(
@@ -61,7 +53,6 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
         )
 
     def tearDown(self):
-        self.loop.close()
         self.result = []
 
     def handler(self, type_: int, code: int, value: int):

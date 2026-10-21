@@ -58,25 +58,21 @@ def test_setup(cls):
             patch.start()
 
     def setUpClass():
-        try:
-            logger.info("setUpClass %s", cls)
+        logger.info("setUpClass %s", cls)
 
-            if is_service_running():
-                # let tests control daemon existance
-                raise AssertionError("Expected the service not to be running already.")
+        if is_service_running():
+            # let tests control daemon existance
+            raise AssertionError("Expected the service not to be running already.")
 
-            create_fixture_pipes()
+        create_fixture_pipes()
 
-            # I don't know. Somehow tearDownClass is called before the test, so lets
-            # make sure the patches are started already when the class is set up, so that
-            # an unpatched `prepare_all` doesn't take ages to finish, and doesn't do funky
-            # stuff with the real evdev.
-            resetPatches()
+        # I don't know. Somehow tearDownClass is called before the test, so lets
+        # make sure the patches are started already when the class is set up, so that
+        # an unpatched `prepare_all` doesn't take ages to finish, and doesn't do funky
+        # stuff with the real evdev.
+        resetPatches()
 
-            original_setUpClass()
-        except Exception:
-            print("JASDKFJAKSDJFKAJDS")
-            print(traceback.format_exc())
+        original_setUpClass()
 
     def tearDownClass():
         logger.info("tearDownClass %s", cls)

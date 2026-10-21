@@ -54,12 +54,6 @@ class TestModTapIntegration(unittest.IsolatedAsyncioTestCase):
 
         self.bootstrap_event_reader()
 
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-
-    def tearDown(self):
-        self.loop.close()
-
     def bootstrap_event_reader(self):
         self.context = Context(
             self.preset,
