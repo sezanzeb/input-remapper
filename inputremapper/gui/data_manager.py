@@ -111,10 +111,13 @@ class DataManager:
         It is usually not necessary to call this explicitly from
         outside DataManager.
         """
+        presets = self.get_preset_names()
         self.message_broker.publish(
             GroupData(
                 self.active_group.key,
-                self.get_preset_names(),
+                presets,
+                self._config.get_autoload_preset(self.active_group.key),
+                {preset: self.get_preset_mapping_names(preset) for preset in presets},
             )
         )
 
@@ -219,6 +222,17 @@ class DataManager:
         # the highest timestamp to the front
         presets.reverse()
         return tuple(presets)
+
+    def get_preset_mapping_names(self, preset_name: str) -> tuple[str, ...]:
+        """The readable names of all mapped inputs in a preset of the active group."""
+        preset_path = PathUtils.get_preset_path(self.active_group.name, preset_name)
+        preset = Preset(preset_path, strict=False)
+        preset.load()
+        return tuple(
+            mapping.format_name()
+            for mapping in preset.get_mappings()
+            if mapping.has_input_defined()
+        )
 
     def get_mappings(self) -> list[Mapping] | None:
         """All mappings from the active_preset."""

@@ -79,6 +79,8 @@ class GroupData:
     message_type = MessageType.group
     group_key: str
     presets: tuple[str, ...]
+    autoload: Name | None = None
+    mappings: dict[Name, tuple[str, ...]] | None = None
 
 
 @dataclass(frozen=True)

@@ -20,7 +20,6 @@
 import os
 import time
 import unittest
-from itertools import permutations
 from unittest.mock import MagicMock, call
 
 from inputremapper.configs.global_config import GlobalConfig
@@ -923,17 +922,21 @@ class TestDataManager(unittest.TestCase):
 
     def test_should_load_group(self):
         prepare_presets()
+        self.global_config.load_config()
         listener = Listener()
         self.message_broker.subscribe(MessageType.group, listener)
 
         self.data_manager.load_group("Foo Device 2")
 
         self.assertEqual(self.data_manager.active_group.key, "Foo Device 2")
-        data = (
-            GroupData("Foo Device 2", (p1, p2, p3))
-            for p1, p2, p3 in permutations(("preset3", "preset2", "preset1"))
-        )
-        self.assertIn(listener.calls[0], data)
+        data = listener.calls[0]
+        self.assertEqual(data.group_key, "Foo Device 2")
+        self.assertEqual(set(data.presets), {"preset1", "preset2", "preset3"})
+        self.assertEqual(data.autoload, "preset2")
+        self.assertEqual(set(data.mappings), {"preset1", "preset2", "preset3"})
+        self.assertEqual(len(data.mappings["preset1"]), 2)
+        self.assertEqual(len(data.mappings["preset2"]), 2)
+        self.assertEqual(len(data.mappings["preset3"]), 1)
 
     def test_should_start_reading_active_group(self):
         def f(*_):

@@ -46,6 +46,7 @@ class FlowBoxEntry(Gtk.ToggleButton):
         controller: Controller,
         name: str,
         icon_name: str | None = None,
+        subtitle: str | None = None,
     ) -> None:
         super().__init__()
         self.icon_name = icon_name
@@ -70,6 +71,14 @@ class FlowBoxEntry(Gtk.ToggleButton):
         label.set_max_width_chars(28)
 
         box.add(label)
+
+        if subtitle:
+            subtitle_label = Gtk.Label()
+            subtitle_label.set_label(subtitle)
+            subtitle_label.set_line_wrap(True)
+            subtitle_label.set_line_wrap_mode(2)
+            subtitle_label.set_max_width_chars(28)
+            box.add(subtitle_label)
 
         box.set_margin_top(18)
         box.set_margin_bottom(18)
