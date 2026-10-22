@@ -26,6 +26,7 @@ from gi.repository import Gtk
 from inputremapper.gui.components.common import FlowBoxEntry, FlowBoxWrapper
 from inputremapper.gui.components.main import Stack
 from inputremapper.gui.controller import Controller
+from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
@@ -48,11 +49,18 @@ class PresetEntry(FlowBoxEntry):
         message_broker: MessageBroker,
         controller: Controller,
         preset_name: str,
+        autoload: bool = False,
+        mapping_names: tuple[str, ...] = (),
     ) -> None:
         super().__init__(
-            message_broker=message_broker, controller=controller, name=preset_name
+            message_broker=message_broker,
+            controller=controller,
+            name=preset_name,
+            subtitle=_("autoloaded") if autoload else None,
         )
         self.preset_name = preset_name
+        if mapping_names:
+            self.set_tooltip_text("\n".join(mapping_names))
 
     def _on_gtk_toggle(self, *_, **__) -> None:
         logger.debug('Selecting preset "%s"', self.preset_name)
@@ -90,6 +98,8 @@ class PresetSelection(FlowBoxWrapper):
                 self._message_broker,
                 self._controller,
                 preset_name,
+                autoload=data.autoload == preset_name,
+                mapping_names=(data.mappings or {}).get(preset_name, ()),
             )
             self._gui.insert(preset_entry, -1)
 

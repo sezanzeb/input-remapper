@@ -27,7 +27,7 @@ from gi.repository import Gtk
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
-from inputremapper.gui.components.presets import PresetSelection
+from inputremapper.gui.components.presets import PresetEntry, PresetSelection
 from inputremapper.gui.messages.message_data import (
     GroupData,
     PresetData,
@@ -105,3 +105,50 @@ class TestPresetSelection(ComponentBaseTest):
     def test_loads_preset(self):
         FlowBoxTestUtils.set_active(self.gui, "preset2")
         self.controller_mock.load_preset.assert_called_once_with("preset2")
+
+    def _get_preset_entries(self) -> dict[str, "PresetEntry"]:
+        return {
+            child.get_children()[0].name: child.get_children()[0]
+            for child in self.gui.get_children()
+        }
+
+    def test_shows_mapping_summary_in_tooltip(self):
+        self.message_broker.publish(
+            GroupData(
+                "foo",
+                ("preset1", "preset2"),
+                autoload="preset2",
+                mappings={
+                    "preset1": ("a", "b + c"),
+                    "preset2": (),
+                },
+            )
+        )
+
+        entries = self._get_preset_entries()
+        self.assertEqual(entries["preset1"].get_tooltip_text(), "a\nb + c")
+        self.assertIsNone(entries["preset2"].get_tooltip_text())
+
+    def test_shows_autoloaded_preset(self):
+        self.message_broker.publish(
+            GroupData(
+                "foo",
+                ("preset1", "preset2"),
+                autoload="preset2",
+                mappings={},
+            )
+        )
+
+        entries = self._get_preset_entries()
+        preset1_labels = [
+            label.get_label()
+            for label in entries["preset1"].get_child().get_children()
+            if isinstance(label, Gtk.Label)
+        ]
+        preset2_labels = [
+            label.get_label()
+            for label in entries["preset2"].get_child().get_children()
+            if isinstance(label, Gtk.Label)
+        ]
+        self.assertNotIn("autoloaded", preset1_labels)
+        self.assertIn("autoloaded", preset2_labels)
