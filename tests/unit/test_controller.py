@@ -1465,6 +1465,7 @@ class TestController(unittest.TestCase):
             self.controller.update_mapping(mapping_type="analog")
             mock.assert_called_once_with(
                 mapping_type="analog",
+                target_uinput="gamepad",
                 output_symbol=None,
                 input_combination=InputCombination(
                     tuples_to_combination((1, 3), (2, 1))
@@ -1504,7 +1505,25 @@ class TestController(unittest.TestCase):
         )
         with patch.object(self.data_manager, "update_mapping") as mock:
             self.controller.update_mapping(mapping_type="analog")
-            mock.assert_called_once_with(mapping_type="analog", output_symbol=None)
+            mock.assert_called_once_with(
+                mapping_type="analog", output_symbol=None, target_uinput="gamepad"
+            )
+
+    def test_update_mapping_type_keeps_non_keyboard_target_when_analog(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(InputCombination(tuples_to_combination((1, 3))))
+        self.data_manager.update_mapping(target_uinput="mouse", output_symbol=None)
+
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, lambda r: r.respond(True)
+        )
+        with patch.object(self.data_manager, "update_mapping") as mock:
+            self.controller.update_mapping(mapping_type="analog")
+            # The target is not a keyboard, so it must be left untouched instead
+            # of being switched to the gamepad.
+            self.assertNotIn("target_uinput", mock.call_args.kwargs)
 
     def test_update_mapping_will_ask_user_to_set_trigger_threshold(self):
         prepare_presets()

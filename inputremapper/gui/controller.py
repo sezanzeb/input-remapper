@@ -32,6 +32,7 @@ from gi.repository import Gtk
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
+    KnownUinput,
     Mapping,
     MappingType,
 )
@@ -694,6 +695,16 @@ class Controller:
             return changes
 
         if changes["mapping_type"] == MappingType.ANALOG.value:
+            # A keyboard target can't emit analog axes, so the output-axis
+            # dropdown would stay empty. Default to the gamepad when no axis
+            # has been picked yet, so new users aren't left wondering why the
+            # dropdown is empty.
+            if (
+                mapping.target_uinput == KnownUinput.KEYBOARD.value
+                and mapping.output_code is None
+            ):
+                changes["target_uinput"] = KnownUinput.GAMEPAD.value
+
             msg = _("You are about to change the mapping to analog.")
             if mapping.output_symbol:
                 msg += _('\nThis will remove "{}" from the text input!').format(
