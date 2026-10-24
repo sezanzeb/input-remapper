@@ -289,10 +289,14 @@ class ReaderClient:
 
     def publish_groups(self) -> None:
         """Announce all known groups."""
-        groups: dict[str, list[str]] = {
-            group.key: group.types or [] for group in self.groups.get_groups()
-        }
-        self.message_broker.publish(GroupsData(groups))
+        groups = self.groups.get_groups()
+        self.message_broker.publish(
+            GroupsData(
+                {group.key: group.types or [] for group in groups},
+                {group.key: group.capabilities for group in groups},
+                {group.key: group.paths for group in groups},
+            )
+        )
 
     def _update_groups(self, dump: str) -> None:
         if dump != self.groups.dumps():

@@ -17,6 +17,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import evdev
 import gi
 
 gi.require_version("Gdk", "3.0")
@@ -101,3 +102,31 @@ class TestDeviceGroupSelection(ComponentBaseTest):
     def test_avoids_infinite_recursion(self):
         self.message_broker.publish(GroupData("bar", ()))
         self.controller_mock.load_group.assert_not_called()
+
+    def test_shows_device_information_in_tooltip(self):
+        self.message_broker.publish(
+            GroupsData(
+                {
+                    "foo": [DeviceType.GAMEPAD, DeviceType.KEYBOARD],
+                },
+                capabilities={
+                    "foo": {
+                        evdev.ecodes.EV_KEY: [
+                            evdev.ecodes.KEY_A,
+                            evdev.ecodes.KEY_B,
+                        ],
+                        evdev.ecodes.EV_ABS: [evdev.ecodes.ABS_X],
+                    }
+                },
+                paths={"foo": ["/dev/input/event1", "/dev/input/event2"]},
+            )
+        )
+
+        entry = self.gui.get_children()[0].get_children()[0]
+        self.assertEqual(
+            entry.get_tooltip_text(),
+            "gamepad\nkeyboard\n"
+            "key: KEY_A, KEY_B\n"
+            "absolute: ABS_X\n"
+            "/dev/input/event1\n/dev/input/event2",
+        )

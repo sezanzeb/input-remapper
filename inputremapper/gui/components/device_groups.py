@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from gi.repository import Gtk
 
+from inputremapper.groups import describe_capabilities
 from inputremapper.gui.components.common import FlowBoxEntry, FlowBoxWrapper
 from inputremapper.gui.components.editor import ICON_NAMES, ICON_PRIORITIES
 from inputremapper.gui.components.main import Stack
@@ -36,6 +37,14 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.logging.logger import logger
 
 
+def _format_device_tooltip(types, capabilities, paths) -> str:
+    """Build the tooltip text for a device group entry."""
+    lines = [device_type.value for device_type in types]
+    lines += describe_capabilities(capabilities)
+    lines += [str(path) for path in paths]
+    return "\n".join(lines)
+
+
 class DeviceGroupEntry(FlowBoxEntry):
     """A device that can be selected in the GUI.
 
@@ -50,6 +59,7 @@ class DeviceGroupEntry(FlowBoxEntry):
         controller: Controller,
         icon_name: str | None,
         group_key: str,
+        tooltip: str | None = None,
     ) -> None:
         super().__init__(
             message_broker=message_broker,
@@ -58,6 +68,8 @@ class DeviceGroupEntry(FlowBoxEntry):
             name=group_key,
         )
         self.group_key = group_key
+        if tooltip:
+            self.set_tooltip_text(tooltip)
 
     def _on_gtk_toggle(self, *_, **__) -> None:
         logger.debug('Selecting device "%s"', self.group_key)
@@ -97,11 +109,17 @@ class DeviceGroupSelection(FlowBoxWrapper):
                 icon_name = None
 
             logger.debug("adding %s to device selection", group_key)
+            tooltip = _format_device_tooltip(
+                types,
+                data.capabilities.get(group_key, {}),
+                data.paths.get(group_key, []),
+            )
             device_group_entry = DeviceGroupEntry(
                 self._message_broker,
                 self._controller,
                 icon_name,
                 group_key,
+                tooltip,
             )
             self._gui.insert(device_group_entry, -1)
 

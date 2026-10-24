@@ -28,9 +28,19 @@ from unittest.mock import MagicMock, patch
 
 from evdev.ecodes import (
     ABS_HAT0X,
+    ABS_HAT0Y,
+    ABS_RX,
+    ABS_RY,
+    ABS_RZ,
     ABS_X,
+    ABS_Y,
+    ABS_Z,
+    BTN_A,
+    BTN_B,
     BTN_LEFT,
     BTN_TOOL_DOUBLETAP,
+    BTN_X,
+    BTN_Y,
     EV_ABS,
     EV_KEY,
     EV_REL,
@@ -39,6 +49,7 @@ from evdev.ecodes import (
     REL_HWHEEL,
     REL_WHEEL,
     REL_X,
+    REL_Y,
 )
 
 from inputremapper.configs.input_config import (
@@ -63,7 +74,7 @@ from inputremapper.injection.global_uinputs import FrontendUInput, GlobalUInputs
 from inputremapper.input_event import InputEvent
 from inputremapper.user import UserUtils
 from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
-from tests.lib.fixtures import fixtures, new_event
+from tests.lib.fixtures import fixtures, keyboard_keys, new_event
 from tests.lib.pipes import push_event, push_events
 from tests.lib.spy import spy
 from tests.lib.test_setup import test_setup
@@ -871,6 +882,17 @@ class TestReaderMultiprocessing(unittest.TestCase):
         self.assertEqual("[]", self.reader_client.groups.dumps())
         self.reader_client._read()
 
+        abs_codes = [
+            ABS_X,
+            ABS_Y,
+            ABS_Z,
+            ABS_RX,
+            ABS_RY,
+            ABS_RZ,
+            ABS_HAT0X,
+            ABS_HAT0Y,
+        ]
+
         self.assertEqual(
             self.reader_client.groups.dumps(),
             json.dumps(
@@ -883,6 +905,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             "names": ["Foo Device"],
                             "types": [DeviceType.KEYBOARD],
                             "key": "Foo Device",
+                            "capabilities": {EV_KEY: [KEY_A]},
                         }
                     ),
                     json.dumps(
@@ -905,6 +928,14 @@ class TestReaderMultiprocessing(unittest.TestCase):
                                 DeviceType.MOUSE,
                             ],
                             "key": "Foo Device 2",
+                            "capabilities": {
+                                EV_KEY: sorted(
+                                    set(keyboard_keys)
+                                    | {BTN_LEFT, BTN_TOOL_DOUBLETAP, BTN_A}
+                                ),
+                                EV_REL: [REL_X, REL_Y, REL_HWHEEL, REL_WHEEL],
+                                EV_ABS: abs_codes,
+                            },
                         }
                     ),
                     json.dumps(
@@ -913,6 +944,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             "names": ["Bar Device"],
                             "types": [DeviceType.KEYBOARD],
                             "key": "Bar Device",
+                            "capabilities": {EV_KEY: keyboard_keys},
                         }
                     ),
                     json.dumps(
@@ -921,6 +953,7 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             "names": ["Qux/[Device]?"],
                             "types": [DeviceType.KEYBOARD],
                             "key": "Qux/[Device]?",
+                            "capabilities": {EV_KEY: keyboard_keys},
                         }
                     ),
                     json.dumps(
@@ -935,6 +968,10 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             ],
                             "types": [DeviceType.GAMEPAD],
                             "key": "gamepad",
+                            "capabilities": {
+                                EV_KEY: [BTN_A, BTN_B, BTN_X, BTN_Y],
+                                EV_ABS: abs_codes,
+                            },
                         }
                     ),
                 ]

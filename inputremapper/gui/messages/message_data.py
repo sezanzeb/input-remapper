@@ -18,7 +18,7 @@
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
@@ -70,6 +70,8 @@ class GroupsData:
 
     message_type = MessageType.groups
     groups: dict[Key, DeviceTypes]
+    capabilities: dict[Key, Capabilities] = field(default_factory=dict)
+    paths: dict[Key, list[str]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

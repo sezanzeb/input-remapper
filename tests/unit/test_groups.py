@@ -29,6 +29,7 @@ from inputremapper.groups import (
     _FindGroups,
     _Group,
     classify,
+    describe_capabilities,
     groups,
     is_inputremapper_device,
 )
@@ -64,6 +65,20 @@ class TestGroups(unittest.TestCase):
             ),
         )
 
+    def test_describe_capabilities_lists_few_capabilities(self):
+        capabilities = {
+            evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A, evdev.ecodes.KEY_B],
+            evdev.ecodes.EV_REL: [evdev.ecodes.REL_X, evdev.ecodes.REL_Y],
+        }
+        self.assertEqual(
+            describe_capabilities(capabilities),
+            ["key: KEY_A, KEY_B", "relative: REL_X, REL_Y"],
+        )
+
+    def test_describe_capabilities_counts_many_capabilities(self):
+        capabilities = {evdev.ecodes.EV_KEY: list(range(100))}
+        self.assertEqual(describe_capabilities(capabilities), ["100 key events"])
+
     def test_find_groups(self):
         pipe = FakePipe()
         _FindGroups(pipe).run()
@@ -82,6 +97,7 @@ class TestGroups(unittest.TestCase):
                         "names": ["Foo Device"],
                         "types": [DeviceType.KEYBOARD],
                         "key": "Foo Device",
+                        "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
                     }
                 ),
                 json.dumps(
@@ -104,6 +120,32 @@ class TestGroups(unittest.TestCase):
                             DeviceType.MOUSE,
                         ],
                         "key": "Foo Device 2",
+                        "capabilities": {
+                            evdev.ecodes.EV_KEY: sorted(
+                                set(keyboard_keys)
+                                | {
+                                    evdev.ecodes.BTN_LEFT,
+                                    evdev.ecodes.BTN_TOOL_DOUBLETAP,
+                                    evdev.ecodes.BTN_A,
+                                }
+                            ),
+                            evdev.ecodes.EV_REL: [
+                                evdev.ecodes.REL_X,
+                                evdev.ecodes.REL_Y,
+                                evdev.ecodes.REL_HWHEEL,
+                                evdev.ecodes.REL_WHEEL,
+                            ],
+                            evdev.ecodes.EV_ABS: [
+                                evdev.ecodes.ABS_X,
+                                evdev.ecodes.ABS_Y,
+                                evdev.ecodes.ABS_Z,
+                                evdev.ecodes.ABS_RX,
+                                evdev.ecodes.ABS_RY,
+                                evdev.ecodes.ABS_RZ,
+                                evdev.ecodes.ABS_HAT0X,
+                                evdev.ecodes.ABS_HAT0Y,
+                            ],
+                        },
                     }
                 ),
                 json.dumps(
@@ -112,6 +154,9 @@ class TestGroups(unittest.TestCase):
                         "names": ["Bar Device"],
                         "types": [DeviceType.KEYBOARD],
                         "key": "Bar Device",
+                        "capabilities": {
+                            evdev.ecodes.EV_KEY: keyboard_keys,
+                        },
                     }
                 ),
                 json.dumps(
@@ -120,6 +165,9 @@ class TestGroups(unittest.TestCase):
                         "names": ["Qux/[Device]?"],
                         "types": [DeviceType.KEYBOARD],
                         "key": "Qux/[Device]?",
+                        "capabilities": {
+                            evdev.ecodes.EV_KEY: keyboard_keys,
+                        },
                     }
                 ),
                 json.dumps(
@@ -134,6 +182,24 @@ class TestGroups(unittest.TestCase):
                         ],
                         "types": [DeviceType.GAMEPAD],
                         "key": "gamepad",
+                        "capabilities": {
+                            evdev.ecodes.EV_KEY: [
+                                evdev.ecodes.BTN_A,
+                                evdev.ecodes.BTN_B,
+                                evdev.ecodes.BTN_X,
+                                evdev.ecodes.BTN_Y,
+                            ],
+                            evdev.ecodes.EV_ABS: [
+                                evdev.ecodes.ABS_X,
+                                evdev.ecodes.ABS_Y,
+                                evdev.ecodes.ABS_Z,
+                                evdev.ecodes.ABS_RX,
+                                evdev.ecodes.ABS_RY,
+                                evdev.ecodes.ABS_RZ,
+                                evdev.ecodes.ABS_HAT0X,
+                                evdev.ecodes.ABS_HAT0Y,
+                            ],
+                        },
                     }
                 ),
             ]

@@ -54,7 +54,7 @@ from evdev.ecodes import (
 
 from inputremapper.configs.paths import PathUtils
 from inputremapper.logging.logger import logger
-from inputremapper.utils import get_device_hash
+from inputremapper.utils import get_device_hash, get_evdev_constant_name
 
 TABLET_KEYS = [
     evdev.ecodes.BTN_STYLUS,
@@ -62,6 +62,62 @@ TABLET_KEYS = [
     evdev.ecodes.BTN_TOOL_PEN,
     evdev.ecodes.BTN_TOOL_RUBBER,
 ]
+
+
+# The event types that input-remapper is able to map and that are shown in the
+# device tooltip. The value is a short, human readable label.
+EVENT_TYPE_LABELS = {
+    evdev.ecodes.EV_KEY: "key",
+    evdev.ecodes.EV_REL: "relative",
+    evdev.ecodes.EV_ABS: "absolute",
+}
+
+# How many capabilities of a single event type are listed by name in a tooltip
+# before falling back to just showing the count.
+MAX_LISTED_CAPABILITIES = 10
+
+
+def _merge_capabilities(capabilities_list) -> dict[int, list[int]]:
+    """Merge the capabilities of multiple devices into a single, sorted dict.
+
+    Only the event types that input-remapper can map (EV_KEY, EV_REL and
+    EV_ABS) are kept. Event types without any capabilities are dropped.
+    """
+    merged: dict[int, set] = {}
+    for capabilities in capabilities_list:
+        for event_type, codes in capabilities.items():
+            if event_type not in EVENT_TYPE_LABELS:
+                continue
+            merged.setdefault(event_type, set()).update(codes)
+
+    return {
+        event_type: sorted(codes)
+        for event_type, codes in sorted(merged.items())
+        if codes
+    }
+
+
+def describe_capabilities(capabilities: dict[int, list[int]]) -> list[str]:
+    """Turn capabilities into readable lines for a device tooltip.
+
+    Event types with only a few capabilities are listed by name, otherwise
+    the number of capabilities is shown instead.
+    """
+    lines = []
+    for event_type, codes in sorted(capabilities.items()):
+        label = EVENT_TYPE_LABELS.get(event_type)
+        if label is None:
+            continue
+
+        if len(codes) <= MAX_LISTED_CAPABILITIES:
+            names = ", ".join(
+                get_evdev_constant_name(event_type, code) for code in codes
+            )
+            lines.append(f"{label}: {names}")
+        else:
+            lines.append(f"{len(codes)} {label} events")
+
+    return lines
 
 
 class DeviceType(str, enum.Enum):
@@ -252,6 +308,7 @@ class _Group:
         names: list[str],
         types: list[DeviceType | str],
         key: str,
+        capabilities: dict[int, list[int]] | None = None,
     ) -> None:
         """Specify a group
 
@@ -283,6 +340,9 @@ class _Group:
         self.paths = paths
         self.names = names
         self.types = [DeviceType(type_) for type_ in types]
+        self.capabilities = {
+            int(event_type): codes for event_type, codes in (capabilities or {}).items()
+        }
 
     def get_preset_path(self, preset: str | None = None) -> str:
         """Get a path to the stored preset, or to store a preset to.
@@ -310,6 +370,7 @@ class _Group:
                 "names": self.names,
                 "types": self.types,
                 "key": self.key,
+                "capabilities": self.capabilities,
             },
         )
 
@@ -434,7 +495,7 @@ class _FindGroups(threading.Thread):
                 key,
             )
 
-            grouped[key].append((device.name, device.path, device_type))
+            grouped[key].append((device.name, device.path, device_type, capabilities))
 
         # now write down all the paths of that group
         result = []
@@ -461,6 +522,7 @@ class _FindGroups(threading.Thread):
                 types=sorted(
                     {item[2] for item in group if item[2] != DeviceType.UNKNOWN}
                 ),
+                capabilities=_merge_capabilities(item[3] for item in group),
             )
 
             result.append(group.dumps())
