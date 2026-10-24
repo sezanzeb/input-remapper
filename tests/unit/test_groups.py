@@ -122,12 +122,12 @@ class TestGroups(unittest.TestCase):
                         "key": "Foo Device 2",
                         "capabilities": {
                             evdev.ecodes.EV_KEY: sorted(
-                                keyboard_keys
-                                + [
+                                set(keyboard_keys)
+                                | {
                                     evdev.ecodes.BTN_LEFT,
                                     evdev.ecodes.BTN_TOOL_DOUBLETAP,
                                     evdev.ecodes.BTN_A,
-                                ]
+                                }
                             ),
                             evdev.ecodes.EV_REL: [
                                 evdev.ecodes.REL_X,
