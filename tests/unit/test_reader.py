@@ -930,8 +930,8 @@ class TestReaderMultiprocessing(unittest.TestCase):
                             "key": "Foo Device 2",
                             "capabilities": {
                                 EV_KEY: sorted(
-                                    keyboard_keys
-                                    + [BTN_LEFT, BTN_TOOL_DOUBLETAP, BTN_A]
+                                    set(keyboard_keys)
+                                    | {BTN_LEFT, BTN_TOOL_DOUBLETAP, BTN_A}
                                 ),
                                 EV_REL: [REL_X, REL_Y, REL_HWHEEL, REL_WHEEL],
                                 EV_ABS: abs_codes,
