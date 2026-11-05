@@ -63,7 +63,11 @@ if TYPE_CHECKING:
     from inputremapper.gui.user_interface import UserInterface
 
 
-MAPPING_DEFAULTS = {"target_uinput": "keyboard"}
+MAPPING_DEFAULTS = {
+    "target_uinput": "keyboard",
+    # most people want to map to a key or a macro, see #657
+    "mapping_type": MappingType.KEY_MACRO.value,
+}
 
 
 class Controller:

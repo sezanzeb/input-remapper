@@ -1079,8 +1079,9 @@ class KeyAxisStackSwitcher:
         # first check the actual mapping
         if mapping.mapping_type == MappingType.ANALOG.value:
             self._set_active(MappingType.ANALOG.value)
-
-        if mapping.mapping_type == MappingType.KEY_MACRO.value:
+        else:
+            # Show "Key or Macro" by default, for example for new mappings
+            # that don't have a mapping_type yet. See #657
             self._set_active(MappingType.KEY_MACRO.value)
 
     def _on_gtk_toggle(self, btn: Gtk.ToggleButton) -> None:

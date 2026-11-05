@@ -32,7 +32,7 @@ from gi.repository import Gtk
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, MappingType
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
 from inputremapper.groups import _Groups
@@ -572,6 +572,18 @@ class TestController(unittest.TestCase):
         self.controller.create_mapping()
 
         self.assertEqual(calls[-1].mapping, Mapping(**MAPPING_DEFAULTS))
+
+    def test_create_mapping_defaults_to_key_or_macro(self):
+        # most people want to map to a key or a macro, so a new mapping
+        # should use that mapping_type by default. See #657
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.create_mapping()
+        self.assertEqual(
+            self.data_manager.active_mapping.mapping_type,
+            MappingType.KEY_MACRO.value,
+        )
 
     def test_create_mapping_should_not_create_multiple_empty_mappings(self):
         prepare_presets()

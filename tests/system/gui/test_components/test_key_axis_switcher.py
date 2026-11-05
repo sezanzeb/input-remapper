@@ -81,6 +81,15 @@ class TestKeyAxisStackSwitcher(ComponentBaseTest):
         self.message_broker.publish(MappingData(Mapping(mapping_type="key_macro")))
         self.assert_key_macro_active()
 
+    def test_defaults_to_key_macro(self):
+        # a new mapping doesn't have a mapping_type yet, but most people
+        # want to map to a key or a macro, so it should be shown by default
+        # instead of the analog axis controls. See #657
+        self.message_broker.publish(MappingData(Mapping(mapping_type="analog")))
+        self.assert_analog_active()
+        self.message_broker.publish(MappingData(Mapping()))
+        self.assert_key_macro_active()
+
     def test_updates_mapping_type(self):
         self.key_toggle.set_active(True)
         self.controller_mock.update_mapping.assert_called_once_with(
