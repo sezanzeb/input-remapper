@@ -1,16 +1,24 @@
 Development
 ===========
 
-Please ping me before working on bigger changes and new features to discuss them
-first. Bugfixes are always welcome of course. I try not to be nitpicky during
-reviews, unless it's about the gui, UX and software architecture.
+Please ping me before working on bigger changes and new features to discuss them first.
+Bugfixes are always welcome of course. I try not to be nitpicky during reviews, unless
+it's about the gui, UX and software architecture. If my review is frustrating, don't
+hold back to tell me. Contributions of beginners are welcome too.
 
-All pull requests will at some point require unittests (see below for more info).
-It also has to be mostly compliant with pylint, use typehints for new code, and
-pass black and ruff.
+All pull requests will at some point require unittests (see below for more info). It
+also has to be mostly compliant with pylint, use typehints, and pass black and ruff.
 
-When a pull request is created, an automated pipeline will run and check for
-errors and style. This pipeline has to pass before anything will be merged.
+I won't accept pull requests of
+- non-linux users who can't test their changes locally and run the system tests
+- people who are not input-remapper users and therefore cannot judge if their changes
+fit the tool, and who can't engage in any meaningful discussion about the tool. Your
+time is better spent on other open source projects that you actually use
+- AI written code that isn't understood by the contributor
+
+When a pull request is created, an automated pipeline will run and check for errors and
+style. This pipeline has to pass before anything will be merged. The pipeline is not a
+guarantee that the code works.
 
 This file should give an overview of some internals of input-remapper.
 
