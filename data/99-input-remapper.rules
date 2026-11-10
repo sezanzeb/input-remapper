@@ -7,4 +7,11 @@
 #   journalctl -f
 # to get available variables:
 #   udevadm monitor --environment --udev --subsystem input
-ACTION=="add", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_PATH}!="platform-sound", ATTRS{phys}!="input-remapper*", RUN+="/bin/input-remapper-control --command autoload --device $env{DEVNAME}"
+# RUN+= blocks udev until the command exits, and `input-remapper-control` is a
+# python process that takes a while to start. During boot every existing input
+# device triggers this rule, which delays udev (and with it, the desktop
+# getting its keyboard and mouse). On systemd, hand the command over to
+# systemd-run so that udev does not wait for it.
+ACTION=="add", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_PATH}!="platform-sound", ATTRS{phys}!="input-remapper*", TEST=="/run/systemd/system", RUN+="/usr/bin/systemd-run --no-block --collect /bin/input-remapper-control --command autoload --device $env{DEVNAME}"
+# Without systemd, keep the previous behavior.
+ACTION=="add", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_PATH}!="platform-sound", ATTRS{phys}!="input-remapper*", TEST!="/run/systemd/system", RUN+="/bin/input-remapper-control --command autoload --device $env{DEVNAME}"
