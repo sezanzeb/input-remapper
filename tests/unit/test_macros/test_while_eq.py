@@ -46,16 +46,18 @@ class TestWhileEq(MacroTestBase):
         )
 
         async def stop_soon():
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.2)
             # simulating a *different* mapping's `set()` stopping this loop
             macro_variables.set("while_eq_b", 0)
 
         asyncio.ensure_future(stop_soon())
-        await asyncio.wait_for(macro.run(self.handler), timeout=1)
+        await asyncio.wait_for(macro.run(self.handler), timeout=2)
 
-        # it actually ran the child macro at least once while the
-        # condition was true
-        self.assertGreater(len(self.result), 0)
+        # It keeps looping while the condition holds: a child macro that is
+        # only run once would produce a single press/release pair. Each
+        # iteration takes ~10ms, so 0.2s should comfortably allow 5+ loops.
+        # (every iteration emits 2 events: key down and key up)
+        self.assertGreaterEqual(len(self.result), 5 * 2)
 
         # and it returned (not just idling) once the condition became false,
         # unlike `repeat`, which keeps a fixed count running regardless
