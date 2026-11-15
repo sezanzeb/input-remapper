@@ -37,6 +37,7 @@ from dasbus.identifier import DBusServiceIdentifier
 from dasbus.loop import EventLoop
 from dasbus.server.interface import dbus_signal
 from dasbus.signal import Signal
+from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
@@ -274,11 +275,18 @@ class Daemon:
             # https://dbus.freedesktop.org/doc/dbus-tutorial.html#introspection
             proxy.Introspect(timeout=BUS_TIMEOUT)
             logger.info("Connected to the service")
-        except DBusError as error:
+        except (DBusError, GLib.Error) as error:
+            # GLib.Error is raised by dasbus/Gio when the system bus is not
+            # available at all, for example when udev runs the autoload command
+            # during coldplug before dbus.socket exists.
+            message = "Service not running, or system bus not available? %s"
             if not fallback:
-                logger.error("Service not running? %s", error)
+                logger.error(message, error)
                 return None
 
+            # The retries below only log at debug level, so make the reason for
+            # the fallback visible at the default log level.
+            logger.warning(message, error)
             logger.info("Starting the service")
             # Blocks until pkexec is done asking for the password.
             # Runs via input-remapper-control so that auth_admin_keep works
@@ -300,7 +308,7 @@ class Daemon:
                     proxy = DAEMON.get_proxy()
                     proxy.Introspect(timeout=BUS_TIMEOUT)
                     break
-                except DBusError as error:
+                except (DBusError, GLib.Error) as error:
                     logger.debug("Attempt %d to reach the service failed:", attempt + 1)
                     logger.debug('"%s"', error)
                 time.sleep(0.2)

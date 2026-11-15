@@ -26,13 +26,14 @@ from unittest.mock import MagicMock, patch
 import evdev
 from evdev._ecodes import EV_ABS
 from evdev.ecodes import ABS_X, BTN_A, BTN_B, EV_KEY, KEY_A, KEY_B
+from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.keyboard_layout import keyboard_layout
 from inputremapper.configs.paths import PathUtils
 from inputremapper.configs.preset import Preset
-from inputremapper.daemon import DAEMON, Daemon
+from inputremapper.daemon import DAEMON, SYSTEM_BUS, Daemon
 from inputremapper.groups import groups
 from inputremapper.injection.global_uinputs import GlobalUInputs, UInput
 from inputremapper.injection.injector import InjectorState
@@ -101,6 +102,42 @@ class TestDaemon(unittest.TestCase):
 
             self.assertIsInstance(Daemon.connect(False), FakeConnection)
             self.assertEqual(set_config_dir_callcount, 2)
+
+    def test_connect_when_system_bus_is_unavailable(self):
+        """Fail cleanly if the system bus doesn't exist yet.
+
+        udev runs input-remapper-control during coldplug, which may happen
+        before /run/dbus/system_bus_socket exists. dasbus raises a GLib.Error
+        from Gio in that case, which used to escape as an unhandled exception.
+        """
+        with (
+            patch.object(SYSTEM_BUS, "_connection", None),
+            patch.object(
+                SYSTEM_BUS,
+                "_get_connection",
+                side_effect=GLib.Error("Could not connect: No such file or directory"),
+            ),
+        ):
+            self.assertIsNone(Daemon.connect(False))
+
+    @patch.object(os, "system")
+    def test_connect_fallback_when_system_bus_is_unavailable(
+        self, os_system_mock: MagicMock
+    ):
+        """Fail cleanly when the fallback also cannot reach the system bus."""
+        with (
+            patch.object(SYSTEM_BUS, "_connection", None),
+            patch.object(
+                SYSTEM_BUS,
+                "_get_connection",
+                side_effect=GLib.Error("Could not connect: No such file or directory"),
+            ),
+        ):
+            with self.assertRaises(SystemExit) as context:
+                Daemon.connect()
+
+        self.assertEqual(context.exception.code, 8)
+        os_system_mock.assert_called_once()
 
     def test_daemon_two_injections(self):
         # remove the existing system mapping to force our own into it
