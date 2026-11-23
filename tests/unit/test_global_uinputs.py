@@ -22,11 +22,17 @@ import unittest
 import evdev
 from evdev.ecodes import (
     ABS_X,
+    BTN_LEFT,
+    BTN_SOUTH,
+    EV_KEY,
+    EV_REL,
     KEY_A,
+    REL_X,
 )
 
 from inputremapper.exceptions import EventNotHandled, UinputNotAvailable
 from inputremapper.injection.global_uinputs import (
+    AUTO_UINPUT,
     FrontendUInput,
     GlobalUInputs,
     UInput,
@@ -85,6 +91,30 @@ class TestGlobalUInputs(unittest.TestCase):
 
         with self.assertRaises(UinputNotAvailable):
             global_uinputs.write(ev_1.event_tuple, "foo")
+
+    def test_auto_sends_each_event_to_the_device_that_has_it(self):
+        resolve = GlobalUInputs.resolve_target
+        self.assertEqual(resolve(AUTO_UINPUT, EV_KEY, KEY_A), "keyboard")
+        self.assertEqual(resolve(AUTO_UINPUT, EV_KEY, BTN_LEFT), "mouse")
+        self.assertEqual(resolve(AUTO_UINPUT, EV_REL, REL_X), "mouse")
+        self.assertEqual(resolve("gamepad", EV_KEY, KEY_A), "gamepad")
+
+        can_emit = GlobalUInputs.can_default_uinput_emit
+        self.assertTrue(can_emit(AUTO_UINPUT, EV_KEY, KEY_A))
+        self.assertTrue(can_emit(AUTO_UINPUT, EV_KEY, BTN_LEFT))
+        self.assertFalse(can_emit(AUTO_UINPUT, EV_KEY, BTN_SOUTH))  # a gamepad button
+
+    def test_auto_writes_a_button_down_and_up_to_the_same_device(self):
+        global_uinputs = GlobalUInputs(UInput)
+        global_uinputs.prepare_single(AUTO_UINPUT)
+        self.assertEqual(set(global_uinputs.devices), {"keyboard", "mouse"})
+
+        global_uinputs.write((EV_KEY, BTN_LEFT, 1), AUTO_UINPUT)
+        global_uinputs.write((EV_KEY, KEY_A, 1), AUTO_UINPUT)
+        global_uinputs.write((EV_KEY, BTN_LEFT, 0), "mouse")
+
+        with self.assertRaises(EventNotHandled):
+            global_uinputs.write((EV_KEY, BTN_SOUTH, 1), AUTO_UINPUT)
 
     def test_creates_frontend_uinputs(self):
         frontend_uinputs = GlobalUInputs(FrontendUInput)

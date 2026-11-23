@@ -58,6 +58,13 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
 }
 
 
+# A target that is not a device: every event goes to whichever of the keyboard and
+# mouse can emit it. Keys and mouse buttons then each have exactly one device, so a
+# key held by one mapping is released by another, whichever they are on.
+AUTO_UINPUT = "auto"
+_AUTO_DEVICES = ("keyboard", "mouse")
+
+
 class UInput(evdev.UInput):
     _capabilities_cache: dict | None = None
 
@@ -115,6 +122,8 @@ class GlobalUInputs:
     @staticmethod
     def can_default_uinput_emit(target: str, type_: int, code: int) -> bool:
         """Check if the uinput with the target name is capable of the event."""
+        if target == AUTO_UINPUT:
+            return GlobalUInputs.resolve_target(target, type_, code) != AUTO_UINPUT
         capabilities = DEFAULT_UINPUTS.get(target, {}).get(type_)
         return capabilities is not None and code in capabilities
 
@@ -126,6 +135,16 @@ class GlobalUInputs:
             for uinput in DEFAULT_UINPUTS
             if code in DEFAULT_UINPUTS[uinput].get(type_, [])
         ]
+
+    @staticmethod
+    def resolve_target(target: str, type_: int, code: int) -> str:
+        """The device an event is written to. Only "auto" depends on the event."""
+        if target != AUTO_UINPUT:
+            return target
+        for device in _AUTO_DEVICES:
+            if GlobalUInputs.can_default_uinput_emit(device, type_, code):
+                return device
+        return target
 
     def reset(self) -> None:
         self.devices = {}
@@ -148,6 +167,11 @@ class GlobalUInputs:
 
         This has to be done in the main process before injections that use it start.
         """
+        if name == AUTO_UINPUT:
+            for device in _AUTO_DEVICES:
+                self.prepare_single(device)
+            return
+
         if name not in DEFAULT_UINPUTS:
             raise KeyError("Could not find a matching uinput to generate.")
 
@@ -163,6 +187,10 @@ class GlobalUInputs:
 
     def write(self, event: tuple[int, int, int], target_uinput) -> None:
         """Write event to target uinput."""
+        target_uinput = self.resolve_target(target_uinput, event[0], event[1])
+        if target_uinput == AUTO_UINPUT:
+            raise inputremapper.exceptions.EventNotHandled(event)
+
         uinput = self.get_uinput(target_uinput)
         if not uinput:
             raise inputremapper.exceptions.UinputNotAvailable(target_uinput)

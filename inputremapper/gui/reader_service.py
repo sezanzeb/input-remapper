@@ -74,6 +74,7 @@ from inputremapper.utils import DeviceHash, get_device_hash
 CMD_TERMINATE = "terminate"
 CMD_STOP_READING = "stop-reading"
 CMD_REFRESH_GROUPS = "refresh_groups"
+CMD_READ_ALL = "read-all"
 
 # sent by the reader-service to the reader
 MSG_GROUPS = "groups"
@@ -244,6 +245,12 @@ class ReaderService:
                 await self._stop_reading()
                 continue
 
+            if cmd == CMD_READ_ALL:
+                await self._stop_reading()
+                for group in self.groups.get_groups():
+                    self._start_reading(group, tag_events=True)
+                continue
+
             group = self.groups.find(key=cmd)
             if group is None:
                 # this will block for a bit maybe we want to do this async?
@@ -272,9 +279,9 @@ class ReaderService:
         """Check if the ReaderService is currently sending events to the GUI."""
         return len(self._tasks) > 0
 
-    def _start_reading(self, group: _Group) -> None:
+    def _start_reading(self, group: _Group, tag_events: bool = False) -> None:
         """Find all devices of that group, filter interesting ones and send the events
-        to the gui."""
+        to the gui. With `tag_events` they say which group they came from."""
         sources = []
         for path in group.paths:
             try:
@@ -291,7 +298,9 @@ class ReaderService:
             ):
                 sources.append(device)
 
-        context = self._create_event_pipeline(sources)
+        context = self._create_event_pipeline(
+            sources, group.key if tag_events else None
+        )
         # create the event reader and start it
         for device in sources:
             reader = EventReader(context, device, self._stop_event)
@@ -307,7 +316,9 @@ class ReaderService:
         self._tasks = set()
         self._stop_event.clear()
 
-    def _create_event_pipeline(self, sources: list[evdev.InputDevice]) -> ContextDummy:
+    def _create_event_pipeline(
+        self, sources: list[evdev.InputDevice], group_key: str | None = None
+    ) -> ContextDummy:
         """Create a custom event pipeline for each event code in the capabilities.
 
         Instead of sending the events to an uinput they will be sent to the frontend.
@@ -326,7 +337,7 @@ class ReaderService:
                 )
                 context_dummy.add_handler(
                     input_config,
-                    ForwardToUIHandler(self._results_pipe),
+                    ForwardToUIHandler(self._results_pipe, group_key),
                 )
 
             for ev_code in capabilities.get(EV_ABS) or ():
@@ -347,7 +358,9 @@ class ReaderService:
                     mapping,
                     self.global_uinputs,
                 )
-                handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
+                handler.set_sub_handler(
+                    ForwardToUIHandler(self._results_pipe, group_key)
+                )
                 context_dummy.add_handler(input_config, handler)
 
                 # negative direction
@@ -362,7 +375,9 @@ class ReaderService:
                     mapping,
                     self.global_uinputs,
                 )
-                handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
+                handler.set_sub_handler(
+                    ForwardToUIHandler(self._results_pipe, group_key)
+                )
                 context_dummy.add_handler(input_config, handler)
 
             for ev_code in capabilities.get(EV_REL) or ():
@@ -385,7 +400,9 @@ class ReaderService:
                     mapping,
                     self.global_uinputs,
                 )
-                handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
+                handler.set_sub_handler(
+                    ForwardToUIHandler(self._results_pipe, group_key)
+                )
                 context_dummy.add_handler(input_config, handler)
 
                 # negative direction
@@ -404,7 +421,9 @@ class ReaderService:
                     mapping,
                     self.global_uinputs,
                 )
-                handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
+                handler.set_sub_handler(
+                    ForwardToUIHandler(self._results_pipe, group_key)
+                )
                 context_dummy.add_handler(input_config, handler)
 
         return context_dummy

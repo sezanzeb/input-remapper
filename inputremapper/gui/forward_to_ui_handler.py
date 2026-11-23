@@ -37,6 +37,8 @@ different input-events into simple on/off events and sends them to the gui.
 
 from __future__ import annotations
 
+from typing import Any
+
 import evdev
 from evdev.ecodes import EV_ABS
 
@@ -53,6 +55,8 @@ from inputremapper.logging.logger import logger
 CMD_TERMINATE = "terminate"
 CMD_STOP_READING = "stop-reading"
 CMD_REFRESH_GROUPS = "refresh_groups"
+# Read every device group at once. Events then carry the "group" they came from.
+CMD_READ_ALL = "read-all"
 
 # sent by the reader-service to the reader
 MSG_GROUPS = "groups"
@@ -63,8 +67,13 @@ MSG_STATUS = "status"
 class ForwardToUIHandler(MappingHandler):
     """Implements the MappingHandler protocol. Sends all events into the pipe."""
 
-    def __init__(self, pipe: Pipe) -> None:
+    def __init__(self, pipe: Pipe, group_key: str | None = None) -> None:
+        # Only set when reading all groups at once (CMD_READ_ALL), to tag events with
+        # their group. It is optional because the v1 GUI builds `InputEvent(**message)`
+        # from the message, so it would choke on an extra "group" key. Once the v1 GUI
+        # is removed this can become required and always be sent.
         self.pipe = pipe
+        self.group_key = group_key
         self._last_event = InputEvent.from_tuple((99, 99, 99))
 
     def notify(
@@ -101,7 +110,7 @@ class ForwardToUIHandler(MappingHandler):
 
         self._last_event = event
 
-        message = {
+        message: dict[str, Any] = {
             "sec": event.sec,
             "usec": event.usec,
             "type": event.type,
@@ -111,6 +120,8 @@ class ForwardToUIHandler(MappingHandler):
             "direction": direction,
             "origin_hash": event.origin_hash,
         }
+        if self.group_key is not None:
+            message["group"] = self.group_key
         logger.debug("Sending %s to frontend", message)
         self.pipe.send(
             {
