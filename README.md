@@ -21,6 +21,12 @@
 
 <br/>
 
+## Beta GUI (work in progress)
+
+A profile-first redesign of the GUI with a block-based macro editor is in development
+in `inputremapper/gui_v3`, and will be started separately from the existing GUI.
+[See the design sketches](https://claude.ai/artifact/C3tBp3f8xrta4TLMp3QuLw).
+
 ## Installation
 
 ### Ubuntu/Debian
