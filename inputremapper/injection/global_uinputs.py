@@ -62,7 +62,7 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
 # mouse can emit it. Keys and mouse buttons then each have exactly one device, so a
 # key held by one mapping is released by another, whichever they are on.
 AUTO_UINPUT = "auto"
-_AUTO_DEVICES = ("keyboard", "mouse")
+AUTO_DEVICES = ("keyboard", "mouse")
 
 
 class UInput(evdev.UInput):
@@ -141,7 +141,7 @@ class GlobalUInputs:
         """The device an event is written to. Only "auto" depends on the event."""
         if target != AUTO_UINPUT:
             return target
-        for device in _AUTO_DEVICES:
+        for device in AUTO_DEVICES:
             if GlobalUInputs.can_default_uinput_emit(device, type_, code):
                 return device
         return target
@@ -168,7 +168,7 @@ class GlobalUInputs:
         This has to be done in the main process before injections that use it start.
         """
         if name == AUTO_UINPUT:
-            for device in _AUTO_DEVICES:
+            for device in AUTO_DEVICES:
                 self.prepare_single(device)
             return
 
