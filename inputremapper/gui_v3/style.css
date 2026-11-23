@@ -1,0 +1,18 @@
+.v3-block { border-radius: 6px; padding: 6px 8px; border-left: 5px solid #8a8a8a;
+    background-color: alpha(#8a8a8a, 0.14); }
+.v3-block-title { font-weight: bold; }
+.v3-block.v3-incomplete { box-shadow: inset 0 0 0 2px #e01b24; }
+.v3-slot { margin-left: 14px; padding: 2px 0 2px 8px;
+    border-left: 3px solid alpha(currentColor, 0.2); }
+.v3-gap { min-height: 6px; border-radius: 3px; background: transparent; }
+.v3-gap-hot { min-height: 22px; background-color: alpha(#4c97ff, 0.35); }
+.v3-variable-tag { border: 1px solid #9966ff; border-radius: 12px;
+    background-image: none; background-color: alpha(#9966ff, 0.22);
+    padding-left: 10px; padding-right: 10px; font-weight: bold; }
+.v3-handle { opacity: 0.55; }
+.v3-handle:hover { opacity: 1; }
+
+.v3-record image { color: #e01b24; }
+.v3-input-frame { border: 1px solid @borders; border-radius: 4px; }
+.v3-input { background-color: @theme_base_color; }
+.v3-input-frame:focus-within { border-color: @theme_selected_bg_color; }
