@@ -30,6 +30,7 @@ from inputremapper.gui.controller import Controller
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.messages.message_data import MappingData, UInputsData
 from inputremapper.gui.utils import debounce
+from inputremapper.injection.global_uinputs import AUTO_DEVICES, AUTO_UINPUT
 from inputremapper.injection.macros.parse import Parser
 from inputremapper.logging.logger import logger
 
@@ -402,8 +403,19 @@ class Autocompletion(Gtk.Popover):
             label.show_all()
 
     def _update_capabilities(self) -> None:
-        if self._target_uinput and self._uinputs:
-            self._target_key_capabilities = self._uinputs[self._target_uinput][EV_KEY]
+        if not self._target_uinput or not self._uinputs:
+            return
+
+        if self._target_uinput == AUTO_UINPUT:
+            # not a device, events go to whichever of these can emit them
+            names = [name for name in AUTO_DEVICES if name in self._uinputs]
+        else:
+            names = [self._target_uinput]
+
+        keys: list[int] = []
+        for name in names:
+            keys.extend(self._uinputs.get(name, {}).get(EV_KEY, []))
+        self._target_key_capabilities = keys
 
     def _on_mapping_changed(self, mapping_data: MappingData) -> None:
         self._target_uinput = mapping_data.mapping.target_uinput

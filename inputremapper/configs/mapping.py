@@ -97,6 +97,8 @@ class KnownUinput(str, enum.Enum):
     MOUSE = "mouse"
     GAMEPAD = "gamepad"
     KEYBOARD_MOUSE = "keyboard + mouse"
+    # Each event goes to the keyboard or the mouse, whichever can emit it.
+    AUTO = "auto"
 
 
 class MappingType(str, enum.Enum):
