@@ -768,7 +768,7 @@ class TestDaemon(unittest.TestCase):
                 self.daemon.publish(timeout=2.0)
 
             self.assertEqual(ctx.exception.code, 9)
-            bus_mock.unregister_service.assert_called_once_with(DAEMON.object_path)
+            bus_mock.unpublish_object.assert_called_once_with(DAEMON.object_path)
 
     def test_run_disconnects_bus_on_sigterm(self):
         self.daemon = Daemon(
@@ -778,6 +778,8 @@ class TestDaemon(unittest.TestCase):
         )
 
         with patch("inputremapper.daemon.SYSTEM_BUS") as bus_mock:
+            # Daemon.run() registers GLib.unix_signal_add for SIGTERM to call
+            # loop.quit(), so this exits run() cleanly instead of killing the test runner.
             GLib.idle_add(lambda: os.kill(os.getpid(), signal.SIGTERM) and False)
             self.daemon.run()
             bus_mock.disconnect.assert_called_once()

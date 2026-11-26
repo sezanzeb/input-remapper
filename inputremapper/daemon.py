@@ -326,11 +326,7 @@ class Daemon:
 
     def publish(self, timeout: float = 2.0) -> None:
         """Make the dbus interface available."""
-        try:
-            SYSTEM_BUS.publish_object(DAEMON.object_path, self)
-        except ConnectionError as error:
-            logger.error("Is the service already running? (%s)", str(error))
-            sys.exit(9)
+        SYSTEM_BUS.publish_object(DAEMON.object_path, self)
 
         deadline = time.monotonic() + timeout
         while True:
@@ -339,7 +335,7 @@ class Daemon:
                 return
             except ConnectionError as error:
                 if time.monotonic() >= deadline:
-                    SYSTEM_BUS.unregister_service(DAEMON.object_path)
+                    SYSTEM_BUS.unpublish_object(DAEMON.object_path)
                     logger.error("Is the service already running? (%s)", str(error))
                     sys.exit(9)
                 time.sleep(0.05)
