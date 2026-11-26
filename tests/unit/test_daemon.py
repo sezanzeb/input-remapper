@@ -19,6 +19,7 @@
 
 import json
 import os
+import signal
 import time
 import unittest
 from unittest.mock import MagicMock, patch
@@ -723,6 +724,65 @@ class TestDaemon(unittest.TestCase):
         # stopping it emits state_changed again
         self.daemon.stop_injecting(group.key)
         self.assertEqual(calls, [group.key, group.key])
+
+    def test_publish_retries_until_bus_name_available(self):
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
+
+        with (
+            patch("inputremapper.daemon.SYSTEM_BUS") as bus_mock,
+            patch("inputremapper.daemon.time.sleep") as sleep_mock,
+            patch("inputremapper.daemon.time.monotonic", side_effect=[0.0, 0.05]),
+        ):
+            bus_mock.register_service.side_effect = [
+                ConnectionError("Name request has failed: 2"),
+                None,
+            ]
+
+            self.daemon.publish(timeout=2.0)
+
+            bus_mock.publish_object.assert_called_once()
+            self.assertEqual(bus_mock.register_service.call_count, 2)
+            sleep_mock.assert_called_once_with(0.05)
+
+    def test_publish_exits_after_timeout(self):
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
+
+        with (
+            patch("inputremapper.daemon.SYSTEM_BUS") as bus_mock,
+            patch("inputremapper.daemon.time.sleep"),
+            patch("inputremapper.daemon.time.monotonic", side_effect=[0.0, 2.5]),
+        ):
+            bus_mock.register_service.side_effect = ConnectionError(
+                "Name request has failed: 3"
+            )
+
+            with self.assertRaises(SystemExit) as ctx:
+                self.daemon.publish(timeout=2.0)
+
+            self.assertEqual(ctx.exception.code, 9)
+            bus_mock.unpublish_object.assert_called_once_with(DAEMON.object_path)
+
+    def test_run_disconnects_bus_on_sigterm(self):
+        self.daemon = Daemon(
+            self.global_config,
+            self.global_uinputs,
+            self.mapping_parser,
+        )
+
+        with patch("inputremapper.daemon.SYSTEM_BUS") as bus_mock:
+            # Daemon.run() registers GLib.unix_signal_add for SIGTERM to call
+            # loop.quit(), so this exits run() cleanly instead of killing the test runner.
+            GLib.idle_add(lambda: os.kill(os.getpid(), signal.SIGTERM) and False)
+            self.daemon.run()
+            bus_mock.disconnect.assert_called_once()
 
 
 if __name__ == "__main__":
