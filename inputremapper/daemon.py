@@ -25,6 +25,7 @@ https://github.com/dasbus-project/dasbus/tree/master/examples/03_helloworld
 import atexit
 import json
 import os
+import signal
 import sys
 import time
 from pathlib import PurePath
@@ -323,20 +324,42 @@ class Daemon:
 
         return proxy
 
-    def publish(self) -> None:
+    def publish(self, timeout: float = 2.0) -> None:
         """Make the dbus interface available."""
         try:
             SYSTEM_BUS.publish_object(DAEMON.object_path, self)
-            SYSTEM_BUS.register_service(DAEMON.service_name)
         except ConnectionError as error:
             logger.error("Is the service already running? (%s)", str(error))
             sys.exit(9)
 
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                SYSTEM_BUS.register_service(DAEMON.service_name)
+                return
+            except ConnectionError as error:
+                if time.monotonic() >= deadline:
+                    SYSTEM_BUS.unregister_service(DAEMON.object_path)
+                    logger.error("Is the service already running? (%s)", str(error))
+                    sys.exit(9)
+                time.sleep(0.05)
+
+    def _disconnect_bus(self) -> None:
+        try:
+            SYSTEM_BUS.disconnect()
+        except (DBusError, GLib.Error):
+            pass
+
     def run(self) -> None:
         """Start the daemons loop. Blocks until the daemon stops."""
         loop = EventLoop()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, loop.quit)
         logger.debug("Running daemon")
-        loop.run()
+        try:
+            loop.run()
+        finally:
+            self._disconnect_bus()
 
     def refresh(self, group_key: str | None = None) -> None:
         """Refresh groups if the specified group is unknown.
